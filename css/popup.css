@@ -1,0 +1,458 @@
+:root {
+  --main-font-family: "Noto Sans SC", "Source Han Sans SC", "Source Han Sans CN", "思源黑体", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", "微软雅黑", sans-serif;
+  --header-bg: #212121;
+  --bg-color: #f9f9f9;
+  --text-color: #333;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  font-family: var(--main-font-family);
+  background-color: var(--bg-color);
+}
+
+.box {
+  width: 350px;
+  overflow: hidden;
+  background-color: #fff;
+  border: none;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: none;
+  outline: none;
+}
+
+/* Header Styles */
+.header {
+  flex-shrink: 0;
+  height: 50px;
+  background-color: var(--header-bg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 15px;
+  color: #fff;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-logo {
+  width: 32px;
+  height: 32px;
+}
+
+.header-title {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.filter {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: all 0.2s;
+}
+
+.filter svg {
+  height: 14px;
+  fill: white;
+}
+
+.filter:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Status Bar & Mode Selection */
+.status-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 15px;
+  background-color: #f0f2f5;
+  border-bottom: 1px solid #e1e4e8;
+}
+
+.current-status {
+  flex: 1;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.status-label {
+  font-size: 10px;
+  color: #666;
+}
+
+.status-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+/* Three-state Toggle Switch */
+.mode-selector {
+  display: flex;
+  background-color: #e1e4e8;
+  border-radius: 4px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.mode-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 3px;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.mode-btn.active {
+  background-color: #fff;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.mode-btn[data-mode="disabled"].active {
+  color: #ff9800;
+}
+
+.mode-btn[data-mode="manual"].active {
+  color: #4164f5;
+}
+
+.mode-btn[data-mode="auto"].active {
+  color: #28a745;
+}
+
+.mode-btn:hover:not(.active) {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Initialization Box */
+.init_box {
+  display: none;
+  padding: 40px 0;
+}
+
+.add_btn {
+  width: 180px;
+  height: 36px;
+  line-height: 36px;
+  background-color: #4164f5;
+  border-radius: 4px;
+  margin: 20px auto 0;
+  font-size: 13px;
+  color: #fff;
+  cursor: pointer;
+}
+
+/* Main Settings Box Container */
+.set_box {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+/* Proxy List Area */
+.set_box_user {
+  padding: 10px 15px;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  max-height: 340px;
+  /* Limit height to show approx 4.5 items */
+}
+
+.set_box_user_list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Compact List Item */
+.set_box_user_box {
+  background-color: #fff;
+  border-radius: 6px;
+  border: 1px solid #e1e4e8;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: auto;
+  min-height: 50px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.set_box_user_box:hover {
+  border-color: #4164f5;
+}
+
+.name_txt {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 5px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.proxy-details {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ip_txt {
+  font-size: 11px;
+  font-family: monospace;
+  color: #64748b;
+  text-align: left;
+}
+
+/* Colorful badge */
+.proxy-badge {
+  font-size: 9px;
+  font-weight: bold;
+  color: white;
+  padding: 1px 5px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.proxy-badge.http {
+  background-color: #3b82f6;
+}
+
+.proxy-badge.https {
+  background-color: #8b5cf6;
+}
+
+.proxy-badge.socks5 {
+  background-color: #f59e0b;
+}
+
+.auth-badge {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 9px;
+  color: #166534;
+  background-color: #dcfce7;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+/* Selected Item State */
+.set_box_user_box.selected {
+  background-color: #e8f0fe;
+  border-color: #4164f5;
+}
+
+.radio-indicator {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #ccc;
+  position: relative;
+  margin-left: 10px;
+}
+
+.set_box_user_box.selected .radio-indicator {
+  border-color: #4164f5;
+}
+
+.set_box_user_box.selected .radio-indicator::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #4164f5;
+}
+
+/* Disabled State for List */
+.list-disabled .set_box_user_box {
+  pointer-events: none;
+}
+
+/* Auto Mode - no opacity reduction, just disable clicks */
+.mode-auto .set_box_user_box {
+  opacity: 1;
+}
+
+.mode-auto .set_box_user_box.selected {
+  /* Keep selected styling consistent with manual mode */
+}
+
+/* Manual disabled mode - apply opacity */
+.list-disabled:not(.mode-auto) .set_box_user_box {
+  opacity: 0.7;
+}
+
+.list-disabled:not(.mode-auto) .set_box_user_box.selected {
+  opacity: 1;
+}
+
+/* Bottom Buttons */
+.list-bottom-buttons {
+  flex-shrink: 0;
+  width: 100%;
+  padding: 10px 15px;
+  box-sizing: border-box;
+  background: #f9f9f9;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.version-info {
+  color: #888;
+  font-size: 11px;
+}
+
+.github-link {
+  color: #888;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+
+/* Dark Theme Styles */
+body[data-theme="dark"] {
+  --header-bg: #1a1a1a;
+  --bg-color: #1e1e2e;
+  --text-color: #e4e4e7;
+  background-color: var(--bg-color);
+  outline: none;
+}
+
+body[data-theme="dark"] .header {
+  background-color: var(--header-bg);
+}
+
+body[data-theme="dark"] .box {
+  background-color: #2a2a3c;
+  border-color: #2a2a3c;
+}
+
+body[data-theme="dark"] .status-bar {
+  background-color: #212121;
+  border-color: #a0a0a0;
+}
+
+body[data-theme="dark"] .set_box_user {
+  background-color: #2d2d2d;
+}
+
+body[data-theme="dark"] .set_box_user.list-disabled.mode-auto .set_box_user_box {
+  background-color: #2d2d2d;
+}
+
+body[data-theme="dark"] .status-label {
+  color: #d4d4d4;
+}
+
+body[data-theme="dark"] .status-value {
+  color: #e4e4e7;
+}
+
+body[data-theme="dark"] .mode-selector {
+  background-color: #3f3f5a;
+}
+
+body[data-theme="dark"] .mode-btn {
+  color: #a1a1aa;
+}
+
+body[data-theme="dark"] .mode-btn.active {
+  background-color: #fff;
+  color: #333;
+}
+
+body[data-theme="dark"] .set_box_user_box {
+  background-color: #2d2d2d;
+  border-color: #4a4a4a;
+}
+
+body[data-theme="dark"] .set_box_user_box:hover {
+  border-color: #b0b0b0;
+}
+
+body[data-theme="dark"] .set_box_user_box.selected {
+  background-color: rgba(176, 176, 176, 0.15);
+  border-color: #b0b0b0;
+}
+
+body[data-theme="dark"] .name_txt {
+  color: #e4e4e7;
+}
+
+body[data-theme="dark"] .ip_txt {
+  color: #a1a1aa;
+}
+
+body[data-theme="dark"] .list-bottom-buttons {
+  background-color: #262626;
+  border-color: #3f3f5a;
+  color: #e4e4e7;
+}
+
+body[data-theme="dark"] .version-info {
+  color: #d4d4d4;
+  font-size: 11px;
+}
+
+body[data-theme="dark"] .github-link {
+  color: #d4d4d4;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+
+body[data-theme="dark"] .add_btn {
+  background-color: #818cf8;
+}
+
+body[data-theme="dark"] .radio-indicator {
+  border-color: #64748b;
+}
+
+body[data-theme="dark"] .list-disabled .set_box_user_box {
+  opacity: 0.5;
+}
