@@ -23,6 +23,7 @@
 <div align="center">
 
 Мощное расширение Chrome для управления прокси, которое помогает легко настраивать и переключаться между различными сетевыми прокси.
+
 </div>
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260110212231/assets/store/promotional/marquee-1632x656.jpeg)

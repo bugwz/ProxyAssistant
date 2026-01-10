@@ -23,6 +23,7 @@
 <div align="center">
 
 一款功能強大的Chrome瀏覽器代理管理擴展，輕鬆配置和切換網絡代理。
+
 </div>
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260110212231/assets/store/promotional/marquee-1632x656.jpeg)
