@@ -43,7 +43,7 @@ Eine leistungsst Chrome-Browser-Proxy-Verwaltungserweiterung, die Ihnen hilft, N
 | **Manuell** | Proxy manuell aus der Liste auswählen |
 | **Automatisch** | Automatisch passenden Proxy basierend auf URL-Regeln auswählen (PAC-Modus) |
 
-| ![](../../public/img/demo-popup-01.png) | ![](../../public/img/demo-popup-02.png) | ![](../../public/img/demo-popup-03.png) |
+| ![](../public/img/demo-popup-01.png) | ![](../public/img/demo-popup-02.png) | ![](../public/img/demo-popup-03.png) |
 |:---:|:---:|:---:|
 | Deaktiviert | Manuell | Automatisch |
 
@@ -73,7 +73,7 @@ Eine leistungsst Chrome-Browser-Proxy-Verwaltungserweiterung, die Ihnen hilft, N
 - **Dunkelmodus**: Für die Nacht
 - **Automatischer Wechsel**: Thema basierend auf der Zeit automatisch wechseln
 
-| ![Hellmodus](../../public/img/demo-light.png) | ![Dunkelmodus](../../public/img/demo-night.png) |
+| ![Hellmodus](../public/img/demo-light.png) | ![Dunkelmodus](../public/img/demo-night.png) |
 |:---:|:---:|
 | Hellmodus | Dunkelmodus |
 
@@ -96,7 +96,7 @@ Diese Erweiterung unterstützt 5 Sprachen:
 
 ## 📷 Einstellungsseite
 
-![](../../public/img/demo.png)
+![](../public/img/demo.png)
 
 ## 📁 Projektstruktur
 

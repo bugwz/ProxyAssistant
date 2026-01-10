@@ -43,7 +43,7 @@ Une extension puissante de gestion de proxy pour Chrome qui vous permet de confi
 | **Manuel** | Sélectionner manuellement un proxy depuis la liste |
 | **Automatique** | Sélectionner automatiquement le proxy correspondant selon les règles d'URL (mode PAC) |
 
-| ![](../../public/img/demo-popup-01.png) | ![](../../public/img/demo-popup-02.png) | ![](../../public/img/demo-popup-03.png) |
+| ![](../public/img/demo-popup-01.png) | ![](../public/img/demo-popup-02.png) | ![](../public/img/demo-popup-03.png) |
 |:---:|:---:|:---:|
 | Mode Désactivé | Mode Manuel | Mode Automatique |
 
@@ -73,7 +73,7 @@ Une extension puissante de gestion de proxy pour Chrome qui vous permet de confi
 - **Mode Sombre**: Pour une utilisation de nuit
 - **Basculement automatique**: Changer automatiquement de thème selon l'heure
 
-| ![Mode Clair](../../public/img/demo-light.png) | ![Mode Sombre](../../public/img/demo-night.png) |
+| ![Mode Clair](../public/img/demo-light.png) | ![Mode Sombre](../public/img/demo-night.png) |
 |:---:|:---:|
 | Mode Clair | Mode Sombre |
 
@@ -96,7 +96,7 @@ Cette extension prend en charge 5 langues :
 
 ## 📷 Interface de configuration
 
-![](../../public/img/demo.png)
+![](../public/img/demo.png)
 
 ## 📁 Structure du projet
 

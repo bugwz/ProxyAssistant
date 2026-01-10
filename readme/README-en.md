@@ -43,7 +43,7 @@ A powerful Chrome browser proxy management extension for easy configuration and 
 | **Manual** | Manually select proxy from proxy list |
 | **Auto** | Automatically select matching proxy based on URL rules (PAC mode) |
 
-| ![](../../public/img/demo-popup-01.png) | ![](../../public/img/demo-popup-02.png) | ![](../../public/img/demo-popup-03.png) |
+| ![](../public/img/demo-popup-01.png) | ![](../public/img/demo-popup-02.png) | ![](../public/img/demo-popup-03.png) |
 |:---:|:---:|:---:|
 | Disabled Mode | Manual Mode | Auto Mode |
 
@@ -73,7 +73,7 @@ A powerful Chrome browser proxy management extension for easy configuration and 
 - **Dark Mode**: For nighttime use
 - **Auto Switch**: Automatically switch themes based on time
 
-| ![Light Mode](../../public/img/demo-light.png) | ![Dark Mode](../../public/img/demo-night.png) |
+| ![Light Mode](../public/img/demo-light.png) | ![Dark Mode](../public/img/demo-night.png) |
 |:---:|:---:|
 | Light Mode | Dark Mode |
 
@@ -96,7 +96,7 @@ This extension supports the following 5 languages:
 
 ## 📷 Settings Interface
 
-![](../../public/img/demo.png)
+![](../public/img/demo.png)
 
 ## 📁 Project Structure
 
