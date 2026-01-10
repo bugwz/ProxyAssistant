@@ -1,7 +1,8 @@
 <div align="center">
 
-<img src="images/logo-128.png" width="128" height="128" align="left" style="margin-right: 16px;">
-<h1 style="display: inline; vertical-align: middle; line-height: 128px;">代理助手</h1>
+<img src="images/logo-128.png" width="80" height="80" align="center">
+
+# 代理助手
 
 </div>
 
