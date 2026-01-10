@@ -1,0 +1,259 @@
+/* Theme mode styles */
+
+/* Light mode (default) */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --border-color: #eef0f2;
+  --accent-color: #4164f5;
+  --shadow-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Dark mode */
+[data-theme="dark"] {
+  --bg-primary: #212121;
+  --bg-secondary: #2d2d2d;
+  --text-primary: #e4e4e7;
+  --text-secondary: #a1a1aa;
+  --border-color: #a0a0a0;
+  --accent-color: #818cf8;
+  --shadow-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Apply theme globally */
+body[data-theme="dark"] {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Light/Dark mode toggle buttons */
+.theme-toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.theme-selector {
+  display: flex;
+  gap: 5px;
+  padding: 4px;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.theme-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: transparent;
+  color: #475569;
+}
+
+.theme-btn:hover {
+  opacity: 0.8;
+}
+
+.theme-btn.active {
+  background-color: var(--accent-color);
+  color: white;
+}
+
+/* Ensure theme button text color is consistent across all three modes */
+body[data-theme="dark"] .theme-btn {
+  color: #e4e4e7;
+}
+
+/* Logo text color in dark mode */
+body[data-theme="dark"] .logo-text {
+  color: #e4e4e7;
+}
+
+/* Title text in dark mode */
+body[data-theme="dark"] .t1 {
+  color: #e4e4e7;
+}
+
+body[data-theme="dark"] .t2 {
+  color: #a1a1aa;
+}
+
+/* Card title preview in dark mode */
+body[data-theme="dark"] .proxy-title-preview {
+  color: #e4e4e7;
+}
+
+/* Proxy index color in dark mode */
+body[data-theme="dark"] .proxy-index {
+  color: #a8a8a8;
+}
+
+/* Form label color in dark mode */
+body[data-theme="dark"] .form-item label {
+  color: #e4e4e7;
+}
+
+/* Status text color in dark mode */
+body[data-theme="dark"] .status-text {
+  color: #e4e4e7;
+}
+
+/* Control button color in dark mode */
+body[data-theme="dark"] .control-btn {
+  background-color: var(--bg-primary);
+  border-color: var(--border-color);
+  color: #e4e4e7;
+}
+
+body[data-theme="dark"] .control-btn:hover {
+  background-color: var(--border-color);
+  color: #e4e4e7;
+}
+
+/* Config section title in dark mode */
+body[data-theme="dark"] .config-row-title {
+  color: #e4e4e7;
+}
+
+body[data-theme="dark"] .config-row-desc {
+  color: #a1a1aa;
+}
+
+/* Card style in dark mode */
+body[data-theme="dark"] .list_a {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+body[data-theme="dark"] .list_a:hover {
+  border-color: #e5e5e5;
+}
+
+body[data-theme="dark"] .proxy-header {
+  background-color: var(--bg-primary);
+  border-color: var(--border-color);
+}
+
+body[data-theme="dark"] .form-item input,
+body[data-theme="dark"] .form-item textarea {
+  background-color: var(--bg-primary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+body[data-theme="dark"] .form-item input:focus,
+body[data-theme="dark"] .form-item textarea:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+}
+
+body[data-theme="dark"] .lh-select {
+  background-color: var(--bg-primary);
+  border-color: var(--border-color);
+}
+
+body[data-theme="dark"] .lh-select-op {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+body[data-theme="dark"] .lh-select-op li {
+  color: #e4e4e7;
+}
+
+body[data-theme="dark"] .lh-select-op li:hover {
+  background-color: var(--border-color);
+  color: #e4e4e7;
+}
+
+body[data-theme="dark"] .lh-select-op li.op_a {
+  background-color: rgba(129, 140, 248, 0.2);
+  color: var(--accent-color);
+}
+
+/* System config area in dark mode */
+body[data-theme="dark"] .system-config-list {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+body[data-theme="dark"] .config-row {
+  border-color: var(--border-color);
+}
+
+/* Select box background in dark mode */
+body[data-theme="dark"] .lh-select-k,
+body[data-theme="dark"] .lh-select-val {
+  color: var(--text-primary);
+}
+
+/* Auto mode time settings area - matches form style */
+.time-input-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.time-input-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Remove time input clock icon */
+.time-input-group input[type="time"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 36px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0 10px;
+  font-size: 13px;
+  transition: all 0.2s;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  cursor: pointer;
+  min-width: 50px;
+  width: 50px;
+}
+
+/* Remove Chromium/Edge time picker icon */
+.time-input-group input[type="time"]::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+/* Firefox remove time picker icon */
+.time-input-group input[type="time"]::-moz-calendar-picker-indicator {
+  display: none;
+}
+
+.time-input-group input[type="time"]:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(65, 100, 245, 0.1);
+}
+
+.time-input-group input[type="time"]:hover {
+  border-color: #cbd5e1;
+}
+
+/* Dark mode adaptation */
+body[data-theme="dark"] .time-input-group input[type="time"] {
+  border-color: var(--border-color);
+}
+
+body[data-theme="dark"] .time-input-group input[type="time"]:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+}
+
+body[data-theme="dark"] .time-input-group input[type="time"]:hover {
+  border-color: var(--accent-color);
+}

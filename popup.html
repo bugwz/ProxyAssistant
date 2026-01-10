@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title data-i18n="app_name">代理助手</title>
+  <script src="./js/jquery.js"></script>
+  <script src="./js/i18n.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="./css/switch.css" rel="stylesheet">
+  <link href="./css/popup.css" rel="stylesheet">
+  <link href="./css/theme.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="box">
+  <!-- Header: Logo + Settings -->
+  <div class="header">
+    <div class="header-left">
+      <img src="./images/icon-32.png" alt="Logo" class="header-logo" />
+      <span class="header-title" data-i18n="app_name">代理助手</span>
+    </div>
+  <button title="设置" data-i18n-title="settings_tooltip" class="filter">
+    <svg viewBox="0 0 512 512" height="1em">
+    <path
+      d="M0 416c0 17.7 14.3 32 32 32l54.7 0c12.3 28.3 40.5 48 73.3 48s61-19.7 73.3-48L480 448c17.7 0 32-14.3 32-32s-14.3-32-32-32l-246.7 0c-12.3-28.3-40.5-48-73.3-48s-61 19.7-73.3 48L32 384c-17.7 0-32 14.3-32 32zm128 0a32 32 0 1 1 64 0 32 32 0 1 1 -64 0zM320 256a32 32 0 1 1 64 0 32 32 0 1 1 -64 0zm32-80c-32.8 0-61 19.7-73.3 48L32 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l246.7 0c12.3 28.3 40.5 48 73.3 48s61-19.7 73.3-48l54.7 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-54.7 0c-12.3-28.3-40.5-48-73.3-48zM192 128a32 32 0 1 1 0-64 32 32 0 1 1 0 64zm73.3-64C253 35.7 224.8 16 192 16s-61 19.7-73.3 48L32 64C14.3 64 0 78.3 0 96s14.3 32 32 32l86.7 0c12.3 28.3 40.5 48 73.3 48s61-19.7 73.3-48L480 128c17.7 0 32-14.3 32-32s-14.3-32-32-32L265.3 64z">
+    </path>
+    </svg>
+  </button>
+  </div>
+
+  <!-- Initialization Box -->
+  <div class="init_box">
+  <div class="txt" data-i18n="no_proxy_added">您还没有添加代理</div>
+  <div class="add_btn" data-i18n="add_proxy_btn">+ 添加新代理</div>
+  </div>
+
+  <!-- Main Settings Box -->
+  <div class="set_box">
+  <!-- Status & Mode Switch Row -->
+  <div class="status-bar">
+    <div class="current-status">
+    <div class="status-label" data-i18n="status_label">状态:</div>
+    <div class="status-value" id="status-display"></div>
+    </div>
+    <div class="mode-selector">
+    <button class="mode-btn" data-mode="disabled" data-i18n="mode_disabled">禁用</button>
+    <button class="mode-btn" data-mode="manual" data-i18n="mode_manual">手动</button>
+    <button class="mode-btn" data-mode="auto" data-i18n="mode_auto">自动</button>
+    </div>
+  </div>
+
+  <!-- Proxy List -->
+  <div class="set_box_user">
+    <div class="set_box_user_list"></div>
+  </div>
+  </div>
+
+  <!-- Bottom Buttons -->
+  <div class="bottom-buttons list-bottom-buttons">
+  <div class="version-info">v1.0.0</div>
+  <a href="https://github.com/bugwz/ProxyAssistant" target="_blank" class="github-link">
+    <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+    <path
+      d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z">
+    </path>
+    </svg>
+    GitHub
+  </a>
+  </div>
+  </div>
+
+  <script type="text/javascript" src="./js/popup.js"></script>
+</body>
+
+</html>

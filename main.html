@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title data-i18n="settings_title">代理助手设置</title>
+  <!-- Try using a simpler favicon path -->
+  <link rel="icon" type="image/png" href="./images/icon-128.png">
+  <link rel="shortcut icon" type="image/png" href="./images/icon-128.png">
+  <link href="./css/delete-button.css" rel="stylesheet">
+  <link href="./css/eye-button.css" rel="stylesheet">
+  <link href="./css/main.css" rel="stylesheet">
+  <link href="./css/theme.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="box">
+    <div class="logo">
+      <img src="./images/icon-128.png" alt="logo" />
+      <span class="logo-text" data-i18n="app_name">代理助手</span>
+    </div>
+
+    <div class="t1" data-i18n="manage_proxies">管理代理</div>
+    <div class="header-container">
+      <div class="t2" data-i18n="manage_proxies_desc">添加、编辑或删除您的代理</div>
+      <div class="list-controls">
+          <button id="add-proxy-btn" class="control-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+              <span data-i18n="add_new">新增</span>
+          </button>
+          <button id="test-all-btn" class="control-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+              <span data-i18n="test_all">测试</span>
+          </button>
+          <button id="expand-collapse-btn" class="control-btn">
+              <svg class="icon-expand" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+              <span data-i18n="expand_all">展开</span>
+          </button>
+      </div>
+    </div>
+
+    <div class="list" id="proxy-list">
+
+    </div>
+
+    <div class="t1" style="margin-top: 40px;" data-i18n="system_config">系统配置</div>
+    <div class="t2" style="margin-bottom: 25px;" data-i18n="config_desc">导出当前的代理列表及系统设置以便备份或与他人共享。</div>
+
+    <div class="system-config-list">
+      <!-- Language Setting -->
+      <div class="config-row">
+          <div class="config-row-left">
+              <div class="config-row-title" data-i18n="language_settings">语言设置</div>
+              <div class="config-row-desc" data-i18n="select_language">选择语言</div>
+          </div>
+          <div class="config-row-right">
+              <div class="lh-select language-selector" style="width: 150px;">
+                  <div class="lh-select_k">
+                      <span class="lh-select-val" id="current-language-display">简体中文</span>
+                      <span class="iconfont"></span>
+                  </div>
+                  <ul class="lh-select-op" id="language-options">
+                      <li data-value="zh-CN">简体中文</li>
+                      <li data-value="zh-TW">繁體中文</li>
+                      <li data-value="en">English</li>
+                      <li data-value="ja">日本語</li>
+                      <li data-value="fr">Français</li>
+                  </ul>
+              </div>
+          </div>
+      </div>
+
+      <!-- Theme Setting -->
+      <div class="config-row">
+          <div class="config-row-left">
+              <div class="config-row-title" data-i18n="theme_settings">主题模式</div>
+              <div class="config-row-desc" data-i18n="theme_settings_desc">选择白天模式、夜间模式或自动切换</div>
+          </div>
+          <div class="config-row-right">
+              <div class="theme-selector">
+                  <button class="theme-btn" data-theme="light" data-i18n="theme_light">白天</button>
+                  <button class="theme-btn" data-theme="dark" data-i18n="theme_dark">夜间</button>
+                  <button class="theme-btn" data-theme="auto" data-i18n="theme_auto">自动</button>
+              </div>
+          </div>
+      </div>
+
+      <!-- Auto Mode Time Settings -->
+      <div class="config-row auto-mode-time-row" style="display: none;">
+          <div class="config-row-left">
+              <div class="config-row-title" data-i18n="auto_mode_time">自动切换时间</div>
+              <div class="config-row-desc" data-i18n="auto_mode_time_desc">设置夜间模式的起止时间</div>
+          </div>
+          <div class="config-row-right">
+              <div class="time-input-group">
+                  <label data-i18n="start_time">开始时间</label>
+                  <input type="time" id="night-mode-start" value="22:00">
+                  <label data-i18n="end_time">结束时间</label>
+                  <input type="time" id="night-mode-end" value="06:00">
+              </div>
+          </div>
+      </div>
+
+      <!-- Sync Setting -->
+      <div class="config-row">
+          <div class="config-row-left">
+              <div class="config-row-title" data-i18n="sync_settings">同步设置</div>
+              <div class="config-row-desc" data-i18n="auto_sync_desc">在相同 Google 账户的浏览器间同步代理数据 (默认开启)</div>
+          </div>
+          <div class="config-row-right">
+              <label class="switch-modern">
+                  <input type="checkbox" id="auto_sync_toggle" checked>
+                  <span class="slider-modern"></span>
+              </label>
+          </div>
+      </div>
+
+      <!-- Config Management -->
+      <div class="config-row">
+          <div class="config-row-left">
+              <div class="config-row-title" data-i18n="config_management">配置管理</div>
+              <div class="config-row-desc" data-i18n="config_desc">管理系统配置</div>
+          </div>
+          <div class="config-row-right">
+              <div class="config-actions">
+                  <div class="export_btn" data-i18n="export_config">导出完整配置 (JSON)</div>
+                  <div class="import_json_btn" data-i18n="import_config">导入配置包 (JSON)</div>
+                  <input type="file" id="json_file_input" accept=".json" style="display: none;" />
+              </div>
+          </div>
+      </div>
+    </div>
+
+
+  </div>
+
+  <div class="del_tip">
+    <div class="del_tip_box">
+      <div class="del_tip_title" data-i18n="delete_proxy_title">删除代理</div>
+      <div class="del_tip_content" data-i18n="delete_proxy_confirm">确定要删除这个代理吗？</div>
+      <div class="del_tip_btn">
+          <div class="del_tip_Cancel_btn" data-i18n="cancel">取消</div>
+          <div class="del_tip_del_btn" data-i18n="delete">删除</div>
+      </div>
+      <div class="del_tip_close_btn"></div>
+    </div>
+  </div>
+
+  <div class="su_tip" data-i18n="save_success">保存成功</div>
+</body>
+
+<script src="./js/jquery.js"></script>
+<script src="./js/i18n.js"></script>
+<script type="text/javascript" src="./js/main.js"></script>
+
+</html>
