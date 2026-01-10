@@ -16,7 +16,7 @@
 
 <div align="center">
 
-[简体中文](README.md) | [繁體中文](readme/README-zh-TW.md) | [English](readme/README-en.md) | [日本語](readme/README-ja.md) | [Français](readme/README-fr.md) | [Deutsch](readme/README-de.md) | [Español](readme/README-es.md) | [Português](readme/README-pt.md) | [Русский](readme/README-ru.md) | [**한국어**](readme/README-ko.md)
+[简体中文](../README.md) | [繁體中文](README-zh-TW.md) | [English](README-en.md) | [日本語](README-ja.md) | [Français](README-fr.md) | [Deutsch](README-de.md) | [Español](README-es.md) | [Português](README-pt.md) | [Русский](README-ru.md) | [**한국어**](README-ko.md)
 
 </div>
 
@@ -25,7 +25,7 @@
 다양한 네트워크 프록시를 쉽게 구성하고 전환할 수 있게 해주는 강력한 Chrome 브라우저 프록시 관리 확장 프로그램입니다.
 </div>
 
-![](src/images/promotion/1400-560-big.jpeg)
+![](../public/img/promotion/1400-560-big.jpeg)
 
 ## ✨ 기능 특징
 
@@ -43,7 +43,7 @@
 | **수동** | 목록에서 프록시를 수동으로 선택 |
 | **자동** | URL 규칙에 따라 자동으로 일치하는 프록시 선택 (PAC 모드) |
 
-| ![](../src/images/demo-popup-01.png) | ![](../src/images/demo-popup-02.png) | ![](../src/images/demo-popup-03.png) |
+| ![](../../public/img/demo-popup-01.png) | ![](../../public/img/demo-popup-02.png) | ![](../../public/img/demo-popup-03.png) |
 |:---:|:---:|:---:|
 | 비활성화 모드 | 수동 모드 | 자동 모드 |
 
@@ -73,7 +73,7 @@
 - **다크 모드**: 야간 사용
 - **자동 전환**: 시간에 따라 테마 자동 전환
 
-| ![라이트 모드](../src/images/demo-light.png) | ![다크 모드](../src/images/demo-night.png) |
+| ![라이트 모드](../../public/img/demo-light.png) | ![다크 모드](../../public/img/demo-night.png) |
 |:---:|:---:|
 | 라이트 모드 | 다크 모드 |
 
@@ -96,13 +96,13 @@
 
 ## 📷 설정 인터페이스
 
-![](src/images/demo.png)
+![](../../public/img/demo.png)
 
 ## 📁 프로젝트 구조
 
 ```
 ProxyAssistant/
-├── readme/                    # 다국어 문서
+├──                     # 다국어 문서
 │   ├── README-zh-CN.md       # 간체 중국어
 │   ├── README-zh-TW.md       # 번체 중국어
 │   ├── README-en.md          # 영어
@@ -149,7 +149,7 @@ ProxyAssistant/
 1. Chrome을 열고 `chrome://extensions/`로 이동합니다.
 2. 오른쪽 상단의 **"개발자 모드"**를 활성화합니다.
 3. **"압축 해제된 확장 프로그램 로드"**를 클릭합니다.
-4. `ProxyAssistant` 폴더를 선택합니다.
+4. `ProxyAssistant/src` 폴더를 선택합니다.
 
 ### 프록시 추가
 

@@ -16,7 +16,7 @@
 
 <div align="center">
 
-[简体中文](README.md) | [**繁體中文**](readme/README-zh-TW.md) | [English](readme/README-en.md) | [日本語](readme/README-ja.md) | [Français](readme/README-fr.md) | [Deutsch](readme/README-de.md) | [Español](readme/README-es.md) | [Português](readme/README-pt.md) | [Русский](readme/README-ru.md) | [한국어](readme/README-ko.md)
+[简体中文](../README.md) | [**繁體中文**](README-zh-TW.md) | [English](README-en.md) | [日本語](README-ja.md) | [Français](README-fr.md) | [Deutsch](README-de.md) | [Español](README-es.md) | [Português](README-pt.md) | [Русский](README-ru.md) | [한국어](README-ko.md)
 
 </div>
 
@@ -25,7 +25,7 @@
 一款功能強大的Chrome瀏覽器代理管理擴展，輕鬆配置和切換網絡代理。
 </div>
 
-![](src/images/promotion/1400-560-big.jpeg)
+![](../public/img/promotion/1400-560-big.jpeg)
 
 ## ✨ 功能特性
 
@@ -43,7 +43,7 @@
 | **手動** | 從代理列表中手動選擇要使用的代理 |
 | **自動** | 根據URL規則自動選擇匹配的代理（PAC模式） |
 
-| ![](../src/images/demo-popup-01.png) | ![](../src/images/demo-popup-02.png) | ![](../src/images/demo-popup-03.png) |
+| ![](../../public/img/demo-popup-01.png) | ![](../../public/img/demo-popup-02.png) | ![](../../public/img/demo-popup-03.png) |
 |:---:|:---:|:---:|
 | 禁用模式 | 手動模式 | 自動模式 |
 
@@ -73,7 +73,7 @@
 - **深色模式**: 夜間使用
 - **自動切換**: 根據時間自動切換主題
 
-| ![淺色模式](../src/images/demo-light.png) | ![深色模式](../src/images/demo-night.png) |
+| ![淺色模式](../../public/img/demo-light.png) | ![深色模式](../../public/img/demo-night.png) |
 |:---:|:---:|
 | 淺色模式 | 深色模式 |
 
@@ -96,13 +96,13 @@
 
 ## 📷 設置界面
 
-![](src/images/demo.png)
+![](../../public/img/demo.png)
 
 ## 📁 項目結構
 
 ```
 ProxyAssistant/
-├── readme/                    # 多語言文檔
+├──                     # 多語言文檔
 │   ├── README-zh-CN.md       # 簡體中文
 │   ├── README-zh-TW.md       # 繁體中文
 │   ├── README-en.md          # 英文
@@ -149,7 +149,7 @@ ProxyAssistant/
 1. 打開Chrome瀏覽器，訪問 `chrome://extensions/`
 2. 開啟右上角的 **"開發者模式"**
 3. 點擊 **"加載已解壓的擴展程序"**
-4. 選擇項目的 `ProxyAssistant` 文件夾
+4. 選擇項目的 `ProxyAssistant/src` 文件夾
 
 ### 添加代理
 

@@ -16,7 +16,7 @@
 
 <div align="center">
 
-[简体中文](README.md) | [繁體中文](readme/README-zh-TW.md) | [**English**](readme/README-en.md) | [日本語](readme/README-ja.md) | [Français](readme/README-fr.md) | [Deutsch](readme/README-de.md) | [Español](readme/README-es.md) | [Português](readme/README-pt.md) | [Русский](readme/README-ru.md) | [한국어](readme/README-ko.md)
+[简体中文](../README.md) | [繁體中文](README-zh-TW.md) | [**English**](README-en.md) | [日本語](README-ja.md) | [Français](README-fr.md) | [Deutsch](README-de.md) | [Español](README-es.md) | [Português](README-pt.md) | [Русский](README-ru.md) | [한국어](README-ko.md)
 
 </div>
 
@@ -25,7 +25,7 @@
 A powerful Chrome browser proxy management extension for easy configuration and switching of network proxies.
 </div>
 
-![](src/images/promotion/1400-560-big.jpeg)
+![](../public/img/promotion/1400-560-big.jpeg)
 
 ## ✨ Features
 
@@ -43,7 +43,7 @@ A powerful Chrome browser proxy management extension for easy configuration and 
 | **Manual** | Manually select proxy from proxy list |
 | **Auto** | Automatically select matching proxy based on URL rules (PAC mode) |
 
-| ![](../src/images/demo-popup-01.png) | ![](../src/images/demo-popup-02.png) | ![](../src/images/demo-popup-03.png) |
+| ![](../../public/img/demo-popup-01.png) | ![](../../public/img/demo-popup-02.png) | ![](../../public/img/demo-popup-03.png) |
 |:---:|:---:|:---:|
 | Disabled Mode | Manual Mode | Auto Mode |
 
@@ -73,7 +73,7 @@ A powerful Chrome browser proxy management extension for easy configuration and 
 - **Dark Mode**: For nighttime use
 - **Auto Switch**: Automatically switch themes based on time
 
-| ![Light Mode](../src/images/demo-light.png) | ![Dark Mode](../src/images/demo-night.png) |
+| ![Light Mode](../../public/img/demo-light.png) | ![Dark Mode](../../public/img/demo-night.png) |
 |:---:|:---:|
 | Light Mode | Dark Mode |
 
@@ -96,13 +96,13 @@ This extension supports the following 5 languages:
 
 ## 📷 Settings Interface
 
-![](src/images/demo.png)
+![](../../public/img/demo.png)
 
 ## 📁 Project Structure
 
 ```
 ProxyAssistant/
-├── readme/                    # Multilingual documentation
+├──                     # Multilingual documentation
 │   ├── README-zh-CN.md       # Simplified Chinese
 │   ├── README-zh-TW.md       # Traditional Chinese
 │   ├── README-en.md          # English
@@ -149,7 +149,7 @@ ProxyAssistant/
 1. Open Chrome browser, visit `chrome://extensions/`
 2. Enable **"Developer mode"** in the top right corner
 3. Click **"Load unpacked"**
-4. Select the project's `ProxyAssistant` folder
+4. Select the project's `ProxyAssistant/src` folder
 
 ### Add Proxy
 

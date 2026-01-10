@@ -16,7 +16,7 @@
 
 <div align="center">
 
-[简体中文](README.md) | [繁體中文](readme/README-zh-TW.md) | [English](readme/README-en.md) | [**日本語**](readme/README-ja.md) | [Français](readme/README-fr.md) | [Deutsch](readme/README-de.md) | [Español](readme/README-es.md) | [Português](readme/README-pt.md) | [Русский](readme/README-ru.md) | [한국어](readme/README-ko.md)
+[简体中文](../README.md) | [繁體中文](README-zh-TW.md) | [English](README-en.md) | [**日本語**](README-ja.md) | [Français](README-fr.md) | [Deutsch](README-de.md) | [Español](README-es.md) | [Português](README-pt.md) | [Русский](README-ru.md) | [한국어](README-ko.md)
 
 </div>
 
@@ -25,7 +25,7 @@
 強力なChromeブラウザプロキシ管理拡張機能。ネットワークプロキシの構成と切り替えが簡単になります。
 </div>
 
-![](src/images/promotion/1400-560-big.jpeg)
+![](../public/img/promotion/1400-560-big.jpeg)
 
 ## ✨ 機能特徴
 
@@ -43,7 +43,7 @@
 | **手動** | リストから手動でプロキシを選択 |
 | **自動** | URLルールに基づいて自動的にプロキシを選択（PACモード） |
 
-| ![](../src/images/demo-popup-01.png) | ![](../src/images/demo-popup-02.png) | ![](../src/images/demo-popup-03.png) |
+| ![](../../public/img/demo-popup-01.png) | ![](../../public/img/demo-popup-02.png) | ![](../../public/img/demo-popup-03.png) |
 |:---:|:---:|:---:|
 | 無効モード | 手動モード | 自動モード |
 
@@ -73,7 +73,7 @@
 - **ダークモード**: 夜間使用
 - **自動切り替え**: 時間に応じてテーマを自動切り替え
 
-| ![ライトモード](../src/images/demo-light.png) | ![ダークモード](../src/images/demo-night.png) |
+| ![ライトモード](../../public/img/demo-light.png) | ![ダークモード](../../public/img/demo-night.png) |
 |:---:|:---:|
 | ライトモード | ダークモード |
 
@@ -96,13 +96,13 @@
 
 ## 📷 設定画面
 
-![](src/images/demo.png)
+![](../../public/img/demo.png)
 
 ## 📁 プロジェクト構成
 
 ```
 ProxyAssistant/
-├── readme/                    # 多言語ドキュメント
+├──                     # 多言語ドキュメント
 │   ├── README-zh-CN.md       # 簡体字中国語
 │   ├── README-zh-TW.md       # 繁体字中国語
 │   ├── README-en.md          # 英語
@@ -149,7 +149,7 @@ ProxyAssistant/
 1. Chromeブラウザを開き、`chrome://extensions/`にアクセス
 2. 右上の **「デベロッパーモード」** を有効化
 3. **「パッケージ化されていない拡張機能を読み込む」** をクリック
-4. プロジェクトの `ProxyAssistant` フォルダを選択
+4. プロジェクトの `ProxyAssistant/src` フォルダを選択
 
 ### プロキシの追加
 

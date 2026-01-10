@@ -16,7 +16,7 @@
 
 <div align="center">
 
-[简体中文](README.md) | [繁體中文](readme/README-zh-TW.md) | [English](readme/README-en.md) | [日本語](readme/README-ja.md) | [Français](readme/README-fr.md) | [Deutsch](readme/README-de.md) | [**Español**](readme/README-es.md) | [Português](readme/README-pt.md) | [Русский](readme/README-ru.md) | [한국어](readme/README-ko.md)
+[简体中文](../README.md) | [繁體中文](README-zh-TW.md) | [English](README-en.md) | [日本語](README-ja.md) | [Français](README-fr.md) | [Deutsch](README-de.md) | [**Español**](README-es.md) | [Português](README-pt.md) | [Русский](README-ru.md) | [한국어](README-ko.md)
 
 </div>
 
@@ -25,7 +25,7 @@
 Una potente extensión de Chrome para gestión de proxies que te ayuda a configurar y cambiar fácilmente entre diferentes proxies de red.
 </div>
 
-![](src/images/promotion/1400-560-big.jpeg)
+![](../public/img/promotion/1400-560-big.jpeg)
 
 ## ✨ Características
 
@@ -43,7 +43,7 @@ Una potente extensión de Chrome para gestión de proxies que te ayuda a configu
 | **Manual** | Seleccionar manualmente un proxy de la lista |
 | **Automático** | Seleccionar automáticamente el proxy correspondiente según reglas de URL (modo PAC) |
 
-| ![](../src/images/demo-popup-01.png) | ![](../src/images/demo-popup-02.png) | ![](../src/images/demo-popup-03.png) |
+| ![](../../public/img/demo-popup-01.png) | ![](../../public/img/demo-popup-02.png) | ![](../../public/img/demo-popup-03.png) |
 |:---:|:---:|:---:|
 | Modo Desactivado | Modo Manual | Modo Automático |
 
@@ -73,7 +73,7 @@ Una potente extensión de Chrome para gestión de proxies que te ayuda a configu
 - **Modo Oscuro**: Para uso nocturno
 - **Cambio automático**: Cambiar tema automáticamente según la hora
 
-| ![Modo Claro](../src/images/demo-light.png) | ![Modo Oscuro](../src/images/demo-night.png) |
+| ![Modo Claro](../../public/img/demo-light.png) | ![Modo Oscuro](../../public/img/demo-night.png) |
 |:---:|:---:|
 | Modo Claro | Modo Oscuro |
 
@@ -96,13 +96,13 @@ Esta extensión soporta 5 idiomas:
 
 ## 📷 Interfaz de configuración
 
-![](src/images/demo.png)
+![](../../public/img/demo.png)
 
 ## 📁 Estructura del proyecto
 
 ```
 ProxyAssistant/
-├── readme/                    # Documentación multilingüe
+├──                     # Documentación multilingüe
 │   ├── README-zh-CN.md       # Chino simplificado
 │   ├── README-zh-TW.md       # Chino tradicional
 │   ├── README-en.md          # Inglés
@@ -149,7 +149,7 @@ ProxyAssistant/
 1. Abre Chrome y navega a `chrome://extensions/`
 2. Activa el **"Modo de desarrollador"** en la esquina superior derecha
 3. Haz clic en **"Cargar extensión sin empaquetar"**
-4. Selecciona la carpeta `ProxyAssistant`
+4. Selecciona la carpeta `ProxyAssistant/src` 
 
 ### Añadir un proxy
 
