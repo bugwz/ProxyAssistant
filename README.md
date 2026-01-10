@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="images/logo-128.png" width="80" height="80" align="center">
+<img src="src/images/logo-128.png" width="80" height="80" align="center">
 
 # 代理助手
 
@@ -10,7 +10,13 @@
 
 [![Chrome扩展](https://img.shields.io/badge/Chrome-Extension-blue?logo=google-chrome)](https://chrome.google.com/webstore)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
-[![多语言](https://img.shields.io/badge/支持-中英日法多语言-yellow)](README-en.md)
+[![多语言](https://img.shields.io/badge/支持中英日法多语言-yellow)](readme/README-en.md)
+
+</div>
+
+<div align="center">
+
+[**简体中文**](README.md) | [繁體中文](readme/README-zh-TW.md) | [English](readme/README-en.md) | [日本語](readme/README-ja.md) | [Français](readme/README-fr.md) | [Deutsch](readme/README-de.md) | [Español](readme/README-es.md) | [Português](readme/README-pt.md) | [Русский](readme/README-ru.md) | [한국어](readme/README-ko.md)
 
 </div>
 
@@ -77,11 +83,15 @@
 
 ### 🌍 多语言支持
 
-- 简体中文 (zh-CN)
-- 繁体中文 (zh-TW)
-- English (en)
-- 日本語 (ja)
-- Français (fr)
+本扩展支持以下 5 种语言：
+
+| 语言 | 代码 | 支持状态 |
+|------|------|----------|
+| 简体中文 | zh-CN | ✅ 已支持 |
+| 繁體中文 | zh-TW | ✅ 已支持 |
+| English | en | ✅ 已支持 |
+| 日本語 | ja | ✅ 已支持 |
+| Français | fr | ✅ 已支持 |
 
 ## 📷 设置界面
 
@@ -91,28 +101,44 @@
 
 ```
 ProxyAssistant/
-├── manifest.json              # Chrome扩展配置
-├── main.html                  # 设置页面
-├── popup.html                 # 弹窗页面
-├── js/
-│   ├── main.js               # 设置页主逻辑
-│   ├── popup.js              # 弹窗主逻辑
-│   ├── service-worker.js     # 后台服务（代理核心逻辑）
-│   ├── i18n.js               # 国际化支持
-│   └── jquery.js             # jQuery库
-├── css/
-│   ├── main.css              # 设置页样式
-│   ├── popup.css             # 弹窗样式
-│   ├── theme.css             # 主题样式
-│   ├── switch.css            # 开关组件样式
-│   ├── delete-button.css     # 删除按钮样式
-│   └── eye-button.css        # 密码可见按钮样式
-└── images/                   # 图标资源
-    ├── icon-16.png
-    ├── icon-32.png
-    ├── icon-48.png
-    ├── icon-128.png
-    └── logo-128.png
+├── readme/                    # 多语言文档
+│   ├── README-zh-CN.md       # 简体中文
+│   ├── README-zh-TW.md       # 繁体中文
+│   ├── README-en.md          # 英文
+│   └── ...
+├── src/                       # 源代码
+│   ├── manifest.json         # Chrome扩展配置
+│   ├── main.html             # 设置页面
+│   ├── popup.html            # 弹窗页面
+│   ├── js/
+│   │   ├── main.js           # 设置页主逻辑
+│   │   ├── popup.js          # 弹窗主逻辑
+│   │   ├── service-worker.js # 后台服务（代理核心逻辑）
+│   │   ├── i18n.js           # 国际化支持
+│   │   └── jquery.js         # jQuery库
+│   ├── css/
+│   │   ├── main.css          # 设置页样式
+│   │   ├── popup.css         # 弹窗样式
+│   │   ├── theme.css         # 主题样式
+│   │   ├── switch.css        # 开关组件样式
+│   │   ├── delete-button.css # 删除按钮样式
+│   │   └── eye-button.css    # 密码可见按钮样式
+│   └── images/               # 图标资源
+│       ├── icon-16.png
+│       ├── icon-32.png
+│       ├── icon-48.png
+│       ├── icon-128.png
+│       ├── logo-128.png
+│       ├── demo.png
+│       ├── demo-light.png
+│       ├── demo-night.png
+│       ├── demo-popup-01.png
+│       ├── demo-popup-02.png
+│       ├── demo-popup-03.png
+│       └── promotion/
+│           └── 1400-560-big.jpeg
+└── public/                   # 公共资源
+    └── ...
 ```
 
 ## 🚀 快速开始
