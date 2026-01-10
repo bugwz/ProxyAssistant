@@ -16,7 +16,7 @@
 
 <div align="center">
 
-[简体中文](README.md) | [繁體中文](readme/README-zh-TW.md) | [English](readme/README-en.md) | [日本語](readme/README-ja.md) | [Français](readme/README-fr.md) | [Deutsch](readme/README-de.md) | [Español](readme/README-es.md) | [Português](readme/README-pt.md) | [**Русский**](readme/README-ru.md) | [한국어](readme/README-ko.md)
+[简体中文](../README.md) | [繁體中文](README-zh-TW.md) | [English](README-en.md) | [日本語](README-ja.md) | [Français](README-fr.md) | [Deutsch](README-de.md) | [Español](README-es.md) | [Português](README-pt.md) | [**Русский**](README-ru.md) | [한국어](README-ko.md)
 
 </div>
 
@@ -102,7 +102,7 @@
 
 ```
 ProxyAssistant/
-├── readme/                    # Многоязычная документация
+├──                     # Многоязычная документация
 │   ├── README-zh-CN.md       # Китайский упрощенный
 │   ├── README-zh-TW.md       # Китайский традиционный
 │   ├── README-en.md          # Английский
@@ -149,7 +149,7 @@ ProxyAssistant/
 1. Откройте Chrome и перейдите по адресу `chrome://extensions/`
 2. Включите **"Режим разработчика"** в правом верхнем углу
 3. Нажмите **"Загрузить распакованное расширение"**
-4. Выберите папку `ProxyAssistant`
+4. Выберите папку `ProxyAssistant/src` .
 
 ### Добавление прокси
 

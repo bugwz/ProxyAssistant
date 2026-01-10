@@ -16,7 +16,7 @@
 
 <div align="center">
 
-[简体中文](README.md) | [**繁體中文**](readme/README-zh-TW.md) | [English](readme/README-en.md) | [日本語](readme/README-ja.md) | [Français](readme/README-fr.md) | [Deutsch](readme/README-de.md) | [Español](readme/README-es.md) | [Português](readme/README-pt.md) | [Русский](readme/README-ru.md) | [한국어](readme/README-ko.md)
+[简体中文](../README.md) | [**繁體中文**](README-zh-TW.md) | [English](README-en.md) | [日本語](README-ja.md) | [Français](README-fr.md) | [Deutsch](README-de.md) | [Español](README-es.md) | [Português](README-pt.md) | [Русский](README-ru.md) | [한국어](README-ko.md)
 
 </div>
 
@@ -102,7 +102,7 @@
 
 ```
 ProxyAssistant/
-├── readme/                    # 多語言文檔
+├──                     # 多語言文檔
 │   ├── README-zh-CN.md       # 簡體中文
 │   ├── README-zh-TW.md       # 繁體中文
 │   ├── README-en.md          # 英文
@@ -149,7 +149,7 @@ ProxyAssistant/
 1. 打開Chrome瀏覽器，訪問 `chrome://extensions/`
 2. 開啟右上角的 **"開發者模式"**
 3. 點擊 **"加載已解壓的擴展程序"**
-4. 選擇項目的 `ProxyAssistant` 文件夾
+4. 選擇項目的 `ProxyAssistant/src` 文件夾
 
 ### 添加代理
 

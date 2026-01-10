@@ -16,7 +16,7 @@
 
 <div align="center">
 
-[简体中文](README.md) | [繁體中文](readme/README-zh-TW.md) | [**English**](readme/README-en.md) | [日本語](readme/README-ja.md) | [Français](readme/README-fr.md) | [Deutsch](readme/README-de.md) | [Español](readme/README-es.md) | [Português](readme/README-pt.md) | [Русский](readme/README-ru.md) | [한국어](readme/README-ko.md)
+[简体中文](../README.md) | [繁體中文](README-zh-TW.md) | [**English**](README-en.md) | [日本語](README-ja.md) | [Français](README-fr.md) | [Deutsch](README-de.md) | [Español](README-es.md) | [Português](README-pt.md) | [Русский](README-ru.md) | [한국어](README-ko.md)
 
 </div>
 
@@ -102,7 +102,7 @@ This extension supports the following 5 languages:
 
 ```
 ProxyAssistant/
-├── readme/                    # Multilingual documentation
+├──                     # Multilingual documentation
 │   ├── README-zh-CN.md       # Simplified Chinese
 │   ├── README-zh-TW.md       # Traditional Chinese
 │   ├── README-en.md          # English
@@ -149,7 +149,7 @@ ProxyAssistant/
 1. Open Chrome browser, visit `chrome://extensions/`
 2. Enable **"Developer mode"** in the top right corner
 3. Click **"Load unpacked"**
-4. Select the project's `ProxyAssistant` folder
+4. Select the project's `ProxyAssistant/src` folder
 
 ### Add Proxy
 

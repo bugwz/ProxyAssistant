@@ -16,7 +16,7 @@
 
 <div align="center">
 
-[简体中文](README.md) | [繁體中文](readme/README-zh-TW.md) | [English](readme/README-en.md) | [日本語](readme/README-ja.md) | [**Français**](readme/README-fr.md) | [Deutsch](readme/README-de.md) | [Español](readme/README-es.md) | [Português](readme/README-pt.md) | [Русский](readme/README-ru.md) | [한국어](readme/README-ko.md)
+[简体中文](../README.md) | [繁體中文](README-zh-TW.md) | [English](README-en.md) | [日本語](README-ja.md) | [**Français**](README-fr.md) | [Deutsch](README-de.md) | [Español](README-es.md) | [Português](README-pt.md) | [Русский](README-ru.md) | [한국어](README-ko.md)
 
 </div>
 
@@ -102,7 +102,7 @@ Cette extension prend en charge 5 langues :
 
 ```
 ProxyAssistant/
-├── readme/                    # Documentation multilingue
+├──                     # Documentation multilingue
 │   ├── README-zh-CN.md       # Chinois simplifié
 │   ├── README-zh-TW.md       # Chinois traditionnel
 │   ├── README-en.md          # Anglais
@@ -149,7 +149,7 @@ ProxyAssistant/
 1. Ouvrez Chrome et accédez à `chrome://extensions/`
 2. Activez le **"Mode développeur"** en haut à droite
 3. Cliquez sur **"Charger l'extension non empaquetée"**
-4. Sélectionnez le dossier `ProxyAssistant`
+4. Sélectionnez le dossier `ProxyAssistant/src` .
 
 ### Ajout d'un proxy
 

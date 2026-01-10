@@ -16,7 +16,7 @@
 
 <div align="center">
 
-[简体中文](README.md) | [繁體中文](readme/README-zh-TW.md) | [English](readme/README-en.md) | [日本語](readme/README-ja.md) | [Français](readme/README-fr.md) | [Deutsch](readme/README-de.md) | [Español](readme/README-es.md) | [Português](readme/README-pt.md) | [Русский](readme/README-ru.md) | [**한국어**](readme/README-ko.md)
+[简体中文](../README.md) | [繁體中文](README-zh-TW.md) | [English](README-en.md) | [日本語](README-ja.md) | [Français](README-fr.md) | [Deutsch](README-de.md) | [Español](README-es.md) | [Português](README-pt.md) | [Русский](README-ru.md) | [**한국어**](README-ko.md)
 
 </div>
 
@@ -102,7 +102,7 @@
 
 ```
 ProxyAssistant/
-├── readme/                    # 다국어 문서
+├──                     # 다국어 문서
 │   ├── README-zh-CN.md       # 간체 중국어
 │   ├── README-zh-TW.md       # 번체 중국어
 │   ├── README-en.md          # 영어
@@ -149,7 +149,7 @@ ProxyAssistant/
 1. Chrome을 열고 `chrome://extensions/`로 이동합니다.
 2. 오른쪽 상단의 **"개발자 모드"**를 활성화합니다.
 3. **"압축 해제된 확장 프로그램 로드"**를 클릭합니다.
-4. `ProxyAssistant` 폴더를 선택합니다.
+4. `ProxyAssistant/src` 폴더를 선택합니다.
 
 ### 프록시 추가
 

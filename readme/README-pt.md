@@ -16,7 +16,7 @@
 
 <div align="center">
 
-[简体中文](README.md) | [繁體中文](readme/README-zh-TW.md) | [English](readme/README-en.md) | [日本語](readme/README-ja.md) | [Français](readme/README-fr.md) | [Deutsch](readme/README-de.md) | [Español](readme/README-es.md) | [**Português**](readme/README-pt.md) | [Русский](readme/README-ru.md) | [한국어](readme/README-ko.md)
+[简体中文](../README.md) | [繁體中文](README-zh-TW.md) | [English](README-en.md) | [日本語](README-ja.md) | [Français](README-fr.md) | [Deutsch](README-de.md) | [Español](README-es.md) | [**Português**](README-pt.md) | [Русский](README-ru.md) | [한국어](README-ko.md)
 
 </div>
 
@@ -102,7 +102,7 @@ Esta extensão suporta 5 idiomas:
 
 ```
 ProxyAssistant/
-├── readme/                    # Documentação multilíngue
+├──                     # Documentação multilíngue
 │   ├── README-zh-CN.md       # Chinês simplificado
 │   ├── README-zh-TW.md       # Chinês tradicional
 │   ├── README-en.md          # Inglês
@@ -149,7 +149,7 @@ ProxyAssistant/
 1. Abra o Chrome e navegue até `chrome://extensions/`
 2. Ative o **"Modo de desenvolvedor"** no canto superior direito
 3. Clique em **"Carregar sem compactação"**
-4. Selecione a pasta `ProxyAssistant`
+4. Selecione a pasta `ProxyAssistant/src` .
 
 ### Adicionar um proxy
 
