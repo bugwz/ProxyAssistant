@@ -23,6 +23,7 @@
 <div align="center">
 
 다양한 네트워크 프록시를 쉽게 구성하고 전환할 수 있게 해주는 강력한 Chrome 브라우저 프록시 관리 확장 프로그램입니다.
+
 </div>
 
 ![](../public/img/promotion/1400-560-big.jpeg)

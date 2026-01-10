@@ -23,6 +23,7 @@
 <div align="center">
 
 強力なChromeブラウザプロキシ管理拡張機能。ネットワークプロキシの構成と切り替えが簡単になります。
+
 </div>
 
 ![](../public/img/promotion/1400-560-big.jpeg)

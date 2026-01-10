@@ -23,9 +23,10 @@
 <div align="center">
 
 Eine leistungsst Chrome-Browser-Proxy-Verwaltungserweiterung, die Ihnen hilft, Netzwerk-Proxys einfach zu konfigurieren und zu wechseln.
+
 </div>
 
-![](public/images/promotion/1400-560-big.jpeg)
+![](../public/images/promotion/1400-560-big.jpeg)
 
 ## ✨ Funktionen
 

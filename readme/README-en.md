@@ -23,6 +23,7 @@
 <div align="center">
 
 A powerful Chrome browser proxy management extension for easy configuration and switching of network proxies.
+
 </div>
 
 ![](../public/img/promotion/1400-560-big.jpeg)

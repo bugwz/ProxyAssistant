@@ -23,6 +23,7 @@
 <div align="center">
 
 Une extension puissante de gestion de proxy pour Chrome qui vous permet de configurer et de basculer facilement entre différents proxies réseau.
+
 </div>
 
 ![](../public/img/promotion/1400-560-big.jpeg)

@@ -23,6 +23,7 @@
 <div align="center">
 
 一款功能強大的Chrome瀏覽器代理管理擴展，輕鬆配置和切換網絡代理。
+
 </div>
 
 ![](../public/img/promotion/1400-560-big.jpeg)

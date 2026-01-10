@@ -21,7 +21,9 @@
 </div>
 
 <div align="center">
+
 一款功能强大的Chrome浏览器代理管理扩展，轻松配置和切换网络代理。
+
 </div>
 
 ![](public/img/promotion/1400-560-big.jpeg)
