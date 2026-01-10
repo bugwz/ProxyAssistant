@@ -10,7 +10,7 @@
 
 [![Extensión de Chrome](https://img.shields.io/badge/Chrome-Extension-blue?logo=google-chrome)](https://chrome.google.com/webstore)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
-[![Multilingüe](https://img.shields.io/badge/Soporta-múltiples-idiomas-yellow)](README-en.md)
+[![Multilingüe](https://img.shields.io/badge/Multilingüe-yellow)](README-es.md)
 
 </div>
 
