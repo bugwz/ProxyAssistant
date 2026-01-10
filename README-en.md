@@ -1,4 +1,11 @@
-# Proxy Assistant
+<div align="center">
+
+<img src="images/logo-128.png" width="128" height="128" align="left" style="margin-right: 16px;">
+<h1 style="display: inline; vertical-align: middle; line-height: 128px;">Proxy Assistant</h1>
+
+</div>
+
+<div align="center">
 
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-blue?logo=google-chrome)](https://chrome.google.com/webstore)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
@@ -48,6 +55,10 @@ A powerful Chrome browser proxy management extension that helps you easily confi
 - **Dark Mode**: For nighttime use
 - **Auto Switch**: Automatically switch theme based on time
 
+| ![Light Mode](images/demo-light.png) | ![Dark Mode](images/demo-night.png) |
+|:---:|:---:|
+| Light Mode | Dark Mode |
+
 ### ☁️ Data Sync
 
 - **Google Account Sync**: Sync proxy configurations across devices
@@ -60,6 +71,18 @@ A powerful Chrome browser proxy management extension that helps you easily confi
 - English (en)
 - Japanese (ja)
 - French (fr)
+
+## 📷 Screenshots
+
+### Main Interface
+![Main Interface](images/promotion/1400-560-big.jpeg)
+
+### Popup Interface
+![Popup Interface](images/demo.png)
+
+| ![Popup 01](images/demo-popup-01.png) | ![Popup 02](images/demo-popup-02.png) | ![Popup 03](images/demo-popup-03.png) |
+|:---:|:---:|:---:|
+| Popup 01 | Popup 02 | Popup 03 |
 
 ## 📁 Project Structure
 

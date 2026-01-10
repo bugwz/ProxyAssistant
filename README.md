@@ -1,10 +1,23 @@
-# 代理助手 (Proxy Assistant)
+<div align="center">
+
+<img src="images/logo-128.png" width="128" height="128" align="left" style="margin-right: 16px;">
+<h1 style="display: inline; vertical-align: middle; line-height: 128px;">代理助手</h1>
+
+</div>
+
+<div align="center">
 
 [![Chrome扩展](https://img.shields.io/badge/Chrome-Extension-blue?logo=google-chrome)](https://chrome.google.com/webstore)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
 [![多语言](https://img.shields.io/badge/支持-中英日法多语言-yellow)](README-en.md)
 
-一款功能强大的Chrome浏览器代理管理扩展，帮助您轻松配置和切换不同的网络代理。
+</div>
+
+<div align="center">
+一款功能强大的Chrome浏览器代理管理扩展，轻松配置和切换网络代理。
+</div>
+
+![](images/promotion/1400-560-big.jpeg)
 
 ## ✨ 功能特性
 
@@ -21,6 +34,10 @@
 | **禁用** | 关闭代理，使用系统默认网络连接 |
 | **手动** | 从代理列表中手动选择要使用的代理 |
 | **自动** | 根据URL规则自动选择匹配的代理（PAC模式） |
+
+| ![](images/demo-popup-01.png) | ![](images/demo-popup-02.png) | ![](images/demo-popup-03.png) |
+|:---:|:---:|:---:|
+| 禁用模式 | 手动模式 | 自动模式 |
 
 ### 📋 灵活的URL规则配置
 
@@ -48,6 +65,10 @@
 - **深色模式**: 夜间使用
 - **自动切换**: 根据时间自动切换主题
 
+| ![浅色模式](images/demo-light.png) | ![深色模式](images/demo-night.png) |
+|:---:|:---:|
+| 浅色模式 | 深色模式 |
+
 ### ☁️ 数据同步
 
 - **Google账户同步**: 在多设备间同步代理配置
@@ -60,6 +81,10 @@
 - English (en)
 - 日本語 (ja)
 - Français (fr)
+
+## 📷 设置界面
+
+![](images/demo.png)
 
 ## 📁 项目结构
 
