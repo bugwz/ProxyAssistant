@@ -88,7 +88,7 @@ A powerful Chrome browser proxy management extension that helps you easily confi
 ## 📁 Project Structure
 
 ```
-chrome_extension_proxy/
+ProxyAssistant/
 ├── manifest.json              # Chrome extension configuration
 ├── main.html                  # Settings page
 ├── popup.html                 # Popup page
@@ -120,7 +120,7 @@ chrome_extension_proxy/
 1. Open Chrome browser and navigate to `chrome://extensions/`
 2. Enable **"Developer mode"** in the top right corner
 3. Click **"Load unpacked"**
-4. Select the `chrome_extension_proxy` folder
+4. Select the `ProxyAssistant` folder
 
 ### Adding a Proxy
 

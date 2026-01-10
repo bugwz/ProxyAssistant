@@ -90,7 +90,7 @@
 ## 📁 项目结构
 
 ```
-chrome_extension_proxy/
+ProxyAssistant/
 ├── manifest.json              # Chrome扩展配置
 ├── main.html                  # 设置页面
 ├── popup.html                 # 弹窗页面
@@ -122,7 +122,7 @@ chrome_extension_proxy/
 1. 打开Chrome浏览器，访问 `chrome://extensions/`
 2. 开启右上角的 **"开发者模式"**
 3. 点击 **"加载已解压的扩展程序"**
-4. 选择项目的 `chrome_extension_proxy` 文件夹
+4. 选择项目的 `ProxyAssistant` 文件夹
 
 ### 添加代理
 
