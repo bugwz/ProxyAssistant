@@ -10,7 +10,7 @@
 
 [![Chrome 확장 프로그램](https://img.shields.io/badge/Chrome-Extension-blue?logo=google-chrome)](https://chrome.google.com/webstore)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
-[![다국어 지원](https://img.shields.io/badge/여러-언어-지원-yellow)](README-en.md)
+[![다국어 지원](https://img.shields.io/badge/다국어지원-yellow)](README-ko.md)
 
 </div>
 
