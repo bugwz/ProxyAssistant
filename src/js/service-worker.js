@@ -16,8 +16,8 @@ chrome.runtime.onStartup.addListener(() => {
       console.log('Restoring saved proxy settings');
       applyProxySettings(result.currentProxy);
     } else {
-      // Set badge to N for disabled
-      setBadge("ɴ", "#ff9800");
+      // Clear badge for disabled
+      setBadge("");
     }
   });
 });
@@ -319,8 +319,8 @@ function turnOffProxy() {
   // Mark proxy as disabled
   chrome.storage.local.set({ proxyEnabled: false });
 
-  // Set badge to N for disabled
-  setBadge("ɴ", "#ff9800");
+  // Clear badge for disabled
+  setBadge("");
 
   // Remove auth listener
   try {
