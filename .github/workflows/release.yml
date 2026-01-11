@@ -53,6 +53,9 @@ jobs:
                 delete manifest.background.service_worker;
                 manifest.background.scripts = [sw];
               }
+              if (manifest.key) {
+                delete manifest.key;
+              }
               fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
             }
           "
