@@ -130,7 +130,7 @@ function initApp() {
 
     if (mode === 'disabled') {
       $statusValue.text(I18n.t('status_disabled')).attr('data-i18n', 'status_disabled');
-      $statusValue.css('color', '#ff9800'); // Orange to match Disabled button
+      $statusValue.css('color', '#dc3545'); // Red to match Disabled button
     } else if (mode === 'auto') {
       // In auto mode, try to get match status for current page
       chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
@@ -157,7 +157,7 @@ function initApp() {
         $statusValue.css('color', '#4164f5'); // Blue for connected (matches Manual mode button)
       } else {
         $statusValue.text(I18n.t('status_disconnected')).attr('data-i18n', 'status_disconnected');
-        $statusValue.css('color', '#dc3545'); // Red for disconnected
+        $statusValue.css('color', '#ff9800'); // Orange for disconnected
       }
     }
   }
