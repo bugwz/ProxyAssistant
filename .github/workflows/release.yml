@@ -23,7 +23,7 @@ jobs:
           node-version: '20'
 
       - name: Install tools
-        run: npm install -g web-ext crx3
+        run: npm install -g web-ext
 
       - name: Get version
         id: get_version
@@ -37,29 +37,35 @@ jobs:
         # Tar.gz the src directory
         run: tar -czvf ProxyAssistant_${{ steps.get_version.outputs.VERSION }}.tar.gz src
 
-      - name: Build Chrome CRX
-        env:
-          CRX_PRIVATE_KEY: ${{ secrets.CRX_PRIVATE_KEY }}
-        run: |
-          # Check if private key is provided, use it if available, otherwise generate a temporary one
-          if [ -n "$CRX_PRIVATE_KEY" ]; then
-            echo "$CRX_PRIVATE_KEY" > private.pem
-          else
-            echo "No private key provided in secrets.CRX_PRIVATE_KEY, generating a temporary one..."
-            openssl genrsa -out private.pem 2048
-          fi
-          
-          # Pack with crx3
-          crx3 pack src -o ProxyAssistant_${{ steps.get_version.outputs.VERSION }}_chrome.crx -p private.pem
-
       - name: Build Firefox XPI
         run: |
-          # Build with web-ext, specifying src as source directory
-          web-ext build --source-dir src --artifacts-dir dist --overwrite-dest
+          # Copy src to a temporary directory for modification
+          cp -r src src-firefox
+
+          # Modify manifest.json for Firefox compatibility (use background.scripts instead of service_worker)
+          node -e "
+            const fs = require('fs');
+            const manifestPath = 'src-firefox/manifest.json';
+            if (fs.existsSync(manifestPath)) {
+              const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+              if (manifest.background && manifest.background.service_worker) {
+                const sw = manifest.background.service_worker;
+                delete manifest.background.service_worker;
+                manifest.background.scripts = [sw];
+              }
+              fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+            }
+          "
+
+          # Build with web-ext, specifying src-firefox as source directory
+          web-ext build --source-dir src-firefox --artifacts-dir dist --overwrite-dest
           # web-ext generates a zip file by default, rename it to xpi
           # Find the generated zip file (usually only one)
           FILE=$(ls dist/*.zip)
           mv "$FILE" ProxyAssistant_${{ steps.get_version.outputs.VERSION }}_firefox.xpi
+
+          # Cleanup
+          rm -rf src-firefox
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -67,7 +73,6 @@ jobs:
           files: |
             ProxyAssistant_${{ steps.get_version.outputs.VERSION }}.zip
             ProxyAssistant_${{ steps.get_version.outputs.VERSION }}.tar.gz
-            ProxyAssistant_${{ steps.get_version.outputs.VERSION }}_chrome.crx
             ProxyAssistant_${{ steps.get_version.outputs.VERSION }}_firefox.xpi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
