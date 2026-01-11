@@ -364,6 +364,8 @@ input:checked+.slider-modern:before {
   list-style: none;
   padding: 5px 0;
   margin: 0;
+  max-height: 190px;
+  overflow-y: auto;
 }
 
 .lh-select-op li {
