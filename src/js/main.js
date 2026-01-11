@@ -236,39 +236,72 @@ function initApp() {
     auto_sync = settings.auto_sync;
     $("#auto_sync_toggle").prop("checked", auto_sync);
 
-    var storage = auto_sync ? chrome.storage.sync : chrome.storage.local;
-    storage.get({ list: [], themeSettings: {} }, function (items) {
-      if (chrome.runtime.lastError) {
-        console.warn("Storage get error:", chrome.runtime.lastError);
-      }
-      items = items || {};
+    // Requirement 5: If sync enabled, pull from remote and update local
+    if (auto_sync) {
+      chrome.storage.sync.get({ list: [], themeSettings: {} }, function (remoteItems) {
+        // Fallback to local if remote is empty or error, otherwise update local
+        if (chrome.runtime.lastError || !remoteItems.list || remoteItems.list.length === 0) {
+          console.warn("Remote sync failed or empty, falling back to local");
+          loadFromLocal();
+        } else {
+          console.log("Sync enabled: Pulled data from remote, updating local");
 
+          // Update local storage with remote data
+          // We don't overwrite themeSettings from remote to local to respect local preference, 
+          // or we could sync them too. For now let's focus on the proxy list as requested.
+
+          chrome.storage.local.set({ list: remoteItems.list }, function () {
+            // After updating local, load into memory
+            loadFromLocal(remoteItems);
+          });
+        }
+      });
+    } else {
+      // Sync disabled: Just load from local
+      loadFromLocal();
+    }
+  });
+}
+
+function loadFromLocal(remoteItems) {
+  chrome.storage.local.get({ list: [], themeSettings: {} }, function (items) {
+    if (chrome.runtime.lastError) {
+      console.warn("Storage get error:", chrome.runtime.lastError);
+    }
+    items = items || {};
+
+    // If we just pulled from remote, use that list to be sure we have latest
+    // Otherwise use what's in local
+    if (remoteItems && remoteItems.list) {
+      list = remoteItems.list;
+    } else {
       list = items.list || [];
-      console.log("list loaded from " + (auto_sync ? "sync" : "local") + "::", list);
+    }
 
-      // Load theme settings
-      var themeSettings = items.themeSettings || {};
-      themeMode = themeSettings.mode || 'light';
-      nightModeStart = themeSettings.startTime || '22:00';
-      nightModeEnd = themeSettings.endTime || '06:00';
+    console.log("list loaded:", list);
 
-      // Update theme UI
-      $('#night-mode-start').val(nightModeStart);
-      $('#night-mode-end').val(nightModeEnd);
-      $('.theme-btn').removeClass('active');
-      $('.theme-btn[data-theme="' + themeMode + '"]').addClass('active');
+    // Load theme settings (always from local preference for now unless we want to sync theme too)
+    var themeSettings = items.themeSettings || {};
+    themeMode = themeSettings.mode || 'light';
+    nightModeStart = themeSettings.startTime || '22:00';
+    nightModeEnd = themeSettings.endTime || '06:00';
 
-      if (themeMode === 'auto') {
-        $('.auto-mode-time-row').show();
-        updateThemeByTime();
-        startThemeInterval();
-      } else {
-        $('.auto-mode-time-row').hide();
-        applyTheme(themeMode);
-      }
+    // Update theme UI
+    $('#night-mode-start').val(nightModeStart);
+    $('#night-mode-end').val(nightModeEnd);
+    $('.theme-btn').removeClass('active');
+    $('.theme-btn[data-theme="' + themeMode + '"]').addClass('active');
 
-      list_init();
-    });
+    if (themeMode === 'auto') {
+      $('.auto-mode-time-row').show();
+      updateThemeByTime();
+      startThemeInterval();
+    } else {
+      $('.auto-mode-time-row').hide();
+      applyTheme(themeMode);
+    }
+
+    list_init();
   });
 }
 
@@ -546,20 +579,35 @@ function saveData() {
     }
   }
 
-  // Save to appropriate location based on sync settings
-  const saveStorage = auto_sync ? chrome.storage.sync : chrome.storage.local;
-  saveStorage.set({ list: list }, function () {
+  // Requirement 2 & 3: Always save to local first
+  chrome.storage.local.set({ list: list }, function () {
     if (chrome.runtime.lastError) {
-      console.error("Save failed:", chrome.runtime.lastError);
+      console.error("Local save failed:", chrome.runtime.lastError);
       showTip(I18n.t('save_failed'), true);
       return;
     }
+
+    // If sync enabled, also save to remote
+    if (auto_sync) {
+      chrome.storage.sync.set({ list: list }, function () {
+        if (chrome.runtime.lastError) {
+          console.error("Remote sync failed:", chrome.runtime.lastError);
+          // Show error specifically for sync failure
+          showTip(I18n.t('sync_failed') || "同步失败，请重试", true);
+        } else {
+          showTip(I18n.t('save_success'), false);
+        }
+      });
+    } else {
+      // Sync disabled: only local save success message
+      showTip(I18n.t('save_success'), false);
+    }
+
     // Notify background to refresh proxy settings
     chrome.runtime.sendMessage({ action: "refreshProxy" });
   });
 
   save = true;
-  showTip(I18n.t('save_success'), false);
 }
 
 function list_init() {
@@ -894,20 +942,33 @@ function saveSingleProxy(i) {
     return;
   }
 
-  // Save to appropriate location based on sync settings
-  const saveStorage = auto_sync ? chrome.storage.sync : chrome.storage.local;
-  saveStorage.set({ list: list }, function () {
+  // Requirement 2 & 3: Always save to local first
+  chrome.storage.local.set({ list: list }, function () {
     if (chrome.runtime.lastError) {
-      console.error("Save failed:", chrome.runtime.lastError);
+      console.error("Local save failed:", chrome.runtime.lastError);
       showTip(I18n.t('save_failed'), true);
       return;
     }
+
+    // If sync enabled, also save to remote
+    if (auto_sync) {
+      chrome.storage.sync.set({ list: list }, function () {
+        if (chrome.runtime.lastError) {
+          console.error("Remote sync failed:", chrome.runtime.lastError);
+          showTip(I18n.t('sync_failed') || "同步失败，请重试", true);
+        } else {
+          showTip(I18n.t('save_success'), false);
+        }
+      });
+    } else {
+      showTip(I18n.t('save_success'), false);
+    }
+
     // Notify background to refresh proxy settings
     chrome.runtime.sendMessage({ action: "refreshProxy" });
   });
 
   save = true;
-  showTip(I18n.t('save_success'), false);
 }
 
 function input_blur(i, name, val) {
@@ -947,8 +1008,18 @@ $(".del_tip_del_btn").on("click", function () {
   if (del_index !== undefined && del_index >= 0 && list[del_index]) {
     list.splice(del_index, 1);
 
-    const saveStorage = auto_sync ? chrome.storage.sync : chrome.storage.local;
-    saveStorage.set({ list: list }, function () {
+    // Always save to local
+    chrome.storage.local.set({ list: list }, function () {
+      // If sync enabled, also sync deletion
+      if (auto_sync) {
+        chrome.storage.sync.set({ list: list }, function () {
+          if (chrome.runtime.lastError) {
+            console.error("Remote sync failed (delete):", chrome.runtime.lastError);
+            showTip(I18n.t('sync_failed') || "同步失败，请重试", true);
+          }
+        });
+      }
+
       // Notify background to refresh proxy settings
       chrome.runtime.sendMessage({ action: "refreshProxy" });
     });

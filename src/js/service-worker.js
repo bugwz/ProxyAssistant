@@ -2,8 +2,21 @@
 // Implements Manifest V3 proxy functionality
 
 // Listener for extension installation or update
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
   console.log('Proxy Assistant installed/updated');
+
+  if (details.reason === 'install') {
+    // Requirement 4: Default sync enabled on first install, pull from remote
+    chrome.storage.local.set({ auto_sync: true }, () => {
+      chrome.storage.sync.get(['list'], (items) => {
+        if (items.list && items.list.length > 0) {
+          console.log('Initial sync: Pulled ' + items.list.length + ' proxies from remote');
+          chrome.storage.local.set({ list: items.list });
+        }
+      });
+    });
+  }
+
   // Disable proxy on initialization
   turnOffProxy();
 });
@@ -139,7 +152,8 @@ function applyManualProxySettings(proxyInfo) {
 
 // Auto mode: Generate and apply PAC script
 function applyAutoProxySettings() {
-  chrome.storage.sync.get({ list: [] }, (items) => {
+  // Always read from local storage for auto mode consistency
+  chrome.storage.local.get({ list: [] }, (items) => {
     const list = items.list || [];
     const pacScript = generatePacScript(list);
 
