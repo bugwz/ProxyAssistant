@@ -145,7 +145,7 @@ body {
 }
 
 .mode-btn[data-mode="disabled"].active {
-  color: #ff9800;
+  color: #dc3545;
 }
 
 .mode-btn[data-mode="manual"].active {
