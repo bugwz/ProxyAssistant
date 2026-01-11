@@ -1,6 +1,13 @@
 :root {
   --main-font-family: "Noto Sans SC", "Source Han Sans SC", "Source Han Sans CN", "思源黑体", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", "微软雅黑", sans-serif;
-  --header-bg: #212121;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --border-color: #eef0f2;
+  --accent-color: #4164f5;
+  --shadow-color: rgba(0, 0, 0, 0.05);
+  --header-bg: #1a1a1a;
   --bg-color: #f9f9f9;
   --text-color: #333;
 }
@@ -12,7 +19,7 @@ body {
   text-align: center;
   font-size: 12px;
   font-family: var(--main-font-family);
-  background-color: var(--bg-color);
+  background-color: var(--bg-primary);
 }
 
 .box {
@@ -23,7 +30,7 @@ body {
   border-radius: 8px;
   display: flex;
   flex-direction: column;
-  box-shadow: none;
+  box-shadow: 0 4px 15px var(--shadow-color);
   outline: none;
 }
 
@@ -84,8 +91,8 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 10px 15px;
-  background-color: #f0f2f5;
-  border-bottom: 1px solid #e1e4e8;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .current-status {
@@ -98,13 +105,13 @@ body {
 
 .status-label {
   font-size: 10px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .status-value {
   font-size: 12px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -198,7 +205,7 @@ body {
 .set_box_user_box {
   background-color: #fff;
   border-radius: 6px;
-  border: 1px solid #e1e4e8;
+  border: 1px solid var(--border-color);
   padding: 8px 12px;
   display: flex;
   align-items: center;
@@ -207,10 +214,12 @@ body {
   min-height: 50px;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .set_box_user_box:hover {
-  border-color: #4164f5;
+  border-color: var(--accent-color);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
 }
 
 .name_txt {
@@ -272,21 +281,22 @@ body {
 
 /* Selected Item State */
 .set_box_user_box.selected {
-  background-color: #e8f0fe;
-  border-color: #4164f5;
+  background-color: #f0f7ff;
+  border-color: var(--accent-color);
 }
 
 .radio-indicator {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 2px solid #ccc;
+  border: 2px solid #cbd5e1;
   position: relative;
   margin-left: 10px;
+  transition: all 0.2s;
 }
 
 .set_box_user_box.selected .radio-indicator {
-  border-color: #4164f5;
+  border-color: var(--accent-color);
 }
 
 .set_box_user_box.selected .radio-indicator::after {
@@ -298,7 +308,7 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #4164f5;
+  background-color: var(--accent-color);
 }
 
 /* Disabled State for List */
@@ -330,20 +340,20 @@ body {
   width: 100%;
   padding: 10px 15px;
   box-sizing: border-box;
-  background: #f9f9f9;
-  border-top: 1px solid #eee;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .version-info {
-  color: #888;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
 .github-link {
-  color: #888;
+  color: var(--text-secondary);
   text-decoration: none;
   display: flex;
   align-items: center;
