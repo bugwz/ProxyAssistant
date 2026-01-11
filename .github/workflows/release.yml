@@ -50,7 +50,7 @@ jobs:
           fi
           
           # Pack with crx3
-          crx3 pack src -o ProxyAssistant_${{ steps.get_version.outputs.VERSION }}.crx -p private.pem
+          crx3 pack src -o ProxyAssistant_${{ steps.get_version.outputs.VERSION }}_chrome.crx -p private.pem
 
       - name: Build Firefox XPI
         run: |
@@ -59,7 +59,7 @@ jobs:
           # web-ext generates a zip file by default, rename it to xpi
           # Find the generated zip file (usually only one)
           FILE=$(ls dist/*.zip)
-          mv "$FILE" ProxyAssistant_${{ steps.get_version.outputs.VERSION }}.xpi
+          mv "$FILE" ProxyAssistant_${{ steps.get_version.outputs.VERSION }}_firefox.xpi
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
