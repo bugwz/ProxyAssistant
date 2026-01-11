@@ -1,0 +1,73 @@
+name: Release Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install tools
+        run: npm install -g web-ext crx3
+
+      - name: Get version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Build ZIP
+        # Zip the src directory
+        run: zip -r ProxyAssistant_${{ steps.get_version.outputs.VERSION }}.zip src
+
+      - name: Build TAR.GZ
+        # Tar.gz the src directory
+        run: tar -czvf ProxyAssistant_${{ steps.get_version.outputs.VERSION }}.tar.gz src
+
+      - name: Build Chrome CRX
+        env:
+          CRX_PRIVATE_KEY: ${{ secrets.CRX_PRIVATE_KEY }}
+        run: |
+          # Check if private key is provided, use it if available, otherwise generate a temporary one
+          if [ -n "$CRX_PRIVATE_KEY" ]; then
+            echo "$CRX_PRIVATE_KEY" > private.pem
+          else
+            echo "No private key provided in secrets.CRX_PRIVATE_KEY, generating a temporary one..."
+            openssl genrsa -out private.pem 2048
+          fi
+          
+          # Pack with crx3
+          crx3 pack src -o ProxyAssistant_${{ steps.get_version.outputs.VERSION }}.crx -p private.pem
+
+      - name: Build Firefox XPI
+        run: |
+          # Build with web-ext, specifying src as source directory
+          web-ext build --source-dir src --artifacts-dir dist --overwrite-dest
+          # web-ext generates a zip file by default, rename it to xpi
+          # Find the generated zip file (usually only one)
+          FILE=$(ls dist/*.zip)
+          mv "$FILE" ProxyAssistant_${{ steps.get_version.outputs.VERSION }}.xpi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ProxyAssistant_${{ steps.get_version.outputs.VERSION }}.zip
+            ProxyAssistant_${{ steps.get_version.outputs.VERSION }}.tar.gz
+            ProxyAssistant_${{ steps.get_version.outputs.VERSION }}_chrome.crx
+            ProxyAssistant_${{ steps.get_version.outputs.VERSION }}_firefox.xpi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
