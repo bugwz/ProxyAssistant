@@ -320,35 +320,44 @@ function handleAuthRequest(details, callback) {
 
 // Turn off proxy
 function turnOffProxy() {
-  const config = {
-    mode: "system"
-  };
+  chrome.storage.local.get(['proxyMode'], (result) => {
+    const mode = result.proxyMode || 'manual';
 
-  // Clear auth info
-  currentProxyAuth = {
-    username: '',
-    password: ''
-  };
+    const config = {
+      mode: "system"
+    };
 
-  // Mark proxy as disabled
-  chrome.storage.local.set({ proxyEnabled: false });
+    // Clear auth info
+    currentProxyAuth = {
+      username: '',
+      password: ''
+    };
 
-  // Clear badge for disabled
-  setBadge("");
+    // Mark proxy as disabled
+    chrome.storage.local.set({ proxyEnabled: false });
 
-  // Remove auth listener
-  try {
-    chrome.webRequest.onAuthRequired.removeListener(handleAuthRequest);
-  } catch (e) {
-    console.log("No auth listener to remove");
-  }
-
-  chrome.proxy.settings.set(
-    { value: config, scope: "regular" },
-    () => {
-      console.log("Proxy turned off");
+    // Set badge based on mode
+    if (mode === 'manual') {
+      setBadge("ᴍ", "#4164f5");
+    } else {
+      // Clear badge for disabled
+      setBadge("");
     }
-  );
+
+    // Remove auth listener
+    try {
+      chrome.webRequest.onAuthRequired.removeListener(handleAuthRequest);
+    } catch (e) {
+      console.log("No auth listener to remove");
+    }
+
+    chrome.proxy.settings.set(
+      { value: config, scope: "regular" },
+      () => {
+        console.log("Proxy turned off");
+      }
+    );
+  });
 }
 
 // Listen for messages from popup or settings page

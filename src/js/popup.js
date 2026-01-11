@@ -98,6 +98,9 @@ function initApp() {
             // Keep disconnected status if no previous proxy
             updateStatusDisplay('manual', null);
             list_init();
+
+            // Refresh proxy to ensure background state matches (and badge is updated)
+            chrome.runtime.sendMessage({ action: "refreshProxy" });
           }
         });
       }
