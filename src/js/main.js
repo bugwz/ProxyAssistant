@@ -238,6 +238,11 @@ function initApp() {
 
     var storage = auto_sync ? chrome.storage.sync : chrome.storage.local;
     storage.get({ list: [], themeSettings: {} }, function (items) {
+      if (chrome.runtime.lastError) {
+        console.warn("Storage get error:", chrome.runtime.lastError);
+      }
+      items = items || {};
+
       list = items.list || [];
       console.log("list loaded from " + (auto_sync ? "sync" : "local") + "::", list);
 
@@ -544,6 +549,11 @@ function saveData() {
   // Save to appropriate location based on sync settings
   const saveStorage = auto_sync ? chrome.storage.sync : chrome.storage.local;
   saveStorage.set({ list: list }, function () {
+    if (chrome.runtime.lastError) {
+      console.error("Save failed:", chrome.runtime.lastError);
+      showTip(I18n.t('save_failed'), true);
+      return;
+    }
     // Notify background to refresh proxy settings
     chrome.runtime.sendMessage({ action: "refreshProxy" });
   });
@@ -887,6 +897,11 @@ function saveSingleProxy(i) {
   // Save to appropriate location based on sync settings
   const saveStorage = auto_sync ? chrome.storage.sync : chrome.storage.local;
   saveStorage.set({ list: list }, function () {
+    if (chrome.runtime.lastError) {
+      console.error("Save failed:", chrome.runtime.lastError);
+      showTip(I18n.t('save_failed'), true);
+      return;
+    }
     // Notify background to refresh proxy settings
     chrome.runtime.sendMessage({ action: "refreshProxy" });
   });
@@ -1194,5 +1209,3 @@ function isValidHost(val) {
 
   return false;
 }
-
-
