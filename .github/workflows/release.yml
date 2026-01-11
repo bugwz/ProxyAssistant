@@ -29,44 +29,56 @@ jobs:
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
-      - name: Build ZIP
-        # Zip the src directory
-        run: zip -r ProxyAssistant_${{ steps.get_version.outputs.VERSION }}.zip src
-
-      - name: Build TAR.GZ
-        # Tar.gz the src directory
-        run: tar -czvf ProxyAssistant_${{ steps.get_version.outputs.VERSION }}.tar.gz src
-
-      - name: Build Firefox XPI
+      # ---------------- Chrome Build ----------------
+      - name: Build Chrome Artifacts
         run: |
-          # Copy src to a temporary directory for modification
+          # Prepare source for Chrome
+          cp -r src src-chrome
+          
+          # Use Chrome manifest
+          cp src-chrome/manifest_chrome.json src-chrome/manifest.json
+          
+          # Remove extra manifest files
+          rm src-chrome/manifest_chrome.json src-chrome/manifest_firefox.json
+          
+          # Build ZIP
+          cd src-chrome
+          zip -r ../ProxyAssistant_${{ steps.get_version.outputs.VERSION }}_chrome.zip .
+          cd ..
+          
+          # Build TAR.GZ
+          tar -czvf ProxyAssistant_${{ steps.get_version.outputs.VERSION }}_chrome.tar.gz -C src-chrome .
+          
+          # Cleanup
+          rm -rf src-chrome
+
+      # ---------------- Firefox Build ----------------
+      - name: Build Firefox Artifacts
+        run: |
+          # Prepare source for Firefox
           cp -r src src-firefox
-
-          # Modify manifest.json for Firefox compatibility (use background.scripts instead of service_worker)
-          node -e "
-            const fs = require('fs');
-            const manifestPath = 'src-firefox/manifest.json';
-            if (fs.existsSync(manifestPath)) {
-              const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-              if (manifest.background && manifest.background.service_worker) {
-                const sw = manifest.background.service_worker;
-                delete manifest.background.service_worker;
-                manifest.background.scripts = [sw];
-              }
-              if (manifest.key) {
-                delete manifest.key;
-              }
-              fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
-            }
-          "
-
-          # Build with web-ext, specifying src-firefox as source directory
+          
+          # Use Firefox manifest
+          cp src-firefox/manifest_firefox.json src-firefox/manifest.json
+          
+          # Remove extra manifest files
+          rm src-firefox/manifest_chrome.json src-firefox/manifest_firefox.json
+          
+          # Build ZIP (for manual install/review)
+          cd src-firefox
+          zip -r ../ProxyAssistant_${{ steps.get_version.outputs.VERSION }}_firefox.zip .
+          cd ..
+          
+          # Build TAR.GZ
+          tar -czvf ProxyAssistant_${{ steps.get_version.outputs.VERSION }}_firefox.tar.gz -C src-firefox .
+          
+          # Build XPI using web-ext
           web-ext build --source-dir src-firefox --artifacts-dir dist --overwrite-dest
-          # web-ext generates a zip file by default, rename it to xpi
-          # Find the generated zip file (usually only one)
+          
+          # Rename generated zip to xpi
           FILE=$(ls dist/*.zip)
           mv "$FILE" ProxyAssistant_${{ steps.get_version.outputs.VERSION }}_firefox.xpi
-
+          
           # Cleanup
           rm -rf src-firefox
 
@@ -74,8 +86,10 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            ProxyAssistant_${{ steps.get_version.outputs.VERSION }}.zip
-            ProxyAssistant_${{ steps.get_version.outputs.VERSION }}.tar.gz
+            ProxyAssistant_${{ steps.get_version.outputs.VERSION }}_chrome.zip
+            ProxyAssistant_${{ steps.get_version.outputs.VERSION }}_chrome.tar.gz
+            ProxyAssistant_${{ steps.get_version.outputs.VERSION }}_firefox.zip
+            ProxyAssistant_${{ steps.get_version.outputs.VERSION }}_firefox.tar.gz
             ProxyAssistant_${{ steps.get_version.outputs.VERSION }}_firefox.xpi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
