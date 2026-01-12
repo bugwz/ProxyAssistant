@@ -38,8 +38,11 @@ jobs:
           # Use Chrome manifest
           cp src-chrome/manifest_chrome.json src-chrome/manifest.json
           
+          # Rename worker
+          mv src-chrome/js/worker-chrome.js src-chrome/js/worker.js
+          
           # Remove extra manifest files
-          rm src-chrome/manifest_chrome.json src-chrome/manifest_firefox.json
+          rm src-chrome/manifest_chrome.json src-chrome/manifest_firefox.json src-chrome/js/worker-firefox.js
           
           # Build ZIP
           cd src-chrome
@@ -61,8 +64,11 @@ jobs:
           # Use Firefox manifest
           cp src-firefox/manifest_firefox.json src-firefox/manifest.json
           
+          # Rename worker
+          mv src-firefox/js/worker-firefox.js src-firefox/js/worker.js
+          
           # Remove extra manifest files
-          rm src-firefox/manifest_chrome.json src-firefox/manifest_firefox.json
+          rm src-firefox/manifest_chrome.json src-firefox/manifest_firefox.json src-firefox/js/worker-chrome.js
           
           # Build ZIP (for manual install/review)
           cd src-firefox

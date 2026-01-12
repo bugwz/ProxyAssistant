@@ -10,7 +10,7 @@
       "128": "images/icon-128.png"
    },
    "background": {
-      "service_worker": "js/service-worker.js",
+      "service_worker": "js/worker.js",
       "type": "module"
    },
    "action": {
