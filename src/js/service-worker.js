@@ -30,7 +30,7 @@ chrome.runtime.onStartup.addListener(() => {
       applyProxySettings(result.currentProxy);
     } else {
       // Clear badge for disabled
-      setBadge("");
+      updateBadge();
     }
   });
 });
@@ -52,6 +52,30 @@ function setBadge(text, color) {
   if (color) {
     chrome.action.setBadgeBackgroundColor({ color: color });
   }
+}
+
+// Monitor storage changes to keep badge updated
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'local') {
+    if (changes.list || changes.proxyMode || changes.proxyEnabled) {
+      updateBadge();
+    }
+  }
+});
+
+// Update badge based on current state and requirements
+function updateBadge() {
+  chrome.storage.local.get(['proxyEnabled', 'proxyMode', 'list'], (result) => {
+    const mode = result.proxyMode || 'disabled';
+
+    if (mode === 'manual') {
+      setBadge("ᴍ", "#4164f5");
+    } else if (mode === 'auto') {
+      setBadge("ᴀ", "#28a745");
+    } else {
+      setBadge("");
+    }
+  });
 }
 
 // Handle different types of proxy settings
@@ -131,9 +155,10 @@ function applyManualProxySettings(proxyInfo) {
   chrome.storage.local.set({
     currentProxy: { ...proxyInfo, type: type, ip: ip, port: port, name: proxyName },
     proxyEnabled: true
+  }, () => {
+    updateBadge();
   });
 
-  setBadge("ᴍ", "#4164f5");
   setupAuthListener();
 
   const config = {
@@ -169,14 +194,15 @@ function applyAutoProxySettings() {
     // In auto mode, we need to handle auth for all matched proxies
     // Here we simply set up a global listener, handleAuthRequest will query storage as needed
     setupAuthListener();
-    setBadge("ᴀ", "#28a745");
 
     chrome.proxy.settings.set({ value: config, scope: "regular" }, () => {
       if (chrome.runtime.lastError) {
         console.error("Error setting auto proxy:", chrome.runtime.lastError);
       } else {
         console.log("Auto proxy (PAC) enabled");
-        chrome.storage.local.set({ proxyEnabled: true });
+        chrome.storage.local.set({ proxyEnabled: true }, () => {
+          updateBadge();
+        });
       }
     });
   });
@@ -334,15 +360,9 @@ function turnOffProxy() {
     };
 
     // Mark proxy as disabled
-    chrome.storage.local.set({ proxyEnabled: false });
-
-    // Set badge based on mode
-    if (mode === 'manual') {
-      setBadge("ᴍ", "#4164f5");
-    } else {
-      // Clear badge for disabled
-      setBadge("");
-    }
+    chrome.storage.local.set({ proxyEnabled: false }, () => {
+      updateBadge();
+    });
 
     // Remove auth listener
     try {

@@ -64,6 +64,13 @@ function initApp() {
 
     updateModeUI(mode);
     updateStatusDisplay(mode, currentProxy);
+
+    // For manual mode, always show disconnected state by default
+    // User must manually select a proxy to use
+    if (mode === 'manual') {
+      updateStatusDisplay('manual', null);
+      chrome.storage.local.set({ currentProxy: null });
+    }
   });
 
   // Mode switch button click event
@@ -85,24 +92,14 @@ function initApp() {
           updateStatusDisplay('disabled', null);
         });
       } else {
-        // Manual mode
-        // Restore previous proxy state or keep current state
-        chrome.storage.local.get(['currentProxy'], function (result) {
-          if (result.currentProxy) {
-            // Try to restore previous proxy
-            chrome.runtime.sendMessage({ action: "applyProxy", proxyInfo: result.currentProxy });
-            updateStatusDisplay('manual', result.currentProxy);
-            // Update list selection status
-            list_init();
-          } else {
-            // Keep disconnected status if no previous proxy
-            updateStatusDisplay('manual', null);
-            list_init();
-
-            // Refresh proxy to ensure background state matches (and badge is updated)
-            chrome.runtime.sendMessage({ action: "refreshProxy" });
-          }
+        // Manual mode - always show disconnected state by default
+        // User must manually select a proxy to use
+        updateStatusDisplay('manual', null);
+        chrome.storage.local.set({ currentProxy: null }, function () {
+          list_init();
         });
+        // Ensure proxy is turned off
+        chrome.runtime.sendMessage({ action: "refreshProxy" });
       }
     });
   });
@@ -152,8 +149,9 @@ function initApp() {
       });
     } else {
       // Manual mode
-      if (currentProxy && currentProxy.name) {
-        $statusValue.text(currentProxy.name).removeAttr('data-i18n');
+      if (currentProxy && (currentProxy.name || currentProxy.ip)) {
+        const displayName = currentProxy.name || I18n.t('unnamed_proxy');
+        $statusValue.text(displayName).removeAttr('data-i18n');
         $statusValue.css('color', '#4164f5'); // Blue for connected (matches Manual mode button)
       } else {
         $statusValue.text(I18n.t('status_disconnected')).attr('data-i18n', 'status_disconnected');
@@ -191,6 +189,8 @@ function list_init() {
 
       var len = 0;
       var html = "";
+      let selectedProxy = null; // Track the selected proxy for status sync
+
       for (var i = 0; i < list.length; i++) {
         var info = list[i];
 
@@ -201,9 +201,11 @@ function list_init() {
           // Determine selection status
           let isSelected = false;
           if (mode === 'manual' && currentProxy) {
-            // Manual mode: match IP and Port
-            isSelected = (info.ip === (currentProxy.ip || currentProxy.ip) &&
-              info.port === (currentProxy.port || currentProxy.port));
+            // Manual mode: match by IP and Port
+            isSelected = (info.ip === currentProxy.ip && info.port === currentProxy.port);
+            if (isSelected) {
+              selectedProxy = info; // Store selected proxy for status sync
+            }
           } else if (mode === 'auto' && autoMatchProxy) {
             // Auto mode: match the calculated proxy object
             isSelected = (info === autoMatchProxy);
@@ -236,6 +238,11 @@ function list_init() {
       } else {
         // Bind click events
         bindListEvents();
+
+        // Sync status display with selected proxy in manual mode
+        if (mode === 'manual' && selectedProxy) {
+          updateStatusDisplay('manual', selectedProxy);
+        }
       }
     });
   });
@@ -311,6 +318,9 @@ function bindListEvents() {
 
     const proxyName = info.name || "Proxy";
     $('#status-display').text(proxyName).css('color', '#4164f5'); // Changed from #28a745 (Green) to #4164f5 (Blue)
+
+    // Save current proxy selection
+    chrome.storage.local.set({ currentProxy: info });
 
     // Execute persistence and background communication
     chrome.runtime.sendMessage(
