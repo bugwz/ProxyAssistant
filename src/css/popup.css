@@ -322,7 +322,16 @@ body {
 }
 
 .mode-auto .set_box_user_box.selected {
-  /* Keep selected styling consistent with manual mode */
+  background-color: #f0fff4;
+  border-color: #28a745;
+}
+
+.mode-auto .set_box_user_box.selected .radio-indicator {
+  border-color: #28a745;
+}
+
+.mode-auto .set_box_user_box.selected .radio-indicator::after {
+  background-color: #28a745;
 }
 
 /* Manual disabled mode - apply opacity */
@@ -332,6 +341,11 @@ body {
 
 .list-disabled:not(.mode-auto) .set_box_user_box.selected {
   opacity: 1;
+}
+
+/* Ensure auto mode list container has proper background */
+.mode-auto .set_box_user {
+  background-color: transparent;
 }
 
 /* Bottom Buttons */
@@ -388,8 +402,38 @@ body[data-theme="dark"] .set_box_user {
   background-color: #2d2d2d;
 }
 
+/* Ensure auto mode in dark theme has EXACTLY the same appearance as manual mode */
+body[data-theme="dark"] .set_box_user.list-disabled.mode-auto {
+  background-color: #2d2d2d;
+}
+
 body[data-theme="dark"] .set_box_user.list-disabled.mode-auto .set_box_user_box {
   background-color: #2d2d2d;
+  opacity: 1;
+  border-color: #4a4a4a;
+}
+
+body[data-theme="dark"] .set_box_user.list-disabled.mode-auto .set_box_user_box:hover {
+  border-color: #b0b0b0;
+}
+
+/* Auto mode selected items - same as manual mode selected items */
+body[data-theme="dark"] .set_box_user.list-disabled.mode-auto .set_box_user_box.selected {
+  background-color: rgba(176, 176, 176, 0.15);
+  border-color: #b0b0b0;
+}
+
+body[data-theme="dark"] .set_box_user.list-disabled.mode-auto .set_box_user_box.selected .radio-indicator {
+  border-color: #64748b;
+}
+
+body[data-theme="dark"] .set_box_user.list-disabled.mode-auto .set_box_user_box.selected .radio-indicator::after {
+  background-color: #64748b;
+}
+
+/* Ensure auto mode non-selected items are clearly visible */
+body[data-theme="dark"] .mode-auto .set_box_user_box {
+  opacity: 1;
 }
 
 body[data-theme="dark"] .status-label {
