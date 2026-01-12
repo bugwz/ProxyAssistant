@@ -588,29 +588,60 @@ function analyzeProxyStatus(browserConfig, pluginConfig) {
 
   // Analyze if using plugin
   var isUsingPlugin = false;
+  // Detect Firefox
+  var isFirefox = navigator.userAgent.indexOf("Firefox") !== -1;
 
-  if (browserMode === 'fixed_servers' && pluginConfig.mode === 'manual') {
-    // Manual mode - check if browser config matches plugin config
-    if (pluginConfig.currentProxy && proxyServer) {
-      var expectedServer = pluginConfig.currentProxy.ip + ':' + pluginConfig.currentProxy.port;
-      isUsingPlugin = (proxyServer === expectedServer);
+  if (isFirefox) {
+    // Firefox special handling: we use onRequest which doesn't change browser.proxy.settings
+    if (pluginConfig.mode === 'disabled') {
+      // When disabled, don't claim we're using the plugin
+      isUsingPlugin = false;
+    } else {
+      // If enabled, we assume it's working if not controlled by others
+      // Since onRequest doesn't reflect in settings, we can't verify IP/Port match easily here
+      if (levelOfControl !== 'controlled_by_other_extensions') {
+        isUsingPlugin = true;
+      }
     }
-  } else if (browserMode === 'pac_script' && pluginConfig.mode === 'auto') {
-    // Auto mode - if browser is using PAC, assume it's the plugin
-    isUsingPlugin = true;
-  } else if (browserMode === 'disabled' && pluginConfig.mode === 'disabled') {
-    isUsingPlugin = true;
+  } else {
+    // Chrome behavior
+    if (browserMode === 'fixed_servers' && pluginConfig.mode === 'manual') {
+      // Manual mode - check if browser config matches plugin config
+      if (pluginConfig.currentProxy && proxyServer) {
+        var expectedServer = pluginConfig.currentProxy.ip + ':' + pluginConfig.currentProxy.port;
+        isUsingPlugin = (proxyServer === expectedServer);
+      }
+    } else if (browserMode === 'pac_script' && pluginConfig.mode === 'auto') {
+      // Auto mode - if browser is using PAC, assume it's the plugin
+      isUsingPlugin = true;
+    } else if (browserMode === 'disabled' && pluginConfig.mode === 'disabled') {
+      isUsingPlugin = true;
+    }
   }
 
   // Check for other proxy control
-  var hasOtherProxy = (levelOfControl === 'controlled_by_other_extensions') ||
-    (browserMode === 'system' && pluginConfig.mode !== 'disabled');
+  var hasOtherProxy = (levelOfControl === 'controlled_by_other_extensions');
+
+  if (!isFirefox && pluginConfig.mode !== 'disabled') {
+    // Only set hasOtherProxy for Chrome when plugin is ENABLED
+    // When plugin is disabled, we show "Disabled" status regardless of system proxy
+    hasOtherProxy = hasOtherProxy || (browserMode === 'system');
+  }
 
   // Determine result status
-  if (isUsingPlugin && !hasOtherProxy) {
+  if (pluginConfig.mode === 'disabled') {
+    // Plugin Disabled Mode: Always show "Disabled" status (same for both Firefox and Chrome)
+    result.status = 'normal';
+    result.statusText = I18n.t('status_disabled');
+    result.statusIcon = detectionIcons.success;
+    result.details.push({
+      label: I18n.t('proxy_effect'),
+      value: I18n.t('proxy_control_system')
+    });
+  } else if (isUsingPlugin && !hasOtherProxy) {
     result.status = 'normal';
     result.statusText = I18n.t('proxy_status_normal');
-    result.statusIcon = '✅';
+    result.statusIcon = detectionIcons.success;
     result.details.push({
       label: I18n.t('proxy_effect'),
       value: I18n.t('proxy_effect_verified')
@@ -618,7 +649,7 @@ function analyzeProxyStatus(browserConfig, pluginConfig) {
   } else if (hasOtherProxy || browserMode === 'system') {
     result.status = 'warning';
     result.statusText = I18n.t('proxy_status_warning');
-    result.statusIcon = '⚠️';
+    result.statusIcon = detectionIcons.warning;
     result.warning = I18n.t('proxy_warning_system');
     result.suggestion = I18n.t('proxy_suggestion_check');
     result.details.push({
@@ -628,7 +659,7 @@ function analyzeProxyStatus(browserConfig, pluginConfig) {
   } else {
     result.status = 'warning';
     result.statusText = I18n.t('proxy_status_warning');
-    result.statusIcon = '⚠️';
+    result.statusIcon = detectionIcons.warning;
     result.suggestion = I18n.t('proxy_suggestion_check');
     result.details.push({
       label: I18n.t('proxy_effect'),
