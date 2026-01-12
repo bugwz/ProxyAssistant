@@ -352,6 +352,7 @@ function applyAutoProxySettings() {
 function generatePacScript(list) {
   let script = "function FindProxyForURL(url, host) {\n";
 
+  // Check include_urls in proxy list order, use first match
   for (const proxy of list) {
     // Skip disabled proxies
     if (proxy.disabled === true) continue;
@@ -362,24 +363,11 @@ function generatePacScript(list) {
     if (type.startsWith("SOCKS")) proxyType = "SOCKS5";
     const proxyStr = `${proxyType} ${proxy.ip}:${proxy.port}`;
 
-    // Check fallback policy: direct (default) or reject
+    // Determine fallback behavior based on fallback_policy
     const fallback = proxy.fallback_policy === "reject" ? "" : "; DIRECT";
     const returnVal = `"${proxyStr}${fallback}"`;
 
-    // 1. Process Bypass URLs (Manual Mode config but also applies to Auto Mode for consistency)
-    if (proxy.bypass_urls) {
-      const bypassUrls = proxy.bypass_urls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
-      for (const pattern of bypassUrls) {
-        if (pattern.includes('*')) {
-          const regexPattern = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
-          script += `  if (/${regexPattern}/.test(host)) return "DIRECT";\n`;
-        } else {
-          script += `  if (dnsDomainIs(host, "${pattern}") || host === "${pattern}") return "DIRECT";\n`;
-        }
-      }
-    }
-
-    // 2. Process Include URLs
+    // Only process include_urls, ignore bypass_urls in auto mode
     if (proxy.include_urls) {
       const includeUrls = proxy.include_urls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
       for (const pattern of includeUrls) {
@@ -393,7 +381,7 @@ function generatePacScript(list) {
     }
   }
 
-  script += "  return \"DIRECT\";\n}";
+  script += "  return \"DIRECT\";\n}"; // Direct connection when no match
   return script;
 }
 
@@ -467,18 +455,12 @@ function checkBypass(bypassUrls, url) {
 function findProxyForRequestFirefox(url) {
   const host = new URL(url).hostname;
   
+  // 按代理列表顺序检查，使用第一个匹配的include_urls
   for (const proxy of firefoxProxyState.list) {
     if (proxy.disabled) continue;
     if (!proxy.ip || !proxy.port) continue;
 
-    // Check bypass first
-    if (proxy.bypass_urls) {
-      if (checkBypass(proxy.bypass_urls, url)) {
-        continue; // Skip this proxy, try next
-      }
-    }
-
-    // Check include
+    // 只检查include_urls，忽略bypass_urls在自动模式下
     if (proxy.include_urls) {
       const includeUrls = proxy.include_urls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
       for (const pattern of includeUrls) {
@@ -489,7 +471,7 @@ function findProxyForRequestFirefox(url) {
     }
   }
 
-  return { type: "direct" };
+  return { type: "direct" }; // 没有匹配，直接连接
 }
 
 function matchesPattern(url, pattern) {

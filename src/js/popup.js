@@ -258,21 +258,18 @@ function list_init() {
 function getAutoProxy(proxyList, hostname) {
   if (!proxyList || !hostname) return null;
 
+  // Check include_urls in proxy list order, return first match
   for (const proxy of proxyList) {
     if (proxy.disabled) continue;
     if (!proxy.ip || !proxy.port) continue;
 
-    // 1. Bypass Check - if matches, return null (DIRECT)
-    if (checkMatch(proxy.bypass_urls, hostname)) {
-      return null;
-    }
-
-    // 2. Include Check - if matches, return this proxy
+    // Only check include_urls, match in order
     if (checkMatch(proxy.include_urls, hostname)) {
-      return proxy;
+      return proxy; // Return first matched proxy
     }
   }
-  return null; // Fallback to DIRECT
+  
+  return null; // No match, Fallback to DIRECT
 }
 
 function checkMatch(patternsStr, hostname) {
