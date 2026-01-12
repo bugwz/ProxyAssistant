@@ -1,9 +1,9 @@
-// Proxy Assistant - Background Service Worker (Firefox)
-// Implements Manifest V3 proxy functionality
+// Proxy Assistant - Background Service Worker
+// Implements Manifest V3 proxy functionality for Chrome and Firefox
 
 // Browser detection
-const isFirefox = true;
-const isChrome = false;
+const isFirefox = typeof browser !== 'undefined' && browser.runtime && browser.runtime.getBrowserInfo !== undefined;
+const isChrome = !isFirefox && typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getBrowserInfo !== undefined;
 
 // Global variable to store current proxy authentication credentials
 let currentProxyAuth = {
@@ -43,26 +43,35 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 // Restore previous proxy settings on browser startup
 chrome.runtime.onStartup.addListener(() => {
-  console.log('Chrome started, checking for saved proxy settings');
+  console.log('Browser started, checking for saved proxy settings');
   chrome.storage.local.get(['currentProxy', 'proxyEnabled', 'proxyMode', 'list'], (result) => {
-    // Sync local state for Firefox
-    if (result.list) firefoxProxyState.list = result.list;
-    if (result.currentProxy) firefoxProxyState.currentProxy = result.currentProxy;
-    // If enabled, restore mode
-    if (result.proxyEnabled) {
-      firefoxProxyState.mode = result.proxyMode || 'manual';
-    } else {
-      firefoxProxyState.mode = 'disabled';
-    }
-    setupFirefoxProxy();
+    if (isFirefox) {
+      // Sync local state for Firefox
+      if (result.list) firefoxProxyState.list = result.list;
+      if (result.currentProxy) firefoxProxyState.currentProxy = result.currentProxy;
+      // If enabled, restore mode
+      if (result.proxyEnabled) {
+        firefoxProxyState.mode = result.proxyMode || 'manual';
+      } else {
+        firefoxProxyState.mode = 'disabled';
+      }
+      setupFirefoxProxy();
 
-    if (result.proxyEnabled) {
-      console.log('Restoring saved proxy settings');
-      // No need to call applyProxySettings because setupFirefoxProxy() activates the logic
-      // based on the state we just restored.
+      if (result.proxyEnabled) {
+        console.log('Restoring saved proxy settings');
+      } else {
+        // Clear badge for disabled
+        updateBadge();
+      }
     } else {
-      // Clear badge for disabled
-      updateBadge();
+      // Chrome
+      if (result.proxyEnabled) {
+        console.log('Restoring saved proxy settings');
+        applyProxySettings(result.currentProxy);
+      } else {
+        // Clear badge for disabled
+        updateBadge();
+      }
     }
   });
 });
@@ -71,25 +80,37 @@ chrome.runtime.onStartup.addListener(() => {
 function getProxySettings() {
   return new Promise((resolve) => {
     try {
-      // Firefox API - we return our internal state because we use onRequest
-      // We mock the Chrome API structure for compatibility with UI
-      let config = { value: { mode: "system" }, levelOfControl: "controlled_by_this_extension" };
-      
-      if (firefoxProxyState.mode === 'manual') {
-        config.value = {
-          mode: "fixed_servers",
-          rules: {
-            singleProxy: {
-              host: firefoxProxyState.currentProxy?.ip,
-              port: parseInt(firefoxProxyState.currentProxy?.port || 0)
+      if (isFirefox) {
+        // Firefox API - we return our internal state because we use onRequest
+        // We mock the Chrome API structure for compatibility with UI
+        let config = { value: { mode: "system" }, levelOfControl: "controlled_by_this_extension" };
+        
+        if (firefoxProxyState.mode === 'manual') {
+          config.value = {
+            mode: "fixed_servers",
+            rules: {
+              singleProxy: {
+                host: firefoxProxyState.currentProxy?.ip,
+                port: parseInt(firefoxProxyState.currentProxy?.port || 0)
+              }
             }
+          };
+        } else if (firefoxProxyState.mode === 'auto') {
+          config.value = { mode: "pac_script" };
+        }
+        
+        resolve(config);
+      } else {
+        // Chrome API
+        chrome.proxy.settings.get({ incognito: false }, (config) => {
+          if (chrome.runtime.lastError) {
+            console.error("Chrome proxy.settings.get error:", chrome.runtime.lastError);
+            resolve({ value: null, levelOfControl: "unknown" });
+          } else {
+            resolve(config || { value: null, levelOfControl: "unknown" });
           }
-        };
-      } else if (firefoxProxyState.mode === 'auto') {
-        config.value = { mode: "pac_script" };
+        });
       }
-      
-      resolve(config);
     } catch (error) {
       console.error("Exception getting proxy settings:", error);
       resolve({ value: null, levelOfControl: "unknown" });
@@ -118,11 +139,10 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     }
     
     // Sync Firefox state on storage changes
-    if (changes.list) firefoxProxyState.list = changes.list.newValue;
-    if (changes.currentProxy) firefoxProxyState.currentProxy = changes.currentProxy.newValue;
-      
-    // If mode or enabled status changed, we might need to re-apply
-    // But usually applyProxySettings is called explicitly
+    if (isFirefox) {
+      if (changes.list) firefoxProxyState.list = changes.list.newValue;
+      if (changes.currentProxy) firefoxProxyState.currentProxy = changes.currentProxy.newValue;
+    }
   }
 });
 
@@ -146,29 +166,50 @@ function applyProxySettings(proxyInfo) {
   chrome.storage.local.get(['proxyMode', 'currentProxy', 'list'], (result) => {
     const mode = result.proxyMode || 'manual';
 
-    // Update Firefox state
-    firefoxProxyState.list = result.list || [];
-    if (mode === 'disabled') {
-      firefoxProxyState.mode = 'disabled';
-      firefoxProxyState.currentProxy = null;
-    } else if (mode === 'auto') {
-      firefoxProxyState.mode = 'auto';
-      firefoxProxyState.currentProxy = null;
+    if (isFirefox) {
+      // Update Firefox state
+      firefoxProxyState.list = result.list || [];
+      if (mode === 'disabled') {
+        firefoxProxyState.mode = 'disabled';
+        firefoxProxyState.currentProxy = null;
+      } else if (mode === 'auto') {
+        firefoxProxyState.mode = 'auto';
+        firefoxProxyState.currentProxy = null;
+      } else {
+        // Manual
+        firefoxProxyState.mode = 'manual';
+        // Use provided info or fallback to storage
+        firefoxProxyState.currentProxy = proxyInfo || result.currentProxy;
+      }
+      
+      // Update UI
+      chrome.storage.local.set({ 
+        proxyEnabled: mode !== 'disabled',
+        currentProxy: firefoxProxyState.currentProxy // Ensure storage matches state
+      }, () => {
+        updateBadge();
+        setupFirefoxProxy(); // Activate the proxy logic
+      });
     } else {
-      // Manual
-      firefoxProxyState.mode = 'manual';
-      // Use provided info or fallback to storage
-      firefoxProxyState.currentProxy = proxyInfo || result.currentProxy;
+      // Chrome
+      const chromeMode = result.proxyMode || 'manual';
+
+      if (chromeMode === 'auto') {
+        applyAutoProxySettings();
+      } else if (chromeMode === 'disabled') {
+        // If mode is disabled, always turn off proxy regardless of proxyInfo
+        turnOffProxy();
+      } else {
+        // Manual mode
+        // If manual mode and no proxyInfo provided (e.g. from refreshProxy), use the one from storage
+        const infoToApply = proxyInfo || result.currentProxy;
+        if (infoToApply) {
+          applyManualProxySettings(infoToApply);
+        } else {
+          turnOffProxy();
+        }
+      }
     }
-    
-    // Update UI
-    chrome.storage.local.set({ 
-      proxyEnabled: mode !== 'disabled',
-      currentProxy: firefoxProxyState.currentProxy // Ensure storage matches state
-    }, () => {
-      updateBadge();
-      setupFirefoxProxy(); // Activate the proxy logic
-    });
   });
 }
 
@@ -185,6 +226,175 @@ function cleanProtocol(protocol) {
     return 'http';
   }
   return cleaned;
+}
+
+// -----------------------------------------------------------------------------
+// Chrome Implementation Section
+// -----------------------------------------------------------------------------
+
+// Manual mode: Apply fixed server configuration (Chrome only)
+async function applyManualProxySettings(proxyInfo) {
+  if (!proxyInfo) {
+    console.error("No proxy info provided, turning off proxy");
+    turnOffProxy();
+    return { success: false, error: "No proxy information provided" };
+  }
+
+  // Clean protocol field to prevent corruption
+  const type = cleanProtocol(proxyInfo.protocol || proxyInfo.type || "http");
+  const ip = proxyInfo.ip;
+  const port = proxyInfo.port;
+  const username = proxyInfo.username;
+  const password = proxyInfo.password;
+  const proxyName = proxyInfo.name || "";
+  const bypassUrls = proxyInfo.bypass_urls || "";
+
+  if (!type || !ip || !port) {
+    console.error("Missing required proxy information", proxyInfo);
+    return { success: false, error: "Missing proxy IP, port, or protocol" };
+  }
+
+  // Validate IP and port format before applying
+  const validation = validateProxyConfig(ip, port);
+  if (!validation.valid) {
+    console.error("Invalid proxy configuration:", validation.error);
+    return { success: false, error: validation.error };
+  }
+
+  let proxyScheme = type === "socks5" ? "socks5" : (type === "socks4" ? "socks4" : "http");
+  if (type === "https") proxyScheme = "https";
+
+  let portNumber = parseInt(port);
+
+  // Parse bypassUrls
+  let bypassList = ["localhost", "127.0.0.1", "<local>"];
+  if (bypassUrls) {
+    const customBypass = bypassUrls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+    bypassList = [...new Set([...bypassList, ...customBypass])];
+  }
+
+  currentProxyAuth = { username: username || '', password: password || '' };
+
+  chrome.storage.local.set({
+    currentProxy: { ...proxyInfo, type: type, ip: ip, port: port, name: proxyName },
+    proxyEnabled: true
+  }, () => {
+    updateBadge();
+  });
+
+  setupAuthListener();
+
+  const config = {
+    mode: "fixed_servers",
+    rules: {
+      singleProxy: { scheme: proxyScheme, host: ip, port: portNumber },
+      bypassList: bypassList
+    }
+  };
+
+  // Check if we have control over proxy settings
+  const controlStatus = await getProxySettings(); 
+  
+  if (controlStatus.levelOfControl === "controlled_by_other_extensions") {
+      console.warn("Cannot apply proxy - controlled by other extension");
+      return {
+        success: false,
+        error: "Proxy settings are controlled by another extension. Please disable other proxy/VPN extensions."
+      };
+  }
+
+  chrome.proxy.settings.set({ value: config, scope: "regular" }, async () => {
+    if (chrome.runtime.lastError) {
+      console.error("Error setting proxy:", chrome.runtime.lastError);
+    } else {
+      console.log("Manual proxy enabled:", proxyName);
+      preconnectToTestUrls();
+    }
+  });
+
+  return { success: true };
+}
+
+// Auto mode: Generate and apply PAC script (Chrome only)
+function applyAutoProxySettings() {
+  // Always read from local storage for auto mode consistency
+  chrome.storage.local.get({ list: [] }, (items) => {
+    const list = items.list || [];
+    const pacScript = generatePacScript(list);
+
+    console.log("Generated PAC Script:", pacScript);
+
+    const config = {
+      mode: "pac_script",
+      pacScript: {
+        data: pacScript
+      }
+    };
+
+    // In auto mode, we need to handle auth for all matched proxies
+    // Here we simply set up a global listener, handleAuthRequest will query storage as needed
+    setupAuthListener();
+
+    chrome.proxy.settings.set({ value: config, scope: "regular" }, () => {
+      if (chrome.runtime.lastError) {
+        console.error("Error setting auto proxy:", chrome.runtime.lastError);
+      } else {
+        console.log("Auto proxy (PAC) enabled");
+        chrome.storage.local.set({ proxyEnabled: true }, () => {
+          updateBadge();
+        });
+      }
+    });
+  });
+}
+
+// Generate PAC script logic (Chrome only)
+function generatePacScript(list) {
+  let script = "function FindProxyForURL(url, host) {\n";
+
+  for (const proxy of list) {
+    // Skip disabled proxies
+    if (proxy.disabled === true) continue;
+    if (!proxy.ip || !proxy.port) continue;
+
+    const type = (proxy.protocol || "HTTP").toUpperCase();
+    let proxyType = "PROXY";
+    if (type.startsWith("SOCKS")) proxyType = "SOCKS5";
+    const proxyStr = `${proxyType} ${proxy.ip}:${proxy.port}`;
+
+    // Check fallback policy: direct (default) or reject
+    const fallback = proxy.fallback_policy === "reject" ? "" : "; DIRECT";
+    const returnVal = `"${proxyStr}${fallback}"`;
+
+    // 1. Process Bypass URLs (Manual Mode config but also applies to Auto Mode for consistency)
+    if (proxy.bypass_urls) {
+      const bypassUrls = proxy.bypass_urls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+      for (const pattern of bypassUrls) {
+        if (pattern.includes('*')) {
+          const regexPattern = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
+          script += `  if (/${regexPattern}/.test(host)) return "DIRECT";\n`;
+        } else {
+          script += `  if (dnsDomainIs(host, "${pattern}") || host === "${pattern}") return "DIRECT";\n`;
+        }
+      }
+    }
+
+    // 2. Process Include URLs
+    if (proxy.include_urls) {
+      const includeUrls = proxy.include_urls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+      for (const pattern of includeUrls) {
+        if (pattern.includes('*')) {
+          const regexPattern = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
+          script += `  if (/${regexPattern}/.test(host)) return ${returnVal};\n`;
+        } else {
+          script += `  if (dnsDomainIs(host, "${pattern}") || host === "${pattern}") return ${returnVal};\n`;
+        }
+      }
+    }
+  }
+
+  script += "  return \"DIRECT\";\n}";
+  return script;
 }
 
 // -----------------------------------------------------------------------------
@@ -289,8 +499,6 @@ function matchesPattern(url, pattern) {
     // Wildcard match
     const regexStr = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
     const regex = new RegExp(`^${regexStr}$`, 'i'); // exact match with wildcard
-    // Note: FoxyProxy/PAC often checks host, but sometimes URL. 
-    // Usually "host" patterns match the hostname.
     return regex.test(host);
   } else {
     // Domain match (dnsDomainIs equivalent)
@@ -337,11 +545,10 @@ function createFirefoxProxyObject(proxy) {
 }
 
 // -----------------------------------------------------------------------------
-// End Firefox Implementation Section
+// End Browser-Specific Implementation Sections
 // -----------------------------------------------------------------------------
 
-
-// Preconnect to test URLs to warm up proxy connection and avoidauth popups
+// Preconnect to test URLs to warm up proxy connection and avoid auth popups
 function preconnectToTestUrls() {
   console.log("Preconnecting to test URLs to warm up proxy connection");
 
@@ -430,11 +637,63 @@ function handleAuthRequest(details, callback) {
 
 // Turn off proxy
 async function turnOffProxy() {
-  firefoxProxyState.mode = 'disabled';
-  chrome.storage.local.set({ proxyEnabled: false }, () => {
-    updateBadge();
-  });
-  browser.proxy.settings.clear({});
+  if (isFirefox) {
+    firefoxProxyState.mode = 'disabled';
+    chrome.storage.local.set({ proxyEnabled: false }, () => {
+      updateBadge();
+    });
+    browser.proxy.settings.clear({});
+  } else {
+    // Chrome
+    return new Promise(async (resolve) => {
+      try {
+        // First check current proxy control status
+        const currentConfig = await getProxySettings();
+
+        // Check if controlled by other extensions
+        if (currentConfig.levelOfControl === "controlled_by_other_extensions") {
+          console.warn("Proxy is controlled by other extensions, cannot turn off");
+        }
+
+        const config = {
+          mode: "system"
+        };
+
+        // Clear auth info
+        currentProxyAuth = {
+          username: '',
+          password: ''
+        };
+
+        // Mark proxy as disabled
+        chrome.storage.local.set({ proxyEnabled: false }, () => {
+          updateBadge();
+        });
+
+        // Remove auth listener
+        try {
+          chrome.webRequest.onAuthRequired.removeListener(handleAuthRequest);
+        } catch (e) {
+          console.log("No auth listener to remove");
+        }
+
+        chrome.proxy.settings.set(
+          { value: config, scope: "regular" },
+          async () => {
+            if (chrome.runtime.lastError) {
+              console.error("Error turning off proxy:", chrome.runtime.lastError);
+            } else {
+              console.log("Proxy turned off (mode: system)");
+            }
+            resolve();
+          }
+        );
+      } catch (error) {
+        console.error("Error in turnOffProxy:", error);
+        resolve();
+      }
+    });
+  }
 }
 
 // Listen for messages from popup or settings page
@@ -496,35 +755,82 @@ async function testProxyConnection(proxyInfo, sendResponse) {
     return;
   }
 
-  // -------------------------
-  // Firefox Test Implementation
-  // -------------------------
-  // Backup state
-  const previousMode = firefoxProxyState.mode;
-  
-  // Set Test Mode
-  firefoxProxyState.testMode = true;
-  firefoxProxyState.testProxy = proxyInfo;
-  
-  // In Firefox, we rely on onRequest which reads the state
-  // We don't need to "set" anything other than the state variables
-  console.log("Firefox: Enabled Test Mode for connectivity check");
+  if (isFirefox) {
+    // -------------------------
+    // Firefox Test Implementation
+    // -------------------------
+    // Backup state
+    const previousMode = firefoxProxyState.mode;
+    
+    // Set Test Mode
+    firefoxProxyState.testMode = true;
+    firefoxProxyState.testProxy = proxyInfo;
+    
+    // In Firefox, we rely on onRequest which reads the state
+    // We don't need to "set" anything other than the state variables
+    console.log("Firefox: Enabled Test Mode for connectivity check");
 
-  try {
-    // Wait a bit for state to be picked up
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const testResult = await runConnectivityTest(proxyInfo);
-    sendResponse(testResult);
-    
-  } catch(error) {
-    sendResponse({ success: false, error: error.message || "Connection failed" });
-  } finally {
-    // Restore state
-    firefoxProxyState.testMode = false;
-    firefoxProxyState.testProxy = null;
-    firefoxProxyState.mode = previousMode;
-    currentProxyAuth = previousAuth;
+    try {
+      // Wait a bit for state to be picked up
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const testResult = await runConnectivityTest(proxyInfo);
+      sendResponse(testResult);
+      
+    } catch(error) {
+      sendResponse({ success: false, error: error.message || "Connection failed" });
+    } finally {
+      // Restore state
+      firefoxProxyState.testMode = false;
+      firefoxProxyState.testProxy = null;
+      firefoxProxyState.mode = previousMode;
+      currentProxyAuth = previousAuth;
+    }
+  } else {
+    // -------------------------
+    // Chrome Test Implementation
+    // -------------------------
+    let proxyScheme = type === "socks5" ? "socks5" : (type === "socks4" ? "socks4" : "http");
+    if (type === "https") proxyScheme = "https";
+
+    // Config for test
+    const config = {
+      mode: "fixed_servers",
+      rules: {
+        singleProxy: {
+          scheme: proxyScheme,
+          host: proxyInfo.ip,
+          port: parseInt(proxyInfo.port)
+        },
+        bypassList: ["<local>"]
+      }
+    };
+
+    try {
+      // Apply test proxy
+      await new Promise((resolve, reject) => {
+        chrome.proxy.settings.set({ value: config, scope: "regular" }, () => {
+          if (chrome.runtime.lastError) {
+            reject(chrome.runtime.lastError);
+          } else {
+            resolve();
+          }
+        });
+      });
+
+      // Wait a bit for proxy settings to take effect
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const testResult = await runConnectivityTest(proxyInfo);
+      sendResponse(testResult);
+
+    } catch (error) {
+      sendResponse({ success: false, error: error.message || "Connection failed" });
+    } finally {
+      // Restore previous settings
+      currentProxyAuth = previousAuth;
+      applyProxySettings(); // Re-apply whatever was in storage
+    }
   }
 }
 
