@@ -1103,14 +1103,64 @@ const translations = {
 
 let currentLang = 'zh-CN'; // Default language
 
+// Language mapping from browser/system language to supported languages
+const languageMap = {
+  'zh-CN': 'zh-CN',
+  'zh-TW': 'zh-TW',
+  'zh-HK': 'zh-TW',
+  'zh-MO': 'zh-TW',
+  'zh': 'zh-CN',
+  'en-US': 'en',
+  'en-GB': 'en',
+  'en': 'en',
+  'ja-JP': 'ja',
+  'ja': 'ja',
+  'fr-FR': 'fr',
+  'fr': 'fr',
+  'de-DE': 'de',
+  'de': 'de',
+  'es-ES': 'es',
+  'es': 'es',
+  'ko-KR': 'ko',
+  'ko': 'ko',
+  'pt-PT': 'pt',
+  'pt-BR': 'pt',
+  'pt': 'pt',
+  'ru-RU': 'ru',
+  'ru': 'ru'
+};
+
+// Get system language and map to supported language
+function getSystemLanguage() {
+  // Try navigator.languages first (more accurate)
+  const browserLang = navigator.languages && navigator.languages[0]
+    ? navigator.languages[0]
+    : (navigator.language || 'en-US');
+
+  // Try exact match first
+  if (languageMap[browserLang]) {
+    return languageMap[browserLang];
+  }
+
+  // Try matching just the language code (e.g., 'en-US' -> 'en')
+  const langCode = browserLang.split('-')[0];
+  if (languageMap[langCode]) {
+    return languageMap[langCode];
+  }
+
+  // Default to English if no match
+  return 'en';
+}
+
 const I18n = {
   init: function (callback) {
     chrome.storage.local.get(['appLanguage'], function (result) {
       if (result.appLanguage) {
         currentLang = result.appLanguage;
       } else {
-        currentLang = 'zh-CN';
-        chrome.storage.local.set({ appLanguage: 'zh-CN' });
+        // First install: use system language
+        currentLang = getSystemLanguage();
+        chrome.storage.local.set({ appLanguage: currentLang });
       }
       I18n.updatePage();
       if (callback) callback();
