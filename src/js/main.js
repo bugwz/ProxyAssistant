@@ -653,14 +653,17 @@ function list_init() {
           <div class="proxy-body-container">
               <!-- LEFT SIDE: Content Form -->
               <div class="proxy-content-left">
+                  <!-- Top Row: Name, Protocol, Username, Password (Tab order: 1, 2, 5, 6) -->
                   <div class="form-grid">
+                      <!-- Proxy Name (Tab 1) -->
                       <div class="form-item" style="grid-column: span 4;">
                           <label>${I18n.t('proxy_name')}</label>
-                          <input data-index="${i}" class="name" type="text" placeholder="${I18n.t('proxy_name_placeholder')}" value="${info.name}">
+                          <input data-index="${i}" class="name" type="text" placeholder="${I18n.t('proxy_name_placeholder')}" value="${info.name}" tabindex="1">
                       </div>
+                      <!-- Protocol (Tab 2) -->
                       <div class="form-item" style="grid-column: span 2;">
                           <label>${I18n.t('protocol')}</label>
-                          <div class="lh-select" data-type="protocol">
+                          <div class="lh-select" data-type="protocol" tabindex="2">
                               <div class="lh-select_k">
                                   <span class="lh-select-val" data-index="${i}">${displayProtocol}</span>
                                   <span class="iconfont"></span>
@@ -672,14 +675,16 @@ function list_init() {
                               </ul>
                           </div>
                       </div>
+                      <!-- Username (Tab 5) -->
                       <div class="form-item" style="grid-column: span 3;">
                           <label>${I18n.t('username_optional')}</label>
-                          <input data-index="${i}" class="username" type="text" placeholder="${I18n.t('username_placeholder')}" value="${info.username}">
+                          <input data-index="${i}" class="username" type="text" placeholder="${I18n.t('username_placeholder')}" value="${info.username}" tabindex="5">
                       </div>
+                      <!-- Password (Tab 6) -->
                       <div class="form-item" style="grid-column: span 3;">
                           <label>${I18n.t('password_optional')}</label>
                           <div style="position: relative; display: flex; align-items: center; width: 100%;">
-                              <input data-index="${i}" class="password" type="${info.is_show == 1 ? "text" : "password"}" placeholder="${I18n.t('password_placeholder')}" value="${info.password}" style="padding-right: 35px; width: 100%;">
+                              <input data-index="${i}" class="password" type="${info.is_show == 1 ? "text" : "password"}" placeholder="${I18n.t('password_placeholder')}" value="${info.password}" style="padding-right: 35px; width: 100%;" tabindex="6">
                               <label class="container eye-toggle ${info.is_show == 1 ? 'show-password' : 'hide-password'}" data-index="${i}" style="position: absolute; right: 8px; margin: 0; cursor: pointer;">
                                   <input type="checkbox" ${info.is_show == 1 ? "checked" : ""}>
                                   <svg class="eye" xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 576 512"><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM144 256a144 144 0 1 1 288 0 144 144 0 1 1 -288 0zm144-64c0 35.3-28.7 64-64 64c-7.1 0-13.9-1.2-20.3-3.3c-5.5-1.8-11.9 1.6-11.7 7.4c.3 6.9 1.3 13.8 3.2 20.7c13.7 51.2 66.4 81.6 117.6 67.9s81.6-66.4 67.9-117.6c-11.1-41.5-47.8-69.4-88.6-71.1c-5.8-.2-9.2 6.1-7.4 11.7c2.1 6.4 3.3 13.2 3.3 20.3z"></path></svg>
@@ -689,20 +694,22 @@ function list_init() {
                       </div>
                   </div>
 
-                  <!-- Middle Row: Username, Password, Fallback -->
+                  <!-- Middle Row: IP, Port, Fallback (Tab order: name -> protocol -> ip -> port -> username -> password -> fallback -> bypass -> include) -->
                   <div class="form-grid" style="margin-top: 15px;">
+                      <!-- Proxy Address (Tab 3) - visual order 1 -->
                       <div class="form-item" style="grid-column: span 4;">
                           <label>${I18n.t('ip_address')}</label>
-                          <input data-index="${i}" class="ip" type="text" placeholder="127.0.0.1" value="${info.ip}">
+                          <input data-index="${i}" class="ip" type="text" placeholder="127.0.0.1" value="${info.ip}" tabindex="3">
                       </div>
+                      <!-- Port (Tab 4) - visual order 2 -->
                       <div class="form-item" style="grid-column: span 2;">
                           <label>${I18n.t('port')}</label>
-                          <input data-index="${i}" class="port" type="text" placeholder="8080" value="${info.port}">
+                          <input data-index="${i}" class="port" type="text" placeholder="8080" value="${info.port}" tabindex="4">
                       </div>
-                      
+                      <!-- Fallback Policy (Tab 7) - visual order 3 -->
                       <div class="form-item" style="grid-column: span 6;">
                           <label>${I18n.t('fallback_policy')}</label>
-                          <div class="lh-select" data-type="fallback">
+                          <div class="lh-select" data-type="fallback" tabindex="7">
                               <div class="lh-select_k">
                                   <span class="lh-select-val" data-index="${i}">${displayFallback}</span>
                                   <span class="iconfont"></span>
@@ -715,36 +722,38 @@ function list_init() {
                       </div>
                   </div>
 
-                  <!-- Bottom Row: URL Lists -->
+                  <!-- Bottom Row: URL Lists (Tab order: bypass=8, include=9) -->
                   <div class="url-config-section">
+                      <!-- Bypass URLs (Tab 8) - bypass_urls -->
                       <div class="form-item">
                           <label>${I18n.t('bypass_urls')}</label>
-                          <textarea data-index="${i}" class="bypass_urls" placeholder="${I18n.t('bypass_urls_placeholder')}">${info.bypass_urls || ""}</textarea>
+                          <textarea data-index="${i}" class="bypass_urls" placeholder="${I18n.t('bypass_urls_placeholder')}" tabindex="8">${info.bypass_urls || ""}</textarea>
                       </div>
+                      <!-- Include URLs (Tab 9) - include_urls -->
                       <div class="form-item">
                           <label>${I18n.t('proxy_urls_auto')}</label>
-                          <textarea data-index="${i}" class="include_urls" placeholder="${I18n.t('proxy_urls_placeholder')}">${info.include_urls || ""}</textarea>
+                          <textarea data-index="${i}" class="include_urls" placeholder="${I18n.t('proxy_urls_placeholder')}" tabindex="9">${info.include_urls || ""}</textarea>
                       </div>
                   </div>
               </div>
 
-              <!-- RIGHT SIDE: Operations -->
+              <!-- RIGHT SIDE: Operations (Tab order: Save=10, Delete=11) -->
               <div class="proxy-content-right">
                   <label>&nbsp;</label>
                   
                   <!-- Link Test -->
-                  <button class="right-panel-btn btn-test test-proxy-btn" data-index="${i}">
+                  <button class="right-panel-btn btn-test test-proxy-btn" data-index="${i}" tabindex="-1">
                        ${I18n.t('link_test')}
                   </button>
                   <div class="test-result-display test-result" data-index="${i}"></div>
 
-                  <!-- Save -->
-                  <button class="right-panel-btn btn-save item-save-btn" data-index="${i}">
+                  <!-- Save (Tab 10) -->
+                  <button class="right-panel-btn btn-save item-save-btn" data-index="${i}" tabindex="10">
                        ${I18n.t('save')}
                   </button>
 
-                  <!-- Delete -->
-                  <button class="right-panel-btn btn-delete del" data-index="${i}" title="${I18n.t('delete_proxy_title')}">
+                  <!-- Delete (Tab 11) -->
+                  <button class="right-panel-btn btn-delete del" data-index="${i}" title="${I18n.t('delete_proxy_title')}" tabindex="11">
                        ${I18n.t('delete')}
                   </button>
               </div>
