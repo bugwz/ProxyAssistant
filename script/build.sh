@@ -30,13 +30,9 @@ cp -r "${SRC_DIR}" "${BUILD_DIR}/src-chrome"
 # Use Chrome manifest
 cp "${BUILD_DIR}/src-chrome/manifest_chrome.json" "${BUILD_DIR}/src-chrome/manifest.json"
 
-# Rename worker
-mv "${BUILD_DIR}/src-chrome/js/worker-chrome.js" "${BUILD_DIR}/src-chrome/js/worker.js"
-
-# Remove extra manifest files and irrelevant scripts
+# Remove extra manifest files (we use unified worker.js)
 rm -f "${BUILD_DIR}/src-chrome/manifest_chrome.json" \
-      "${BUILD_DIR}/src-chrome/manifest_firefox.json" \
-      "${BUILD_DIR}/src-chrome/js/worker-firefox.js"
+      "${BUILD_DIR}/src-chrome/manifest_firefox.json"
 
 # Build ZIP
 echo "Creating Chrome ZIP..."
@@ -62,13 +58,9 @@ cp -r "${SRC_DIR}" "${BUILD_DIR}/src-firefox"
 # Use Firefox manifest
 cp "${BUILD_DIR}/src-firefox/manifest_firefox.json" "${BUILD_DIR}/src-firefox/manifest.json"
 
-# Rename worker
-mv "${BUILD_DIR}/src-firefox/js/worker-firefox.js" "${BUILD_DIR}/src-firefox/js/worker.js"
-
-# Remove extra manifest files and irrelevant scripts
+# Remove extra manifest files (we use unified worker.js)
 rm -f "${BUILD_DIR}/src-firefox/manifest_chrome.json" \
-      "${BUILD_DIR}/src-firefox/manifest_firefox.json" \
-      "${BUILD_DIR}/src-firefox/js/worker-chrome.js"
+      "${BUILD_DIR}/src-firefox/manifest_firefox.json"
 
 # Build ZIP (for manual install/review)
 echo "Creating Firefox ZIP..."
