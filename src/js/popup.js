@@ -65,11 +65,13 @@ function initApp() {
     updateModeUI(mode);
     updateStatusDisplay(mode, currentProxy);
 
-    // For manual mode, always show disconnected state by default
-    // User must manually select a proxy to use
+    // For manual mode, restore previous selection if available
     if (mode === 'manual') {
-      updateStatusDisplay('manual', null);
-      chrome.storage.local.set({ currentProxy: null });
+      if (currentProxy) {
+        updateStatusDisplay('manual', currentProxy);
+      } else {
+        updateStatusDisplay('manual', null);
+      }
     }
   });
 
@@ -92,14 +94,18 @@ function initApp() {
           updateStatusDisplay('disabled', null);
         });
       } else {
-        // Manual mode - always show disconnected state by default
-        // User must manually select a proxy to use
-        updateStatusDisplay('manual', null);
-        chrome.storage.local.set({ currentProxy: null }, function () {
+        // Manual mode - restore previous selection or show disconnected
+        chrome.storage.local.get(['currentProxy'], function (result) {
+          const currentProxy = result.currentProxy;
+          if (currentProxy) {
+            updateStatusDisplay('manual', currentProxy);
+          } else {
+            updateStatusDisplay('manual', null);
+          }
           list_init();
+          // Apply the current proxy settings
+          chrome.runtime.sendMessage({ action: "refreshProxy" });
         });
-        // Ensure proxy is turned off
-        chrome.runtime.sendMessage({ action: "refreshProxy" });
       }
     });
   });
