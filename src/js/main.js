@@ -239,17 +239,37 @@ function initApp() {
     // Requirement 5: If sync enabled, pull from remote and update local
     if (auto_sync) {
       chrome.storage.sync.get({ list: [], themeSettings: {} }, function (remoteItems) {
-        // Fallback to local if remote is empty or error, otherwise update local
-        if (chrome.runtime.lastError || !remoteItems.list || remoteItems.list.length === 0) {
-          console.warn("Remote sync failed or empty, falling back to local");
-          loadFromLocal();
+        // Check for errors including quota exceeded
+        const hasError = chrome.runtime.lastError;
+        const isEmpty = !remoteItems.list || remoteItems.list.length === 0;
+
+        if (hasError) {
+          console.warn("Remote sync error:", chrome.runtime.lastError.message);
+        }
+
+        if (hasError || isEmpty) {
+          // Remote is empty or error - try to merge with local data
+          // This handles the case where local has data but sync is empty (first run after quota exceeded)
+          chrome.storage.local.get({ list: [], themeSettings: {} }, function (localItems) {
+            const localList = localItems.list || [];
+            const remoteList = remoteItems.list || [];
+
+            if (localList.length > 0 && remoteList.length === 0) {
+              // Local has data but remote is empty - push local to sync
+              console.log("Pushing local data to remote sync...");
+              chrome.storage.sync.set({ list: localList }, function () {
+                if (chrome.runtime.lastError) {
+                  console.warn("Sync push failed:", chrome.runtime.lastError.message);
+                }
+              });
+            }
+
+            loadFromLocal();
+          });
         } else {
           console.log("Sync enabled: Pulled data from remote, updating local");
 
           // Update local storage with remote data
-          // We don't overwrite themeSettings from remote to local to respect local preference, 
-          // or we could sync them too. For now let's focus on the proxy list as requested.
-
           chrome.storage.local.set({ list: remoteItems.list }, function () {
             // After updating local, load into memory
             loadFromLocal(remoteItems);
