@@ -124,19 +124,34 @@ function updateThemeByTime() {
 }
 
 function saveThemeSettings() {
-  var storage = auto_sync ? chrome.storage.sync : chrome.storage.local;
-  storage.get({ themeSettings: {} }, function (items) {
-    var settings = items.themeSettings || {};
-    settings.mode = themeMode;
-    settings.startTime = nightModeStart;
-    settings.endTime = nightModeEnd;
-    storage.set({ themeSettings: settings });
+  // Always save to local first, then sync to remote if enabled
+  var themeSettings = {
+    mode: themeMode,
+    startTime: nightModeStart,
+    endTime: nightModeEnd
+  };
+
+  // Save to local first
+  chrome.storage.local.set({ themeSettings: themeSettings }, function () {
+    if (chrome.runtime.lastError) {
+      console.error("Theme local save failed:", chrome.runtime.lastError);
+      return;
+    }
+
+    // If sync enabled, also save to remote
+    if (auto_sync) {
+      chrome.storage.sync.set({ themeSettings: themeSettings }, function () {
+        if (chrome.runtime.lastError) {
+          console.error("Theme sync failed:", chrome.runtime.lastError);
+        }
+      });
+    }
   });
 }
 
 function loadThemeSettings() {
-  var storage = auto_sync ? chrome.storage.sync : chrome.storage.local;
-  storage.get({ themeSettings: {} }, function (items) {
+  // Always load from local storage (consistent with proxy config)
+  chrome.storage.local.get({ themeSettings: {} }, function (items) {
     var settings = items.themeSettings || {};
     themeMode = settings.mode || 'light';
     nightModeStart = settings.startTime || '22:00';
@@ -284,9 +299,11 @@ function initApp() {
 }
 
 function loadFromLocal(remoteItems) {
+  // Always load theme settings from local storage (consistent with proxy config)
   chrome.storage.local.get({ list: [], themeSettings: {} }, function (items) {
     if (chrome.runtime.lastError) {
-      console.warn("Storage get error:", chrome.runtime.lastError);
+      console.warn("Local storage get error:", chrome.runtime.lastError);
+      items = {};
     }
     items = items || {};
 
@@ -300,7 +317,7 @@ function loadFromLocal(remoteItems) {
 
     console.log("list loaded:", list);
 
-    // Load theme settings (always from local preference for now unless we want to sync theme too)
+    // Load theme settings from local storage
     var themeSettings = items.themeSettings || {};
     themeMode = themeSettings.mode || 'light';
     nightModeStart = themeSettings.startTime || '22:00';
