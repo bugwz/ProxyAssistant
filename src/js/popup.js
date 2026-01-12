@@ -45,6 +45,44 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 
+function updateStatusDisplay(mode, currentProxy) {
+  const $statusValue = $('#status-display');
+
+  if (mode === 'disabled') {
+    $statusValue.text(I18n.t('status_disabled')).attr('data-i18n', 'status_disabled');
+    $statusValue.css('color', '#dc3545'); // Red to match Disabled button
+  } else if (mode === 'auto') {
+    // In auto mode, try to get match status for current page
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      if (tabs && tabs[0] && tabs[0].url) {
+        try {
+          const url = new URL(tabs[0].url);
+          $statusValue.text(`${url.hostname}`).removeAttr('data-i18n');
+          $statusValue.attr('title', url.hostname); // Show full hostname on hover
+        } catch (e) {
+          $statusValue.text(I18n.t('mode_auto_text')).attr('data-i18n', 'mode_auto_text');
+          $statusValue.removeAttr('title');
+        }
+        $statusValue.css('color', '#28a745'); // Green to match Auto button
+      } else {
+        $statusValue.text(I18n.t('mode_auto_text')).attr('data-i18n', 'mode_auto_text');
+        $statusValue.removeAttr('title');
+        $statusValue.css('color', '#28a745'); // Green to match Auto button
+      }
+    });
+  } else {
+    // Manual mode
+    if (currentProxy && (currentProxy.name || currentProxy.ip)) {
+      const displayName = currentProxy.name || I18n.t('unnamed_proxy');
+      $statusValue.text(displayName).removeAttr('data-i18n');
+      $statusValue.css('color', '#4164f5'); // Blue for connected (matches Manual mode button)
+    } else {
+      $statusValue.text(I18n.t('status_disconnected')).attr('data-i18n', 'status_disconnected');
+      $statusValue.css('color', '#ff9800'); // Orange for disconnected
+    }
+  }
+}
+
 function initApp() {
   chrome.storage.local.get(['proxyMode', 'currentProxy'], function (result) {
     // If no stored mode, default to 'disabled'
@@ -124,44 +162,6 @@ function initApp() {
         $('.set_box_user').addClass('mode-auto');
       } else {
         $('.set_box_user').removeClass('mode-auto');
-      }
-    }
-  }
-
-  function updateStatusDisplay(mode, currentProxy) {
-    const $statusValue = $('#status-display');
-
-    if (mode === 'disabled') {
-      $statusValue.text(I18n.t('status_disabled')).attr('data-i18n', 'status_disabled');
-      $statusValue.css('color', '#dc3545'); // Red to match Disabled button
-    } else if (mode === 'auto') {
-      // In auto mode, try to get match status for current page
-      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        if (tabs && tabs[0] && tabs[0].url) {
-          try {
-            const url = new URL(tabs[0].url);
-            $statusValue.text(`${url.hostname}`).removeAttr('data-i18n');
-            $statusValue.attr('title', url.hostname); // Show full hostname on hover
-          } catch (e) {
-            $statusValue.text(I18n.t('mode_auto_text')).attr('data-i18n', 'mode_auto_text');
-            $statusValue.removeAttr('title');
-          }
-          $statusValue.css('color', '#28a745'); // Green to match Auto button
-        } else {
-          $statusValue.text(I18n.t('mode_auto_text')).attr('data-i18n', 'mode_auto_text');
-          $statusValue.removeAttr('title');
-          $statusValue.css('color', '#28a745'); // Green to match Auto button
-        }
-      });
-    } else {
-      // Manual mode
-      if (currentProxy && (currentProxy.name || currentProxy.ip)) {
-        const displayName = currentProxy.name || I18n.t('unnamed_proxy');
-        $statusValue.text(displayName).removeAttr('data-i18n');
-        $statusValue.css('color', '#4164f5'); // Blue for connected (matches Manual mode button)
-      } else {
-        $statusValue.text(I18n.t('status_disconnected')).attr('data-i18n', 'status_disconnected');
-        $statusValue.css('color', '#ff9800'); // Orange for disconnected
       }
     }
   }
@@ -268,7 +268,7 @@ function getAutoProxy(proxyList, hostname) {
       return proxy; // Return first matched proxy
     }
   }
-  
+
   return null; // No match, Fallback to DIRECT
 }
 
