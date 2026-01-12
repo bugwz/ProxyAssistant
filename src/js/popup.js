@@ -1,20 +1,15 @@
 // Theme mode variables
 var themeMode = 'light';
-var auto_sync = true;
 
 // Theme mode toggle event handlers
 function initThemeMode() {
-  // Check auto_sync setting first
-  chrome.storage.local.get({ auto_sync: true }, function (settings) {
-    auto_sync = settings.auto_sync;
-    var storage = auto_sync ? chrome.storage.sync : chrome.storage.local;
-    storage.get({ themeSettings: {} }, function (items) {
-      var settings = items.themeSettings || {};
-      themeMode = settings.mode || 'light';
+  // Always load from local storage (consistent with proxy config)
+  chrome.storage.local.get({ themeSettings: {} }, function (items) {
+    var settings = items.themeSettings || {};
+    themeMode = settings.mode || 'light';
 
-      // Apply theme based on mode
-      applyTheme(themeMode);
-    });
+    // Apply theme based on mode
+    applyTheme(themeMode);
   });
 }
 
