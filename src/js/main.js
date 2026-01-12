@@ -446,6 +446,296 @@ function isValidHost(val) {
   return false;
 }
 
+// Detect proxy button click event
+$("#detect-proxy-btn").on("click", function () {
+  detectProxy();
+});
+
+// Proxy detection function
+async function detectProxy() {
+  var $btn = $("#detect-proxy-btn");
+  $btn.prop("disabled", true);
+
+  // Show loading state
+  $("#detection-status-icon").html('<svg class="spin" viewBox="0 0 24 24" width="48" height="48" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" opacity="0.3"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z"/></svg>');
+  $("#detection-status-text").text(I18n.t('proxy_effect_testing'));
+  $("#detection-details").hide();
+  $("#detection-warning").hide();
+  $("#detection-suggestion").hide();
+
+  $(".proxy_detection_tip").show();
+  // Trigger animation after a small delay to ensure display:block is applied
+  setTimeout(function () {
+    $(".proxy_detection_tip").addClass("show");
+  }, 10);
+
+
+  try {
+    // Get browser proxy settings
+    var browserConfig = await getBrowserProxyConfig();
+
+    // Get plugin stored settings
+    var pluginConfig = await getPluginProxyConfig();
+
+    // Analyze the results
+    var result = analyzeProxyStatus(browserConfig, pluginConfig);
+
+    // Display results
+    displayDetectionResult(result);
+
+  } catch (error) {
+    console.error("Proxy detection error:", error);
+    displayErrorResult(error.message);
+  }
+
+  $btn.prop("disabled", false);
+}
+
+// Get browser proxy configuration
+function getBrowserProxyConfig() {
+  return new Promise(function (resolve) {
+    if (typeof chrome !== 'undefined' && chrome.proxy && chrome.proxy.settings) {
+      chrome.proxy.settings.get({ incognito: false }, function (config) {
+        resolve(config || { value: { mode: 'system' } });
+      });
+    } else {
+      resolve({ value: { mode: 'system' } });
+    }
+  });
+}
+
+// Get plugin stored proxy configuration
+function getPluginProxyConfig() {
+  return new Promise(function (resolve) {
+    chrome.storage.local.get(['proxyMode', 'currentProxy', 'list'], function (result) {
+      resolve({
+        mode: result.proxyMode || 'disabled',
+        currentProxy: result.currentProxy || null,
+        list: result.list || []
+      });
+    });
+  });
+}
+
+// Analyze proxy status
+function analyzeProxyStatus(browserConfig, pluginConfig) {
+  var result = {
+    status: 'normal', // normal, warning, error
+    statusText: '',
+    statusIcon: '',
+    details: [],
+    warning: null,
+    suggestion: null,
+    httpTestResult: null
+  };
+
+  var browserMode = (browserConfig.value && browserConfig.value.mode) || 'system';
+  var levelOfControl = browserConfig.levelOfControl || '';
+
+  // Get proxy server info from browser config
+  var proxyServer = '';
+  var proxyProtocol = '';
+
+  if (browserConfig.value && browserConfig.value.rules) {
+    var rules = browserConfig.value.rules;
+    if (rules.singleProxy) {
+      proxyServer = rules.singleProxy.host + ':' + rules.singleProxy.port;
+      proxyProtocol = rules.singleProxy.scheme || 'http';
+    } else if (rules.proxyForHttp || rules.proxyForHttps) {
+      var p = rules.proxyForHttp || rules.proxyForHttps;
+      proxyServer = p.host + ':' + p.port;
+      proxyProtocol = p.scheme || 'http';
+    }
+  } else if (browserConfig.value && browserConfig.value.pacScript) {
+    proxyServer = 'PAC Script';
+    proxyProtocol = 'Auto';
+  }
+
+  // Add details
+  result.details.push({
+    label: I18n.t('proxy_mode'),
+    value: getModeDisplayName(browserMode)
+  });
+
+  if (proxyServer) {
+    result.details.push({
+      label: I18n.t('proxy_server'),
+      value: proxyServer
+    });
+  }
+
+  if (proxyProtocol) {
+    result.details.push({
+      label: I18n.t('proxy_protocol'),
+      value: proxyProtocol.toUpperCase()
+    });
+  }
+
+  // Determine control status
+  var controlText = '';
+  if (levelOfControl === 'controlled_by_this_extension') {
+    controlText = I18n.t('proxy_control_this');
+  } else if (levelOfControl === 'controlled_by_other_extensions') {
+    controlText = I18n.t('proxy_control_other');
+  } else {
+    controlText = I18n.t('proxy_control_system');
+  }
+
+  result.details.push({
+    label: I18n.t('proxy_control'),
+    value: controlText
+  });
+
+  // Analyze if using plugin
+  var isUsingPlugin = false;
+
+  if (browserMode === 'fixed_servers' && pluginConfig.mode === 'manual') {
+    // Manual mode - check if browser config matches plugin config
+    if (pluginConfig.currentProxy && proxyServer) {
+      var expectedServer = pluginConfig.currentProxy.ip + ':' + pluginConfig.currentProxy.port;
+      isUsingPlugin = (proxyServer === expectedServer);
+    }
+  } else if (browserMode === 'pac_script' && pluginConfig.mode === 'auto') {
+    // Auto mode - if browser is using PAC, assume it's the plugin
+    isUsingPlugin = true;
+  } else if (browserMode === 'disabled' && pluginConfig.mode === 'disabled') {
+    isUsingPlugin = true;
+  }
+
+  // Check for other proxy control
+  var hasOtherProxy = (levelOfControl === 'controlled_by_other_extensions') ||
+    (browserMode === 'system' && pluginConfig.mode !== 'disabled');
+
+  // Determine result status
+  if (isUsingPlugin && !hasOtherProxy) {
+    result.status = 'normal';
+    result.statusText = I18n.t('proxy_status_normal');
+    result.statusIcon = '✅';
+    result.details.push({
+      label: I18n.t('proxy_effect'),
+      value: I18n.t('proxy_effect_verified')
+    });
+  } else if (hasOtherProxy || browserMode === 'system') {
+    result.status = 'warning';
+    result.statusText = I18n.t('proxy_status_warning');
+    result.statusIcon = '⚠️';
+    result.warning = I18n.t('proxy_warning_system');
+    result.suggestion = I18n.t('proxy_suggestion_check');
+    result.details.push({
+      label: I18n.t('proxy_effect'),
+      value: I18n.t('proxy_effect_failed')
+    });
+  } else {
+    result.status = 'warning';
+    result.statusText = I18n.t('proxy_status_warning');
+    result.statusIcon = '⚠️';
+    result.suggestion = I18n.t('proxy_suggestion_check');
+    result.details.push({
+      label: I18n.t('proxy_effect'),
+      value: I18n.t('proxy_effect_failed')
+    });
+  }
+
+  return result;
+}
+
+// Get display name for proxy mode
+function getModeDisplayName(mode) {
+  switch (mode) {
+    case 'fixed_servers':
+      return I18n.t('mode_manual');
+    case 'pac_script':
+      return I18n.t('mode_auto');
+    case 'system':
+      return I18n.t('proxy_control_system');
+    case 'direct':
+      return I18n.t('mode_disabled');
+    default:
+      return mode || I18n.t('mode_disabled');
+  }
+}
+
+// SVG Icons for detection results
+const detectionIcons = {
+  success: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none"><circle cx="12" cy="12" r="10" fill="#dcfce7"/><path d="M8 12l2.5 2.5L16 9" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  warning: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none"><circle cx="12" cy="12" r="10" fill="#fef3c7"/><path d="M12 8v4m0 4h.01" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/></svg>',
+  error: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none"><circle cx="12" cy="12" r="10" fill="#fee2e2"/><path d="M15 9l-6 6m0-6l6 6" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/></svg>',
+  loading: '<svg class="spin" viewBox="0 0 24 24" width="48" height="48" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" opacity="0.3"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z"/></svg>'
+};
+
+// Display detection result in popup
+function displayDetectionResult(result) {
+  // Map status to icon
+  var iconKey = result.status === 'normal' ? 'success' : (result.status === 'warning' ? 'warning' : 'error');
+  $("#detection-status-icon").html(detectionIcons[iconKey]);
+  $("#detection-status-text").text(result.statusText);
+
+  // Build details HTML
+  var detailsHtml = '';
+  result.details.forEach(function (item) {
+    detailsHtml += '<div class="detection-row">' +
+      '<span class="detection-label">' + item.label + '</span>' +
+      '<span class="detection-value">' + item.value + '</span>' +
+      '</div>';
+  });
+  $("#detection-details").html(detailsHtml).show();
+
+  // Show warning if exists
+  if (result.warning) {
+    $("#detection-warning").text(result.warning).show();
+  } else {
+    $("#detection-warning").hide();
+  }
+
+  // Show suggestion if exists
+  if (result.suggestion) {
+    $("#detection-suggestion-text").text(result.suggestion);
+    $("#detection-suggestion").show();
+  } else {
+    $("#detection-suggestion").hide();
+  }
+}
+
+// Display error result
+function displayErrorResult(errorMsg) {
+  $("#detection-status-icon").html(detectionIcons.error);
+  $("#detection-status-text").text(I18n.t('proxy_status_error'));
+
+  var detailsHtml = '<div class="detection-row">' +
+    '<span class="detection-label">Error</span>' +
+    '<span class="detection-value">' + (errorMsg || I18n.t('proxy_suggestion_retry')) + '</span>' +
+    '</div>';
+  $("#detection-details").html(detailsHtml).show();
+  $("#detection-warning").hide();
+  $("#detection-suggestion-text").text(I18n.t('proxy_suggestion_retry'));
+  $("#detection-suggestion").show();
+}
+
+// Close detection popup with animation
+$(".proxy_detection_close_btn, .proxy_detection_close_btn2").on("click", function () {
+  $(".proxy_detection_tip").removeClass("show");
+  setTimeout(function () {
+    $(".proxy_detection_tip").hide();
+  }, 300);
+});
+
+// Close popup on backdrop click
+$(".proxy_detection_tip").on("click", function (e) {
+  if (e.target === this) {
+    $(this).removeClass("show");
+    setTimeout(function () {
+      $(".proxy_detection_tip").hide();
+    }, 300);
+  }
+});
+
+
+// Add spin animation for loading
+var style = document.createElement('style');
+style.textContent = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } .spin { animation: spin 1s linear infinite; }';
+document.head.appendChild(style);
+
+
 // Detailed IP address validation function, providing specific error messages
 function validateIPAddress(ip) {
   // Check if it is empty
@@ -908,9 +1198,14 @@ function input_blur_init() {
       var previewText = `${info.name || I18n.t('unnamed_proxy')} (${info.ip || "0.0.0.0"}:${info.port || "0"})`;
       $(".del_tip_content").html(`${I18n.t('delete_proxy_confirm')}<br><span style="color: #e11d48; font-weight: 600; margin-top: 10px; display: block;">${previewText}</span>`);
       $(".del_tip").show();
+      // Trigger animation
+      setTimeout(function () {
+        $(".del_tip").addClass("show");
+      }, 10);
       del_index = index;
     }
   });
+
 
   $(".item-save-btn").on("click", function () {
     saveSingleProxy($(this).data("index"));
@@ -1023,16 +1318,35 @@ function input_blur(i, name, val) {
 }
 
 $(".del_tip_close_btn").on("click", function () {
-  $(".del_tip").hide();
+  $(".del_tip").removeClass("show");
+  setTimeout(function () {
+    $(".del_tip").hide();
+  }, 300);
 });
 
 $(".del_tip_Cancel_btn").on("click", function () {
-  $(".del_tip").hide();
+  $(".del_tip").removeClass("show");
+  setTimeout(function () {
+    $(".del_tip").hide();
+  }, 300);
+});
+
+// Close delete popup on backdrop click
+$(".del_tip").on("click", function (e) {
+  if (e.target === this) {
+    $(this).removeClass("show");
+    setTimeout(function () {
+      $(".del_tip").hide();
+    }, 300);
+  }
 });
 
 
 $(".del_tip_del_btn").on("click", function () {
-  $(".del_tip").hide();
+  $(".del_tip").removeClass("show");
+  setTimeout(function () {
+    $(".del_tip").hide();
+  }, 300);
 
   if (del_index !== undefined && del_index >= 0 && list[del_index]) {
     list.splice(del_index, 1);

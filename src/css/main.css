@@ -562,10 +562,16 @@ input:checked+.slider-modern:before {
   position: fixed;
   top: 0;
   left: 0;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.5);
   z-index: 1000;
   display: none;
-  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+
+.del_tip.show {
+  opacity: 1;
 }
 
 .del_tip_box {
@@ -575,11 +581,19 @@ input:checked+.slider-modern:before {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(0.9);
   padding: 30px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
   text-align: center;
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
 }
+
+.del_tip.show .del_tip_box {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+
 
 .del_tip_title {
   font-size: 20px;
@@ -801,4 +815,225 @@ input:checked+.slider-modern:before {
 
 .proxy-body .form-grid .form-item:nth-child(4) {
   grid-column: span 2;
+}
+
+/* Proxy Detection Popup Styles */
+.proxy_detection_tip {
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+
+.proxy_detection_tip.show {
+  opacity: 1;
+}
+
+.proxy_detection_box {
+  width: 420px;
+  max-width: 90%;
+  background-color: #fff;
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.proxy_detection_tip.show .proxy_detection_box {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+
+
+
+.proxy_detection_header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.proxy_detection_header span {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.proxy_detection_close_btn {
+  width: 24px;
+  height: 24px;
+  background-image: url(../images/close.png);
+  background-size: 14px 14px;
+  background-position: center;
+  background-repeat: no-repeat;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.proxy_detection_close_btn:hover {
+  opacity: 1;
+}
+
+.proxy_detection_content {
+  text-align: center;
+}
+
+.detection-status-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.detection-status-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 20px;
+}
+
+.detection-details {
+  background-color: #f8fafc;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+.detection-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.detection-row:last-child {
+  border-bottom: none;
+}
+
+.detection-label {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.detection-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.detection-warning {
+  background-color: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  padding: 12px 15px;
+  margin-bottom: 15px;
+  font-size: 13px;
+  color: #92400e;
+  text-align: left;
+}
+
+.detection-suggestion {
+  background-color: #f0f9ff;
+  border: 1px solid #7dd3fc;
+  border-radius: 8px;
+  padding: 12px 15px;
+  font-size: 13px;
+  color: #0369a1;
+  text-align: left;
+}
+
+.detection-suggestion span:first-child {
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.proxy_detection_btn {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.proxy_detection_close_btn2 {
+  padding: 12px 40px;
+  border-radius: 8px;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.proxy_detection_close_btn2:hover {
+  background-color: #e2e8f0;
+  color: #1e293b;
+}
+
+/* Dark theme support */
+[data-theme="dark"] .proxy_detection_box {
+  background-color: #1e293b;
+  border: 1px solid #334155;
+}
+
+[data-theme="dark"] .proxy_detection_header {
+  border-bottom-color: #334155;
+}
+
+[data-theme="dark"] .proxy_detection_header span {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .detection-details {
+  background-color: #0f172a;
+  border: 1px solid #334155;
+}
+
+[data-theme="dark"] .detection-row {
+  border-bottom-color: #334155;
+}
+
+[data-theme="dark"] .detection-label {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .detection-value {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .detection-warning {
+  background-color: #451a03;
+  border-color: #d97706;
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .detection-suggestion {
+  background-color: #0c4a6e;
+  border-color: #0284c7;
+  color: #38bdf8;
+}
+
+[data-theme="dark"] .proxy_detection_close_btn2 {
+  background-color: #334155;
+  border-color: #475569;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .proxy_detection_close_btn2:hover {
+  background-color: #475569;
+  color: #f1f5f9;
 }
