@@ -377,6 +377,10 @@ www.google.com
 
 5. **Firefox 제한**: Firefox 최소 버전 요구 사항은 142.0입니다
 
+## 📄 개인정보 처리방침
+
+[개인정보 처리방침](https://sites.google.com/view/proxy-assistant/privacy-policy)
+
 ## 📄 라이선스
 
 MIT License - 자세한 내용은 [LICENSE](../LICENSE) 파일을 참조하세요.

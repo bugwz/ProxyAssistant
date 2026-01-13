@@ -377,6 +377,10 @@ www.google.com
 
 5. **Firefox 限制**: Firefox 最低版本要求 142.0
 
+## 📄 隐私权政策
+
+[隐私权政策](https://sites.google.com/view/proxy-assistant/privacy-policy)
+
 ## 📄 许可证
 
 MIT License - 详见 [LICENSE](LICENSE) 文件

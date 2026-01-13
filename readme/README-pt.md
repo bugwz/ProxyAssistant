@@ -377,6 +377,10 @@ Clicar no botão "Detectar efeito do proxy" pode:
 
 5. **Restrição de Firefox**: A versão mínima do Firefox necessária é 142.0
 
+## 📄 Política de Privacidade
+
+[Política de Privacidade](https://sites.google.com/view/proxy-assistant/privacy-policy)
+
 ## 📄 Licença
 
 MIT License - Ver arquivo [LICENSE](../LICENSE) para detalhes
