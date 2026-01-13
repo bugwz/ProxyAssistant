@@ -9,6 +9,7 @@
 <div align="center">
 
 [![Extensión de Chrome](https://img.shields.io/badge/Chrome-Extension-blue?logo=google-chrome)](https://chrome.google.com/webstore)
+[![Extensión de Firefox](https://img.shields.io/badge/Firefox-Extension-orange?logo=firefox)](https://addons.mozilla.org/)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
 [![Multilingüe](https://img.shields.io/badge/Multilingüe-yellow)](README-es.md)
 
@@ -22,7 +23,7 @@
 
 <div align="center">
 
-Una potente extensión de Chrome para gestión de proxies que te ayuda a configurar y cambiar fácilmente entre diferentes proxies de red.
+Una potente extensión de gestión de proxy para navegador que soporta Chrome y Firefox, facilitando la configuración y conmutación de proxies de red.
 
 </div>
 
@@ -34,7 +35,11 @@ Una potente extensión de Chrome para gestión de proxies que te ayuda a configu
 - **HTTP** - Proxy HTTP tradicional
 - **HTTPS** - Proxy HTTPS seguro
 - **SOCKS5** - Proxy SOCKS5 con soporte TCP/UDP
-- **SOCKS4** - Compatibilidad con proxy SOCKS4 legacy
+- **SOCKS4** - Compatibilidad con proxy SOCKS4 heredado
+
+### 🌐 Soporte multi-navegador
+- **Chrome** - Usando Manifest V3 + Service Worker
+- **Firefox** - Usando onRequest API para interceptación de proxy
 
 ### 🔄 Tres modos de proxy
 
@@ -50,8 +55,9 @@ Una potente extensión de Chrome para gestión de proxies que te ayuda a configu
 
 ### 📋 Configuración flexible de reglas URL
 
-- **Direcciones que omiten el proxy** (`bypass_urls`): Dominios/IPs de conexión directa
-- **Direcciones que usan el proxy** (`include_urls`): Dominios que requieren acceso proxy
+- **Direcciones que omiten el proxy** (`bypass_urls`): Dominios/IPs de conexión directa en modo manual
+- **Direcciones que usan el proxy** (`include_urls`): Dominios que requieren acceso proxy en modo automático
+- **Estrategia de fallback**: En modo automático, elegir conexión directa o rechazo cuando falla la conexión
 - Soporta comodín `*` y coincidencia de dominio
 - Ideal para escenarios donde diferentes sitios web usan diferentes proxies
 
@@ -68,24 +74,33 @@ Una potente extensión de Chrome para gestión de proxies que te ayuda a configu
 - **Prueba en lote**: Probar todos los proxies con un clic
 - **Indicadores de color**: Verde(<500ms) / Naranja(≥500ms) / Rojo(Fallido)
 
+### 🏃 Detección de estado del proxy
+
+- Detectar la configuración actual del proxy del navegador
+- Verificar si la extensión controló exitosamente el proxy
+- Identificar otras extensiones que controlan el proxy
+- Proporcionar tres resultados: estado, advertencia, error
+
 ### 🌙 Modos de tema
 
 - **Modo Claro**: Para uso diurno
 - **Modo Oscuro**: Para uso nocturno
-- **Cambio automático**: Cambiar tema automáticamente según la hora
+- **Cambio automático**: Cambiar tema automáticamente según la hora (horario configurable)
 
 | ![Modo Claro](../public/img/demo-light.png) | ![Modo Oscuro](../public/img/demo-night.png) |
 |:---:|:---:|
 | Modo Claro | Modo Oscuro |
 
-### ☁️ Sincronización de datos
+### ☁️ Almacenamiento y sincronización de datos
 
-- **Sincronización con Google**: Sincronizar configuraciones de proxy entre dispositivos
-- **Almacenamiento local**: Opción para guardar solo localmente
+- **Almacenamiento local primero**: La configuración del proxy siempre se guarda en almacenamiento local
+- **Sincronización en la nube**: Opcionalmente habilitar sincronización con cuenta Chrome/Firefox
+- **Fusión inteligente**: Fusionar automáticamente datos locales y remotos cuando hay anomalías en la sincronización
+- **Importar/Exportar**: Soporte de respaldo y restauración de configuración en formato JSON
 
 ### 🌍 Soporte multilingüe
 
-Esta extensión soporta 5 idiomas:
+Esta extensión soporta los siguientes idiomas:
 
 | Idioma | Código | Estado |
 |--------|--------|--------|
@@ -94,6 +109,11 @@ Esta extensión soporta 5 idiomas:
 | English | en | ✅ Soportado |
 | 日本語 | ja | ✅ Soportado |
 | Français | fr | ✅ Soportado |
+| Deutsch | de | ✅ Soportado |
+| Español | es | ✅ Soportado |
+| Português | pt | ✅ Soportado |
+| Русский | ru | ✅ Soportado |
+| 한국어 | ko | ✅ Soportado |
 
 ## 📷 Interfaz de configuración
 
@@ -103,19 +123,20 @@ Esta extensión soporta 5 idiomas:
 
 ```
 ProxyAssistant/
-├──                     # Documentación multilingüe
+├── readme/                    # Documentación multilingüe
 │   ├── README-zh-CN.md       # Chino simplificado
 │   ├── README-zh-TW.md       # Chino tradicional
 │   ├── README-en.md          # Inglés
 │   └── ...
 ├── src/                       # Código fuente
-│   ├── manifest.json         # Configuración de extensión Chrome
+│   ├── manifest_chrome.json  # Configuración extensión Chrome
+│   ├── manifest_firefox.json # Configuración extensión Firefox
 │   ├── main.html             # Página de configuración
 │   ├── popup.html            # Página emergente
 │   ├── js/
-│   │   ├── main.js           # Lógica principal de página de configuración
+│   │   ├── worker.js         # Servicio en segundo plano (Chrome: Service Worker)
 │   │   ├── popup.js          # Lógica principal del popup
-│   │   ├── service-worker.js # Servicio en segundo plano (lógica principal del proxy)
+│   │   ├── main.js           # Lógica principal de página de configuración
 │   │   ├── i18n.js           # Soporte de internacionalización
 │   │   └── jquery.js         # Biblioteca jQuery
 │   ├── css/
@@ -131,51 +152,63 @@ ProxyAssistant/
 │       ├── icon-48.png
 │       ├── icon-128.png
 │       ├── logo-128.png
-│       ├── demo.png
-│       ├── demo-light.png
-│       ├── demo-night.png
-│       ├── demo-popup-01.png
-│       ├── demo-popup-02.png
-│       ├── demo-popup-03.png
-│       └── promotion/
-│           └── 1400-560-big.jpeg
+│       └── promotion/        # Imágenes promocionales
 └── public/                   # Recursos públicos
-    └── ...
 ```
 
 ## 🚀 Inicio rápido
 
 ### Instalación de la extensión
 
-1. Abre Chrome y navega a `chrome://extensions/`
-2. Activa el **"Modo de desarrollador"** en la esquina superior derecha
-3. Haz clic en **"Cargar extensión sin empaquetar"**
-4. Selecciona la carpeta `ProxyAssistant/src` 
+**Chrome:**
+
+Método 1 (Recomendado): Instalar desde la tienda oficial de Chrome
+1. Abrir Chrome, visitar [Chrome Web Store](https://chrome.google.com/webstore)
+2. Buscar "Asistente de Proxy"
+3. Click en "Añadir a Chrome"
+
+Método 2: Instalación local
+- **Opción A (usar código fuente)**: Descargar código fuente, renombrar `src/manifest_chrome.json` a `manifest.json`, luego cargar el directorio `src`
+- **Opción B (usar paquete)**: Descargar el paquete de instalación de Chrome (archivo `.zip`) del directorio `release`, descomprimir y cargar el directorio correspondiente
+
+**Firefox:**
+
+Método 1 (Recomendado): Instalar desde complementos oficiales de Firefox
+1. Abrir Firefox, visitar [Complementos de Firefox](https://addons.mozilla.org/)
+2. Buscar "Asistente de Proxy"
+3. Click en "Añadir a Firefox"
+
+Método 2: Instalación local
+1. Descargar el paquete de instalación de Firefox (archivo `.xpi`) del directorio `release`
+2. Abrir Firefox, visitar `about:addons`
+3. Click en **ícono de engranaje** → **Instalar complemento desde archivo**
+4. Seleccionar el archivo `.xpi` descargado
 
 ### Añadir un proxy
 
-1. Haz clic en el icono de la extensión para abrir el popup
-2. Haz clic en el botón **"Configuración"** para abrir la página de configuración
-3. Haz clic en el botón **"Nuevo"** para añadir un nuevo proxy
-4. Rellena la información del proxy:
+1. Click en el icono de la extensión para abrir el popup
+2. Click en el botón **"Configuración"** para abrir la página de configuración
+3. Click en el botón **"Nuevo proxy"** para añadir un nuevo proxy
+4. Rellenar la información del proxy:
    - Nombre del proxy
-   - Tipo de protocolo (HTTP/HTTPS/SOCKS5)
+   - Tipo de protocolo (HTTP/HTTPS/SOCKS4/SOCKS5)
    - Dirección del proxy (IP o dominio)
-   - Número de puerto
+   - Puerto
    - (Opcional) Nombre de usuario y contraseña
-5. Haz clic en el botón **"Guardar"**
+   - (Opcional) Configuración de reglas URL
+5. Click en el botón **"Guardar"**
 
 ### Usar proxies
 
 **Modo Manual**:
-1. Selecciona el modo **"Manual"** en el popup
-2. Selecciona un proxy de la lista
+1. Seleccionar **"Manual"** en el popup
+2. Seleccionar el proxy de la lista
 3. El estado "Conectado" indica que está activo
 
 **Modo Automático**:
-1. Selecciona el modo **"Automático"** en el popup
-2. Configura reglas de URL para cada proxy en la página de configuración
-3. Los proxies se seleccionan automáticamente según el sitio web que visites
+1. Seleccionar **"Automático"** en el popup
+2. Configurar reglas URL para cada proxy en la página de configuración
+3. El proxy se selecciona automáticamente según el sitio web visitado
 
 ## 📖 Documentación detallada
 
@@ -200,60 +233,84 @@ www.google.com
 10.0.0.0/8
 ```
 
+### Estrategia de fallback
+
+En modo automático, cuando la conexión del proxy falla:
+
+| Estrategia | Descripción |
+|------------|-------------|
+| **Conexión directa (DIRECT)** | Omitir proxy, conectar directamente al sitio de destino |
+| **Rechazar conexión (REJECT)** | Rechazar la solicitud |
+
 ### Modo automático con script PAC
 
 El modo automático usa scripts PAC (Proxy Auto-Config):
-- Selecciona automáticamente el proxy según la URL actual
-- Soporta políticas de respaldo (conexión directa o rechazo)
-- Restaura automáticamente la última configuración al inicio del navegador
+- Seleccionar automáticamente el proxy según la URL actual
+- Coincidir en orden de lista de proxies, devolver el primer proxy coincidente
+- Soporta estrategia de fallback
+- Restaurar automáticamente la última configuración al iniciar el navegador
 
-### Atajos de teclado
+### Atajos de operación
 
-| Acción | Método |
-|--------|--------|
-| Expandir/colapsar tarjeta proxy | Clic en el encabezado de la tarjeta |
-| Expandir/colapsar todas las tarjetas | Clic en botón "Expandir todo" |
+| Operación | Método |
+|-----------|--------|
+| Expandir/colapsar tarjeta proxy | Click en el encabezado de la tarjeta |
+| Expandir/colapsar todas las tarjetas | Click en botón "Expandir/colapsar todo" |
 | Reordenar proxy arrastrando | Arrastrar el mango en el encabezado de la tarjeta |
-| Mostrar/ocultar contraseña | Clic en el icono de ojo en el campo de contraseña |
-| Probar proxy individual | Clic en botón "Probar" |
-| Probar todos los proxies | Clic en botón "Probar todo" |
+| Mostrar/ocultar contraseña | Click en el icono de ojo a la derecha del campo de contraseña |
+| Habilitar/deshabilitar proxy individualmente | Toggle en la tarjeta |
+| Probar proxy individual | Click en botón "Probar conexión" |
+| Probar todos los proxies | Click en botón "Probar todo" |
 
 ### Importar/exportar configuración
 
-1. **Exportar configuración**: Clic en "Exportar configuración" para descargar archivo JSON
-2. **Importar configuración**: Clic en "Importar configuración" y seleccionar archivo JSON para restaurar
+1. **Exportar configuración**: Click en "Exportar configuración" para descargar archivo JSON
+2. **Importar configuración**: Click en "Importar configuración" y seleccionar archivo JSON para restaurar
 
 La configuración incluye:
 - Toda la información del proxy
 - Configuraciones de tema
-- Configuraciones de sincronización
+- Horario de modo nocturno
+- Configuración de idioma
+- Estado de sincronización
+
+### Detección de estado del proxy
+
+Click en el botón "Detectar estado del proxy" puede:
+- Ver el modo actual del proxy del navegador
+- Verificar si la extensión controló exitosamente el proxy
+- Detectar si otras extensiones ocuparon el control
+- Obtener diagnóstico y sugerencias de problemas
 
 ## 🔧 Arquitectura técnica
 
 ### Manifest V3
 
-- Usa especificación Chrome Extension Manifest V3
-- Service Worker reemplaza páginas de fondo
-- Arquitectura más segura y eficiente
+- Chrome usa especificación Manifest V3
+- Service Worker代替 páginas de fondo
+- Firefox usa background scripts + onRequest API
 
 ### Módulos principales
 
-1. **service-worker.js**:
+1. **worker.js (Chrome)**:
    - Gestión de configuración de proxy
    - Generación de script PAC
    - Manejo de autenticación
    - Lógica de prueba de proxy
+   - Escucha de cambios de almacenamiento
 
 2. **popup.js**:
    - Interacción con interfaz del popup
    - Visualización de estado del proxy
    - Cambio rápido de proxy
+   - Visualización de coincidencia automática
 
 3. **main.js**:
    - Lógica de página de configuración
    - Gestión de proxies (CRUD)
-   - Ordenación arrastrar y soltar
+   - Ordenación arrastrando
    - Importar/Exportar
+   - Función de detección de proxy
 
 4. **i18n.js**:
    - Soporte multilingüe
@@ -261,9 +318,21 @@ La configuración incluye:
 
 ### Almacenamiento de datos
 
-- `chrome.storage.local`: Almacenamiento local
-- `chrome.storage.sync`: Almacenamiento de sincronización en la nube
-- Manejo automático de cuota de almacenamiento
+- `chrome.storage.local`: Almacenamiento local (siempre usado)
+- `chrome.storage.sync`: Almacenamiento de sincronización en la nube (opcional)
+- Principio de local first, resuelve problema de cuota de sincronización
+
+### Compatibilidad de navegador
+
+| Función | Chrome | Firefox |
+|---------|--------|---------|
+| Modo Manual | ✅ | ✅ |
+| Modo Automático | ✅ | ✅ |
+| Autenticación proxy | ✅ | ✅ |
+| Prueba proxy | ✅ | ✅ |
+| Cambio de tema | ✅ | ✅ |
+| Sincronización de datos | ✅ | ✅ |
+| Detección proxy | ✅ | ✅ |
 
 ## 📝 Casos de uso
 
@@ -271,20 +340,20 @@ La configuración incluye:
 
 - Configurar diferentes proxies para diferentes entornos de red
 - Usar proxy de empresa para red de oficina
-- Usar proxy VPN para red doméstica
+- Usar proxy científico para red doméstica
 - Cambio rápido con un clic
 
 ### Escenario 2: Enrutamiento inteligente
 
 - Sitios web nacionales conexión directa
-- Sitios web específicos a través de proxy
+- Sitios específicos a través de proxy
 - Selección automática basada en dominio
 
-### Escenario 3: Prueba de grupo de proxies
+### Escenario 3: Prueba de pool de proxies
 
 - Importar múltiples proxies
 - Probar latencia en lote
-- Seleccionar proxy óptimo
+- Seleccionar proxy óptimo para usar
 
 ### Escenario 4: Compartición en equipo
 
@@ -297,14 +366,16 @@ La configuración incluye:
 1. **Descripción de permisos**: La extensión requiere los siguientes permisos:
    - `proxy`: Gestionar configuraciones de proxy
    - `storage`: Almacenar configuraciones
-   - `webRequest`: Manejar solicitudes de autenticación
+   - `webRequest` / `webRequestAuthProvider`: Manejar solicitudes de autenticación
    - `<all_urls>`: Acceder a todas las URLs de sitios web
 
-2. **Conflictos con otras extensiones**: Si experimentas conflictos de proxy, desactiva otras extensiones de proxy
+2. **Conflictos con otras extensiones**: Si hay conflictos de proxy, desactivar otras extensiones proxy/VPN
 
-3. **Seguridad**: Las credenciales se almacenan localmente en el navegador, por favor asegúrate de la seguridad de tu dispositivo
+3. **Seguridad**: Las credenciales se almacenan localmente en el navegador, por favor asegurar la seguridad del dispositivo
 
-4. **Requisitos de red**: Asegúrate de que el servidor proxy sea accesible
+4. **Requisitos de red**: Asegurarse de que el servidor proxy sea accesible normalmente
+
+5. **Restricción de Firefox**: La versión mínima de Firefox requerida es 142.0
 
 ## 📄 Licencia
 
@@ -316,4 +387,12 @@ MIT License - Ver archivo [LICENSE](../LICENSE) para detalles
 
 ## 📧 Contacto
 
-Para preguntas o sugerencias, por favor envía comentarios a través de GitHub Issues.
+Para preguntas o sugerencias, por favor enviar comentarios a través de GitHub Issues.
+
+---
+
+<div align="center">
+
+**Si este proyecto te ha sido útil, ¡agradeceríamos un Star ⭐ para apoyar!**
+
+</div>
