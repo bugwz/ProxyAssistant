@@ -377,6 +377,10 @@ Click en el botón "Detectar estado del proxy" puede:
 
 5. **Restricción de Firefox**: La versión mínima de Firefox requerida es 142.0
 
+## 📄 Política de privacidad
+
+[Política de privacidad](https://sites.google.com/view/proxy-assistant/privacy-policy)
+
 ## 📄 Licencia
 
 MIT License - Ver archivo [LICENSE](../LICENSE) para detalles

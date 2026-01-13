@@ -377,6 +377,10 @@ www.google.com
 
 5. **Firefox制限**: Firefox最低バージョン要件: 142.0
 
+## 📄 プライバシーポリシー
+
+[プライバシーポリシー](https://sites.google.com/view/proxy-assistant/privacy-policy)
+
 ## 📄 ライセンス
 
 MIT License - 詳細は [LICENSE](../LICENSE) ファイルを参照

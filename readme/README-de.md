@@ -377,6 +377,10 @@ Auf den Button "Proxy-Effekt erkennen" klicken kann:
 
 5. **Firefox-Einschränkung**: Die Mindestversion von Firefox ist 142.0
 
+## 📄 Datenschutzrichtlinie
+
+[Datenschutzrichtlinie](https://sites.google.com/view/proxy-assistant/privacy-policy)
+
 ## 📄 Lizenz
 
 MIT License - Siehe [LICENSE](../LICENSE)-Datei für Details
