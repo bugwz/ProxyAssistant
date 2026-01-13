@@ -26,7 +26,7 @@
 
 </div>
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/store/promotional/marquee-1632x656.jpeg)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/store/promotional/marquee-1632x656.jpeg)
 
 ## ✨ 功能特性
 
@@ -44,7 +44,7 @@
 | **手動** | 從代理列表中手動選擇要使用的代理 |
 | **自動** | 根據URL規則自動選擇匹配的代理（PAC模式） |
 
-| ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/screenshots/popup/disabled.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/screenshots/popup/manual.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/screenshots/popup/auto.png) |
+| ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/screenshots/popup/disabled.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/screenshots/popup/manual.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/screenshots/popup/auto.png) |
 |:---:|:---:|:---:|
 | 禁用模式 | 手動模式 | 自動模式 |
 
@@ -74,7 +74,7 @@
 - **深色模式**: 夜間使用
 - **自動切換**: 根據時間自動切換主題
 
-| ![淺色模式](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/screenshots/main/theme-light.png) | ![深色模式](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/screenshots/main/theme-dark.png) |
+| ![淺色模式](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/screenshots/main/theme-light.png) | ![深色模式](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/screenshots/main/theme-dark.png) |
 |:---:|:---:|
 | 淺色模式 | 深色模式 |
 
@@ -97,7 +97,7 @@
 
 ## 📷 設置界面
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/screenshots/main/settings.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/screenshots/main/settings.png)
 
 ## 📁 項目結構
 

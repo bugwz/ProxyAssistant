@@ -26,7 +26,7 @@ Eine leistungsst Chrome-Browser-Proxy-Verwaltungserweiterung, die Ihnen hilft, N
 
 </div>
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/store/promotional/marquee-1632x656.jpeg)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/store/promotional/marquee-1632x656.jpeg)
 
 ## ✨ Funktionen
 
@@ -44,7 +44,7 @@ Eine leistungsst Chrome-Browser-Proxy-Verwaltungserweiterung, die Ihnen hilft, N
 | **Manuell** | Proxy manuell aus der Liste auswählen |
 | **Automatisch** | Automatisch passenden Proxy basierend auf URL-Regeln auswählen (PAC-Modus) |
 
-| ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/screenshots/popup/disabled.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/screenshots/popup/manual.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/screenshots/popup/auto.png) |
+| ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/screenshots/popup/disabled.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/screenshots/popup/manual.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/screenshots/popup/auto.png) |
 |:---:|:---:|:---:|
 | Deaktiviert | Manuell | Automatisch |
 
@@ -74,7 +74,7 @@ Eine leistungsst Chrome-Browser-Proxy-Verwaltungserweiterung, die Ihnen hilft, N
 - **Dunkelmodus**: Für die Nacht
 - **Automatischer Wechsel**: Thema basierend auf der Zeit automatisch wechseln
 
-| ![Hellmodus](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/screenshots/main/theme-light.png) | ![Dunkelmodus](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/screenshots/main/theme-dark.png) |
+| ![Hellmodus](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/screenshots/main/theme-light.png) | ![Dunkelmodus](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/screenshots/main/theme-dark.png) |
 |:---:|:---:|
 | Hellmodus | Dunkelmodus |
 
@@ -97,7 +97,7 @@ Diese Erweiterung unterstützt 5 Sprachen:
 
 ## 📷 Einstellungsseite
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/screenshots/main/settings.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/screenshots/main/settings.png)
 
 ## 📁 Projektstruktur
 

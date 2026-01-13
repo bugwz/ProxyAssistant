@@ -26,7 +26,7 @@ Uma extensão poderosa de gerenciamento de proxy para Chrome que ajuda você a c
 
 </div>
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/store/promotional/marquee-1632x656.jpeg)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/store/promotional/marquee-1632x656.jpeg)
 
 ## ✨ Funcionalidades
 
@@ -44,7 +44,7 @@ Uma extensão poderosa de gerenciamento de proxy para Chrome que ajuda você a c
 | **Manual** | Selecionar manualmente um proxy da lista |
 | **Automático** | Selecionar automaticamente o proxy correspondente com base nas regras de URL (modo PAC) |
 
-| ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/screenshots/popup/disabled.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/screenshots/popup/manual.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/screenshots/popup/auto.png) |
+| ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/screenshots/popup/disabled.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/screenshots/popup/manual.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/screenshots/popup/auto.png) |
 |:---:|:---:|:---:|
 | Modo Desativado | Modo Manual | Modo Automático |
 
@@ -74,7 +74,7 @@ Uma extensão poderosa de gerenciamento de proxy para Chrome que ajuda você a c
 - **Modo Escuro**: Para uso noturno
 - **Alternância automática**: Alternar tema automaticamente com base no horário
 
-| ![Modo Claro](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/screenshots/main/theme-light.png) | ![Modo Escuro](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/screenshots/main/theme-dark.png) |
+| ![Modo Claro](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/screenshots/main/theme-light.png) | ![Modo Escuro](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/screenshots/main/theme-dark.png) |
 |:---:|:---:|
 | Modo Claro | Modo Escuro |
 
@@ -97,7 +97,7 @@ Esta extensão suporta 5 idiomas:
 
 ## 📷 Interface de configuração
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113111933/assets/screenshots/main/settings.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113112155/assets/screenshots/main/settings.png)
 
 ## 📁 Estrutura do projeto
 
