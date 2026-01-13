@@ -164,6 +164,7 @@ body {
 .init_box {
   display: none;
   padding: 40px 0;
+  background-color: var(--bg-primary);
 }
 
 .add_btn {
