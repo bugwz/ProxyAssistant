@@ -107,7 +107,10 @@ const translations = {
     "proxy_suggestion": "💡 建议",
     "proxy_suggestion_check": "请检查系统代理设置或关闭其他代理工具",
     "proxy_suggestion_retry": "请检查扩展权限设置",
-    "close": "关闭"
+    "close": "关闭",
+    "current_site": "当前网站:",
+    "bypass_proxy": "不用代理",
+    "use_proxy": "使用代理",
   },
   "zh-TW": {
     "app_name": "代理助手",
@@ -217,7 +220,10 @@ const translations = {
     "proxy_suggestion": "💡 建議",
     "proxy_suggestion_check": "請檢查系統代理設置或關閉其他代理工具",
     "proxy_suggestion_retry": "請檢查擴展權限設置",
-    "close": "關閉"
+    "close": "關閉",
+    "current_site": "當前網站:",
+    "bypass_proxy": "不用代理",
+    "use_proxy": "使用代理",
   },
   "en": {
     "app_name": "Proxy Assistant",
@@ -327,7 +333,10 @@ const translations = {
     "proxy_suggestion": "💡 Suggestion",
     "proxy_suggestion_check": "Please check system proxy settings or disable other proxy tools",
     "proxy_suggestion_retry": "Please check extension permission settings",
-    "close": "Close"
+    "close": "Close",
+    "current_site": "Current site:",
+    "bypass_proxy": "No proxy",
+    "use_proxy": "Use proxy",
   },
   "ja": {
     "app_name": "プロキシアシスタント",
@@ -437,7 +446,10 @@ const translations = {
     "proxy_suggestion": "💡 提案",
     "proxy_suggestion_check": "システムプロキシ設定を確認するか、他のプロキシツールを無効にしてください",
     "proxy_suggestion_retry": "拡張機能の設定を確認してください",
-    "close": "閉じる"
+    "close": "閉じる",
+    "current_site": "現在のサイト:",
+    "bypass_proxy": "プロキシなし",
+    "use_proxy": "プロキシを使用",
   },
   "fr": {
     "app_name": "Assistant Proxy",
@@ -547,7 +559,10 @@ const translations = {
     "proxy_suggestion": "💡 Suggestion",
     "proxy_suggestion_check": "Veuillez vérifier les paramètres proxy du système ou désactiver les autres outils proxy",
     "proxy_suggestion_retry": "Veuillez vérifier les paramètres d'autorisation de l'extension",
-    "close": "Fermer"
+    "close": "Fermer",
+    "current_site": "Site actuel :",
+    "bypass_proxy": "Pas de proxy",
+    "use_proxy": "Utiliser le proxy",
   },
   "de": {
     "app_name": "Proxy-Assistent",
@@ -657,7 +672,10 @@ const translations = {
     "proxy_suggestion": "💡 Vorschlag",
     "proxy_suggestion_check": "Bitte überprüfen Sie die System-Proxy-Einstellungen oder deaktivieren Sie andere Proxy-Tools",
     "proxy_suggestion_retry": "Bitte überprüfen Sie die Erweiterungsberechtigungen",
-    "close": "Schließen"
+    "close": "Schließen",
+    "current_site": "Aktuelle Seite:",
+    "bypass_proxy": "Kein Proxy",
+    "use_proxy": "Proxy verwenden",
   },
   "es": {
     "app_name": "Asistente de Proxy",
@@ -767,7 +785,10 @@ const translations = {
     "proxy_suggestion": "💡 Sugerencia",
     "proxy_suggestion_check": "Por favor verifique la configuración proxy del sistema o desactive otras herramientas proxy",
     "proxy_suggestion_retry": "Por favor verifique la configuración de permisos de la extensión",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "current_site": "Sitio actual:",
+    "bypass_proxy": "Sin proxy",
+    "use_proxy": "Usar proxy",
   },
   "ko": {
     "app_name": "프록시 어시스턴트",
@@ -877,7 +898,10 @@ const translations = {
     "proxy_suggestion": "💡 제안",
     "proxy_suggestion_check": "시스템 프록시 설정을 확인하거나 다른 프록시 도구를 비활성화하세요",
     "proxy_suggestion_retry": "확장 프로그램 권한 설정을 확인하세요",
-    "close": "닫기"
+    "close": "닫기",
+    "current_site": "현재 사이트:",
+    "bypass_proxy": "프록시 없음",
+    "use_proxy": "프록시 사용",
   },
   "pt": {
     "app_name": "Assistente de Proxy",
@@ -987,7 +1011,10 @@ const translations = {
     "proxy_suggestion": "💡 Sugestão",
     "proxy_suggestion_check": "Por favor verifique as configurações proxy do sistema ou desative outras ferramentas proxy",
     "proxy_suggestion_retry": "Por favor verifique as configurações de permissão da extensão",
-    "close": "Fechar"
+    "close": "Fechar",
+    "current_site": "Site atual:",
+    "bypass_proxy": "Sem proxy",
+    "use_proxy": "Usar proxy",
   },
   "ru": {
     "app_name": "Прокси-ассистент",
@@ -1097,7 +1124,10 @@ const translations = {
     "proxy_suggestion": "💡 Предложение",
     "proxy_suggestion_check": "Пожалуйста, проверьте настройки прокси системы или отключите другие прокси-инструменты",
     "proxy_suggestion_retry": "Пожалуйста, проверьте настройки разрешений расширения",
-    "close": "Закрыть"
+    "close": "Закрыть",
+    "current_site": "Текущий сайт:",
+    "bypass_proxy": "Без прокси",
+    "use_proxy": "Использовать прокси",
   }
 };
 
