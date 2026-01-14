@@ -511,3 +511,152 @@ body[data-theme="dark"] .radio-indicator {
 body[data-theme="dark"] .list-disabled .set_box_user_box {
   opacity: 0.5;
 }
+
+/* Current Site Bar - Current site display area (unified style for manual/auto mode) */
+.current-site-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 15px;
+  background-color: #fff8e1;
+  border-bottom: 1px solid #ffe082;
+  height: 20px;
+  box-sizing: content-box;
+}
+
+.site-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.site-label {
+  font-size: 11px;
+  color: #666;
+  white-space: nowrap;
+}
+
+.site-url {
+  font-size: 11px;
+  color: #1e293b;
+  font-family: monospace;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+  cursor: default;
+}
+
+.bypass-btn {
+  padding: 5px 10px;
+  font-size: 11px;
+  border: none;
+  border-radius: 4px;
+  background: #f59e0b;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.bypass-btn:hover:not(.btn-disabled) {
+  background: #d97706;
+}
+
+.bypass-btn.btn-disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Bypass button states */
+#add-bypass-btn {
+  padding: 5px 12px;
+  font-size: 11px;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 80px;
+}
+
+#add-bypass-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Bypass Site state - Orange (bypassing proxy, site won't use proxy) */
+#add-bypass-btn.btn-bypass-proxy {
+  background: #f59e0b !important;
+}
+
+#add-bypass-btn.btn-bypass-proxy:hover:not(:disabled) {
+  background: #d97706 !important;
+}
+
+/* Use Proxy state - Green (using proxy for this site) */
+#add-bypass-btn.btn-use-proxy {
+  background: #22c55e !important;
+}
+
+#add-bypass-btn.btn-use-proxy:hover:not(:disabled) {
+  background: #16a34a !important;
+}
+
+/* Processing state - Gray */
+#add-bypass-btn.btn-processing {
+  background: #9ca3af;
+}
+
+/* Dark Theme - Current Site Bar */
+body[data-theme="dark"] .current-site-bar {
+  background-color: #3a3a3a;
+  border-color: #4a4a4a;
+}
+
+body[data-theme="dark"] .site-label {
+  color: #a1a1aa;
+}
+
+body[data-theme="dark"] .site-url {
+  color: #e4e4e7;
+}
+
+body[data-theme="dark"] .bypass-btn {
+  background: #f59e0b;
+}
+
+body[data-theme="dark"] .bypass-btn:hover:not(.btn-disabled) {
+  background: #d97706;
+}
+
+body[data-theme="dark"] .bypass-btn.btn-disabled {
+  background: #6b7280;
+}
+
+/* Dark theme - bypass button states */
+body[data-theme="dark"] #add-bypass-btn.btn-bypass-proxy {
+  background: #f59e0b !important;
+}
+
+body[data-theme="dark"] #add-bypass-btn.btn-bypass-proxy:hover:not(:disabled) {
+  background: #d97706 !important;
+}
+
+body[data-theme="dark"] #add-bypass-btn.btn-use-proxy {
+  background: #22c55e !important;
+}
+
+body[data-theme="dark"] #add-bypass-btn.btn-use-proxy:hover:not(:disabled) {
+  background: #16a34a !important;
+}
+
+body[data-theme="dark"] #add-bypass-btn.btn-processing {
+  background: #6b7280 !important;
+}
