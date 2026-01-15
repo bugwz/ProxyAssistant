@@ -1,6 +1,57 @@
 // Theme mode variables
 var themeMode = 'light';
 
+// Refresh proxy status from browser and storage
+function refreshProxyStatus() {
+  chrome.storage.local.get(['proxyMode', 'currentProxy', 'list'], function (result) {
+    const mode = result.proxyMode || 'disabled';
+    const list = result.list || [];
+
+    // Get browser proxy settings
+    if (typeof chrome !== 'undefined' && chrome.proxy && chrome.proxy.settings) {
+      chrome.proxy.settings.get({ incognito: false }, function (browserConfig) {
+        let browserMode = 'system';
+        let proxyServer = '';
+
+        if (browserConfig && browserConfig.value) {
+          browserMode = browserConfig.value.mode || 'system';
+
+          // Extract proxy server info
+          if (browserConfig.value.rules) {
+            const rules = browserConfig.value.rules;
+            if (rules.singleProxy) {
+              proxyServer = rules.singleProxy.host + ':' + rules.singleProxy.port;
+            } else if (rules.proxyForHttp) {
+              proxyServer = rules.proxyForHttp.host + ':' + rules.proxyForHttp.port;
+            }
+          } else if (browserConfig.value.pacScript) {
+            proxyServer = 'PAC Script';
+          }
+        }
+
+        // Update status display based on comparison
+        updateStatusDisplay(mode, result.currentProxy);
+        updateRefreshIndicator();
+      });
+    } else {
+      // Fallback for Firefox
+      updateStatusDisplay(mode, result.currentProxy);
+      updateRefreshIndicator();
+    }
+  });
+}
+
+// Update refresh indicator visibility
+function updateRefreshIndicator() {
+  // Add visual indicator that status is being refreshed
+  // Apply animation to outer container instead of text to avoid color flashing
+  const $currentStatus = $('.current-status');
+  $currentStatus.addClass('status-refreshing');
+  setTimeout(function () {
+    $currentStatus.removeClass('status-refreshing');
+  }, 500);
+}
+
 // Theme mode toggle event handlers
 function initThemeMode() {
   // Always load from local storage (consistent with proxy config)
@@ -45,16 +96,16 @@ function updateStatusDisplay(mode, currentProxy) {
 
   if (mode === 'disabled') {
     $statusValue.text(I18n.t('status_disabled')).attr('data-i18n', 'status_disabled');
-    $statusValue.css('color', '#dc3545'); // Red to match Disabled button
+    $statusValue.css('color', '#dc3545'); // Red for disabled mode
   } else if (mode === 'auto') {
-    // Auto mode - show current proxy name (same as manual mode style but different color)
+    // Auto mode - show current proxy name
     if (currentProxy && (currentProxy.name || currentProxy.ip)) {
       const displayName = currentProxy.name || I18n.t('unnamed_proxy');
       $statusValue.text(displayName).removeAttr('data-i18n');
-      $statusValue.css('color', '#28a745'); // Green for auto mode
+      $statusValue.css('color', '#1e293b');
     } else {
       $statusValue.text(I18n.t('mode_auto_text')).attr('data-i18n', 'mode_auto_text');
-      $statusValue.css('color', '#28a745'); // Green to match Auto button
+      $statusValue.css('color', '#1e293b');
     }
     $statusValue.removeAttr('title');
   } else {
@@ -62,10 +113,10 @@ function updateStatusDisplay(mode, currentProxy) {
     if (currentProxy && (currentProxy.name || currentProxy.ip)) {
       const displayName = currentProxy.name || I18n.t('unnamed_proxy');
       $statusValue.text(displayName).removeAttr('data-i18n');
-      $statusValue.css('color', '#4164f5'); // Blue for connected (matches Manual mode button)
+      $statusValue.css('color', '#1e293b');
     } else {
       $statusValue.text(I18n.t('status_disconnected')).attr('data-i18n', 'status_disconnected');
-      $statusValue.css('color', '#ff9800'); // Orange for disconnected
+      $statusValue.css('color', '#1e293b');
     }
   }
 }
@@ -129,6 +180,16 @@ function updateCurrentSiteDisplay() {
     });
   });
 }
+
+// Storage change listener for real-time updates
+chrome.storage.onChanged.addListener(function (changes, namespace) {
+  if (namespace === 'local') {
+    if (changes.proxyMode || changes.currentProxy) {
+      // Update status display when storage changes
+      refreshProxyStatus();
+    }
+  }
+});
 
 function initApp() {
   chrome.storage.local.get(['proxyMode', 'currentProxy'], function (result) {
@@ -640,7 +701,7 @@ function bindListEvents() {
     $this.addClass("selected");
 
     const proxyName = info.name || "Proxy";
-    $('#status-display').text(proxyName).css('color', '#4164f5'); // Changed from #28a745 (Green) to #4164f5 (Blue)
+    $('#status-display').text(proxyName);
 
     // Save current proxy selection
     chrome.storage.local.set({ currentProxy: info }, function () {
