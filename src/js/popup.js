@@ -96,16 +96,16 @@ function updateStatusDisplay(mode, currentProxy) {
 
   if (mode === 'disabled') {
     $statusValue.text(I18n.t('status_disabled')).attr('data-i18n', 'status_disabled');
-    $statusValue.css('color', '#dc3545'); // Red for disabled mode
+    $statusValue.css('color', 'var(--danger-color)'); // Red for disabled mode
   } else if (mode === 'auto') {
     // Auto mode - show current proxy name
     if (currentProxy && (currentProxy.name || currentProxy.ip)) {
       const displayName = currentProxy.name || I18n.t('unnamed_proxy');
       $statusValue.text(displayName).removeAttr('data-i18n');
-      $statusValue.css('color', '#1e293b');
+      $statusValue.css('color', 'var(--text-primary)'); // Use CSS variable for theme support
     } else {
       $statusValue.text(I18n.t('mode_auto_text')).attr('data-i18n', 'mode_auto_text');
-      $statusValue.css('color', '#1e293b');
+      $statusValue.css('color', 'var(--text-primary)'); // Use CSS variable for theme support
     }
     $statusValue.removeAttr('title');
   } else {
@@ -113,10 +113,10 @@ function updateStatusDisplay(mode, currentProxy) {
     if (currentProxy && (currentProxy.name || currentProxy.ip)) {
       const displayName = currentProxy.name || I18n.t('unnamed_proxy');
       $statusValue.text(displayName).removeAttr('data-i18n');
-      $statusValue.css('color', '#1e293b');
+      $statusValue.css('color', 'var(--text-primary)'); // Use CSS variable for theme support
     } else {
       $statusValue.text(I18n.t('status_disconnected')).attr('data-i18n', 'status_disconnected');
-      $statusValue.css('color', '#1e293b');
+      $statusValue.css('color', 'var(--text-primary)'); // Use CSS variable for theme support
     }
   }
 }
@@ -270,13 +270,11 @@ function initApp() {
     // Update list interaction status
     if (mode === 'manual') {
       $('.set_box_user').removeClass('list-disabled').removeClass('mode-auto');
+    } else if (mode === 'auto') {
+      // Auto mode: do not add list-disabled, but add mode-auto class for styling
+      $('.set_box_user').removeClass('list-disabled').addClass('mode-auto');
     } else {
-      $('.set_box_user').addClass('list-disabled');
-      if (mode === 'auto') {
-        $('.set_box_user').addClass('mode-auto');
-      } else {
-        $('.set_box_user').removeClass('mode-auto');
-      }
+      $('.set_box_user').addClass('list-disabled').removeClass('mode-auto');
     }
   }
 
@@ -684,8 +682,8 @@ function bindListEvents() {
   $(".set_box_user_list").off("click.proxySelect");
 
   $(".set_box_user_list").on("click.proxySelect", ".set_box_user_box", function (e) {
-    // Allow click switch only in manual mode
-    if ($('.set_box_user').hasClass('list-disabled')) {
+    // Allow click switch only in manual mode (disabled mode has list-disabled, auto mode has mode-auto)
+    if ($('.set_box_user').hasClass('list-disabled') || $('.set_box_user').hasClass('mode-auto')) {
       console.log("Manual mode not active, ignoring click");
       return;
     }
