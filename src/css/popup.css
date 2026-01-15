@@ -1,67 +1,67 @@
 :root {
   --main-font-family: "Noto Sans SC", "Source Han Sans SC", "Source Han Sans CN", "思源黑体", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", "微软雅黑", sans-serif;
-  
+
   /* Light mode colors */
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;
   --bg-tertiary: #f1f5f9;
-  
+
   --text-primary: #1e293b;
   --text-secondary: #64748b;
   --text-muted: #94a3b8;
-  
+
   --border-color: #eef0f2;
   --border-hover: #dce1e8;
-  
+
   --accent-color: #4164f5;
   --accent-hover: #3050d0;
   --accent-light: #f0f7ff;
-  
+
   --success-color: #22c55e;
   --warning-color: #f97316;
   --danger-color: #ef4444;
-  
+
   --header-bg: linear-gradient(135deg, #4164f5 0%, #3050d0 100%);
   --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 15px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.1);
-  
+
   /* Badge colors */
   --badge-http: #3b82f6;
   --badge-https: #8b5cf6;
   --badge-socks5: #f59e0b;
-  
+
   /* Current site bar */
   --sitebar-bg: #f0f7ff;
   --sitebar-border: #bfdbfe;
 }
 
-/* ========== Dark Mode ========== */
+/* ========== Dark Mode Variables ========== */
 [data-theme="dark"] {
   --bg-primary: #212121;
   --bg-secondary: #2d2d2d;
   --bg-tertiary: #383838;
-  
+
   --text-primary: #e4e4e7;
   --text-secondary: #a1a1aa;
   --text-muted: #71717a;
-  
+
   --border-color: #4a4a4a;
   --border-hover: #71717a;
-  
+
   --accent-color: #818cf8;
   --accent-hover: #a5b4fc;
   --accent-light: rgba(129, 140, 248, 0.15);
-  
+
   --success-color: #4ade80;
   --warning-color: #fb923c;
   --danger-color: #f87171;
-  
+
   --header-bg: #1a1a1a;
   --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 15px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.5);
-  
+
   /* Current site bar */
   --sitebar-bg: #2d2d2d;
   --sitebar-border: #4a4a4a;
@@ -79,6 +79,11 @@ body {
   color: var(--text-primary);
 }
 
+[data-theme="dark"] body {
+  background-color: var(--bg-primary);
+  outline: none;
+}
+
 .box {
   width: 350px;
   overflow: hidden;
@@ -91,6 +96,10 @@ body {
   outline: none;
 }
 
+[data-theme="dark"] .box {
+  background-color: var(--bg-primary);
+}
+
 /* ========== Header Styles ========== */
 .header {
   flex-shrink: 0;
@@ -101,6 +110,10 @@ body {
   justify-content: space-between;
   padding: 0 16px;
   color: #fff;
+}
+
+[data-theme="dark"] .header {
+  background: var(--header-bg);
 }
 
 .header-left {
@@ -154,6 +167,11 @@ body {
   border-bottom: 1px solid var(--border-color);
 }
 
+[data-theme="dark"] .status-bar {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
 .current-status {
   flex: 1;
   text-align: left;
@@ -187,6 +205,10 @@ body {
   gap: 3px;
 }
 
+[data-theme="dark"] .mode-selector {
+  background-color: var(--bg-tertiary);
+}
+
 .mode-btn {
   padding: 5px 10px;
   font-size: 11px;
@@ -202,6 +224,11 @@ body {
 .mode-btn.active {
   background-color: var(--bg-primary);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .mode-btn.active {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .mode-btn[data-mode="disabled"].active {
@@ -231,6 +258,11 @@ body {
   height: 24px;
   box-sizing: content-box;
   flex-shrink: 0;
+}
+
+[data-theme="dark"] .current-site-bar {
+  background-color: var(--sitebar-bg);
+  border-color: var(--sitebar-border);
 }
 
 .site-info {
@@ -308,7 +340,7 @@ body {
   background: var(--text-muted) !important;
 }
 
-/* ========== Dark Mode Button Styles ========== */
+/* Dark Mode Button Styles */
 [data-theme="dark"] #add-bypass-btn.btn-bypass-proxy,
 [data-theme="dark"] .bypass-btn.btn-bypass-proxy {
   background: #71717a !important;
@@ -346,13 +378,22 @@ body {
   border: none;
 }
 
+[data-theme="dark"] .add_btn {
+  background-color: var(--accent-color);
+}
+
 .add_btn:hover {
   background-color: var(--accent-hover);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(65, 100, 245, 0.3);
 }
 
-/* ========== Settings Box ========== */
+[data-theme="dark"] .add_btn:hover {
+  background-color: var(--accent-hover);
+  box-shadow: 0 4px 12px rgba(129, 140, 248, 0.3);
+}
+
+/* ========== Settings Box (Proxy List) ========== */
 .set_box {
   display: flex;
   flex-direction: column;
@@ -360,7 +401,6 @@ body {
   overflow: hidden;
 }
 
-/* Proxy list area */
 .set_box_user {
   padding: 10px 10px;
   flex: 1 1 auto;
@@ -369,13 +409,47 @@ body {
   background-color: var(--bg-primary);
 }
 
+[data-theme="dark"] .set_box_user {
+  background-color: var(--bg-primary);
+}
+
+.set_box_user::-webkit-scrollbar {
+  width: 6px;
+}
+
+.set_box_user::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 3px;
+}
+
+[data-theme="dark"] .set_box_user::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+.set_box_user::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+[data-theme="dark"] .set_box_user::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+}
+
+.set_box_user::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+[data-theme="dark"] .set_box_user::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
 .set_box_user_list {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-/* ========== List Item Card ========== */
+/* List Item Card */
 .set_box_user_box {
   background-color: var(--bg-primary);
   border-radius: 10px;
@@ -390,10 +464,19 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
+[data-theme="dark"] .set_box_user_box {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
 .set_box_user_box:hover {
   border-color: var(--accent-color);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
+}
+
+[data-theme="dark"] .set_box_user_box:hover {
+  border-color: #ffffff;
 }
 
 .name_txt {
@@ -473,6 +556,11 @@ body {
   border-color: var(--accent-color);
 }
 
+[data-theme="dark"] .set_box_user_box.selected {
+  background-color: #3d3d3d;
+  border-color: var(--border-color);
+}
+
 .radio-indicator {
   width: 18px;
   height: 18px;
@@ -484,8 +572,16 @@ body {
   transition: all 0.2s;
 }
 
+[data-theme="dark"] .radio-indicator {
+  border-color: var(--border-color);
+}
+
 .set_box_user_box.selected .radio-indicator {
   border-color: var(--accent-color);
+}
+
+[data-theme="dark"] .set_box_user_box.selected .radio-indicator {
+  border-color: var(--border-color);
 }
 
 .set_box_user_box.selected .radio-indicator::after {
@@ -498,16 +594,6 @@ body {
   height: 10px;
   border-radius: 50%;
   background-color: var(--accent-color);
-}
-
-/* ========== Dark Mode Selected State ========== */
-[data-theme="dark"] .set_box_user_box.selected {
-  background-color: #3d3d3d;
-  border-color: var(--border-color);
-}
-
-[data-theme="dark"] .set_box_user_box.selected .radio-indicator {
-  border-color: var(--border-color);
 }
 
 [data-theme="dark"] .set_box_user_box.selected .radio-indicator::after {
@@ -528,12 +614,6 @@ body {
   opacity: 0.7;
 }
 
-/*
- * Unified selection color
- * Whether in manual or auto mode, the selected proxy list always uses the blue accent-color
- * This maintains consistent UI styling
- */
-
 /* ========== Bottom Button Bar ========== */
 .list-bottom-buttons {
   flex-shrink: 0;
@@ -545,6 +625,11 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+[data-theme="dark"] .list-bottom-buttons {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
 }
 
 .version-info {
@@ -564,98 +649,4 @@ body {
 
 .github-link:hover {
   color: var(--accent-color);
-}
-
-/* ========== Dark Mode Styles ========== */
-[data-theme="dark"] body {
-  background-color: var(--bg-primary);
-  outline: none;
-}
-
-[data-theme="dark"] .header {
-  background: var(--header-bg);
-}
-
-[data-theme="dark"] .box {
-  background-color: var(--bg-primary);
-}
-
-[data-theme="dark"] .status-bar {
-  background-color: var(--bg-secondary);
-  border-color: var(--border-color);
-}
-
-[data-theme="dark"] .set_box_user {
-  background-color: var(--bg-primary);
-}
-
-[data-theme="dark"] .set_box_user_box {
-  background-color: var(--bg-secondary);
-  border-color: var(--border-color);
-}
-
-[data-theme="dark"] .set_box_user_box:hover {
-  border-color: #ffffff;
-}
-
-[data-theme="dark"] .mode-selector {
-  background-color: var(--bg-tertiary);
-}
-
-[data-theme="dark"] .mode-btn.active {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-}
-
-[data-theme="dark"] .current-site-bar {
-  background-color: var(--sitebar-bg);
-  border-color: var(--sitebar-border);
-}
-
-[data-theme="dark"] .list-bottom-buttons {
-  background-color: var(--bg-secondary);
-  border-color: var(--border-color);
-}
-
-[data-theme="dark"] .add_btn {
-  background-color: var(--accent-color);
-}
-
-[data-theme="dark"] .add_btn:hover {
-  background-color: var(--accent-hover);
-  box-shadow: 0 4px 12px rgba(129, 140, 248, 0.3);
-}
-
-[data-theme="dark"] .radio-indicator {
-  border-color: var(--border-color);
-}
-
-.set_box_user::-webkit-scrollbar {
-  width: 6px;
-}
-
-.set_box_user::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
-  border-radius: 3px;
-}
-
-.set_box_user::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 3px;
-}
-
-.set_box_user::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
-
-[data-theme="dark"] .set_box_user::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
-}
-
-[data-theme="dark"] .set_box_user::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-}
-
-[data-theme="dark"] .set_box_user::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
 }
