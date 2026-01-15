@@ -490,8 +490,8 @@ function renderList() {
                           <textarea data-index="${i}" class="bypass_urls" placeholder="${I18n.t('bypass_urls_placeholder')}" tabindex="8">${info.bypass_urls || ""}</textarea>
                       </div>
                       <div class="form-item">
-                          <label>${I18n.t('proxy_urls_auto')}</label>
-                          <textarea data-index="${i}" class="include_urls" placeholder="${I18n.t('proxy_urls_placeholder')}" tabindex="9">${info.include_urls || ""}</textarea>
+                          <label>${I18n.t('include_urls')}</label>
+                          <textarea data-index="${i}" class="include_urls" placeholder="${I18n.t('include_urls_placeholder')}" tabindex="9">${info.include_urls || ""}</textarea>
                       </div>
                   </div>
               </div>
