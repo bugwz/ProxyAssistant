@@ -143,8 +143,12 @@
           </div>
           <div class="config-row-right">
               <button id="detect-proxy-btn" class="control-btn">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59L19 17l-7.8l-9 9z"/></svg>
                   <span data-i18n="proxy_detection_button">检测</span>
+              </button>
+              <button id="pac-details-btn" class="control-btn" style="margin-left: 10px;">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                  <span data-i18n="view_pac_button">查看PAC</span>
               </button>
           </div>
       </div>
@@ -192,6 +196,51 @@
           </div>
           <div class="proxy_detection_btn">
               <div class="proxy_detection_close_btn2" data-i18n="close">关闭</div>
+          </div>
+      </div>
+  </div>
+
+  <!-- PAC Details -->
+  <div class="pac_details_tip">
+      <div class="pac_details_box">
+          <div class="pac_details_header">
+              <span data-i18n="pac_details_title">PAC 脚本详情</span>
+              <div class="pac_details_close_btn"></div>
+          </div>
+          <div class="pac_details_content">
+              <!-- PAC Info -->
+              <div class="pac-info-section">
+                  <div class="pac-info-row">
+                      <span class="pac-info-label" data-i18n="pac_mode">模式</span>
+                      <span class="pac-info-value" id="pac-mode-value">自动</span>
+                  </div>
+                  <div class="pac-info-row">
+                      <span class="pac-info-label" data-i18n="pac_generated">生成时间</span>
+                      <span class="pac-info-value" id="pac-generated-time">-</span>
+                  </div>
+                  <div class="pac-info-row">
+                      <span class="pac-info-label" data-i18n="pac_rules_count">规则数量</span>
+                      <span class="pac-info-value" id="pac-rules-count">0</span>
+                  </div>
+              </div>
+              <!-- Rules List -->
+              <div class="pac-rules-section">
+                  <div class="pac-rules-title" data-i18n="pac_rules_title">代理规则</div>
+                  <div class="pac-rules-list" id="pac-rules-list">
+                      <!-- Dynamically inserted rules -->
+                  </div>
+              </div>
+              <!-- Full Script -->
+              <div class="pac-script-section">
+                  <div class="pac-script-header">
+                      <span data-i18n="pac_full_script">完整脚本</span>
+                      <button class="pac-script-copy-btn" id="pac-copy-btn" data-i18n="pac_copy_script">复制</button>
+                  </div>
+                  <pre class="pac-script-content" id="pac-script-content"></pre>
+              </div>
+          </div>
+          <div class="pac_details_btn">
+              <div class="pac_details_close_btn2" data-i18n="close">关闭</div>
           </div>
       </div>
   </div>

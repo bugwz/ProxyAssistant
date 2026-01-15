@@ -111,6 +111,20 @@ const translations = {
     "current_site": "当前网站:",
     "bypass_proxy": "不用代理",
     "use_proxy": "使用代理",
+    "pac_details": "PAC 脚本详情",
+    "pac_details_desc": "查看自动模式下的 PAC 代理配置规则",
+    "pac_details_title": "PAC 脚本详情",
+    "pac_details_button": "查看",
+    "pac_mode": "模式",
+    "pac_generated": "生成时间",
+    "pac_rules_count": "规则数量",
+    "pac_rules_title": "代理规则",
+    "pac_full_script": "完整脚本",
+    "pac_copy_script": "复制",
+    "pac_copied": "已复制",
+    "pac_no_rules": "暂无代理规则",
+    "view_pac_button": "查看PAC",
+    "alert_include_urls_conflict": "域名模式 \"{pattern}\" 与代理 \"{proxy}\" 的配置冲突"
   },
   "zh-TW": {
     "app_name": "代理助手",
@@ -224,6 +238,20 @@ const translations = {
     "current_site": "當前網站:",
     "bypass_proxy": "不用代理",
     "use_proxy": "使用代理",
+    "pac_details": "PAC 腳本詳情",
+    "pac_details_desc": "查看自動模式下的 PAC 代理配置規則",
+    "pac_details_title": "PAC 腳本詳情",
+    "pac_details_button": "查看",
+    "pac_mode": "模式",
+    "pac_generated": "生成時間",
+    "pac_rules_count": "規則數量",
+    "pac_rules_title": "代理規則",
+    "pac_full_script": "完整腳本",
+    "pac_copy_script": "複製",
+    "pac_copied": "已複製",
+    "pac_no_rules": "暫無代理規則",
+    "view_pac_button": "查看PAC",
+    "alert_include_urls_conflict": "網域名稱模式 \"{pattern}\" 與代理 \"{proxy}\" 的配置衝突"
   },
   "en": {
     "app_name": "Proxy Assistant",
@@ -337,6 +365,20 @@ const translations = {
     "current_site": "Current site:",
     "bypass_proxy": "No proxy",
     "use_proxy": "Use proxy",
+    "pac_details": "PAC Script Details",
+    "pac_details_desc": "View PAC proxy configuration rules in auto mode",
+    "pac_details_title": "PAC Script Details",
+    "pac_details_button": "View",
+    "pac_mode": "Mode",
+    "pac_generated": "Generated Time",
+    "pac_rules_count": "Rules Count",
+    "pac_rules_title": "Proxy Rules",
+    "pac_full_script": "Full Script",
+    "pac_copy_script": "Copy",
+    "pac_copied": "Copied",
+    "pac_no_rules": "No proxy rules",
+    "view_pac_button": "View PAC",
+    "alert_include_urls_conflict": "Domain pattern \"{pattern}\" conflicts with proxy \"{proxy}\""
   },
   "ja": {
     "app_name": "プロキシアシスタント",
@@ -450,6 +492,20 @@ const translations = {
     "current_site": "現在のサイト:",
     "bypass_proxy": "プロキシなし",
     "use_proxy": "プロキシを使用",
+    "pac_details": "PACスクリプト詳細",
+    "pac_details_desc": "自動モードでのPACプロキシ設定ルールを表示",
+    "pac_details_title": "PACスクリプト詳細",
+    "pac_details_button": "表示",
+    "pac_mode": "モード",
+    "pac_generated": "生成時間",
+    "pac_rules_count": "ルール数",
+    "pac_rules_title": "プロキシルール",
+    "pac_full_script": "フルスクリプト",
+    "pac_copy_script": "コピー",
+    "pac_copied": "コピー済み",
+    "pac_no_rules": "プロキシルールなし",
+    "view_pac_button": "PACを表示",
+    "alert_include_urls_conflict": "ドメインパターン \"{pattern}\" はプロキシ \"{proxy}\" と競合しています"
   },
   "fr": {
     "app_name": "Assistant Proxy",
@@ -563,6 +619,20 @@ const translations = {
     "current_site": "Site actuel :",
     "bypass_proxy": "Pas de proxy",
     "use_proxy": "Utiliser le proxy",
+    "pac_details": "Détails Script PAC",
+    "pac_details_desc": "Afficher les règles de configuration proxy PAC en mode automatique",
+    "pac_details_title": "Détails Script PAC",
+    "pac_details_button": "Afficher",
+    "pac_mode": "Mode",
+    "pac_generated": "Heure de génération",
+    "pac_rules_count": "Nombre de règles",
+    "pac_rules_title": "Règles Proxy",
+    "pac_full_script": "Script Complet",
+    "pac_copy_script": "Copier",
+    "pac_copied": "Copié",
+    "pac_no_rules": "Aucune règle proxy",
+    "view_pac_button": "Voir PAC",
+    "alert_include_urls_conflict": "Le motif de domaine \"{pattern}\" est en conflit avec le proxy \"{proxy}\""
   },
   "de": {
     "app_name": "Proxy-Assistent",
@@ -676,6 +746,20 @@ const translations = {
     "current_site": "Aktuelle Seite:",
     "bypass_proxy": "Kein Proxy",
     "use_proxy": "Proxy verwenden",
+    "pac_details": "PAC-Skriptdetails",
+    "pac_details_desc": "PAC-Proxy-Konfigurationsregeln im Automodus anzeigen",
+    "pac_details_title": "PAC-Skriptdetails",
+    "pac_details_button": "Anzeigen",
+    "pac_mode": "Modus",
+    "pac_generated": "Generierungszeit",
+    "pac_rules_count": "Regelnanzahl",
+    "pac_rules_title": "Proxy-Regeln",
+    "pac_full_script": "Vollständiges Skript",
+    "pac_copy_script": "Kopieren",
+    "pac_copied": "Kopiert",
+    "pac_no_rules": "Keine Proxy-Regeln",
+    "view_pac_button": "PAC anzeigen",
+    "alert_include_urls_conflict": "Domänenmuster \"{pattern}\" steht in Konflikt mit Proxy \"{proxy}\""
   },
   "es": {
     "app_name": "Asistente de Proxy",
@@ -789,6 +873,20 @@ const translations = {
     "current_site": "Sitio actual:",
     "bypass_proxy": "Sin proxy",
     "use_proxy": "Usar proxy",
+    "pac_details": "Detalles del Script PAC",
+    "pac_details_desc": "Ver reglas de configuración proxy PAC en modo automático",
+    "pac_details_title": "Detalles del Script PAC",
+    "pac_details_button": "Ver",
+    "pac_mode": "Modo",
+    "pac_generated": "Tiempo de Generación",
+    "pac_rules_count": "Número de Reglas",
+    "pac_rules_title": "Reglas Proxy",
+    "pac_full_script": "Script Completo",
+    "pac_copy_script": "Copiar",
+    "pac_copied": "Copiado",
+    "pac_no_rules": "Sin reglas proxy",
+    "view_pac_button": "Ver PAC",
+    "alert_include_urls_conflict": "El patrón de dominio \"{pattern}\" entra en conflicto con el proxy \"{proxy}\""
   },
   "ko": {
     "app_name": "프록시 어시스턴트",
@@ -902,6 +1000,20 @@ const translations = {
     "current_site": "현재 사이트:",
     "bypass_proxy": "프록시 없음",
     "use_proxy": "프록시 사용",
+    "pac_details": "PAC 스크립트 세부 정보",
+    "pac_details_desc": "자동 모드에서 PAC 프록시 구성 규칙 보기",
+    "pac_details_title": "PAC 스크립트 세부 정보",
+    "pac_details_button": "보기",
+    "pac_mode": "모드",
+    "pac_generated": "생성 시간",
+    "pac_rules_count": "규칙 수",
+    "pac_rules_title": "프록시 규칙",
+    "pac_full_script": "전체 스크립트",
+    "pac_copy_script": "복사",
+    "pac_copied": "복사됨",
+    "pac_no_rules": "프록시 규칙 없음",
+    "view_pac_button": "PAC 보기",
+    "alert_include_urls_conflict": "도메인 패턴 \"{pattern}\"이(가) 프록시 \"{proxy}\"과(와) 충돌합니다"
   },
   "pt": {
     "app_name": "Assistente de Proxy",
@@ -1015,6 +1127,20 @@ const translations = {
     "current_site": "Site atual:",
     "bypass_proxy": "Sem proxy",
     "use_proxy": "Usar proxy",
+    "pac_details": "Detalhes do Script PAC",
+    "pac_details_desc": "Visualizar regras de configuração proxy PAC em modo automático",
+    "pac_details_title": "Detalhes do Script PAC",
+    "pac_details_button": "Ver",
+    "pac_mode": "Modo",
+    "pac_generated": "Tempo de Geração",
+    "pac_rules_count": "Número de Regras",
+    "pac_rules_title": "Regras Proxy",
+    "pac_full_script": "Script Completo",
+    "pac_copy_script": "Copiar",
+    "pac_copied": "Copiado",
+    "pac_no_rules": "Sem regras proxy",
+    "view_pac_button": "Ver PAC",
+    "alert_include_urls_conflict": "O padrão de domínio \"{pattern}\" está em conflito com o proxy \"{proxy}\""
   },
   "ru": {
     "app_name": "Прокси-ассистент",
@@ -1128,10 +1254,24 @@ const translations = {
     "current_site": "Текущий сайт:",
     "bypass_proxy": "Без прокси",
     "use_proxy": "Использовать прокси",
+    "pac_details": "Детали Скрипта PAC",
+    "pac_details_desc": "Просмотр правил конфигурации прокси PAC в автоматическом режиме",
+    "pac_details_title": "Детали Скрипта PAC",
+    "pac_details_button": "Просмотр",
+    "pac_mode": "Режим",
+    "pac_generated": "Время Создания",
+    "pac_rules_count": "Количество Правил",
+    "pac_rules_title": "Правила Прокси",
+    "pac_full_script": "Полный Скрипт",
+    "pac_copy_script": "Копировать",
+    "pac_copied": "Скопировано",
+    "pac_no_rules": "Нет правил прокси",
+    "view_pac_button": "Просмотр PAC",
+    "alert_include_urls_conflict": "Шаблон домена \"{pattern}\" конфликтует с прокси \"{proxy}\""
   }
 };
 
-let currentLang = 'zh-CN'; // Default language
+let currentLang = 'zh-CN';
 
 // Language mapping from browser/system language to supported languages
 const languageMap = {
@@ -1160,25 +1300,20 @@ const languageMap = {
   'ru': 'ru'
 };
 
-// Get system language and map to supported language
 function getSystemLanguage() {
-  // Try navigator.languages first (more accurate)
   const browserLang = navigator.languages && navigator.languages[0]
     ? navigator.languages[0]
     : (navigator.language || 'en-US');
 
-  // Try exact match first
   if (languageMap[browserLang]) {
     return languageMap[browserLang];
   }
 
-  // Try matching just the language code (e.g., 'en-US' -> 'en')
   const langCode = browserLang.split('-')[0];
   if (languageMap[langCode]) {
     return languageMap[langCode];
   }
 
-  // Default to English if no match
   return 'en';
 }
 
@@ -1188,7 +1323,6 @@ const I18n = {
       if (result.appLanguage) {
         currentLang = result.appLanguage;
       } else {
-        // First install: use system language
         currentLang = getSystemLanguage();
         chrome.storage.local.set({ appLanguage: currentLang });
       }
@@ -1214,11 +1348,9 @@ const I18n = {
       const key = $(this).data('i18n');
       const translation = I18n.t(key);
       if ($(this).is('input, textarea')) {
-        // Do not overwrite dynamic values in inputs/textareas
       } else if ($(this).children().length === 0) {
         $(this).text(translation);
       } else {
-        // Find and update ONLY the first direct text node child
         const nodes = $(this).contents();
         let found = false;
         for (let i = 0; i < nodes.length; i++) {
@@ -1228,8 +1360,6 @@ const I18n = {
             break;
           }
         }
-        // If no non-empty text node found, but element is not empty, 
-        // we might need to handle it differently, but for now we stay safe.
       }
     });
 

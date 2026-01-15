@@ -463,6 +463,201 @@ function isValidHost(val) {
   return false;
 }
 
+// =========================================
+// PAC Details Popup Functionality
+// =========================================
+
+// Storage change listener for real-time updates
+let pacStorageListener = null;
+
+// PAC Details button click event
+$("#pac-details-btn").on("click", function () {
+  showPacDetails();
+});
+
+// Show PAC details popup
+function showPacDetails() {
+  // First load current data
+  updatePacDetails();
+
+  // Add storage change listener for real-time updates
+  pacStorageListener = function (changes, namespace) {
+    if (namespace === 'local' && (changes.list || changes.proxyMode)) {
+      // Data changed, update the popup
+      updatePacDetails();
+    }
+  };
+  chrome.storage.onChanged.addListener(pacStorageListener);
+
+  // Show popup
+  $(".pac_details_tip").show();
+  setTimeout(function () {
+    $(".pac_details_tip").addClass("show");
+  }, 10);
+}
+
+// Update PAC details with latest data
+function updatePacDetails() {
+  chrome.storage.local.get(['proxyMode', 'list'], function (result) {
+    const mode = result.proxyMode || 'disabled';
+    const proxyList = result.list || [];
+
+    // Generate PAC script and rules
+    const pacData = generatePacDetailsData(proxyList);
+
+    // Update info section
+    $("#pac-mode-value").text(mode === 'auto' ? I18n.t('mode_auto') : I18n.t('mode_disabled'));
+
+    const now = new Date();
+    const timeStr = now.toLocaleString();
+    $("#pac-generated-time").text(timeStr);
+
+    $("#pac-rules-count").text(pacData.rules.length);
+
+    // Build rules list
+    var rulesHtml = '';
+    if (pacData.rules.length === 0) {
+      rulesHtml = '<div class="pac-rule-item empty">' + I18n.t('pac_no_rules') + '</div>';
+    } else {
+      pacData.rules.forEach(function (rule, index) {
+        rulesHtml += '<div class="pac-rule-item">' +
+          '<span class="pac-rule-pattern">' + escapeHtml(rule.pattern) + '</span>' +
+          '<span class="pac-rule-arrow">→</span>' +
+          '<span class="pac-rule-proxy">' + escapeHtml(rule.proxy) + '</span>' +
+          '</div>';
+      });
+    }
+    $("#pac-rules-list").html(rulesHtml);
+
+    // Show full script
+    $("#pac-script-content").text(pacData.script);
+  });
+}
+
+// Generate PAC details data
+function generatePacDetailsData(proxyList) {
+  var rules = [];
+  var script = "function FindProxyForURL(url, host) {\n";
+
+  // Track used patterns to avoid duplicate rules
+  // If the same pattern is configured in multiple proxies, only the first proxy's rules will be applied
+  var usedPatterns = new Set();
+
+  // Process each proxy to generate rules
+  proxyList.forEach(function (proxy) {
+    // Skip disabled proxies
+    if (proxy.disabled === true) return;
+    if (!proxy.ip || !proxy.port) return;
+
+    const type = (proxy.protocol || "HTTP").toUpperCase();
+    let proxyType = "PROXY";
+    if (type.startsWith("SOCKS")) proxyType = "SOCKS5";
+
+    const proxyAddress = proxy.ip + ":" + proxy.port;
+    const proxyStr = proxyType + " " + proxyAddress;
+    const proxyName = proxy.name || proxyAddress;
+
+    // Determine fallback behavior
+    const fallback = proxy.fallback_policy === "reject" ? "" : "; DIRECT";
+    const returnVal = '"' + proxyStr + fallback + '"';
+
+    // Process include_urls
+    if (proxy.include_urls) {
+      const includeUrls = proxy.include_urls.split(/[\n,]+/).map(function (s) {
+        return s.trim();
+      }).filter(function (s) {
+        return s;
+      });
+
+      includeUrls.forEach(function (pattern) {
+        // If this pattern was already used by a previous proxy, skip it
+        if (usedPatterns.has(pattern)) {
+          return;
+        }
+
+        // Mark this pattern as used
+        usedPatterns.add(pattern);
+
+        // Add to rules list
+        rules.push({
+          pattern: pattern,
+          proxy: proxyName
+        });
+
+        // Add to script
+        if (pattern.includes('*')) {
+          const regexPattern = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
+          script += '  if (/' + regexPattern + '/.test(host)) return ' + returnVal + ';\n';
+        } else {
+          script += '  if (dnsDomainIs(host, "' + pattern + '") || host === "' + pattern + '") return ' + returnVal + ';\n';
+        }
+      });
+    }
+  });
+
+  script += '  return "DIRECT";\n}';
+
+  return {
+    rules: rules,
+    script: script
+  };
+}
+
+// Escape HTML entities
+function escapeHtml(text) {
+  if (!text) return '';
+  var div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Close PAC details popup
+$(".pac_details_close_btn, .pac_details_close_btn2").on("click", function () {
+  // Remove storage change listener to prevent memory leaks
+  if (pacStorageListener) {
+    chrome.storage.onChanged.removeListener(pacStorageListener);
+    pacStorageListener = null;
+  }
+  $(".pac_details_tip").removeClass("show");
+  setTimeout(function () {
+    $(".pac_details_tip").hide();
+  }, 300);
+});
+
+// Close on backdrop click
+$(".pac_details_tip").on("click", function (e) {
+  if (e.target === this) {
+    // Remove storage change listener to prevent memory leaks
+    if (pacStorageListener) {
+      chrome.storage.onChanged.removeListener(pacStorageListener);
+      pacStorageListener = null;
+    }
+    $(this).removeClass("show");
+    setTimeout(function () {
+      $(this).hide();
+    }, 300);
+  }
+});
+
+// Copy PAC script button
+$("#pac-copy-btn").on("click", function () {
+  var script = $("#pac-script-content").text();
+  navigator.clipboard.writeText(script).then(function () {
+    // Show success feedback
+    var $btn = $("#pac-copy-btn");
+    var originalText = $btn.text();
+    $btn.text(I18n.t('pac_copied'));
+    setTimeout(function () {
+      $btn.text(originalText);
+    }, 2000);
+  }).catch(function (err) {
+    console.error("Failed to copy:", err);
+  });
+});
+
+// Hide PAC details popup initially
+$(".pac_details_tip").hide();
+
 // Detect proxy button click event
 $("#detect-proxy-btn").on("click", function () {
   detectProxy();
@@ -842,6 +1037,46 @@ function validateProxy(i, name, val) {
     } else if (isDuplicate) {
       isValid = false;
       errorMessage = I18n.t('alert_name_duplicate') || '代理名称不能重复';
+    }
+  } else if (name === 'include_urls') {
+    // Check for duplicate patterns in include_urls
+    var currentProxy = list[i];
+    if (!currentProxy || !currentProxy.ip || !currentProxy.port) {
+      isValid = false;
+      errorMessage = '请先填写代理地址';
+    } else {
+      var currentUrls = val.split(/[\n,]+/).map(function (s) {
+        return s.trim();
+      }).filter(function (s) {
+        return s;
+      });
+
+      // Check if any of the current patterns conflict with other proxies
+      for (var j = 0; j < list.length; j++) {
+        if (j === i) continue;
+        var otherProxy = list[j];
+        if (!otherProxy || !otherProxy.ip || !otherProxy.port) continue;
+
+        var otherUrls = (otherProxy.include_urls || '').split(/[\n,]+/).map(function (s) {
+          return s.trim();
+        }).filter(function (s) {
+          return s;
+        });
+
+        // Find common patterns
+        var commonPatterns = currentUrls.filter(function (pattern) {
+          return otherUrls.indexOf(pattern) !== -1;
+        });
+
+        if (commonPatterns.length > 0) {
+          isValid = false;
+          var otherProxyName = otherProxy.name || (otherProxy.ip + ':' + otherProxy.port);
+          errorMessage = I18n.t('alert_include_urls_conflict')
+            .replace('{pattern}', commonPatterns[0])
+            .replace('{proxy}', otherProxyName);
+          break;
+        }
+      }
     }
   } else if (name === 'ip') {
     // Check if it's IP-like format (4 parts, all digits)
@@ -1260,6 +1495,46 @@ function input_blur_init() {
   });
 }
 
+// Check for duplicate patterns in include_urls
+function checkIncludeUrlsConflict(i, includeUrls) {
+  if (!includeUrls || !includeUrls.trim()) return { hasConflict: false, error: '' };
+
+  var currentUrls = includeUrls.split(/[\n,]+/).map(function (s) {
+    return s.trim();
+  }).filter(function (s) {
+    return s;
+  });
+
+  for (var j = 0; j < list.length; j++) {
+    if (j === i) continue;
+    var otherProxy = list[j];
+    if (!otherProxy || !otherProxy.ip || !otherProxy.port) continue;
+
+    var otherUrls = (otherProxy.include_urls || '').split(/[\n,]+/).map(function (s) {
+      return s.trim();
+    }).filter(function (s) {
+      return s;
+    });
+
+    var commonPatterns = currentUrls.filter(function (pattern) {
+      return otherUrls.indexOf(pattern) !== -1;
+    });
+
+    if (commonPatterns.length > 0) {
+      var otherProxyName = otherProxy.name || (otherProxy.ip + ':' + otherProxy.port);
+      var errorMsg = I18n.t('alert_include_urls_conflict')
+        .replace('{pattern}', commonPatterns[0])
+        .replace('{proxy}', otherProxyName);
+      return {
+        hasConflict: true,
+        error: errorMsg
+      };
+    }
+  }
+
+  return { hasConflict: false, error: '' };
+}
+
 function saveSingleProxy(i) {
   var info = list[i];
   if (!info) return;
@@ -1289,6 +1564,15 @@ function saveSingleProxy(i) {
   var port = parseInt(info.port);
   var isPortValid = !isNaN(port) && port >= 1 && port <= 65535 && info.port.toString() === port.toString();
 
+  // Check include_urls conflict
+  var isIncludeUrlsValid = true;
+  var includeUrlsErrorMsg = '';
+  var includeUrlsCheck = checkIncludeUrlsConflict(i, info.include_urls);
+  if (includeUrlsCheck.hasConflict) {
+    isIncludeUrlsValid = false;
+    includeUrlsErrorMsg = includeUrlsCheck.error;
+  }
+
   var $item = $(`.list_a[data-id="${i}"]`);
 
   // Update UI error states
@@ -1301,7 +1585,10 @@ function saveSingleProxy(i) {
   if (isPortValid) $item.find('.port').removeClass('input-error');
   else $item.find('.port').addClass('input-error');
 
-  if (!isNameValid || !isIpValid || !isPortValid) {
+  if (isIncludeUrlsValid) $item.find('.include_urls').removeClass('input-error');
+  else $item.find('.include_urls').addClass('input-error');
+
+  if (!isNameValid || !isIpValid || !isPortValid || !isIncludeUrlsValid) {
     var failMsg = I18n.t('save_failed');
     if (!isNameValid) {
       const isDuplicate = list.some((item, index) => index !== i && item.name === info.name);
@@ -1310,6 +1597,8 @@ function saveSingleProxy(i) {
       showTip(failMsg + (ipErrorMsg || I18n.t('alert_ip_invalid')), true);
     } else if (!isPortValid) {
       showTip(failMsg + I18n.t('alert_port_invalid'), true);
+    } else if (!isIncludeUrlsValid) {
+      showTip(failMsg + includeUrlsErrorMsg, true);
     }
     return;
   }
@@ -1351,7 +1640,7 @@ function input_blur(i, name, val) {
       save = false;
 
       // Perform validation
-      if (["name", "ip", "port"].includes(name)) {
+      if (["name", "ip", "port", "include_urls"].includes(name)) {
         validateProxy(i, name, val);
       }
 
