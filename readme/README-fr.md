@@ -81,6 +81,12 @@ Une extension puissante de gestion de proxy pour Chrome et Firefox, permettant d
 - Identifier si d'autres extensions contrôlent le proxy
 - Fournit des résultats d'état, d'avertissement et d'erreur
 
+### 🔍 Aperçu du script PAC
+
+- **Visualisation du script**: Voir le contenu du script PAC généré automatiquement
+- **Liste des règles**: Affichage clair de toutes les règles de correspondance de proxy actives
+- **Support de débogage**: Dépannage facile des problèmes de correspondance en mode automatique
+
 ### 🌙 Modes de thème
 
 - **Mode Clair**: Pour une utilisation de jour
@@ -140,20 +146,18 @@ ProxyAssistant/
 │   │   ├── i18n.js           # Prise en charge de l'internationalisation
 │   │   └── jquery.js         # Bibliothèque jQuery
 │   ├── css/
-│   │   ├── main.css          # Styles de la page de paramètres
+│   │   ├── main.css          # Styles de la page de paramètres (y compris les composants communs)
 │   │   ├── popup.css         # Styles du popup
 │   │   ├── theme.css         # Styles du thème
-│   │   ├── switch.css        # Styles du composant interrupteur
-│   │   ├── delete-button.css # Styles du bouton de suppression
 │   │   └── eye-button.css    # Styles du bouton d'affichage du mot de passe
 │   └── images/               # Ressources d'images
 │       ├── icon-16.png
 │       ├── icon-32.png
 │       ├── icon-48.png
 │       ├── icon-128.png
-│       ├── logo-128.png
-│       └── promotion/        # Images promotionnelles
+│       └── logo-128.png
 └── public/                   # Ressources publiques
+    └── img/                  # Images de démonstration et promotionnelles
 ```
 
 ## 🚀 Démarrage rapide
