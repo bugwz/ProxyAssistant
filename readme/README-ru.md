@@ -27,7 +27,7 @@
 
 </div>
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234633/assets/store/promotional/marquee-1632x656.jpeg)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234732/assets/store/promotional/marquee-1632x656.jpg)
 
 ## ✨ Функции
 
@@ -49,7 +49,7 @@
 | **Вручную** | Вручную выбрать прокси из списка |
 | **Автоматически** | Автоматически выбирать соответствующий прокси на основе правил URL (режим PAC) |
 
-| ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234633/assets/screenshots/popup/disabled.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234633/assets/screenshots/popup/manual.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234633/assets/screenshots/popup/auto.png) |
+| ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234732/assets/screenshots/popup/disabled.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234732/assets/screenshots/popup/manual.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234732/assets/screenshots/popup/auto.png) |
 |:---:|:---:|:---:|
 | Режим отключения | Ручной режим | Автоматический режим |
 
@@ -87,7 +87,7 @@
 - **Темная тема**: Для ночного использования
 - **Автоматическое переключение**: Автоматически переключать тему по времени (настраиваемый период)
 
-| ![Светлая тема](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234633/assets/screenshots/main/theme-light.png) | ![Темная тема](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234633/assets/screenshots/main/theme-dark.png) |
+| ![Светлая тема](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234732/assets/screenshots/main/theme-light.png) | ![Темная тема](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234732/assets/screenshots/main/theme-dark.png) |
 |:---:|:---:|
 | Светлая тема | Темная тема |
 
@@ -117,7 +117,7 @@
 
 ## 📷 Интерфейс настроек
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234633/assets/screenshots/main/settings.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234732/assets/screenshots/main/settings.png)
 
 ## 📁 Структура проекта
 
