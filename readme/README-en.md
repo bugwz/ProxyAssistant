@@ -27,7 +27,7 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 
 </div>
 
-![](../public/img/promotion/1400-560-big.jpeg)
+![](../public/img/promotion/1400-560-big.jpg)
 
 ## ✨ Features
 

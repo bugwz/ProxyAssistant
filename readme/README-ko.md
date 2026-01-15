@@ -27,7 +27,7 @@ Chrome와 Firefox를 지원하는 강력한 브라우저 프록시 관리 확장
 
 </div>
 
-![](../public/img/promotion/1400-560-big.jpeg)
+![](../public/img/promotion/1400-560-big.jpg)
 
 ## ✨ 기능 특징
 

@@ -27,7 +27,7 @@ Una potente extensión de gestión de proxy para navegador que soporta Chrome y 
 
 </div>
 
-![](../public/img/promotion/1400-560-big.jpeg)
+![](../public/img/promotion/1400-560-big.jpg)
 
 ## ✨ Características
 

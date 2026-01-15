@@ -27,7 +27,7 @@ Une extension puissante de gestion de proxy pour Chrome et Firefox, permettant d
 
 </div>
 
-![](../public/img/promotion/1400-560-big.jpeg)
+![](../public/img/promotion/1400-560-big.jpg)
 
 ## ✨ Fonctionnalités
 

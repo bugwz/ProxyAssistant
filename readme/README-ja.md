@@ -27,7 +27,7 @@
 
 </div>
 
-![](../public/img/promotion/1400-560-big.jpeg)
+![](../public/img/promotion/1400-560-big.jpg)
 
 ## ✨ 機能特徴
 
