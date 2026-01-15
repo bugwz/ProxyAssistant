@@ -1,58 +1,135 @@
-// Theme mode variables
+// ==========================================
+// State & Constants
+// ==========================================
 var themeMode = 'light';
+var list = [];
 
-// Refresh proxy status from browser and storage
-function refreshProxyStatus() {
+// ==========================================
+// Initialization
+// ==========================================
+document.addEventListener('DOMContentLoaded', function () {
+  I18n.init(function () {
+    // Initialize theme mode first
+    initThemeMode();
+    // Initialize mode switcher and app
+    initApp();
+  });
+});
+
+function initApp() {
   chrome.storage.local.get(['proxyMode', 'currentProxy', 'list'], function (result) {
-    const mode = result.proxyMode || 'disabled';
-    const list = result.list || [];
-
-    // Get browser proxy settings
-    if (typeof chrome !== 'undefined' && chrome.proxy && chrome.proxy.settings) {
-      chrome.proxy.settings.get({ incognito: false }, function (browserConfig) {
-        let browserMode = 'system';
-        let proxyServer = '';
-
-        if (browserConfig && browserConfig.value) {
-          browserMode = browserConfig.value.mode || 'system';
-
-          // Extract proxy server info
-          if (browserConfig.value.rules) {
-            const rules = browserConfig.value.rules;
-            if (rules.singleProxy) {
-              proxyServer = rules.singleProxy.host + ':' + rules.singleProxy.port;
-            } else if (rules.proxyForHttp) {
-              proxyServer = rules.proxyForHttp.host + ':' + rules.proxyForHttp.port;
-            }
-          } else if (browserConfig.value.pacScript) {
-            proxyServer = 'PAC Script';
-          }
-        }
-
-        // Update status display based on comparison
-        updateStatusDisplay(mode, result.currentProxy);
-        updateRefreshIndicator();
-      });
-    } else {
-      // Fallback for Firefox
-      updateStatusDisplay(mode, result.currentProxy);
-      updateRefreshIndicator();
+    // If no stored mode, default to 'disabled'
+    let mode = result.proxyMode;
+    if (!mode) {
+      mode = 'disabled';
+      // Save default status
+      chrome.storage.local.set({ proxyMode: 'disabled' });
     }
+
+    // If stored mode is invalid, default to disabled
+    if (!['disabled', 'manual', 'auto'].includes(mode)) {
+      mode = 'disabled';
+    }
+
+    // Load list into memory
+    list = result.list || [];
+
+    const currentProxy = result.currentProxy;
+
+    updateModeUI(mode);
+    updateStatusDisplay(mode, currentProxy);
+
+    // For manual mode, restore previous selection if available
+    if (mode === 'manual') {
+      if (currentProxy) {
+        updateStatusDisplay('manual', currentProxy);
+      } else {
+        updateStatusDisplay('manual', null);
+      }
+    }
+
+    // Initial list render
+    list_init();
+    // Initialize bypass button
+    initBypassButton();
+    updateBypassButton();
+    // Update current site display
+    updateCurrentSiteDisplay();
+  });
+
+  bindGlobalEvents();
+}
+
+function bindGlobalEvents() {
+  // Settings button click event
+  $(".filter").on("click", function () {
+    window.open("./main.html");
+  });
+
+  $(".add_btn").on("click", function () {
+    window.open("./main.html");
+  });
+
+  // Mode switch button click event
+  $('.mode-btn').on('click', function () {
+    const mode = $(this).data('mode');
+    updateModeUI(mode);
+
+    chrome.storage.local.set({ proxyMode: mode }, function () {
+      if (mode === 'auto') {
+        // Auto mode
+        chrome.runtime.sendMessage({ action: "refreshProxy" });
+        updateStatusDisplay('auto');
+        // Re-render list to apply auto-match highlighting
+        list_init();
+        updateBypassButton();
+        updateCurrentSiteDisplay();
+      } else if (mode === 'disabled') {
+        // Disabled mode
+        chrome.runtime.sendMessage({ action: "turnOffProxy" }, function () {
+          list_init();
+          updateStatusDisplay('disabled', null);
+          updateBypassButton();
+          updateCurrentSiteDisplay();
+        });
+      } else {
+        // Manual mode - restore previous selection or show disconnected
+        chrome.storage.local.get(['currentProxy'], function (result) {
+          const currentProxy = result.currentProxy;
+          if (currentProxy) {
+            updateStatusDisplay('manual', currentProxy);
+          } else {
+            updateStatusDisplay('manual', null);
+          }
+          list_init();
+          updateBypassButton();
+          updateCurrentSiteDisplay();
+          // Apply the current proxy settings
+          chrome.runtime.sendMessage({ action: "refreshProxy" });
+        });
+      }
+    });
   });
 }
 
-// Update refresh indicator visibility
-function updateRefreshIndicator() {
-  // Add visual indicator that status is being refreshed
-  // Apply animation to outer container instead of text to avoid color flashing
-  const $currentStatus = $('.current-status');
-  $currentStatus.addClass('status-refreshing');
-  setTimeout(function () {
-    $currentStatus.removeClass('status-refreshing');
-  }, 500);
-}
+// Storage change listener for real-time updates
+chrome.storage.onChanged.addListener(function (changes, namespace) {
+  if (namespace === 'local') {
+    if (changes.proxyMode || changes.currentProxy) {
+      // Update status display when storage changes
+      refreshProxyStatus();
+    }
+    if (changes.list) {
+      // Reload list if it changes (e.g. sync)
+      list = changes.list.newValue || [];
+      list_init();
+    }
+  }
+});
 
-// Theme mode toggle event handlers
+// ==========================================
+// Theme Logic
+// ==========================================
 function initThemeMode() {
   // Always load from local storage (consistent with proxy config)
   chrome.storage.local.get({ themeSettings: {} }, function (items) {
@@ -72,24 +149,24 @@ function applyTheme(mode) {
   }
 }
 
-// Settings button click event
-$(".filter").on("click", function () {
-  window.open("./main.html");
-});
+// ==========================================
+// UI Updates
+// ==========================================
+function updateModeUI(mode) {
+  // Update button status
+  $('.mode-btn').removeClass('active');
+  $(`.mode-btn[data-mode="${mode}"]`).addClass('active');
 
-$(".add_btn").on("click", function () {
-  window.open("./main.html");
-});
-
-// Check proxy status on page load
-document.addEventListener('DOMContentLoaded', function () {
-  I18n.init(function () {
-    // Initialize theme mode first
-    initThemeMode();
-    // Initialize mode switcher
-    initApp();
-  });
-});
+  // Update list interaction status
+  if (mode === 'manual') {
+    $('.set_box_user').removeClass('list-disabled').removeClass('mode-auto');
+  } else if (mode === 'auto') {
+    // Auto mode: do not add list-disabled, but add mode-auto class for styling
+    $('.set_box_user').removeClass('list-disabled').addClass('mode-auto');
+  } else {
+    $('.set_box_user').addClass('list-disabled').removeClass('mode-auto');
+  }
+}
 
 function updateStatusDisplay(mode, currentProxy) {
   const $statusValue = $('#status-display');
@@ -181,119 +258,20 @@ function updateCurrentSiteDisplay() {
   });
 }
 
-// Storage change listener for real-time updates
-chrome.storage.onChanged.addListener(function (changes, namespace) {
-  if (namespace === 'local') {
-    if (changes.proxyMode || changes.currentProxy) {
-      // Update status display when storage changes
-      refreshProxyStatus();
-    }
-  }
-});
-
-function initApp() {
-  chrome.storage.local.get(['proxyMode', 'currentProxy'], function (result) {
-    // If no stored mode, default to 'disabled'
-    let mode = result.proxyMode;
-    if (!mode) {
-      mode = 'disabled';
-      // Save default status
-      chrome.storage.local.set({ proxyMode: 'disabled' });
-    }
-
-    // If stored mode is invalid, default to disabled
-    if (!['disabled', 'manual', 'auto'].includes(mode)) {
-      mode = 'disabled';
-    }
-
-    const currentProxy = result.currentProxy;
-
-    updateModeUI(mode);
-    updateStatusDisplay(mode, currentProxy);
-
-    // For manual mode, restore previous selection if available
-    if (mode === 'manual') {
-      if (currentProxy) {
-        updateStatusDisplay('manual', currentProxy);
-      } else {
-        updateStatusDisplay('manual', null);
-      }
-    }
-  });
-
-  // Mode switch button click event
-  $('.mode-btn').on('click', function () {
-    const mode = $(this).data('mode');
-    updateModeUI(mode);
-
-    chrome.storage.local.set({ proxyMode: mode }, function () {
-      if (mode === 'auto') {
-        // Auto mode
-        chrome.runtime.sendMessage({ action: "refreshProxy" });
-        updateStatusDisplay('auto');
-        // Re-render list to apply auto-match highlighting
-        list_init();
-        updateBypassButton();
-        updateCurrentSiteDisplay();
-      } else if (mode === 'disabled') {
-        // Disabled mode
-        chrome.runtime.sendMessage({ action: "turnOffProxy" }, function () {
-          list_init();
-          updateStatusDisplay('disabled', null);
-          updateBypassButton();
-          updateCurrentSiteDisplay();
-        });
-      } else {
-        // Manual mode - restore previous selection or show disconnected
-        chrome.storage.local.get(['currentProxy'], function (result) {
-          const currentProxy = result.currentProxy;
-          if (currentProxy) {
-            updateStatusDisplay('manual', currentProxy);
-          } else {
-            updateStatusDisplay('manual', null);
-          }
-          list_init();
-          updateBypassButton();
-          updateCurrentSiteDisplay();
-          // Apply the current proxy settings
-          chrome.runtime.sendMessage({ action: "refreshProxy" });
-        });
-      }
-    });
-  });
-
-  function updateModeUI(mode) {
-    // Update button status
-    $('.mode-btn').removeClass('active');
-    $(`.mode-btn[data-mode="${mode}"]`).addClass('active');
-
-    // Update list interaction status
-    if (mode === 'manual') {
-      $('.set_box_user').removeClass('list-disabled').removeClass('mode-auto');
-    } else if (mode === 'auto') {
-      // Auto mode: do not add list-disabled, but add mode-auto class for styling
-      $('.set_box_user').removeClass('list-disabled').addClass('mode-auto');
-    } else {
-      $('.set_box_user').addClass('list-disabled').removeClass('mode-auto');
-    }
-  }
-
-  // Get proxy list
-  // Requirement 1: Always load from local storage regardless of sync setting
-  chrome.storage.local.get({ list: [] }, function (items) {
-    list = items.list || [];
-    // Initial list render
-    list_init();
-    // Initialize bypass button
-    initBypassButton();
-    updateBypassButton();
-    // Update current site display
-    updateCurrentSiteDisplay();
-  });
+// Update refresh indicator visibility
+function updateRefreshIndicator() {
+  // Add visual indicator that status is being refreshed
+  // Apply animation to outer container instead of text to avoid color flashing
+  const $currentStatus = $('.current-status');
+  $currentStatus.addClass('status-refreshing');
+  setTimeout(function () {
+    $currentStatus.removeClass('status-refreshing');
+  }, 500);
 }
 
-var list = [];
-
+// ==========================================
+// Proxy List Logic
+// ==========================================
 function list_init() {
   chrome.storage.local.get(['currentProxy', 'proxyMode'], function (result) {
     const currentProxy = result.currentProxy;
@@ -359,6 +337,9 @@ function list_init() {
         $(".init_box").show();
         $(".set_box").hide();
       } else {
+        $(".init_box").hide();
+        $(".set_box").show();
+
         // Bind click events
         bindListEvents();
 
@@ -377,7 +358,92 @@ function list_init() {
   });
 }
 
-// Auto Match Logic Helpers
+function bindListEvents() {
+  // Remove previous events using namespace to prevent duplicate binding
+  $(".set_box_user_list").off("click.proxySelect");
+
+  $(".set_box_user_list").on("click.proxySelect", ".set_box_user_box", function (e) {
+    // Allow click switch only in manual mode (disabled mode has list-disabled, auto mode has mode-auto)
+    if ($('.set_box_user').hasClass('list-disabled') || $('.set_box_user').hasClass('mode-auto')) {
+      console.log("Manual mode not active, ignoring click");
+      return;
+    }
+
+    const $this = $(this);
+    const i = $this.data("index");
+    const info = list[i];
+
+    if (!info) return;
+
+    // Update UI immediately for responsiveness
+    $(".set_box_user_box").removeClass("selected");
+    $this.addClass("selected");
+
+    const proxyName = info.name || "Proxy";
+    $('#status-display').text(proxyName);
+
+    // Save current proxy selection
+    chrome.storage.local.set({ currentProxy: info }, function () {
+      // Update bypass button status
+      updateBypassButton();
+    });
+
+    // Execute persistence and background communication
+    chrome.runtime.sendMessage(
+      { action: "applyProxy", proxyInfo: info },
+      function (response) {
+        // Refresh only on success, or revert UI if not successful
+        if (!response || !response.success) {
+          list_init();
+        }
+      }
+    );
+  });
+}
+
+// ==========================================
+// Proxy Status Logic
+// ==========================================
+// Refresh proxy status from browser and storage
+function refreshProxyStatus() {
+  chrome.storage.local.get(['proxyMode', 'currentProxy', 'list'], function (result) {
+    const mode = result.proxyMode || 'disabled';
+    const list = result.list || [];
+
+    // Get browser proxy settings
+    if (typeof chrome !== 'undefined' && chrome.proxy && chrome.proxy.settings) {
+      chrome.proxy.settings.get({ incognito: false }, function (browserConfig) {
+        let browserMode = 'system';
+        let proxyServer = '';
+
+        if (browserConfig && browserConfig.value) {
+          browserMode = browserConfig.value.mode || 'system';
+
+          // Extract proxy server info
+          if (browserConfig.value.rules) {
+            const rules = browserConfig.value.rules;
+            if (rules.singleProxy) {
+              proxyServer = rules.singleProxy.host + ':' + rules.singleProxy.port;
+            } else if (rules.proxyForHttp) {
+              proxyServer = rules.proxyForHttp.host + ':' + rules.proxyForHttp.port;
+            }
+          } else if (browserConfig.value.pacScript) {
+            proxyServer = 'PAC Script';
+          }
+        }
+
+        // Update status display based on comparison
+        updateStatusDisplay(mode, result.currentProxy);
+        updateRefreshIndicator();
+      });
+    } else {
+      // Fallback for Firefox
+      updateStatusDisplay(mode, result.currentProxy);
+      updateRefreshIndicator();
+    }
+  });
+}
+
 function getAutoProxy(proxyList, hostname) {
   if (!proxyList || !hostname) return null;
 
@@ -421,7 +487,49 @@ function checkMatch(patternsStr, hostname) {
   return false;
 }
 
-// Update bypass button status
+// ==========================================
+// Bypass Functionality
+// ==========================================
+function initBypassButton() {
+  $('#add-bypass-btn').off('click').on('click', function () {
+    const $btn = $(this);
+
+    // Check current state - if button shows "use_proxy", it's currently bypassed and can be removed
+    const isCurrentlyBypassed = $btn.text() === I18n.t('use_proxy');
+
+    // Visual feedback: disable button and show loading state
+    $btn.prop('disabled', true).addClass('btn-processing');
+
+    // Get hostname from current URL
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      const tabUrl = tabs[0] && (tabs[0].pendingUrl || tabs[0].url);
+      if (!tabUrl) {
+        $btn.prop('disabled', false).removeClass('btn-processing');
+        return;
+      }
+
+      try {
+        const url = new URL(tabUrl);
+        const hostname = url.hostname;
+        if (!hostname) {
+          $btn.prop('disabled', false).removeClass('btn-processing');
+          return;
+        }
+
+        if (isCurrentlyBypassed) {
+          // Remove from bypass list
+          handleRemoveFromBypass(hostname, $btn);
+        } else {
+          // Add to bypass list
+          handleAddToBypass(hostname, $btn);
+        }
+      } catch (e) {
+        $btn.prop('disabled', false).removeClass('btn-processing');
+      }
+    });
+  });
+}
+
 function updateBypassButton() {
   const $bypassBtn = $('#add-bypass-btn');
 
@@ -483,6 +591,14 @@ function updateBypassButton() {
   });
 }
 
+// Check if hostname has exact match in bypass list (no subdomain matching)
+function isExactMatchBypassed(bypassUrls, hostname) {
+  if (!bypassUrls) return false;
+  const patterns = bypassUrls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+  // Only exact match for toggle functionality
+  return patterns.includes(hostname);
+}
+
 // Check if hostname is already in bypass list (with subdomain match)
 function checkIfBypassed(bypassUrls, hostname) {
   if (!bypassUrls) return false;
@@ -503,56 +619,6 @@ function checkIfBypassed(bypassUrls, hostname) {
   return false;
 }
 
-// Check if hostname has exact match in bypass list (no subdomain matching)
-function isExactMatchBypassed(bypassUrls, hostname) {
-  if (!bypassUrls) return false;
-  const patterns = bypassUrls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
-  // Only exact match for toggle functionality
-  return patterns.includes(hostname);
-}
-
-// Initialize bypass button click event
-function initBypassButton() {
-  $('#add-bypass-btn').off('click').on('click', function () {
-    const $btn = $(this);
-
-    // Check current state - if button shows "use_proxy", it's currently bypassed and can be removed
-    const isCurrentlyBypassed = $btn.text() === I18n.t('use_proxy');
-
-    // Visual feedback: disable button and show loading state
-    $btn.prop('disabled', true).addClass('btn-processing');
-
-    // Get hostname from current URL
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      const tabUrl = tabs[0] && (tabs[0].pendingUrl || tabs[0].url);
-      if (!tabUrl) {
-        $btn.prop('disabled', false).removeClass('btn-processing');
-        return;
-      }
-
-      try {
-        const url = new URL(tabUrl);
-        const hostname = url.hostname;
-        if (!hostname) {
-          $btn.prop('disabled', false).removeClass('btn-processing');
-          return;
-        }
-
-        if (isCurrentlyBypassed) {
-          // Remove from bypass list
-          handleRemoveFromBypass(hostname, $btn);
-        } else {
-          // Add to bypass list
-          handleAddToBypass(hostname, $btn);
-        }
-      } catch (e) {
-        $btn.prop('disabled', false).removeClass('btn-processing');
-      }
-    });
-  });
-}
-
-// Handle adding to bypass list
 function handleAddToBypass(hostname, $btn) {
   chrome.storage.local.get(['proxyMode', 'currentProxy', 'list', 'auto_sync'], function (result) {
     const mode = result.proxyMode || 'disabled';
@@ -614,7 +680,6 @@ function handleAddToBypass(hostname, $btn) {
   });
 }
 
-// Handle removing from bypass list
 function handleRemoveFromBypass(hostname, $btn) {
   chrome.storage.local.get(['proxyMode', 'currentProxy', 'list', 'auto_sync'], function (result) {
     const mode = result.proxyMode || 'disabled';
@@ -674,48 +739,5 @@ function handleRemoveFromBypass(hostname, $btn) {
         .addClass('btn-bypass-proxy')
         .prop('disabled', false);
     });
-  });
-}
-
-function bindListEvents() {
-  // Remove previous events using namespace to prevent duplicate binding
-  $(".set_box_user_list").off("click.proxySelect");
-
-  $(".set_box_user_list").on("click.proxySelect", ".set_box_user_box", function (e) {
-    // Allow click switch only in manual mode (disabled mode has list-disabled, auto mode has mode-auto)
-    if ($('.set_box_user').hasClass('list-disabled') || $('.set_box_user').hasClass('mode-auto')) {
-      console.log("Manual mode not active, ignoring click");
-      return;
-    }
-
-    const $this = $(this);
-    const i = $this.data("index");
-    const info = list[i];
-
-    if (!info) return;
-
-    // Update UI immediately for responsiveness
-    $(".set_box_user_box").removeClass("selected");
-    $this.addClass("selected");
-
-    const proxyName = info.name || "Proxy";
-    $('#status-display').text(proxyName);
-
-    // Save current proxy selection
-    chrome.storage.local.set({ currentProxy: info }, function () {
-      // Update bypass button status
-      updateBypassButton();
-    });
-
-    // Execute persistence and background communication
-    chrome.runtime.sendMessage(
-      { action: "applyProxy", proxyInfo: info },
-      function (response) {
-        // Refresh only on success, or revert UI if not successful
-        if (!response || !response.success) {
-          list_init();
-        }
-      }
-    );
   });
 }

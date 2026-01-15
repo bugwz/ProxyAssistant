@@ -1,93 +1,156 @@
-$("html").on("click", function () {
-  $(".lh-select-op").hide();
-});
-
-click_init();
-function click_init() {
-  $(".lh-select_k").off();
-  $(".lh-select_k").on("click", function () {
-    var that = this;
-    var display = $(that).next().css('display');
-    if (display != 'none') {
-      return;
-    }
-    setTimeout(function () {
-      $(that).next().toggle();
-    }, 50);
-  });
-  // Only bind to proxy protocol options, strictly scoped to the proxy list
-  $("#proxy-list").off("click", ".lh-select-op li");
-  $("#proxy-list").on("click", ".lh-select-op li", function (e) {
-    e.stopPropagation();
-    $(this).siblings().removeClass("op_a");
-    $(this).addClass("op_a");
-    $(this).parent().hide();
-
-    var txt = $(this).text();
-    var val = $(this).data("value") || txt;
-
-    // Safer DOM traversal
-    var $selectContainer = $(this).closest('.lh-select');
-    var $selectVal = $selectContainer.find(".lh-select-val");
-    $selectVal.text(txt);
-
-    var i = $selectVal.data("index");
-    var type = $selectContainer.data("type");
-
-    // Robust check for list item existence
-    if (typeof i !== 'undefined' && list && list[i]) {
-      if (type === 'protocol') {
-        // Use cleanProtocol to ensure valid protocol value
-        var cleanVal = cleanProtocol(val);
-        list[i].protocol = cleanVal;
-        // Update type badge color on card
-        var $badge = $(this).closest('.list_a').find('.proxy-type-badge');
-        $badge.text(cleanVal.toUpperCase()).removeClass('http https socks5').addClass(cleanVal);
-      } else if (type === 'fallback') {
-        list[i].fallback_policy = val;
-      }
-
-      save = false;
-    } else {
-      console.error("Cannot set value: Invalid index or proxy not found", i);
-    }
-  });
-
-}
-var save = true;
+// ==========================================
+// State & Constants
+// ==========================================
 var list = [];
+var save = true;
 var auto_sync = true;
 var themeMode = 'light';
 var nightModeStart = '22:00';
 var nightModeEnd = '06:00';
+var themeInterval = null;
+var del_index = -1;
+let pacStorageListener = null;
 
-// Theme mode toggle event handlers
-$('.theme-btn').on('click', function () {
-  var mode = $(this).data('theme');
+// ==========================================
+// Initialization
+// ==========================================
+document.addEventListener('DOMContentLoaded', function () {
+  I18n.init(function () {
+    initApp();
+  });
+});
+
+function initApp() {
+  initLanguage();
+  initDropdowns();
+  initTheme();
+  loadSettingsAndList();
+  bindGlobalEvents();
+}
+
+function loadSettingsAndList() {
+  // Load settings
+  chrome.storage.local.get({ auto_sync: true }, function (settings) {
+    auto_sync = settings.auto_sync;
+    $("#auto_sync_toggle").prop("checked", auto_sync);
+
+    // If sync enabled, pull from remote and update local
+    if (auto_sync) {
+      chrome.storage.sync.get({ list: [], themeSettings: {} }, function (remoteItems) {
+        const hasError = chrome.runtime.lastError;
+        const isEmpty = !remoteItems.list || remoteItems.list.length === 0;
+
+        if (hasError) {
+          console.warn("Remote sync error:", chrome.runtime.lastError.message);
+        }
+
+        if (hasError || isEmpty) {
+          // Remote is empty or error - try to merge with local data
+          chrome.storage.local.get({ list: [], themeSettings: {} }, function (localItems) {
+            const localList = localItems.list || [];
+            const remoteList = remoteItems.list || [];
+
+            if (localList.length > 0 && remoteList.length === 0) {
+              console.log("Pushing local data to remote sync...");
+              chrome.storage.sync.set({ list: localList }, function () {
+                if (chrome.runtime.lastError) {
+                  console.warn("Sync push failed:", chrome.runtime.lastError.message);
+                }
+              });
+            }
+            loadFromLocal();
+          });
+        } else {
+          console.log("Sync enabled: Pulled data from remote, updating local");
+          chrome.storage.local.set({ list: remoteItems.list }, function () {
+            loadFromLocal(remoteItems);
+          });
+        }
+      });
+    } else {
+      loadFromLocal();
+    }
+  });
+}
+
+function loadFromLocal(remoteItems) {
+  chrome.storage.local.get({ list: [], themeSettings: {} }, function (items) {
+    if (chrome.runtime.lastError) {
+      console.warn("Local storage get error:", chrome.runtime.lastError);
+      items = {};
+    }
+    items = items || {};
+
+    if (remoteItems && remoteItems.list) {
+      list = remoteItems.list;
+    } else {
+      list = items.list || [];
+    }
+
+    // Load theme settings
+    var themeSettings = items.themeSettings || {};
+    themeMode = themeSettings.mode || 'light';
+    nightModeStart = themeSettings.startTime || '22:00';
+    nightModeEnd = themeSettings.endTime || '06:00';
+
+    updateThemeUI();
+    renderList();
+  });
+}
+
+// ==========================================
+// Theme Logic
+// ==========================================
+function initTheme() {
+  $('.theme-btn').on('click', function () {
+    var mode = $(this).data('theme');
+    $('.theme-btn').removeClass('active');
+    $(this).addClass('active');
+
+    if (mode === 'auto') {
+      $('.auto-mode-time-row').show();
+    } else {
+      $('.auto-mode-time-row').hide();
+    }
+
+    setThemeMode(mode);
+  });
+
+  $('#night-mode-start, #night-mode-end').on('change', function () {
+    nightModeStart = $('#night-mode-start').val();
+    nightModeEnd = $('#night-mode-end').val();
+    saveThemeSettings();
+    if (themeMode === 'auto') {
+      updateThemeByTime();
+    }
+  });
+}
+
+function updateThemeUI() {
+  $('#night-mode-start').val(nightModeStart);
+  $('#night-mode-end').val(nightModeEnd);
   $('.theme-btn').removeClass('active');
-  $(this).addClass('active');
+  $('.theme-btn[data-theme="' + themeMode + '"]').addClass('active');
 
-  // Show/hide auto mode time settings
-  if (mode === 'auto') {
+  if (themeMode === 'auto') {
     $('.auto-mode-time-row').show();
+    updateThemeByTime();
+    startThemeInterval();
   } else {
     $('.auto-mode-time-row').hide();
+    applyTheme(themeMode);
   }
-
-  setThemeMode(mode);
-});
+}
 
 function setThemeMode(mode) {
   themeMode = mode;
-
   if (mode === 'auto') {
-    // Auto mode: check time and apply theme
     updateThemeByTime();
+    startThemeInterval();
   } else {
-    // Manual mode: apply directly
+    if (themeInterval) clearInterval(themeInterval);
     applyTheme(mode);
   }
-
   saveThemeSettings();
 }
 
@@ -111,76 +174,17 @@ function updateThemeByTime() {
   var endMinutes = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
 
   var isNightMode;
-
   if (startMinutes < endMinutes) {
-    // Normal case: start and end on same day (e.g., 22:00 to 06:00 crosses midnight)
     isNightMode = currentTime >= startMinutes || currentTime < endMinutes;
   } else {
-    // Crosses midnight: start at night, end next morning
     isNightMode = currentTime >= startMinutes || currentTime < endMinutes;
   }
 
   applyTheme(isNightMode ? 'dark' : 'light');
 }
 
-function saveThemeSettings() {
-  // Always save to local first, then sync to remote if enabled
-  var themeSettings = {
-    mode: themeMode,
-    startTime: nightModeStart,
-    endTime: nightModeEnd
-  };
-
-  // Save to local first
-  chrome.storage.local.set({ themeSettings: themeSettings }, function () {
-    if (chrome.runtime.lastError) {
-      console.error("Theme local save failed:", chrome.runtime.lastError);
-      return;
-    }
-
-    // If sync enabled, also save to remote
-    if (auto_sync) {
-      chrome.storage.sync.set({ themeSettings: themeSettings }, function () {
-        if (chrome.runtime.lastError) {
-          console.error("Theme sync failed:", chrome.runtime.lastError);
-        }
-      });
-    }
-  });
-}
-
-function loadThemeSettings() {
-  // Always load from local storage (consistent with proxy config)
-  chrome.storage.local.get({ themeSettings: {} }, function (items) {
-    var settings = items.themeSettings || {};
-    themeMode = settings.mode || 'light';
-    nightModeStart = settings.startTime || '22:00';
-    nightModeEnd = settings.endTime || '06:00';
-
-    // Update UI
-    $('#night-mode-start').val(nightModeStart);
-    $('#night-mode-end').val(nightModeEnd);
-    $('.theme-btn').removeClass('active');
-    $('.theme-btn[data-theme="' + themeMode + '"]').addClass('active');
-
-    if (themeMode === 'auto') {
-      $('.auto-mode-time-row').show();
-      updateThemeByTime();
-      // Start interval for auto mode
-      startThemeInterval();
-    } else {
-      $('.auto-mode-time-row').hide();
-      applyTheme(themeMode);
-    }
-  });
-}
-
-var themeInterval = null;
 function startThemeInterval() {
-  if (themeInterval) {
-    clearInterval(themeInterval);
-  }
-  // Check every minute
+  if (themeInterval) clearInterval(themeInterval);
   themeInterval = setInterval(function () {
     if (themeMode === 'auto') {
       updateThemeByTime();
@@ -188,1022 +192,200 @@ function startThemeInterval() {
   }, 60000);
 }
 
-$('#night-mode-start, #night-mode-end').on('change', function () {
-  nightModeStart = $('#night-mode-start').val();
-  nightModeEnd = $('#night-mode-end').val();
-  saveThemeSettings();
-  if (themeMode === 'auto') {
-    updateThemeByTime();
-  }
-});
+function saveThemeSettings() {
+  var themeSettings = {
+    mode: themeMode,
+    startTime: nightModeStart,
+    endTime: nightModeEnd
+  };
 
-// Protocol field cleaning function - prevents protocol value corruption
-function cleanProtocol(protocol) {
-  if (!protocol || typeof protocol !== 'string') return 'http';
-  // Remove potential URL prefixes (http://, https://, http:, https:, etc.)
-  let cleaned = protocol.replace(/^(https?:\/?\/?)/i, '').trim();
-  // Normalize to lowercase
-  cleaned = cleaned.toLowerCase();
-  // Validate against known protocols
-  const validProtocols = ['http', 'https', 'socks4', 'socks5', 'socks'];
-  if (!validProtocols.includes(cleaned)) {
-    return 'http';
-  }
-  return cleaned;
+  chrome.storage.local.set({ themeSettings: themeSettings }, function () {
+    if (auto_sync) {
+      chrome.storage.sync.set({ themeSettings: themeSettings });
+    }
+  });
 }
-// Get sync settings first, then decide where to load the list from
-// Initialize I18n and load settings
-I18n.init(function () {
-  initApp();
-});
 
-function initApp() {
-  // Initialize Language Selector
+// ==========================================
+// Language Logic
+// ==========================================
+function initLanguage() {
   const currentLang = I18n.getCurrentLanguage();
   const $currentLangDisplay = $('#current-language-display');
   const $options = $('#language-options li');
 
-  // Update display text based on current language
   const currentLangText = $options.filter(`[data-value="${currentLang}"]`).text();
   if (currentLangText) {
     $currentLangDisplay.text(currentLangText);
   }
 
-  // Language selector click events
   $options.off('click').on('click', function () {
     const lang = $(this).data('value');
     const text = $(this).text();
 
     $currentLangDisplay.text(text);
-
-    // Hide dropdown
     $(this).closest('.lh-select').find('.lh-select-op').hide();
 
-    // Set language and update page
     I18n.setLanguage(lang);
+    renderList();
+  });
+}
 
-    // Re-render list to translate dynamic content
-    list_init();
+// ==========================================
+// UI Components
+// ==========================================
+function initDropdowns() {
+  $("html").on("click", function () {
+    $(".lh-select-op").hide();
   });
 
-  // Load settings
-  chrome.storage.local.get({ auto_sync: true }, function (settings) {
-    auto_sync = settings.auto_sync;
-    $("#auto_sync_toggle").prop("checked", auto_sync);
+  $(".lh-select_k").off().on("click", function (e) {
+    e.stopPropagation();
+    var that = this;
+    var display = $(that).next().css('display');
+    if (display != 'none') return;
 
-    // Requirement 5: If sync enabled, pull from remote and update local
-    if (auto_sync) {
-      chrome.storage.sync.get({ list: [], themeSettings: {} }, function (remoteItems) {
-        // Check for errors including quota exceeded
-        const hasError = chrome.runtime.lastError;
-        const isEmpty = !remoteItems.list || remoteItems.list.length === 0;
+    // Close other dropdowns
+    $(".lh-select-op").hide();
 
-        if (hasError) {
-          console.warn("Remote sync error:", chrome.runtime.lastError.message);
-        }
+    setTimeout(function () {
+      $(that).next().toggle();
+    }, 50);
+  });
 
-        if (hasError || isEmpty) {
-          // Remote is empty or error - try to merge with local data
-          // This handles the case where local has data but sync is empty (first run after quota exceeded)
-          chrome.storage.local.get({ list: [], themeSettings: {} }, function (localItems) {
-            const localList = localItems.list || [];
-            const remoteList = remoteItems.list || [];
+  $("#proxy-list").off("click", ".lh-select-op li").on("click", ".lh-select-op li", function (e) {
+    e.stopPropagation();
+    $(this).siblings().removeClass("op_a");
+    $(this).addClass("op_a");
+    $(this).parent().hide();
 
-            if (localList.length > 0 && remoteList.length === 0) {
-              // Local has data but remote is empty - push local to sync
-              console.log("Pushing local data to remote sync...");
-              chrome.storage.sync.set({ list: localList }, function () {
-                if (chrome.runtime.lastError) {
-                  console.warn("Sync push failed:", chrome.runtime.lastError.message);
-                }
-              });
-            }
+    var txt = $(this).text();
+    var val = $(this).data("value") || txt;
 
-            loadFromLocal();
-          });
-        } else {
-          console.log("Sync enabled: Pulled data from remote, updating local");
+    var $selectContainer = $(this).closest('.lh-select');
+    var $selectVal = $selectContainer.find(".lh-select-val");
+    $selectVal.text(txt);
 
-          // Update local storage with remote data
-          chrome.storage.local.set({ list: remoteItems.list }, function () {
-            // After updating local, load into memory
-            loadFromLocal(remoteItems);
-          });
-        }
-      });
-    } else {
-      // Sync disabled: Just load from local
-      loadFromLocal();
+    var i = $selectVal.data("index");
+    var type = $selectContainer.data("type");
+
+    if (typeof i !== 'undefined' && list && list[i]) {
+      if (type === 'protocol') {
+        var cleanVal = cleanProtocol(val);
+        list[i].protocol = cleanVal;
+        var $badge = $(this).closest('.list_a').find('.proxy-type-badge');
+        $badge.text(cleanVal.toUpperCase()).removeClass('http https socks5').addClass(cleanVal);
+      } else if (type === 'fallback') {
+        list[i].fallback_policy = val;
+      }
+      save = false;
     }
   });
 }
 
-function loadFromLocal(remoteItems) {
-  // Always load theme settings from local storage (consistent with proxy config)
-  chrome.storage.local.get({ list: [], themeSettings: {} }, function (items) {
-    if (chrome.runtime.lastError) {
-      console.warn("Local storage get error:", chrome.runtime.lastError);
-      items = {};
-    }
-    items = items || {};
+function bindGlobalEvents() {
+  // Add Proxy Button
+  $("#add-proxy-btn").on("click", function () {
+    list.push({
+      name: "", protocol: "http", fallback_policy: "direct",
+      ip: "", port: "", username: "", password: "",
+      is_show: 0, open: 0, include_urls: "", bypass_urls: "",
+      is_new: true,
+    });
+    renderList();
 
-    // If we just pulled from remote, use that list to be sure we have latest
-    // Otherwise use what's in local
-    if (remoteItems && remoteItems.list) {
-      list = remoteItems.list;
-    } else {
-      list = items.list || [];
-    }
-
-    console.log("list loaded:", list);
-
-    // Load theme settings from local storage
-    var themeSettings = items.themeSettings || {};
-    themeMode = themeSettings.mode || 'light';
-    nightModeStart = themeSettings.startTime || '22:00';
-    nightModeEnd = themeSettings.endTime || '06:00';
-
-    // Update theme UI
-    $('#night-mode-start').val(nightModeStart);
-    $('#night-mode-end').val(nightModeEnd);
-    $('.theme-btn').removeClass('active');
-    $('.theme-btn[data-theme="' + themeMode + '"]').addClass('active');
-
-    if (themeMode === 'auto') {
-      $('.auto-mode-time-row').show();
-      updateThemeByTime();
-      startThemeInterval();
-    } else {
-      $('.auto-mode-time-row').hide();
-      applyTheme(themeMode);
-    }
-
-    list_init();
+    setTimeout(function () {
+      var $newItem = $(".list_a").last();
+      if ($newItem.length) {
+        $("html, body").animate({ scrollTop: $newItem.offset().top - 100 }, 500);
+      }
+    }, 50);
   });
-}
 
+  // Test All Button
+  $("#test-all-btn").on("click", async function () {
+    var $btn = $(this);
+    if ($btn.prop('disabled')) return;
+    $btn.prop('disabled', true);
 
-$("#add-proxy-btn").on("click", function () {
-  list.push({
-    name: "",
-    protocol: "http",
-    fallback_policy: "direct",
-    ip: "",
-    port: "",
-    username: "",
-    password: "",
-    is_show: 0,
-    open: 0,
-    include_urls: "",
-    bypass_urls: "",
-    is_new: true,
-  });
-  list_init();
+    $(".proxy-header-test-result").text("").removeClass("text-green text-orange text-red text-blue");
 
-  // Auto scroll so the new proxy section is 100px from the top of the window
-  setTimeout(function () {
-    var $newItem = $(".list_a").last();
-    if ($newItem.length) {
-      var targetOffset = $newItem.offset().top - 100;
-      $("html, body").animate({
-        scrollTop: targetOffset
-      }, 500);
-    }
-  }, 50);
-});
+    for (let index = 0; index < list.length; index++) {
+      var proxy = list[index];
+      var $item = $(`.list_a[data-id="${index}"]`);
 
+      // Sync latest values from DOM just in case
+      proxy.name = $item.find('.name').val();
+      proxy.protocol = cleanProtocol($item.find('.lh-select-val[data-index="' + index + '"]').closest('.lh-select[data-type="protocol"]').find('.lh-select-op li.op_a').data('value') || proxy.protocol);
+      proxy.ip = $item.find('.ip').val();
+      proxy.port = $item.find('.port').val();
+      proxy.username = $item.find('.username').val();
+      proxy.password = $item.find('.password').val();
 
-$("#test-all-btn").on("click", async function () {
-  var $btn = $(this);
-  if ($btn.prop('disabled')) return;
+      if (proxy.disabled || !proxy.ip || !proxy.port) continue;
 
-  $btn.prop('disabled', true);
+      var $resultSpan = $(`.proxy-header-test-result[data-index="${index}"]`);
+      $resultSpan.text(I18n.t('testing')).removeClass("text-green text-orange text-red").addClass("text-blue");
 
-  // Clear previous results first
-  $(".proxy-header-test-result").text("").removeClass("text-green text-orange text-red text-blue");
-
-  // Iterate through all proxies sequentially
-  for (let index = 0; index < list.length; index++) {
-    var proxy = list[index];
-    var $item = $(`.list_a[data-id="${index}"]`);
-
-    // Sync latest values from DOM
-    proxy.name = $item.find('.name').val();
-    // Use cleanProtocol to ensure valid protocol value
-    proxy.protocol = cleanProtocol($item.find('.lh-select-val').text());
-    proxy.ip = $item.find('.ip').val();
-    proxy.port = $item.find('.port').val();
-    proxy.username = $item.find('.username').val();
-    proxy.password = $item.find('.password').val();
-
-    // Skip disabled proxies or those without IP/Port
-    if (proxy.disabled || !proxy.ip || !proxy.port) {
-      continue;
-    }
-
-    var proxyAddress = `${proxy.ip}:${proxy.port}`;
-    var proxyName = proxy.name || proxyAddress;
-
-    var $resultSpan = $(`.proxy-header-test-result[data-index="${index}"]`);
-    $resultSpan.text(I18n.t('testing')).removeClass("text-green text-orange text-red").addClass("text-blue");
-
-    await new Promise(function (resolve) {
-      chrome.runtime.sendMessage({
-        action: "testProxyConnection",
-        proxyInfo: proxy
-      }, function (response) {
-        if (chrome.runtime.lastError) {
-          console.error(chrome.runtime.lastError);
-          $resultSpan.text(I18n.t('test_failed')).removeClass("text-blue").addClass("text-red");
+      await new Promise(function (resolve) {
+        chrome.runtime.sendMessage({
+          action: "testProxyConnection",
+          proxyInfo: proxy
+        }, function (response) {
+          if (chrome.runtime.lastError) {
+            $resultSpan.text(I18n.t('test_failed')).removeClass("text-blue").addClass("text-red");
+          } else if (response && response.success) {
+            var latency = response.latency;
+            var colorClass = latency < 500 ? "text-green" : "text-orange";
+            $resultSpan.text(latency + "ms").removeClass("text-blue").addClass(colorClass);
+          } else {
+            var errorMsg = (response && response.error) ? response.error : I18n.t('test_failed');
+            if (errorMsg.length > 10) errorMsg = I18n.t('test_failed');
+            $resultSpan.text(errorMsg).removeClass("text-blue").addClass("text-red");
+          }
           resolve();
-          return;
-        }
-
-        if (response && response.success) {
-          var latency = response.latency;
-          var colorClass = latency < 500 ? "text-green" : "text-orange";
-          $resultSpan.text(latency + "ms").removeClass("text-blue").addClass(colorClass);
-        } else {
-          var errorMsg = response && response.error ? response.error : I18n.t('test_failed');
-          // Simplify error message for header display
-          if (errorMsg.length > 10) errorMsg = I18n.t('test_failed');
-          $resultSpan.text(errorMsg).removeClass("text-blue").addClass("text-red");
-        }
-        resolve();
-      });
-    });
-
-  }
-
-  $btn.prop('disabled', false);
-});
-
-$(".su_tip").hide();
-
-function showTip(msg, isError) {
-  var $tip = $(".su_tip");
-  $tip.text(msg);
-  if (isError) {
-    $tip.addClass("error");
-  } else {
-    $tip.removeClass("error");
-  }
-  $tip.stop(true, true).fadeIn("slow").delay(1000).fadeOut("slow");
-}
-
-function isValidHost(val) {
-  // IPv4 strict check
-  var ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-  if (ipv4Regex.test(val)) return true;
-
-  // Hostname check (RFC 1123)
-  var hostnameRegex = /^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/;
-  if (hostnameRegex.test(val)) return true;
-
-  return false;
-}
-
-// =========================================
-// PAC Details Popup Functionality
-// =========================================
-
-// Storage change listener for real-time updates
-let pacStorageListener = null;
-
-// PAC Details button click event
-$("#pac-details-btn").on("click", function () {
-  showPacDetails();
-});
-
-// Show PAC details popup
-function showPacDetails() {
-  // First load current data
-  updatePacDetails();
-
-  // Add storage change listener for real-time updates
-  pacStorageListener = function (changes, namespace) {
-    if (namespace === 'local' && (changes.list || changes.proxyMode)) {
-      // Data changed, update the popup
-      updatePacDetails();
-    }
-  };
-  chrome.storage.onChanged.addListener(pacStorageListener);
-
-  // Show popup
-  $(".pac_details_tip").show();
-  setTimeout(function () {
-    $(".pac_details_tip").addClass("show");
-  }, 10);
-}
-
-// Update PAC details with latest data
-function updatePacDetails() {
-  chrome.storage.local.get(['proxyMode', 'list'], function (result) {
-    const mode = result.proxyMode || 'disabled';
-    const proxyList = result.list || [];
-
-    // Generate PAC script and rules
-    const pacData = generatePacDetailsData(proxyList);
-
-    // Update info section
-    $("#pac-mode-value").text(mode === 'auto' ? I18n.t('mode_auto') : I18n.t('mode_disabled'));
-
-    const now = new Date();
-    const timeStr = now.toLocaleString();
-    $("#pac-generated-time").text(timeStr);
-
-    $("#pac-rules-count").text(pacData.rules.length);
-
-    // Build rules list
-    var rulesHtml = '';
-    if (pacData.rules.length === 0) {
-      rulesHtml = '<div class="pac-rule-item empty">' + I18n.t('pac_no_rules') + '</div>';
-    } else {
-      pacData.rules.forEach(function (rule, index) {
-        rulesHtml += '<div class="pac-rule-item">' +
-          '<span class="pac-rule-pattern">' + escapeHtml(rule.pattern) + '</span>' +
-          '<span class="pac-rule-arrow">→</span>' +
-          '<span class="pac-rule-proxy">' + escapeHtml(rule.proxy) + '</span>' +
-          '</div>';
-      });
-    }
-    $("#pac-rules-list").html(rulesHtml);
-
-    // Show full script
-    $("#pac-script-content").text(pacData.script);
-  });
-}
-
-// Generate PAC details data
-function generatePacDetailsData(proxyList) {
-  var rules = [];
-  var script = "function FindProxyForURL(url, host) {\n";
-
-  // Track used patterns to avoid duplicate rules
-  // If the same pattern is configured in multiple proxies, only the first proxy's rules will be applied
-  var usedPatterns = new Set();
-
-  // Process each proxy to generate rules
-  proxyList.forEach(function (proxy) {
-    // Skip disabled proxies
-    if (proxy.disabled === true) return;
-    if (!proxy.ip || !proxy.port) return;
-
-    const type = (proxy.protocol || "HTTP").toUpperCase();
-    let proxyType = "PROXY";
-    if (type.startsWith("SOCKS")) proxyType = "SOCKS5";
-
-    const proxyAddress = proxy.ip + ":" + proxy.port;
-    const proxyStr = proxyType + " " + proxyAddress;
-    const proxyName = proxy.name || proxyAddress;
-
-    // Determine fallback behavior
-    const fallback = proxy.fallback_policy === "reject" ? "" : "; DIRECT";
-    const returnVal = '"' + proxyStr + fallback + '"';
-
-    // Process include_urls
-    if (proxy.include_urls) {
-      const includeUrls = proxy.include_urls.split(/[\n,]+/).map(function (s) {
-        return s.trim();
-      }).filter(function (s) {
-        return s;
-      });
-
-      includeUrls.forEach(function (pattern) {
-        // If this pattern was already used by a previous proxy, skip it
-        if (usedPatterns.has(pattern)) {
-          return;
-        }
-
-        // Mark this pattern as used
-        usedPatterns.add(pattern);
-
-        // Add to rules list
-        rules.push({
-          pattern: pattern,
-          proxy: proxyName
         });
-
-        // Add to script
-        if (pattern.includes('*')) {
-          const regexPattern = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
-          script += '  if (/' + regexPattern + '/.test(host)) return ' + returnVal + ';\n';
-        } else {
-          script += '  if (dnsDomainIs(host, "' + pattern + '") || host === "' + pattern + '") return ' + returnVal + ';\n';
-        }
       });
     }
+    $btn.prop('disabled', false);
   });
 
-  script += '  return "DIRECT";\n}';
-
-  return {
-    rules: rules,
-    script: script
-  };
-}
-
-// Escape HTML entities
-function escapeHtml(text) {
-  if (!text) return '';
-  var div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-// Close PAC details popup
-$(".pac_details_close_btn, .pac_details_close_btn2").on("click", function () {
-  // Remove storage change listener to prevent memory leaks
-  if (pacStorageListener) {
-    chrome.storage.onChanged.removeListener(pacStorageListener);
-    pacStorageListener = null;
-  }
-  $(".pac_details_tip").removeClass("show");
-  setTimeout(function () {
-    $(".pac_details_tip").hide();
-  }, 300);
-});
-
-// Close on backdrop click
-$(".pac_details_tip").on("click", function (e) {
-  if (e.target === this) {
-    // Remove storage change listener to prevent memory leaks
-    if (pacStorageListener) {
-      chrome.storage.onChanged.removeListener(pacStorageListener);
-      pacStorageListener = null;
-    }
-    $(this).removeClass("show");
-    setTimeout(function () {
-      $(this).hide();
-    }, 300);
-  }
-});
-
-// Copy PAC script button
-$("#pac-copy-btn").on("click", function () {
-  var script = $("#pac-script-content").text();
-  navigator.clipboard.writeText(script).then(function () {
-    // Show success feedback
-    var $btn = $("#pac-copy-btn");
-    var originalText = $btn.text();
-    $btn.text(I18n.t('pac_copied'));
-    setTimeout(function () {
-      $btn.text(originalText);
-    }, 2000);
-  }).catch(function (err) {
-    console.error("Failed to copy:", err);
+  // Auto Sync Toggle
+  $("#auto_sync_toggle").on("change", function () {
+    auto_sync = $(this).prop("checked");
+    chrome.storage.local.set({ auto_sync: auto_sync });
   });
-});
 
-// Hide PAC details popup initially
-$(".pac_details_tip").hide();
+  // Expand/Collapse All
+  $("#expand-collapse-btn").on("click", function () {
+    var $btn = $(this);
+    var isExpanded = $btn.hasClass("expanded");
 
-// Detect proxy button click event
-$("#detect-proxy-btn").on("click", function () {
-  detectProxy();
-});
-
-// Proxy detection function
-async function detectProxy() {
-  var $btn = $("#detect-proxy-btn");
-  $btn.prop("disabled", true);
-
-  // Show loading state
-  $("#detection-status-icon").html('<svg class="spin" viewBox="0 0 24 24" width="48" height="48" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" opacity="0.3"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z"/></svg>');
-  $("#detection-status-text").text(I18n.t('proxy_effect_testing'));
-  $("#detection-details").hide();
-  $("#detection-warning").hide();
-  $("#detection-suggestion").hide();
-
-  $(".proxy_detection_tip").show();
-  // Trigger animation after a small delay to ensure display:block is applied
-  setTimeout(function () {
-    $(".proxy_detection_tip").addClass("show");
-  }, 10);
-
-
-  try {
-    // Get browser proxy settings
-    var browserConfig = await getBrowserProxyConfig();
-
-    // Get plugin stored settings
-    var pluginConfig = await getPluginProxyConfig();
-
-    // Analyze the results
-    var result = analyzeProxyStatus(browserConfig, pluginConfig);
-
-    // Display results
-    displayDetectionResult(result);
-
-  } catch (error) {
-    console.error("Proxy detection error:", error);
-    displayErrorResult(error.message);
-  }
-
-  $btn.prop("disabled", false);
-}
-
-// Get browser proxy configuration
-function getBrowserProxyConfig() {
-  return new Promise(function (resolve) {
-    if (typeof chrome !== 'undefined' && chrome.proxy && chrome.proxy.settings) {
-      chrome.proxy.settings.get({ incognito: false }, function (config) {
-        resolve(config || { value: { mode: 'system' } });
-      });
+    if (isExpanded) {
+      $(".list_a").addClass("collapsed");
+      $btn.removeClass("expanded");
+      $btn.html(`<svg class="icon-expand" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg> <span data-i18n="expand_all">${I18n.t('expand_all')}</span>`);
     } else {
-      resolve({ value: { mode: 'system' } });
+      $(".list_a").removeClass("collapsed");
+      $btn.addClass("expanded");
+      $btn.html(`<svg class="icon-collapse" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg> <span data-i18n="collapse_all">${I18n.t('collapse_all')}</span>`);
     }
   });
+
+  // Export/Import Events
+  $(".export_btn").on("click", exportConfig);
+  $(".import_json_btn").on("click", function () { $("#json_file_input").click(); });
+  $("#json_file_input").on("change", importConfig);
+
+  // Detect/PAC Buttons
+  $("#detect-proxy-btn").on("click", detectProxy);
+  $("#pac-details-btn").on("click", showPacDetails);
 }
 
-// Get plugin stored proxy configuration
-function getPluginProxyConfig() {
-  return new Promise(function (resolve) {
-    chrome.storage.local.get(['proxyMode', 'currentProxy', 'list'], function (result) {
-      resolve({
-        mode: result.proxyMode || 'disabled',
-        currentProxy: result.currentProxy || null,
-        list: result.list || []
-      });
-    });
-  });
-}
-
-// Analyze proxy status
-function analyzeProxyStatus(browserConfig, pluginConfig) {
-  var result = {
-    status: 'normal', // normal, warning, error
-    statusText: '',
-    statusIcon: '',
-    details: [],
-    warning: null,
-    suggestion: null,
-    httpTestResult: null
-  };
-
-  var browserMode = (browserConfig.value && browserConfig.value.mode) || 'system';
-  var levelOfControl = browserConfig.levelOfControl || '';
-
-  // Get proxy server info from browser config
-  var proxyServer = '';
-  var proxyProtocol = '';
-
-  if (browserConfig.value && browserConfig.value.rules) {
-    var rules = browserConfig.value.rules;
-    if (rules.singleProxy) {
-      proxyServer = rules.singleProxy.host + ':' + rules.singleProxy.port;
-      proxyProtocol = rules.singleProxy.scheme || 'http';
-    } else if (rules.proxyForHttp || rules.proxyForHttps) {
-      var p = rules.proxyForHttp || rules.proxyForHttps;
-      proxyServer = p.host + ':' + p.port;
-      proxyProtocol = p.scheme || 'http';
-    }
-  } else if (browserConfig.value && browserConfig.value.pacScript) {
-    proxyServer = 'PAC Script';
-    proxyProtocol = 'Auto';
-  }
-
-  // Add details
-  result.details.push({
-    label: I18n.t('proxy_mode'),
-    value: getModeDisplayName(browserMode)
-  });
-
-  if (proxyServer) {
-    result.details.push({
-      label: I18n.t('proxy_server'),
-      value: proxyServer
-    });
-  }
-
-  if (proxyProtocol) {
-    result.details.push({
-      label: I18n.t('proxy_protocol'),
-      value: proxyProtocol.toUpperCase()
-    });
-  }
-
-  // Determine control status
-  var controlText = '';
-  if (levelOfControl === 'controlled_by_this_extension') {
-    controlText = I18n.t('proxy_control_this');
-  } else if (levelOfControl === 'controlled_by_other_extensions') {
-    controlText = I18n.t('proxy_control_other');
-  } else {
-    controlText = I18n.t('proxy_control_system');
-  }
-
-  result.details.push({
-    label: I18n.t('proxy_control'),
-    value: controlText
-  });
-
-  // Analyze if using plugin
-  var isUsingPlugin = false;
-  // Detect Firefox
-  var isFirefox = navigator.userAgent.indexOf("Firefox") !== -1;
-
-  if (isFirefox) {
-    // Firefox special handling: we use onRequest which doesn't change browser.proxy.settings
-    if (pluginConfig.mode === 'disabled') {
-      // When disabled, don't claim we're using the plugin
-      isUsingPlugin = false;
-    } else {
-      // If enabled, we assume it's working if not controlled by others
-      // Since onRequest doesn't reflect in settings, we can't verify IP/Port match easily here
-      if (levelOfControl !== 'controlled_by_other_extensions') {
-        isUsingPlugin = true;
-      }
-    }
-  } else {
-    // Chrome behavior
-    if (browserMode === 'fixed_servers' && pluginConfig.mode === 'manual') {
-      // Manual mode - check if browser config matches plugin config
-      if (pluginConfig.currentProxy && proxyServer) {
-        var expectedServer = pluginConfig.currentProxy.ip + ':' + pluginConfig.currentProxy.port;
-        isUsingPlugin = (proxyServer === expectedServer);
-      }
-    } else if (browserMode === 'pac_script' && pluginConfig.mode === 'auto') {
-      // Auto mode - if browser is using PAC, assume it's the plugin
-      isUsingPlugin = true;
-    } else if (browserMode === 'disabled' && pluginConfig.mode === 'disabled') {
-      isUsingPlugin = true;
-    }
-  }
-
-  // Check for other proxy control
-  var hasOtherProxy = (levelOfControl === 'controlled_by_other_extensions');
-
-  if (!isFirefox && pluginConfig.mode !== 'disabled') {
-    // Only set hasOtherProxy for Chrome when plugin is ENABLED
-    // When plugin is disabled, we show "Disabled" status regardless of system proxy
-    hasOtherProxy = hasOtherProxy || (browserMode === 'system');
-  }
-
-  // Determine result status
-  if (pluginConfig.mode === 'disabled') {
-    // Plugin Disabled Mode: Always show "Disabled" status (same for both Firefox and Chrome)
-    result.status = 'normal';
-    result.statusText = I18n.t('status_disabled');
-    result.statusIcon = detectionIcons.success;
-    result.details.push({
-      label: I18n.t('proxy_effect'),
-      value: I18n.t('proxy_control_system')
-    });
-  } else if (isUsingPlugin && !hasOtherProxy) {
-    result.status = 'normal';
-    result.statusText = I18n.t('proxy_status_normal');
-    result.statusIcon = detectionIcons.success;
-    result.details.push({
-      label: I18n.t('proxy_effect'),
-      value: I18n.t('proxy_effect_verified')
-    });
-  } else if (hasOtherProxy || browserMode === 'system') {
-    result.status = 'warning';
-    result.statusText = I18n.t('proxy_status_warning');
-    result.statusIcon = detectionIcons.warning;
-    result.warning = I18n.t('proxy_warning_system');
-    result.suggestion = I18n.t('proxy_suggestion_check');
-    result.details.push({
-      label: I18n.t('proxy_effect'),
-      value: I18n.t('proxy_effect_failed')
-    });
-  } else {
-    result.status = 'warning';
-    result.statusText = I18n.t('proxy_status_warning');
-    result.statusIcon = detectionIcons.warning;
-    result.suggestion = I18n.t('proxy_suggestion_check');
-    result.details.push({
-      label: I18n.t('proxy_effect'),
-      value: I18n.t('proxy_effect_failed')
-    });
-  }
-
-  return result;
-}
-
-// Get display name for proxy mode
-function getModeDisplayName(mode) {
-  switch (mode) {
-    case 'fixed_servers':
-      return I18n.t('mode_manual');
-    case 'pac_script':
-      return I18n.t('mode_auto');
-    case 'system':
-      return I18n.t('proxy_control_system');
-    case 'direct':
-      return I18n.t('mode_disabled');
-    default:
-      return mode || I18n.t('mode_disabled');
-  }
-}
-
-// SVG Icons for detection results
-const detectionIcons = {
-  success: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none"><circle cx="12" cy="12" r="10" fill="#dcfce7"/><path d="M8 12l2.5 2.5L16 9" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  warning: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none"><circle cx="12" cy="12" r="10" fill="#fef3c7"/><path d="M12 8v4m0 4h.01" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/></svg>',
-  error: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none"><circle cx="12" cy="12" r="10" fill="#fee2e2"/><path d="M15 9l-6 6m0-6l6 6" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/></svg>',
-  loading: '<svg class="spin" viewBox="0 0 24 24" width="48" height="48" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" opacity="0.3"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z"/></svg>'
-};
-
-// Display detection result in popup
-function displayDetectionResult(result) {
-  // Map status to icon
-  var iconKey = result.status === 'normal' ? 'success' : (result.status === 'warning' ? 'warning' : 'error');
-  $("#detection-status-icon").html(detectionIcons[iconKey]);
-  $("#detection-status-text").text(result.statusText);
-
-  // Build details HTML
-  var detailsHtml = '';
-  result.details.forEach(function (item) {
-    detailsHtml += '<div class="detection-row">' +
-      '<span class="detection-label">' + item.label + '</span>' +
-      '<span class="detection-value">' + item.value + '</span>' +
-      '</div>';
-  });
-  $("#detection-details").html(detailsHtml).show();
-
-  // Show warning if exists
-  if (result.warning) {
-    $("#detection-warning").text(result.warning).show();
-  } else {
-    $("#detection-warning").hide();
-  }
-
-  // Show suggestion if exists
-  if (result.suggestion) {
-    $("#detection-suggestion-text").text(result.suggestion);
-    $("#detection-suggestion").show();
-  } else {
-    $("#detection-suggestion").hide();
-  }
-}
-
-// Display error result
-function displayErrorResult(errorMsg) {
-  $("#detection-status-icon").html(detectionIcons.error);
-  $("#detection-status-text").text(I18n.t('proxy_status_error'));
-
-  var detailsHtml = '<div class="detection-row">' +
-    '<span class="detection-label">Error</span>' +
-    '<span class="detection-value">' + (errorMsg || I18n.t('proxy_suggestion_retry')) + '</span>' +
-    '</div>';
-  $("#detection-details").html(detailsHtml).show();
-  $("#detection-warning").hide();
-  $("#detection-suggestion-text").text(I18n.t('proxy_suggestion_retry'));
-  $("#detection-suggestion").show();
-}
-
-// Close detection popup with animation
-$(".proxy_detection_close_btn, .proxy_detection_close_btn2").on("click", function () {
-  $(".proxy_detection_tip").removeClass("show");
-  setTimeout(function () {
-    $(".proxy_detection_tip").hide();
-  }, 300);
-});
-
-// Close popup on backdrop click
-$(".proxy_detection_tip").on("click", function (e) {
-  if (e.target === this) {
-    $(this).removeClass("show");
-    setTimeout(function () {
-      $(".proxy_detection_tip").hide();
-    }, 300);
-  }
-});
-
-
-// Add spin animation for loading
-var style = document.createElement('style');
-style.textContent = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } .spin { animation: spin 1s linear infinite; }';
-document.head.appendChild(style);
-
-
-// Detailed IP address validation function, providing specific error messages
-function validateIPAddress(ip) {
-  // Check if it is empty
-  if (!ip || ip.trim() === '') {
-    return { isValid: false, error: I18n.t('alert_ip_required') || 'IP地址不能为空' };
-  }
-
-  // Check if it contains four number blocks
-  var parts = ip.split('.');
-  if (parts.length !== 4) {
-    return { isValid: false, error: I18n.t('alert_ip_format') || 'IP地址必须包含四个数字块，用点分隔' };
-  }
-
-  // Check if each part is a valid number and within the range 0-255
-  for (var i = 0; i < parts.length; i++) {
-    var part = parts[i];
-
-    // Check if empty
-    if (part === '') {
-      return { isValid: false, error: I18n.t('alert_ip_part_empty') || `第${i + 1}个数字块不能为空` };
-    }
-
-    // Check if it only contains digits
-    if (!/^\d+$/.test(part)) {
-      return { isValid: false, error: I18n.t('alert_ip_part_nan') || `第${i + 1}个数字块必须为数字` };
-    }
-
-    // Check for leading zeros (except for 0 itself)
-    if (part.length > 1 && part[0] === '0') {
-      return { isValid: false, error: I18n.t('alert_ip_leading_zero') || `第${i + 1}个数字块不能有前导零` };
-    }
-
-    // Convert to number and check range
-    var num = parseInt(part, 10);
-    console.log(`Validating part ${i + 1}: ${part} -> ${num}`);
-    if (isNaN(num) || num < 0 || num > 255) {
-      return { isValid: false, error: I18n.t('alert_ip_part_range') || `第${i + 1}个数字块必须在0-255范围内` };
-    }
-  }
-
-  return { isValid: true, error: '' };
-}
-
-function validateProxy(i, name, val) {
-  var isValid = true;
-  var errorMessage = '';
-  var $item = $(`.list_a[data-id="${i}"]`);
-  var $input = $item.find('.' + name);
-
-  if (name === 'name') {
-    // Name cannot be empty and cannot be duplicate
-    var isDuplicate = list.some((item, index) => index !== i && item.name === val);
-    if (val.trim() === '') {
-      isValid = false;
-      errorMessage = I18n.t('alert_name_required') || '代理名称不能为空';
-    } else if (isDuplicate) {
-      isValid = false;
-      errorMessage = I18n.t('alert_name_duplicate') || '代理名称不能重复';
-    }
-  } else if (name === 'include_urls') {
-    // Check for duplicate patterns in include_urls
-    var currentProxy = list[i];
-    if (!currentProxy || !currentProxy.ip || !currentProxy.port) {
-      isValid = false;
-      errorMessage = '请先填写代理地址';
-    } else {
-      var currentUrls = val.split(/[\n,]+/).map(function (s) {
-        return s.trim();
-      }).filter(function (s) {
-        return s;
-      });
-
-      // Check if any of the current patterns conflict with other proxies
-      for (var j = 0; j < list.length; j++) {
-        if (j === i) continue;
-        var otherProxy = list[j];
-        if (!otherProxy || !otherProxy.ip || !otherProxy.port) continue;
-
-        var otherUrls = (otherProxy.include_urls || '').split(/[\n,]+/).map(function (s) {
-          return s.trim();
-        }).filter(function (s) {
-          return s;
-        });
-
-        // Find common patterns
-        var commonPatterns = currentUrls.filter(function (pattern) {
-          return otherUrls.indexOf(pattern) !== -1;
-        });
-
-        if (commonPatterns.length > 0) {
-          isValid = false;
-          var otherProxyName = otherProxy.name || (otherProxy.ip + ':' + otherProxy.port);
-          errorMessage = I18n.t('alert_include_urls_conflict')
-            .replace('{pattern}', commonPatterns[0])
-            .replace('{proxy}', otherProxyName);
-          break;
-        }
-      }
-    }
-  } else if (name === 'ip') {
-    // Check if it's IP-like format (4 parts, all digits)
-    var parts = val.split('.');
-    var isIpLike = parts.length === 4 && parts.every(p => /^\d+$/.test(p));
-
-    if (isIpLike) {
-      // If it looks like an IP, perform strict IP validation (range, leading zeros, etc.)
-      var ipValidation = validateIPAddress(val);
-      if (!ipValidation.isValid) {
-        isValid = false;
-        errorMessage = ipValidation.error;
-      }
-    } else {
-      // If not like IP (possibly a domain name), perform generic hostname validation
-      if (!isValidHost(val)) {
-        isValid = false;
-        errorMessage = I18n.t('alert_ip_invalid') || '请输入有效的代理地址（IP 或域名）';
-      }
-    }
-  } else if (name === 'port') {
-    // Port must be 1-65535
-    var port = parseInt(val);
-    if (isNaN(port) || port < 1 || port > 65535 || val.toString() !== port.toString()) {
-      isValid = false;
-      errorMessage = I18n.t('alert_port_invalid') || '端口号必须在1-65535范围内';
-    }
-  }
-
-  if (isValid) {
-    $input.removeClass('input-error');
-    // Clear tooltip
-    $input.removeAttr('title');
-  } else {
-    $input.addClass('input-error');
-    // Set error message as tooltip
-    if (errorMessage) {
-      $input.attr('title', errorMessage);
-    }
-  }
-
-  return isValid;
-}
-
-function saveData() {
-  for (var i = 0; i < list.length; i++) {
-    var info = list[i];
-
-    // Final validation check before saving
-    var isNameValid = info.name.trim() !== '' && !list.some((item, index) => index !== i && item.name === info.name);
-
-    var isIpValid = true;
-    var ipErrorMsg = '';
-
-    // Advanced IP/Domain Validation Logic
-    var parts = info.ip.split('.');
-    var isIpLike = parts.length === 4 && parts.every(p => /^\d+$/.test(p));
-
-    if (isIpLike) {
-      var ipValidation = validateIPAddress(info.ip);
-      if (!ipValidation.isValid) {
-        isIpValid = false;
-        ipErrorMsg = ipValidation.error;
-      }
-    } else {
-      if (!isValidHost(info.ip)) {
-        isIpValid = false;
-        ipErrorMsg = I18n.t('alert_ip_invalid');
-      }
-    }
-
-    var port = parseInt(info.port);
-    var isPortValid = !isNaN(port) && port >= 1 && port <= 65535 && info.port.toString() === port.toString();
-
-    if (!isNameValid || !isIpValid || !isPortValid) {
-      // Highlight errors if they aren't already
-      var $item = $(`.list_a[data-id="${i}"]`);
-      if (!isNameValid) $item.find('.name').addClass('input-error');
-      if (!isIpValid) $item.find('.ip').addClass('input-error');
-      if (!isPortValid) $item.find('.port').addClass('input-error');
-
-      var failMsg = I18n.t('save_failed');
-      if (!isNameValid) {
-        const isDuplicate = list.some((item, index) => index !== i && item.name === info.name);
-        showTip(failMsg + (isDuplicate ? I18n.t('alert_name_duplicate') : I18n.t('alert_name_required')), true);
-      } else if (!isIpValid) {
-        showTip(failMsg + (ipErrorMsg || I18n.t('alert_ip_invalid')), true);
-      } else if (!isPortValid) {
-        showTip(failMsg + I18n.t('alert_port_invalid'), true);
-      }
-
-      return;
-    }
-  }
-
-  // Requirement 2 & 3: Always save to local first
-  chrome.storage.local.set({ list: list }, function () {
-    if (chrome.runtime.lastError) {
-      console.error("Local save failed:", chrome.runtime.lastError);
-      showTip(I18n.t('save_failed'), true);
-      return;
-    }
-
-    // If sync enabled, also save to remote
-    if (auto_sync) {
-      chrome.storage.sync.set({ list: list }, function () {
-        if (chrome.runtime.lastError) {
-          console.error("Remote sync failed:", chrome.runtime.lastError);
-          // Show error specifically for sync failure
-          showTip(I18n.t('sync_failed') || "同步失败，请重试", true);
-        } else {
-          showTip(I18n.t('save_success'), false);
-        }
-      });
-    } else {
-      // Sync disabled: only local save success message
-      showTip(I18n.t('save_success'), false);
-    }
-
-    // Notify background to refresh proxy settings
-    chrome.runtime.sendMessage({ action: "refreshProxy" });
-  });
-
-  save = true;
-}
-
-function list_init() {
+// ==========================================
+// List Rendering
+// ==========================================
+function renderList() {
   var html = "";
   for (var i = 0; i < list.length; i++) {
     var info = list[i];
@@ -1214,13 +396,10 @@ function list_init() {
     var displayFallback = fallbackPolicy === "reject" ? I18n.t('fallback_reject') : I18n.t('fallback_direct');
     var previewText = `${info.name || I18n.t('unnamed_proxy')} · ${info.ip || "0.0.0.0"}:${info.port || "0"}`;
 
-    // If it is a newly added proxy, do not collapse by default
     var collapsedClass = info.is_new ? "" : "collapsed";
-    // Clear flag immediately after rendering to prevent unfolding on next re-render
     delete info.is_new;
 
     html += `<div class="list_a ${collapsedClass} ${is_disabled ? "disabled" : ""}" data-id="${i}">
-      <!-- Header with Drag Handle and Status -->
       <div class="proxy-header" data-index="${i}">
           <div class="header-left">
               <div class="drag-handle" title="${I18n.t('drag_sort')}">
@@ -1244,16 +423,12 @@ function list_init() {
 
       <div class="proxy-body">
           <div class="proxy-body-container">
-              <!-- LEFT SIDE: Content Form -->
               <div class="proxy-content-left">
-                  <!-- Top Row: Name, Protocol, Username, Password (Tab order: 1, 2, 5, 6) -->
                   <div class="form-grid">
-                      <!-- Proxy Name (Tab 1) -->
                       <div class="form-item" style="grid-column: span 4;">
                           <label>${I18n.t('proxy_name')}</label>
                           <input data-index="${i}" class="name" type="text" placeholder="${I18n.t('proxy_name_placeholder')}" value="${info.name}" tabindex="1">
                       </div>
-                      <!-- Protocol (Tab 2) -->
                       <div class="form-item" style="grid-column: span 2;">
                           <label>${I18n.t('protocol')}</label>
                           <div class="lh-select" data-type="protocol" tabindex="2">
@@ -1268,12 +443,10 @@ function list_init() {
                               </ul>
                           </div>
                       </div>
-                      <!-- Username (Tab 5) -->
                       <div class="form-item" style="grid-column: span 3;">
                           <label>${I18n.t('username_optional')}</label>
                           <input data-index="${i}" class="username" type="text" placeholder="${I18n.t('username_placeholder')}" value="${info.username}" tabindex="5">
                       </div>
-                      <!-- Password (Tab 6) -->
                       <div class="form-item" style="grid-column: span 3;">
                           <label>${I18n.t('password_optional')}</label>
                           <div style="position: relative; display: flex; align-items: center; width: 100%;">
@@ -1287,19 +460,15 @@ function list_init() {
                       </div>
                   </div>
 
-                  <!-- Middle Row: IP, Port, Fallback (Tab order: name -> protocol -> ip -> port -> username -> password -> fallback -> bypass -> include) -->
                   <div class="form-grid" style="margin-top: 15px;">
-                      <!-- Proxy Address (Tab 3) - visual order 1 -->
                       <div class="form-item" style="grid-column: span 4;">
                           <label>${I18n.t('ip_address')}</label>
                           <input data-index="${i}" class="ip" type="text" placeholder="127.0.0.1" value="${info.ip}" tabindex="3">
                       </div>
-                      <!-- Port (Tab 4) - visual order 2 -->
                       <div class="form-item" style="grid-column: span 2;">
                           <label>${I18n.t('port')}</label>
                           <input data-index="${i}" class="port" type="text" placeholder="8080" value="${info.port}" tabindex="4">
                       </div>
-                      <!-- Fallback Policy (Tab 7) - visual order 3 -->
                       <div class="form-item" style="grid-column: span 6;">
                           <label>${I18n.t('fallback_policy')}</label>
                           <div class="lh-select" data-type="fallback" tabindex="7">
@@ -1315,14 +484,11 @@ function list_init() {
                       </div>
                   </div>
 
-                  <!-- Bottom Row: URL Lists (Tab order: bypass=8, include=9) -->
                   <div class="url-config-section">
-                      <!-- Bypass URLs (Tab 8) - bypass_urls -->
                       <div class="form-item">
                           <label>${I18n.t('bypass_urls')}</label>
                           <textarea data-index="${i}" class="bypass_urls" placeholder="${I18n.t('bypass_urls_placeholder')}" tabindex="8">${info.bypass_urls || ""}</textarea>
                       </div>
-                      <!-- Include URLs (Tab 9) - include_urls -->
                       <div class="form-item">
                           <label>${I18n.t('proxy_urls_auto')}</label>
                           <textarea data-index="${i}" class="include_urls" placeholder="${I18n.t('proxy_urls_placeholder')}" tabindex="9">${info.include_urls || ""}</textarea>
@@ -1330,22 +496,15 @@ function list_init() {
                   </div>
               </div>
 
-              <!-- RIGHT SIDE: Operations (Tab order: Save=10, Delete=11) -->
               <div class="proxy-content-right">
                   <label>&nbsp;</label>
-                  
-                  <!-- Link Test -->
                   <button class="right-panel-btn btn-test test-proxy-btn" data-index="${i}" tabindex="-1">
                        ${I18n.t('link_test')}
                   </button>
                   <div class="test-result-display test-result" data-index="${i}"></div>
-
-                  <!-- Save (Tab 10) -->
                   <button class="right-panel-btn btn-save item-save-btn" data-index="${i}" tabindex="10">
                        ${I18n.t('save')}
                   </button>
-
-                  <!-- Delete (Tab 11) -->
                   <button class="right-panel-btn btn-delete del" data-index="${i}" title="${I18n.t('delete_proxy_title')}" tabindex="11">
                        ${I18n.t('delete')}
                   </button>
@@ -1356,262 +515,205 @@ function list_init() {
   }
   $(".list").html(html);
 
-  click_init();
-  input_blur_init();
-  init_sortable();
-  test_btn_init();
-
+  initDropdowns(); // Re-bind dropdowns in list
+  initSortable();
+  bindItemEvents();
 }
 
-function test_btn_init() {
-  $(".test-proxy-btn").off("click").on("click", function () {
+function bindItemEvents() {
+  // Input Blur
+  $("input, textarea").on("blur", function () {
+    var i = $(this).data("index");
+    var val = $(this).val();
+    var name = $(this).attr("class");
+    if (name && name.indexOf(" ") !== -1) name = name.split(" ")[0];
+    input_blur(i, name, val);
+  });
+
+  // Paste handling for IP
+  $("input.ip").on("paste", function () {
+    var i = $(this).data("index");
+    var that = this;
+    setTimeout(function () {
+      var val = $(that).val();
+      if (val.indexOf(":") != -1) {
+        var txt_arr = val.split(":");
+        $(that).val(txt_arr[0]);
+        $(that).closest('.form-grid').find('.port').val(txt_arr[1]);
+        input_blur(i, 'ip', txt_arr[0]);
+        input_blur(i, 'port', txt_arr[1]);
+      }
+    }, 100);
+  });
+
+  // Eye Toggle
+  $(".eye-toggle input").on("change", function () {
+    var i = $(this).parent().data("index");
+    if (i !== undefined && list[i]) {
+      list[i].is_show = $(this).prop("checked") ? 1 : 0;
+      save = false;
+      var passwordInput = $(".password[data-index='" + i + "']");
+      passwordInput.attr("type", list[i].is_show == 1 ? "text" : "password");
+
+      var $toggle = $(this).parent();
+      if (list[i].is_show == 1) $toggle.removeClass('hide-password').addClass('show-password');
+      else $toggle.removeClass('show-password').addClass('hide-password');
+    }
+  });
+
+  // Delete
+  $(".del").on("click", function () {
+    var index = $(this).data("index");
+    if (index !== undefined && list[index]) {
+      var info = list[index];
+      var previewText = `${info.name || I18n.t('unnamed_proxy')} (${info.ip || "0.0.0.0"}:${info.port || "0"})`;
+      $(".del_tip_content").html(`${I18n.t('delete_proxy_confirm')}<br><span style="color: #e11d48; font-weight: 600; margin-top: 10px; display: block;">${previewText}</span>`);
+      $(".del_tip").show().addClass("show");
+      del_index = index;
+    }
+  });
+
+  // Save Item
+  $(".item-save-btn").on("click", function () {
+    saveSingleProxy($(this).data("index"));
+  });
+
+  // Test Item
+  $(".test-proxy-btn").on("click", function () {
     var i = $(this).data("index");
     var $btn = $(this);
     var $headerResultSpan = $(`.proxy-header-test-result[data-index="${i}"]`);
 
     if (i !== undefined && list[i]) {
+      // Sync DOM
       var $item = $(`.list_a[data-id="${i}"]`);
       list[i].name = $item.find('.name').val();
-      // Use cleanProtocol to ensure valid protocol value
       list[i].protocol = cleanProtocol($item.find('.lh-select-val').text());
       list[i].ip = $item.find('.ip').val();
       list[i].port = $item.find('.port').val();
       list[i].username = $item.find('.username').val();
       list[i].password = $item.find('.password').val();
-      var proxyInfo = list[i];
 
-      // Check if IP and Port are present
-      if (!proxyInfo.ip || !proxyInfo.port) {
-        // Flash input fields or simple alert?
-        return;
-      }
+      if (!list[i].ip || !list[i].port) return;
 
       $headerResultSpan.text(I18n.t('testing')).removeClass("text-green text-orange text-red").addClass("text-blue");
       $btn.prop("disabled", true);
 
-      // Send message to background
       chrome.runtime.sendMessage({
         action: "testProxyConnection",
-        proxyInfo: proxyInfo
+        proxyInfo: list[i]
       }, function (response) {
         $btn.prop("disabled", false);
         if (chrome.runtime.lastError) {
           $headerResultSpan.text(I18n.t('test_failed')).removeClass("text-blue").addClass("text-red");
-          console.error(chrome.runtime.lastError);
-          return;
-        }
-
-        if (response && response.success) {
+        } else if (response && response.success) {
           var latency = response.latency;
           var colorClass = latency < 500 ? "text-green" : "text-orange";
           $headerResultSpan.text(latency + "ms").removeClass("text-blue").addClass(colorClass);
         } else {
-          var errorMsg = response && response.error ? response.error : I18n.t('test_failed');
-          // Simplify error message for header display
+          var errorMsg = (response && response.error) ? response.error : I18n.t('test_failed');
           if (errorMsg.length > 10) errorMsg = I18n.t('test_failed');
           $headerResultSpan.text(errorMsg).removeClass("text-blue").addClass("text-red");
         }
       });
     }
   });
-}
 
-function input_blur_init() {
-  $("input, textarea").on("blur", function () {
+  // Toggle Switch
+  $(document).off("change", ".proxy-status-toggle").on("change", ".proxy-status-toggle", function () {
     var i = $(this).data("index");
-    var val = $(this).val();
-    var name = $(this).attr("class");
-
-    if (name && name.indexOf(" ") !== -1) {
-      name = name.split(" ")[0];
-    }
-
-    input_blur(i, name, val);
-  });
-
-
-  $("input").on({
-    paste: function () {
-      var i = $(this).data("index");
-
-      var name = $(this).attr("class");
-      if (name == 'ip') {
-        var that = this;
-        setTimeout(function () {
-          var val = $(that).val();
-          if (val.indexOf(":") != -1) {
-            var txt_arr = val.split(":");
-            $(that).val(txt_arr[0]);
-            $(that).next().val(txt_arr[1]);
-            input_blur(i, 'ip', txt_arr[0]);
-            input_blur(i, 'port', txt_arr[1]);
-          }
-        }, 100);
-      }
-    }
-  });
-
-
-  $(".eye-toggle input").on("change", function () {
-    var i = $(this).parent().data("index");
-
     if (i !== undefined && list[i]) {
-      list[i].is_show = $(this).prop("checked") ? 1 : 0;
-      save = false;
-
-      var passwordInput = $(".password[data-index='" + i + "']");
-      passwordInput.attr("type", list[i].is_show == 1 ? "text" : "password");
-
-      // Update icon container class to match visibility
-      var $toggle = $(this).parent();
-      if (list[i].is_show == 1) {
-        $toggle.removeClass('hide-password').addClass('show-password');
+      list[i].disabled = !$(this).prop("checked");
+      const $item = $(this).closest('.list_a');
+      const $statusText = $item.find('.status-text');
+      if (list[i].disabled) {
+        $item.addClass('disabled');
+        $statusText.text(I18n.t('status_disabled'));
       } else {
-        $toggle.removeClass('show-password').addClass('hide-password');
+        $item.removeClass('disabled');
+        $statusText.text(I18n.t('status_enabled'));
+      }
+      saveSingleProxy(i);
+    }
+  });
+
+  // Header Collapse (excluding inputs)
+  $(document).off("click", ".proxy-header").on("click", ".proxy-header", function (e) {
+    if ($(e.target).closest('.switch-modern, .action-btn-delete, input').length) return;
+    $(this).closest('.list_a').toggleClass("collapsed");
+  });
+}
+
+function initSortable() {
+  const container = document.getElementById('proxy-list');
+  let dragItem = null;
+  const items = container.querySelectorAll('.list_a');
+
+  items.forEach(item => {
+    const handle = item.querySelector('.drag-handle');
+    handle.setAttribute('draggable', true);
+
+    handle.addEventListener('dragstart', (e) => {
+      dragItem = item;
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    handle.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      dragItem = null;
+      const newItems = Array.from(container.querySelectorAll('.list_a'));
+      const newList = newItems.map(node => {
+        const oldIdx = parseInt(node.getAttribute('data-id'));
+        return list[oldIdx];
+      });
+      list = newList;
+      save = false;
+      renderList();
+      saveData();
+    });
+
+    handle.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const target = e.target.closest('.list_a');
+      if (target && target !== dragItem) {
+        const rect = target.getBoundingClientRect();
+        const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > 0.5;
+        container.insertBefore(dragItem, next ? target.nextSibling : target);
+      }
+    });
+  });
+}
+
+// ==========================================
+// Data Persistence & Validation
+// ==========================================
+function input_blur(i, name, val) {
+  if (i !== undefined && name && list[i]) {
+    var validProperties = ["name", "ip", "port", "username", "password", "include_urls", "bypass_urls"];
+    if (validProperties.includes(name)) {
+      list[i][name] = val;
+      save = false;
+      if (["name", "ip", "port", "include_urls"].includes(name)) {
+        validateProxy(i, name, val);
+      }
+      if (["name", "ip", "port"].includes(name)) {
+        var info = list[i];
+        var previewText = `${info.name || I18n.t('unnamed_proxy')} · ${info.ip || "0.0.0.0"}:${info.port || "0"}`;
+        $(`.list_a[data-id="${i}"] .proxy-title-preview`).text(previewText).attr('title', previewText);
       }
     }
-  });
-
-
-  $(".del").on("click", function () {
-    var index = $(this).data("index");
-
-    if (index !== undefined && list[index]) {
-      var info = list[index];
-      var previewText = `${info.name || I18n.t('unnamed_proxy')} (${info.ip || "0.0.0.0"}:${info.port || "0"})`;
-      $(".del_tip_content").html(`${I18n.t('delete_proxy_confirm')}<br><span style="color: #e11d48; font-weight: 600; margin-top: 10px; display: block;">${previewText}</span>`);
-      $(".del_tip").show();
-      // Trigger animation
-      setTimeout(function () {
-        $(".del_tip").addClass("show");
-      }, 10);
-      del_index = index;
-    }
-  });
-
-
-  $(".item-save-btn").on("click", function () {
-    saveSingleProxy($(this).data("index"));
-  });
+  }
 }
 
-// Check for duplicate patterns in include_urls
-function checkIncludeUrlsConflict(i, includeUrls) {
-  if (!includeUrls || !includeUrls.trim()) return { hasConflict: false, error: '' };
-
-  var currentUrls = includeUrls.split(/[\n,]+/).map(function (s) {
-    return s.trim();
-  }).filter(function (s) {
-    return s;
-  });
-
-  for (var j = 0; j < list.length; j++) {
-    if (j === i) continue;
-    var otherProxy = list[j];
-    if (!otherProxy || !otherProxy.ip || !otherProxy.port) continue;
-
-    var otherUrls = (otherProxy.include_urls || '').split(/[\n,]+/).map(function (s) {
-      return s.trim();
-    }).filter(function (s) {
-      return s;
-    });
-
-    var commonPatterns = currentUrls.filter(function (pattern) {
-      return otherUrls.indexOf(pattern) !== -1;
-    });
-
-    if (commonPatterns.length > 0) {
-      var otherProxyName = otherProxy.name || (otherProxy.ip + ':' + otherProxy.port);
-      var errorMsg = I18n.t('alert_include_urls_conflict')
-        .replace('{pattern}', commonPatterns[0])
-        .replace('{proxy}', otherProxyName);
-      return {
-        hasConflict: true,
-        error: errorMsg
-      };
-    }
-  }
-
-  return { hasConflict: false, error: '' };
-}
-
-function saveSingleProxy(i) {
-  var info = list[i];
-  if (!info) return;
-
-  var isNameValid = info.name.trim() !== '' && !list.some((item, index) => index !== i && item.name === info.name);
-
-  var isIpValid = true;
-  var ipErrorMsg = '';
-
-  // Advanced IP/Domain Validation Logic
-  var parts = info.ip.split('.');
-  var isIpLike = parts.length === 4 && parts.every(p => /^\d+$/.test(p));
-
-  if (isIpLike) {
-    var ipValidation = validateIPAddress(info.ip);
-    if (!ipValidation.isValid) {
-      isIpValid = false;
-      ipErrorMsg = ipValidation.error;
-    }
-  } else {
-    if (!isValidHost(info.ip)) {
-      isIpValid = false;
-      ipErrorMsg = I18n.t('alert_ip_invalid');
-    }
-  }
-
-  var port = parseInt(info.port);
-  var isPortValid = !isNaN(port) && port >= 1 && port <= 65535 && info.port.toString() === port.toString();
-
-  // Check include_urls conflict
-  var isIncludeUrlsValid = true;
-  var includeUrlsErrorMsg = '';
-  var includeUrlsCheck = checkIncludeUrlsConflict(i, info.include_urls);
-  if (includeUrlsCheck.hasConflict) {
-    isIncludeUrlsValid = false;
-    includeUrlsErrorMsg = includeUrlsCheck.error;
-  }
-
-  var $item = $(`.list_a[data-id="${i}"]`);
-
-  // Update UI error states
-  if (isNameValid) $item.find('.name').removeClass('input-error');
-  else $item.find('.name').addClass('input-error');
-
-  if (isIpValid) $item.find('.ip').removeClass('input-error');
-  else $item.find('.ip').addClass('input-error');
-
-  if (isPortValid) $item.find('.port').removeClass('input-error');
-  else $item.find('.port').addClass('input-error');
-
-  if (isIncludeUrlsValid) $item.find('.include_urls').removeClass('input-error');
-  else $item.find('.include_urls').addClass('input-error');
-
-  if (!isNameValid || !isIpValid || !isPortValid || !isIncludeUrlsValid) {
-    var failMsg = I18n.t('save_failed');
-    if (!isNameValid) {
-      const isDuplicate = list.some((item, index) => index !== i && item.name === info.name);
-      showTip(failMsg + (isDuplicate ? I18n.t('alert_name_duplicate') : I18n.t('alert_name_required')), true);
-    } else if (!isIpValid) {
-      showTip(failMsg + (ipErrorMsg || I18n.t('alert_ip_invalid')), true);
-    } else if (!isPortValid) {
-      showTip(failMsg + I18n.t('alert_port_invalid'), true);
-    } else if (!isIncludeUrlsValid) {
-      showTip(failMsg + includeUrlsErrorMsg, true);
-    }
-    return;
-  }
-
-  // Requirement 2 & 3: Always save to local first
+function saveData() {
   chrome.storage.local.set({ list: list }, function () {
     if (chrome.runtime.lastError) {
       console.error("Local save failed:", chrome.runtime.lastError);
       showTip(I18n.t('save_failed'), true);
       return;
     }
-
-    // If sync enabled, also save to remote
     if (auto_sync) {
       chrome.storage.sync.set({ list: list }, function () {
         if (chrome.runtime.lastError) {
@@ -1624,112 +726,151 @@ function saveSingleProxy(i) {
     } else {
       showTip(I18n.t('save_success'), false);
     }
-
-    // Notify background to refresh proxy settings
     chrome.runtime.sendMessage({ action: "refreshProxy" });
   });
-
   save = true;
 }
 
-function input_blur(i, name, val) {
-  if (i !== undefined && name && list[i]) {
-    var validProperties = ["name", "ip", "port", "username", "password", "include_urls", "bypass_urls"];
-    if (validProperties.includes(name)) {
-      list[i][name] = val;
-      save = false;
+function saveSingleProxy(i) {
+  var info = list[i];
+  if (!info) return;
 
-      // Perform validation
-      if (["name", "ip", "port", "include_urls"].includes(name)) {
-        validateProxy(i, name, val);
-      }
+  var isNameValid = info.name.trim() !== '' && !list.some((item, index) => index !== i && item.name === info.name);
+  var isIpValid = true, ipErrorMsg = '';
+  var parts = info.ip.split('.');
+  var isIpLike = parts.length === 4 && parts.every(p => /^\d+$/.test(p));
 
-      // If name, IP, or port is modified, synchronously update title preview
-      if (["name", "ip", "port"].includes(name)) {
-        var info = list[i];
-        var previewText = `${info.name || I18n.t('unnamed_proxy')} · ${info.ip || "0.0.0.0"}:${info.port || "0"}`;
-        $(`.list_a[data-id="${i}"] .proxy-title-preview`).text(previewText).attr('title', previewText);
-      }
-    }
+  if (isIpLike) {
+    var ipValidation = validateIPAddress(info.ip);
+    if (!ipValidation.isValid) { isIpValid = false; ipErrorMsg = ipValidation.error; }
+  } else {
+    if (!isValidHost(info.ip)) { isIpValid = false; ipErrorMsg = I18n.t('alert_ip_invalid'); }
   }
+
+  var port = parseInt(info.port);
+  var isPortValid = !isNaN(port) && port >= 1 && port <= 65535 && info.port.toString() === port.toString();
+
+  var isIncludeUrlsValid = true, includeUrlsErrorMsg = '';
+  var includeUrlsCheck = checkIncludeUrlsConflict(i, info.include_urls);
+  if (includeUrlsCheck.hasConflict) { isIncludeUrlsValid = false; includeUrlsErrorMsg = includeUrlsCheck.error; }
+
+  var $item = $(`.list_a[data-id="${i}"]`);
+
+  if (isNameValid) $item.find('.name').removeClass('input-error'); else $item.find('.name').addClass('input-error');
+  if (isIpValid) $item.find('.ip').removeClass('input-error'); else $item.find('.ip').addClass('input-error');
+  if (isPortValid) $item.find('.port').removeClass('input-error'); else $item.find('.port').addClass('input-error');
+  if (isIncludeUrlsValid) $item.find('.include_urls').removeClass('input-error'); else $item.find('.include_urls').addClass('input-error');
+
+  if (!isNameValid || !isIpValid || !isPortValid || !isIncludeUrlsValid) {
+    var failMsg = I18n.t('save_failed');
+    if (!isNameValid) showTip(failMsg + (list.some((item, index) => index !== i && item.name === info.name) ? I18n.t('alert_name_duplicate') : I18n.t('alert_name_required')), true);
+    else if (!isIpValid) showTip(failMsg + (ipErrorMsg || I18n.t('alert_ip_invalid')), true);
+    else if (!isPortValid) showTip(failMsg + I18n.t('alert_port_invalid'), true);
+    else if (!isIncludeUrlsValid) showTip(failMsg + includeUrlsErrorMsg, true);
+    return;
+  }
+
+  saveData();
 }
 
-$(".del_tip_close_btn").on("click", function () {
-  $(".del_tip").removeClass("show");
-  setTimeout(function () {
-    $(".del_tip").hide();
-  }, 300);
-});
+// Validation Helpers
+function validateProxy(i, name, val) {
+  var isValid = true;
+  var errorMessage = '';
+  var $item = $(`.list_a[data-id="${i}"]`);
+  var $input = $item.find('.' + name);
 
-$(".del_tip_Cancel_btn").on("click", function () {
-  $(".del_tip").removeClass("show");
-  setTimeout(function () {
-    $(".del_tip").hide();
-  }, 300);
-});
-
-// Close delete popup on backdrop click
-$(".del_tip").on("click", function (e) {
-  if (e.target === this) {
-    $(this).removeClass("show");
-    setTimeout(function () {
-      $(".del_tip").hide();
-    }, 300);
+  if (name === 'name') {
+    var isDuplicate = list.some((item, index) => index !== i && item.name === val);
+    if (val.trim() === '') { isValid = false; errorMessage = I18n.t('alert_name_required') || '代理名称不能为空'; }
+    else if (isDuplicate) { isValid = false; errorMessage = I18n.t('alert_name_duplicate') || '代理名称不能重复'; }
+  } else if (name === 'include_urls') {
+    var includeUrlsCheck = checkIncludeUrlsConflict(i, val);
+    if (includeUrlsCheck.hasConflict) { isValid = false; errorMessage = includeUrlsCheck.error; }
+  } else if (name === 'ip') {
+    var parts = val.split('.');
+    var isIpLike = parts.length === 4 && parts.every(p => /^\d+$/.test(p));
+    if (isIpLike) {
+      var ipValidation = validateIPAddress(val);
+      if (!ipValidation.isValid) { isValid = false; errorMessage = ipValidation.error; }
+    } else {
+      if (!isValidHost(val)) { isValid = false; errorMessage = I18n.t('alert_ip_invalid') || '请输入有效的代理地址'; }
+    }
+  } else if (name === 'port') {
+    var port = parseInt(val);
+    if (isNaN(port) || port < 1 || port > 65535 || val.toString() !== port.toString()) {
+      isValid = false; errorMessage = I18n.t('alert_port_invalid') || '端口号必须在1-65535范围内';
+    }
   }
-});
 
+  if (isValid) { $input.removeClass('input-error').removeAttr('title'); }
+  else { $input.addClass('input-error'); if (errorMessage) $input.attr('title', errorMessage); }
+  return isValid;
+}
 
-$(".del_tip_del_btn").on("click", function () {
-  $(".del_tip").removeClass("show");
-  setTimeout(function () {
-    $(".del_tip").hide();
-  }, 300);
-
-  if (del_index !== undefined && del_index >= 0 && list[del_index]) {
-    list.splice(del_index, 1);
-
-    // Always save to local
-    chrome.storage.local.set({ list: list }, function () {
-      // If sync enabled, also sync deletion
-      if (auto_sync) {
-        chrome.storage.sync.set({ list: list }, function () {
-          if (chrome.runtime.lastError) {
-            console.error("Remote sync failed (delete):", chrome.runtime.lastError);
-            showTip(I18n.t('sync_failed') || "同步失败，请重试", true);
-          }
-        });
-      }
-
-      // Notify background to refresh proxy settings
-      chrome.runtime.sendMessage({ action: "refreshProxy" });
-    });
-
-    list_init();
+function validateIPAddress(ip) {
+  if (!ip || ip.trim() === '') return { isValid: false, error: I18n.t('alert_ip_required') || 'IP地址不能为空' };
+  var parts = ip.split('.');
+  if (parts.length !== 4) return { isValid: false, error: I18n.t('alert_ip_format') || 'IP地址格式错误' };
+  for (var i = 0; i < parts.length; i++) {
+    var part = parts[i];
+    if (part === '') return { isValid: false, error: I18n.t('alert_ip_part_empty') };
+    if (!/^\d+$/.test(part)) return { isValid: false, error: I18n.t('alert_ip_part_nan') };
+    if (part.length > 1 && part[0] === '0') return { isValid: false, error: I18n.t('alert_ip_leading_zero') };
+    var num = parseInt(part, 10);
+    if (isNaN(num) || num < 0 || num > 255) return { isValid: false, error: I18n.t('alert_ip_part_range') };
   }
-});
+  return { isValid: true, error: '' };
+}
 
-$(".del_tip").hide();
+function isValidHost(val) {
+  var ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+  if (ipv4Regex.test(val)) return true;
+  var hostnameRegex = /^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/;
+  return hostnameRegex.test(val);
+}
 
-$(".export_btn").on("click", function () {
-  // Reconstruct proxy objects in specified order
+function checkIncludeUrlsConflict(i, includeUrls) {
+  if (!includeUrls || !includeUrls.trim()) return { hasConflict: false, error: '' };
+  var currentUrls = includeUrls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+
+  for (var j = 0; j < list.length; j++) {
+    if (j === i) continue;
+    var otherProxy = list[j];
+    if (!otherProxy || !otherProxy.ip || !otherProxy.port) continue;
+    var otherUrls = (otherProxy.include_urls || '').split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+    var commonPatterns = currentUrls.filter(pattern => otherUrls.indexOf(pattern) !== -1);
+
+    if (commonPatterns.length > 0) {
+      var otherProxyName = otherProxy.name || (otherProxy.ip + ':' + otherProxy.port);
+      var errorMsg = I18n.t('alert_include_urls_conflict').replace('{pattern}', commonPatterns[0]).replace('{proxy}', otherProxyName);
+      return { hasConflict: true, error: errorMsg };
+    }
+  }
+  return { hasConflict: false, error: '' };
+}
+
+function cleanProtocol(protocol) {
+  if (!protocol || typeof protocol !== 'string') return 'http';
+  let cleaned = protocol.replace(/^(https?:\/?\/?)/i, '').trim().toLowerCase();
+  const validProtocols = ['http', 'https', 'socks4', 'socks5', 'socks'];
+  if (!validProtocols.includes(cleaned)) return 'http';
+  return cleaned;
+}
+
+// ==========================================
+// Import / Export
+// ==========================================
+function exportConfig() {
   var orderedProxies = list.map(function (proxy) {
     var ordered = {
-      "name": proxy.name,
-      "protocol": proxy.protocol,
-      "ip": proxy.ip,
-      "port": proxy.port,
-      "username": proxy.username,
-      "password": proxy.password,
+      "name": proxy.name, "protocol": proxy.protocol, "ip": proxy.ip, "port": proxy.port,
+      "username": proxy.username, "password": proxy.password,
       "fallback_policy": proxy.fallback_policy || "direct",
-      "is_show": proxy.is_show,
-      "open": proxy.open,
-      "include_urls": proxy.include_urls,
-      "bypass_urls": proxy.bypass_urls
+      "is_show": proxy.is_show, "open": proxy.open,
+      "include_urls": proxy.include_urls, "bypass_urls": proxy.bypass_urls
     };
-    // Preserve disabled status (if exists)
-    if (proxy.disabled !== undefined) {
-      ordered.disabled = proxy.disabled;
-    }
+    if (proxy.disabled !== undefined) ordered.disabled = proxy.disabled;
     return ordered;
   });
 
@@ -1751,30 +892,17 @@ $(".export_btn").on("click", function () {
   document.body.appendChild(downloadAnchorNode);
   downloadAnchorNode.click();
   downloadAnchorNode.remove();
-});
+}
 
-$(".import_json_btn").on("click", function () {
-  $("#json_file_input").click();
-});
-
-$("#json_file_input").on("change", function (e) {
+function importConfig(e) {
   var file = e.target.files[0];
   if (!file) return;
-
   var reader = new FileReader();
   reader.onload = function (e) {
     try {
       var data = JSON.parse(e.target.result);
-
-      // Handle new config bundle format
       if (data && data.proxies && Array.isArray(data.proxies)) {
-        // Clean protocol fields during import to prevent corruption
-        list = data.proxies.map(function (proxy) {
-          return {
-            ...proxy,
-            protocol: cleanProtocol(proxy.protocol || proxy.type || 'http')
-          };
-        });
+        list = data.proxies.map(p => ({ ...p, protocol: cleanProtocol(p.protocol || p.type || 'http') }));
         if (data.settings) {
           if (data.settings.auto_sync !== undefined) {
             auto_sync = data.settings.auto_sync;
@@ -1783,180 +911,318 @@ $("#json_file_input").on("change", function (e) {
           }
           if (data.settings.appLanguage) {
             I18n.setLanguage(data.settings.appLanguage);
-            // Update language display
-            const $options = $('#language-options li');
-            const currentLangText = $options.filter(`[data-value="${data.settings.appLanguage}"]`).text();
-            if (currentLangText) {
-              $('#current-language-display').text(currentLangText);
-            }
+            $('#current-language-display').text($(`#language-options li[data-value="${data.settings.appLanguage}"]`).text());
           }
-          // Import theme settings
           if (data.settings.themeMode) {
             themeMode = data.settings.themeMode;
-            $('.theme-btn').removeClass('active');
-            $('.theme-btn[data-theme="' + themeMode + '"]').addClass('active');
-            if (themeMode === 'auto') {
-              $('.auto-mode-time-row').show();
-            } else {
-              $('.auto-mode-time-row').hide();
-              applyTheme(themeMode);
-            }
+            if (data.settings.nightModeStart) nightModeStart = data.settings.nightModeStart;
+            if (data.settings.nightModeEnd) nightModeEnd = data.settings.nightModeEnd;
+            saveThemeSettings();
+            updateThemeUI();
           }
-          if (data.settings.nightModeStart) {
-            nightModeStart = data.settings.nightModeStart;
-            $('#night-mode-start').val(nightModeStart);
-          }
-          if (data.settings.nightModeEnd) {
-            nightModeEnd = data.settings.nightModeEnd;
-            $('#night-mode-end').val(nightModeEnd);
-          }
-          saveThemeSettings();
         }
         save = false;
-        list_init();
-        saveData(); // Persist immediately
-      }
-      // Compatible with old array-only format
-      else if (Array.isArray(data)) {
-        // Clean protocol fields during import to prevent corruption
-        list = data.map(function (proxy) {
-          return {
-            ...proxy,
-            protocol: cleanProtocol(proxy.protocol || proxy.type || 'http')
-          };
-        });
+        renderList();
+        saveData();
+      } else if (Array.isArray(data)) {
+        list = data.map(p => ({ ...p, protocol: cleanProtocol(p.protocol || p.type || 'http') }));
         save = false;
-        list_init();
-        saveData(); // Persist immediately
+        renderList();
+        saveData();
       } else {
         alert(I18n.t('alert_invalid_format'));
       }
     } catch (err) {
       alert(I18n.t('alert_parse_error') + err.message);
     }
-    $("#json_file_input").val(""); // Reset input
+    $("#json_file_input").val("");
   };
   reader.readAsText(file);
-});
+}
 
-// Handle auto-sync toggle
-$("#auto_sync_toggle").on("change", function () {
-  auto_sync = $(this).prop("checked");
-  chrome.storage.local.set({ auto_sync: auto_sync });
-});
+// ==========================================
+// Popups (Delete, Proxy Detection, PAC)
+// ==========================================
 
-// Expand/Collapse all button
-$("#expand-collapse-btn").on("click", function () {
-  var $btn = $(this);
-  var isExpanded = $btn.hasClass("expanded");
-
-  if (isExpanded) {
-    $(".list_a").addClass("collapsed");
-    $btn.removeClass("expanded");
-    $btn.html(`<svg class="icon-expand" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg> <span data-i18n="expand_all">${I18n.t('expand_all')}</span>`);
-  } else {
-    $(".list_a").removeClass("collapsed");
-    $btn.addClass("expanded");
-    $btn.html(`<svg class="icon-collapse" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg> <span data-i18n="collapse_all">${I18n.t('collapse_all')}</span>`);
+// Delete Popup
+$(".del_tip_close_btn, .del_tip_Cancel_btn, .del_tip").on("click", function (e) {
+  if (this === e.target || $(this).hasClass('del_tip_close_btn') || $(this).hasClass('del_tip_Cancel_btn')) {
+    $(".del_tip").removeClass("show");
+    setTimeout(function () { $(".del_tip").hide(); }, 300);
   }
 });
 
-// Collapse/Expand single item
-$(document).on("click", ".proxy-header", function (e) {
-  // If click is on switch, button or input, do not trigger collapse
-  if ($(e.target).closest('.switch-modern, .action-btn-delete, input').length) {
-    return;
-  }
-  $(this).closest('.list_a').toggleClass("collapsed");
-});
+$(".del_tip_del_btn").on("click", function () {
+  $(".del_tip").removeClass("show");
+  setTimeout(function () { $(".del_tip").hide(); }, 300);
 
-// Disable/Enable toggle
-$(document).on("change", ".proxy-status-toggle", function () {
-  var i = $(this).data("index");
-  if (i !== undefined && list[i]) {
-    list[i].disabled = !$(this).prop("checked");
-
-    // Update UI status
-    const $item = $(this).closest('.list_a');
-    const $statusText = $item.find('.status-text');
-    if (list[i].disabled) {
-      $item.addClass('disabled');
-      $statusText.text(I18n.t('status_disabled'));
-    } else {
-      $item.removeClass('disabled');
-      $statusText.text(I18n.t('status_enabled'));
-    }
-
-    saveSingleProxy(i); // Auto save
-  }
-});
-
-function init_sortable() {
-  const container = document.getElementById('proxy-list');
-  let dragItem = null;
-
-  const items = container.querySelectorAll('.list_a');
-  items.forEach(item => {
-    const handle = item.querySelector('.drag-handle');
-    handle.setAttribute('draggable', true);
-
-    handle.addEventListener('dragstart', (e) => {
-      dragItem = item;
-      item.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
+  if (del_index !== undefined && del_index >= 0 && list[del_index]) {
+    list.splice(del_index, 1);
+    chrome.storage.local.set({ list: list }, function () {
+      if (auto_sync) chrome.storage.sync.set({ list: list });
+      chrome.runtime.sendMessage({ action: "refreshProxy" });
     });
+    renderList();
+  }
+});
 
-    handle.addEventListener('dragend', () => {
-      item.classList.remove('dragging');
-      dragItem = null;
+$(".del_tip").hide();
 
-      const newItems = Array.from(container.querySelectorAll('.list_a'));
-      const newList = newItems.map(node => {
-        const oldIdx = parseInt(node.getAttribute('data-id'));
-        return list[oldIdx];
+// Proxy Detection
+async function detectProxy() {
+  var $btn = $("#detect-proxy-btn");
+  $btn.prop("disabled", true);
+
+  $("#detection-status-icon").html(detectionIcons.loading);
+  $("#detection-status-text").text(I18n.t('proxy_effect_testing'));
+  $("#detection-details, #detection-warning, #detection-suggestion").hide();
+  $(".proxy_detection_tip").show().addClass("show");
+
+  try {
+    var browserConfig = await getBrowserProxyConfig();
+    var pluginConfig = await getPluginProxyConfig();
+    var result = analyzeProxyStatus(browserConfig, pluginConfig);
+    displayDetectionResult(result);
+  } catch (error) {
+    console.error("Proxy detection error:", error);
+    displayErrorResult(error.message);
+  }
+  $btn.prop("disabled", false);
+}
+
+function getBrowserProxyConfig() {
+  return new Promise(function (resolve) {
+    if (typeof chrome !== 'undefined' && chrome.proxy && chrome.proxy.settings) {
+      chrome.proxy.settings.get({ incognito: false }, function (config) {
+        resolve(config || { value: { mode: 'system' } });
       });
+    } else {
+      resolve({ value: { mode: 'system' } });
+    }
+  });
+}
 
-      list = newList;
-      save = false;
-      list_init();
-
-      // Auto save after drag sort
-      saveData();
-    });
-
-    handle.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-
-      const target = e.target.closest('.list_a');
-      if (target && target !== dragItem) {
-        const rect = target.getBoundingClientRect();
-        const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > 0.5;
-        container.insertBefore(dragItem, next ? target.nextSibling : target);
-      }
+function getPluginProxyConfig() {
+  return new Promise(function (resolve) {
+    chrome.storage.local.get(['proxyMode', 'currentProxy', 'list'], function (result) {
+      resolve({
+        mode: result.proxyMode || 'disabled',
+        currentProxy: result.currentProxy || null,
+        list: result.list || []
+      });
     });
   });
 }
 
+function analyzeProxyStatus(browserConfig, pluginConfig) {
+  var result = { status: 'normal', statusText: '', statusIcon: '', details: [], warning: null, suggestion: null };
+  var browserMode = (browserConfig.value && browserConfig.value.mode) || 'system';
+  var levelOfControl = browserConfig.levelOfControl || '';
+
+  var proxyServer = '', proxyProtocol = '';
+  if (browserConfig.value && browserConfig.value.rules) {
+    var rules = browserConfig.value.rules;
+    if (rules.singleProxy) { proxyServer = rules.singleProxy.host + ':' + rules.singleProxy.port; proxyProtocol = rules.singleProxy.scheme || 'http'; }
+    else if (rules.proxyForHttp || rules.proxyForHttps) { var p = rules.proxyForHttp || rules.proxyForHttps; proxyServer = p.host + ':' + p.port; proxyProtocol = p.scheme || 'http'; }
+  } else if (browserConfig.value && browserConfig.value.pacScript) { proxyServer = 'PAC Script'; proxyProtocol = 'Auto'; }
+
+  result.details.push({ label: I18n.t('proxy_mode'), value: getModeDisplayName(browserMode) });
+  if (proxyServer) result.details.push({ label: I18n.t('proxy_server'), value: proxyServer });
+  if (proxyProtocol) result.details.push({ label: I18n.t('proxy_protocol'), value: proxyProtocol.toUpperCase() });
+
+  var controlText = '';
+  if (levelOfControl === 'controlled_by_this_extension') controlText = I18n.t('proxy_control_this');
+  else if (levelOfControl === 'controlled_by_other_extensions') controlText = I18n.t('proxy_control_other');
+  else controlText = I18n.t('proxy_control_system');
+  result.details.push({ label: I18n.t('proxy_control'), value: controlText });
+
+  var isUsingPlugin = false;
+  var isFirefox = navigator.userAgent.indexOf("Firefox") !== -1;
+
+  if (isFirefox) {
+    if (pluginConfig.mode !== 'disabled' && levelOfControl !== 'controlled_by_other_extensions') isUsingPlugin = true;
+  } else {
+    if (browserMode === 'fixed_servers' && pluginConfig.mode === 'manual') {
+      if (pluginConfig.currentProxy && proxyServer) {
+        var expectedServer = pluginConfig.currentProxy.ip + ':' + pluginConfig.currentProxy.port;
+        isUsingPlugin = (proxyServer === expectedServer);
+      }
+    } else if (browserMode === 'pac_script' && pluginConfig.mode === 'auto') { isUsingPlugin = true; }
+    else if (browserMode === 'disabled' && pluginConfig.mode === 'disabled') { isUsingPlugin = true; }
+  }
+
+  var hasOtherProxy = (levelOfControl === 'controlled_by_other_extensions');
+  if (!isFirefox && pluginConfig.mode !== 'disabled') hasOtherProxy = hasOtherProxy || (browserMode === 'system');
+
+  if (pluginConfig.mode === 'disabled') {
+    result.status = 'normal'; result.statusText = I18n.t('status_disabled'); result.statusIcon = detectionIcons.success;
+    result.details.push({ label: I18n.t('proxy_effect'), value: I18n.t('proxy_control_system') });
+  } else if (isUsingPlugin && !hasOtherProxy) {
+    result.status = 'normal'; result.statusText = I18n.t('proxy_status_normal'); result.statusIcon = detectionIcons.success;
+    result.details.push({ label: I18n.t('proxy_effect'), value: I18n.t('proxy_effect_verified') });
+  } else {
+    result.status = 'warning'; result.statusText = I18n.t('proxy_status_warning'); result.statusIcon = detectionIcons.warning;
+    result.warning = I18n.t('proxy_warning_system'); result.suggestion = I18n.t('proxy_suggestion_check');
+    result.details.push({ label: I18n.t('proxy_effect'), value: I18n.t('proxy_effect_failed') });
+  }
+  return result;
+}
+
+function getModeDisplayName(mode) {
+  switch (mode) {
+    case 'fixed_servers': return I18n.t('mode_manual');
+    case 'pac_script': return I18n.t('mode_auto');
+    case 'system': return I18n.t('proxy_control_system');
+    case 'direct': return I18n.t('mode_disabled');
+    default: return mode || I18n.t('mode_disabled');
+  }
+}
+
+const detectionIcons = {
+  success: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none"><circle cx="12" cy="12" r="10" fill="#dcfce7"/><path d="M8 12l2.5 2.5L16 9" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  warning: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none"><circle cx="12" cy="12" r="10" fill="#fef3c7"/><path d="M12 8v4m0 4h.01" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/></svg>',
+  error: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none"><circle cx="12" cy="12" r="10" fill="#fee2e2"/><path d="M15 9l-6 6m0-6l6 6" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/></svg>',
+  loading: '<svg class="spin" viewBox="0 0 24 24" width="48" height="48" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" opacity="0.3"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z"/></svg>'
+};
+
+function displayDetectionResult(result) {
+  var iconKey = result.status === 'normal' ? 'success' : (result.status === 'warning' ? 'warning' : 'error');
+  $("#detection-status-icon").html(detectionIcons[iconKey]);
+  $("#detection-status-text").text(result.statusText);
+
+  var detailsHtml = '';
+  result.details.forEach(function (item) {
+    detailsHtml += '<div class="detection-row"><span class="detection-label">' + item.label + '</span><span class="detection-value">' + item.value + '</span></div>';
+  });
+  $("#detection-details").html(detailsHtml).show();
+
+  if (result.warning) $("#detection-warning").text(result.warning).show(); else $("#detection-warning").hide();
+  if (result.suggestion) { $("#detection-suggestion-text").text(result.suggestion); $("#detection-suggestion").show(); } else $("#detection-suggestion").hide();
+}
+
+function displayErrorResult(errorMsg) {
+  $("#detection-status-icon").html(detectionIcons.error);
+  $("#detection-status-text").text(I18n.t('proxy_status_error'));
+  $("#detection-details").html('<div class="detection-row"><span class="detection-label">Error</span><span class="detection-value">' + (errorMsg || I18n.t('proxy_suggestion_retry')) + '</span></div>').show();
+  $("#detection-warning").hide();
+  $("#detection-suggestion-text").text(I18n.t('proxy_suggestion_retry'));
+  $("#detection-suggestion").show();
+}
+
+$(".proxy_detection_close_btn, .proxy_detection_close_btn2, .proxy_detection_tip").on("click", function (e) {
+  if (this === e.target || $(this).hasClass('proxy_detection_close_btn') || $(this).hasClass('proxy_detection_close_btn2')) {
+    $(".proxy_detection_tip").removeClass("show");
+    setTimeout(function () { $(".proxy_detection_tip").hide(); }, 300);
+  }
+});
+
+// PAC Details
+function showPacDetails() {
+  updatePacDetails();
+  pacStorageListener = function (changes, namespace) {
+    if (namespace === 'local' && (changes.list || changes.proxyMode)) {
+      updatePacDetails();
+    }
+  };
+  chrome.storage.onChanged.addListener(pacStorageListener);
+  $(".pac_details_tip").show().addClass("show");
+}
+
+function updatePacDetails() {
+  chrome.storage.local.get(['proxyMode', 'list'], function (result) {
+    const mode = result.proxyMode || 'disabled';
+    const proxyList = result.list || [];
+    const pacData = generatePacDetailsData(proxyList);
+
+    $("#pac-mode-value").text(mode === 'auto' ? I18n.t('mode_auto') : I18n.t('mode_disabled'));
+    $("#pac-generated-time").text(new Date().toLocaleString());
+    $("#pac-rules-count").text(pacData.rules.length);
+
+    var rulesHtml = '';
+    if (pacData.rules.length === 0) rulesHtml = '<div class="pac-rule-item empty">' + I18n.t('pac_no_rules') + '</div>';
+    else {
+      pacData.rules.forEach(function (rule) {
+        rulesHtml += `<div class="pac-rule-item"><span class="pac-rule-pattern">${escapeHtml(rule.pattern)}</span><span class="pac-rule-arrow">→</span><span class="pac-rule-proxy">${escapeHtml(rule.proxy)}</span></div>`;
+      });
+    }
+    $("#pac-rules-list").html(rulesHtml);
+    $("#pac-script-content").text(pacData.script);
+  });
+}
+
+function generatePacDetailsData(proxyList) {
+  var rules = [];
+  var script = "function FindProxyForURL(url, host) {\n";
+  var usedPatterns = new Set();
+
+  proxyList.forEach(function (proxy) {
+    if (proxy.disabled === true || !proxy.ip || !proxy.port) return;
+    const type = (proxy.protocol || "HTTP").toUpperCase();
+    let proxyType = type.startsWith("SOCKS") ? "SOCKS5" : "PROXY";
+    const proxyStr = proxyType + " " + proxy.ip + ":" + proxy.port;
+    const fallback = proxy.fallback_policy === "reject" ? "" : "; DIRECT";
+    const returnVal = '"' + proxyStr + fallback + '"';
+
+    if (proxy.include_urls) {
+      const includeUrls = proxy.include_urls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+      includeUrls.forEach(function (pattern) {
+        if (usedPatterns.has(pattern)) return;
+        usedPatterns.add(pattern);
+        rules.push({ pattern: pattern, proxy: proxy.name || (proxy.ip + ":" + proxy.port) });
+
+        if (pattern.includes('*')) {
+          const regexPattern = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
+          script += '  if (/' + regexPattern + '/.test(host)) return ' + returnVal + ';\n';
+        } else {
+          script += '  if (dnsDomainIs(host, "' + pattern + '") || host === "' + pattern + '") return ' + returnVal + ';\n';
+        }
+      });
+    }
+  });
+  script += '  return "DIRECT";\n}';
+  return { rules: rules, script: script };
+}
+
+$(".pac_details_close_btn, .pac_details_close_btn2, .pac_details_tip").on("click", function (e) {
+  if (this === e.target || $(this).hasClass('pac_details_close_btn') || $(this).hasClass('pac_details_close_btn2')) {
+    if (pacStorageListener) { chrome.storage.onChanged.removeListener(pacStorageListener); pacStorageListener = null; }
+    $(".pac_details_tip").removeClass("show");
+    setTimeout(function () { $(".pac_details_tip").hide(); }, 300);
+  }
+});
+
+$("#pac-copy-btn").on("click", function () {
+  var script = $("#pac-script-content").text();
+  navigator.clipboard.writeText(script).then(function () {
+    var $btn = $("#pac-copy-btn");
+    var originalText = $btn.text();
+    $btn.text(I18n.t('pac_copied'));
+    setTimeout(function () { $btn.text(originalText); }, 2000);
+  }).catch(function (err) { console.error("Failed to copy:", err); });
+});
+
+$(".pac_details_tip").hide();
+
+// ==========================================
+// Utilities
+// ==========================================
 function showTip(msg, isError) {
   var $tip = $(".su_tip");
   $tip.text(msg);
-  if (isError) {
-    $tip.addClass("error");
-  } else {
-    $tip.removeClass("error");
-  }
+  if (isError) $tip.addClass("error"); else $tip.removeClass("error");
   $tip.stop(true, true).fadeIn("slow").delay(1000).fadeOut("slow");
 }
 
-function isValidHost(val) {
-  // IPv4 strict check
-  var ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-  if (ipv4Regex.test(val)) return true;
-
-  // Hostname check (RFC 1123)
-  var hostnameRegex = /^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/;
-  if (hostnameRegex.test(val)) return true;
-
-  return false;
+function escapeHtml(text) {
+  if (!text) return '';
+  var div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
+
+$(".su_tip").hide();
+
+// Spin Animation
+var style = document.createElement('style');
+style.textContent = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } .spin { animation: spin 1s linear infinite; }';
+document.head.appendChild(style);
