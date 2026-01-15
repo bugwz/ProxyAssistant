@@ -27,7 +27,7 @@
 
 </div>
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113213758/assets/store/promotional/marquee-1632x656.jpeg)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234633/assets/store/promotional/marquee-1632x656.jpeg)
 
 ## ✨ 機能特徴
 
@@ -49,7 +49,7 @@
 | **手動** | リストから手動でプロキシを選択 |
 | **自動** | URLルールに基づいて自動的にプロキシを選択（PACモード） |
 
-| ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113213758/assets/screenshots/popup/disabled.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113213758/assets/screenshots/popup/manual.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113213758/assets/screenshots/popup/auto.png) |
+| ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234633/assets/screenshots/popup/disabled.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234633/assets/screenshots/popup/manual.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234633/assets/screenshots/popup/auto.png) |
 |:---:|:---:|:---:|
 | 無効モード | 手動モード | 自動モード |
 
@@ -87,7 +87,7 @@
 - **ダークモード**: 夜間使用
 - **自動切り替え**: 時間に応じてテーマを自動切り替え（設定可能）
 
-| ![ライトモード](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113213758/assets/screenshots/main/theme-light.png) | ![ダークモード](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113213758/assets/screenshots/main/theme-dark.png) |
+| ![ライトモード](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234633/assets/screenshots/main/theme-light.png) | ![ダークモード](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234633/assets/screenshots/main/theme-dark.png) |
 |:---:|:---:|
 | ライトモード | ダークモード |
 
@@ -117,7 +117,7 @@
 
 ## 📷 設定画面
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260113213758/assets/screenshots/main/settings.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234633/assets/screenshots/main/settings.png)
 
 ## 📁 プロジェクト構成
 
