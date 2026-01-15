@@ -81,6 +81,12 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome und Firefo
 - Identifizieren anderer Erweiterungen, die den Proxy steuern
 - Drei Ergebnisse bereitstellen: Status, Warnung, Fehler
 
+### 🔍 PAC-Skript-Vorschau
+
+- **Skript-Ansicht**: Automatisch generierten PAC-Skript-Inhalt anzeigen
+- **Regelliste**: Klare Anzeige aller aktiven Proxy-Matching-Regeln
+- **Debug-Support**: Einfache Fehlerbehebung bei Matching-Problemen im Auto-Modus
+
 ### 🌙 Themen-Modi
 
 - **Hellmodus**: Für den Tag
@@ -140,20 +146,18 @@ ProxyAssistant/
 │   │   ├── i18n.js           # Internationalisierungsunterstützung
 │   │   └── jquery.js         # jQuery-Bibliothek
 │   ├── css/
-│   │   ├── main.css          # Stile der Einstellungsseite
+│   │   ├── main.css          # Stile der Einstellungsseite (inkl. allgemeine Komponenten)
 │   │   ├── popup.css         # Popup-Stile
 │   │   ├── theme.css         # Themen-Stile
-│   │   ├── switch.css        # Schalter-Komponenten-Stile
-│   │   ├── delete-button.css # Löschen-Button-Stile
 │   │   └── eye-button.css    # Passwort-sichtbar-Button-Stile
 │   └── images/               # Bildressourcen
 │       ├── icon-16.png
 │       ├── icon-32.png
 │       ├── icon-48.png
 │       ├── icon-128.png
-│       ├── logo-128.png
-│       └── promotion/        # Werbebilder
+│       └── logo-128.png
 └── public/                   # Öffentliche Ressourcen
+    └── img/                  # Demo- und Werbebilder
 ```
 
 ## 🚀 Schnellstart

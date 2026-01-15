@@ -81,6 +81,12 @@ Uma poderosa extensão de gerenciamento de proxy para navegador que suporta Chro
 - Identificar outras extensões que controlam o proxy
 - Fornecer três resultados: estado, advertência, erro
 
+### 🔍 Visualização do Script PAC
+
+- **Visualização do Script**: Ver o conteúdo do script PAC gerado automaticamente
+- **Lista de Regras**: Exibição clara de todas as regras de correspondência de proxy ativas
+- **Suporte a Depuração**: Solução fácil de problemas de correspondência no modo automático
+
 ### 🌙 Modos de tema
 
 - **Modo Claro**: Para uso diurno
@@ -140,20 +146,18 @@ ProxyAssistant/
 │   │   ├── i18n.js           # Suporte à internacionalização
 │   │   └── jquery.js         # Biblioteca jQuery
 │   ├── css/
-│   │   ├── main.css          # Estilos da página de configuração
+│   │   ├── main.css          # Estilos da página de configuração (inclui componentes comuns)
 │   │   ├── popup.css         # Estilos do popup
 │   │   ├── theme.css         # Estilos de tema
-│   │   ├── switch.css        # Estilos do componente interruptor
-│   │   ├── delete-button.css # Estilos do botão excluir
 │   │   └── eye-button.css    # Estilos do botão mostrar senha
 │   └── images/               # Recursos de imagem
 │       ├── icon-16.png
 │       ├── icon-32.png
 │       ├── icon-48.png
 │       ├── icon-128.png
-│       ├── logo-128.png
-│       └── promotion/        # Imagens promocionais
+│       └── logo-128.png
 └── public/                   # Recursos públicos
+    └── img/                  # Imagens promocionais e de demonstração
 ```
 
 ## 🚀 Início rápido

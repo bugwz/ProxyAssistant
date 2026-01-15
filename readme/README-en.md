@@ -81,6 +81,12 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 - Identify other extensions controlling proxy
 - Provides status, warning, and error results
 
+### 🔍 PAC Script Preview
+
+- **Script Viewing**: View the automatically generated PAC script content
+- **Rules List**: Clearly display all active proxy matching rules
+- **Debug Support**: Easy troubleshooting of matching issues in auto mode
+
 ### 🌙 Theme Modes
 
 - **Light Mode**: For daytime use
@@ -140,20 +146,18 @@ ProxyAssistant/
 │   │   ├── i18n.js           # Internationalization support
 │   │   └── jquery.js         # jQuery library
 │   ├── css/
-│   │   ├── main.css          # Settings page styles
+│   │   ├── main.css          # Settings page styles (incl. common components)
 │   │   ├── popup.css         # Popup styles
 │   │   ├── theme.css         # Theme styles
-│   │   ├── switch.css        # Switch component styles
-│   │   ├── delete-button.css # Delete button styles
 │   │   └── eye-button.css    # Password visibility button styles
 │   └── images/               # Icon resources
 │       ├── icon-16.png
 │       ├── icon-32.png
 │       ├── icon-48.png
 │       ├── icon-128.png
-│       ├── logo-128.png
-│       └── promotion/        # Promotion images
+│       └── logo-128.png
 └── public/                   # Public resources
+    └── img/                  # Demo & Promotion images
 ```
 
 ## 🚀 Quick Start
