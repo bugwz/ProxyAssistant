@@ -1,6 +1,7 @@
 // ==========================================
 // State & Constants
 // ==========================================
+const isFirefox = typeof browser !== 'undefined' && browser.runtime && browser.runtime.getBrowserInfo !== undefined;
 var list = [];
 var save = true;
 var auto_sync = true;
@@ -275,6 +276,16 @@ function initDropdowns() {
         list[i].protocol = cleanVal;
         var $badge = $(this).closest('.list_a').find('.proxy-type-badge');
         $badge.text(cleanVal.toUpperCase()).removeClass('http https socks5').addClass(cleanVal);
+
+        var isSocks5 = cleanVal === 'socks5';
+        var disableAuth = !isFirefox && isSocks5;
+        var $formGrid = $(this).closest('.proxy-body-container');
+        var $authInputs = $formGrid.find('.username, .password');
+
+        $authInputs.prop('disabled', disableAuth);
+        if (!disableAuth) {
+          $authInputs.removeAttr('title');
+        }
       } else if (type === 'fallback') {
         list[i].fallback_policy = val;
       }
@@ -392,6 +403,11 @@ function renderList() {
     var is_disabled = info.disabled === true;
     var protocolClass = (info.protocol || "http").toLowerCase();
     var displayProtocol = (info.protocol || "http").toUpperCase();
+
+    var isSocks5 = protocolClass === 'socks5';
+    var disableAuth = !isFirefox && isSocks5;
+    var disabledAttr = disableAuth ? 'disabled' : '';
+
     var fallbackPolicy = info.fallback_policy || "direct";
     var displayFallback = fallbackPolicy === "reject" ? I18n.t('fallback_reject') : I18n.t('fallback_direct');
     var previewText = `${info.name || I18n.t('unnamed_proxy')} · ${info.ip || "0.0.0.0"}:${info.port || "0"}`;
@@ -445,12 +461,12 @@ function renderList() {
                       </div>
                       <div class="form-item" style="grid-column: span 3;">
                           <label>${I18n.t('username_optional')}</label>
-                          <input data-index="${i}" class="username" type="text" placeholder="${I18n.t('username_placeholder')}" value="${info.username}" tabindex="5">
+                          <input data-index="${i}" class="username" type="text" placeholder="${I18n.t('username_placeholder')}" value="${info.username}" tabindex="5" ${disabledAttr}>
                       </div>
                       <div class="form-item" style="grid-column: span 3;">
                           <label>${I18n.t('password_optional')}</label>
                           <div style="position: relative; display: flex; align-items: center; width: 100%;">
-                              <input data-index="${i}" class="password" type="${info.is_show == 1 ? "text" : "password"}" placeholder="${I18n.t('password_placeholder')}" value="${info.password}" style="padding-right: 35px; width: 100%;" tabindex="6">
+                              <input data-index="${i}" class="password" type="${info.is_show == 1 ? "text" : "password"}" placeholder="${I18n.t('password_placeholder')}" value="${info.password}" style="padding-right: 35px; width: 100%;" tabindex="6" ${disabledAttr}>
                               <label class="container eye-toggle ${info.is_show == 1 ? 'show-password' : 'hide-password'}" data-index="${i}" style="position: absolute; right: 8px; margin: 0; cursor: pointer;">
                                   <input type="checkbox" ${info.is_show == 1 ? "checked" : ""}>
                                   <svg class="eye" xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 576 512"><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM144 256a144 144 0 1 1 288 0 144 144 0 1 1 -288 0zm144-64c0 35.3-28.7 64-64 64c-7.1 0-13.9-1.2-20.3-3.3c-5.5-1.8-11.9 1.6-11.7 7.4c.3 6.9 1.3 13.8 3.2 20.7c13.7 51.2 66.4 81.6 117.6 67.9s81.6-66.4 67.9-117.6c-11.1-41.5-47.8-69.4-88.6-71.1c-5.8-.2-9.2 6.1-7.4 11.7c2.1 6.4 3.3 13.2 3.3 20.3z"></path></svg>

@@ -409,6 +409,22 @@ input:checked+.slider-modern:before {
   box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
 }
 
+.form-item input:disabled,
+.form-item textarea:disabled {
+  background-color: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+  border-color: #e2e8f0;
+}
+
+[data-theme="dark"] .form-item input:disabled,
+[data-theme="dark"] .form-item textarea:disabled {
+  background-color: #1e293b;
+  color: #64748b;
+  border-color: #334155;
+  opacity: 0.7;
+}
+
 .form-item input.input-error,
 .form-item textarea.input-error {
   border-color: #ef4444 !important;
