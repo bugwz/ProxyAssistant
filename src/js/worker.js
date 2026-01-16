@@ -21,6 +21,13 @@ let firefoxProxyState = {
   testProxy: null
 };
 
+// State loading promise for async handling
+let stateLoaded = false;
+let stateLoadedResolve = null;
+const stateLoadedPromise = new Promise(resolve => {
+  stateLoadedResolve = resolve;
+});
+
 // Listener for extension installation or update
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('Proxy Assistant installed/updated');
@@ -41,9 +48,9 @@ chrome.runtime.onInstalled.addListener((details) => {
   turnOffProxy();
 });
 
-// Restore previous proxy settings on browser startup
-chrome.runtime.onStartup.addListener(() => {
-  console.log('Browser started, checking for saved proxy settings');
+// Restore previous proxy settings
+function restoreProxySettings() {
+  console.log('Checking for saved proxy settings');
   chrome.storage.local.get(['currentProxy', 'proxyEnabled', 'proxyMode', 'list'], (result) => {
     if (isFirefox) {
       // Sync local state for Firefox
@@ -55,6 +62,8 @@ chrome.runtime.onStartup.addListener(() => {
       } else {
         firefoxProxyState.mode = 'disabled';
       }
+      
+      // Ensure settings are cleared and listeners are active
       setupFirefoxProxy();
 
       if (result.proxyEnabled) {
@@ -73,8 +82,20 @@ chrome.runtime.onStartup.addListener(() => {
         updateBadge();
       }
     }
+    
+    // Mark state as loaded
+    if (!stateLoaded) {
+      stateLoaded = true;
+      if (stateLoadedResolve) stateLoadedResolve();
+    }
   });
-});
+}
+
+// Hook into startup event
+chrome.runtime.onStartup.addListener(restoreProxySettings);
+
+// Also run immediately on script load to handle Service Worker wakeups
+restoreProxySettings();
 
 // Helper function to get proxy settings with browser-specific implementation
 function getProxySettings() {
@@ -391,21 +412,33 @@ function generatePacScript(list) {
 
 function setupFirefoxProxy() {
   // Clear existing settings to avoid conflicts with onRequest
+  // This is important because if settings are present, they might override or conflict
   browser.proxy.settings.clear({});
 
-  // Remove existing listener if any (to avoid duplicates)
-  if (browser.proxy.onRequest.hasListener(handleFirefoxRequest)) {
-    browser.proxy.onRequest.removeListener(handleFirefoxRequest);
+  // Note: We register the listener globally at the top level for Firefox
+  // to ensure it persists through Service Worker/Event Page lifecycles.
+  // However, we can ensure it's registered here just in case.
+  if (!browser.proxy.onRequest.hasListener(handleFirefoxRequest)) {
+      browser.proxy.onRequest.addListener(handleFirefoxRequest, {urls: ["<all_urls>"]});
+      console.log("Firefox proxy.onRequest listener registered");
   }
-
-  // Add listener
-  browser.proxy.onRequest.addListener(handleFirefoxRequest, {urls: ["<all_urls>"]});
-  console.log("Firefox proxy.onRequest listener setup complete. Mode:", firefoxProxyState.mode);
 
   setupAuthListener();
 }
 
-function handleFirefoxRequest(details) {
+// Ensure listener is registered immediately for Firefox
+if (isFirefox) {
+  if (!browser.proxy.onRequest.hasListener(handleFirefoxRequest)) {
+    browser.proxy.onRequest.addListener(handleFirefoxRequest, {urls: ["<all_urls>"]});
+  }
+}
+
+async function handleFirefoxRequest(details) {
+  // Wait for state to be loaded from storage
+  if (!stateLoaded) {
+    await stateLoadedPromise;
+  }
+
   // Test Mode Override
   if (firefoxProxyState.testMode && firefoxProxyState.testProxy) {
     return createFirefoxProxyObject(firefoxProxyState.testProxy);
