@@ -62,7 +62,7 @@ function restoreProxySettings() {
       } else {
         firefoxProxyState.mode = 'disabled';
       }
-      
+
       // Ensure settings are cleared and listeners are active
       setupFirefoxProxy();
 
@@ -82,7 +82,7 @@ function restoreProxySettings() {
         updateBadge();
       }
     }
-    
+
     // Mark state as loaded
     if (!stateLoaded) {
       stateLoaded = true;
@@ -105,7 +105,7 @@ function getProxySettings() {
         // Firefox API - we return our internal state because we use onRequest
         // We mock the Chrome API structure for compatibility with UI
         let config = { value: { mode: "system" }, levelOfControl: "controlled_by_this_extension" };
-        
+
         if (firefoxProxyState.mode === 'manual') {
           config.value = {
             mode: "fixed_servers",
@@ -119,7 +119,7 @@ function getProxySettings() {
         } else if (firefoxProxyState.mode === 'auto') {
           config.value = { mode: "pac_script" };
         }
-        
+
         resolve(config);
       } else {
         // Chrome API
@@ -158,7 +158,7 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     if (changes.list || changes.proxyMode || changes.proxyEnabled) {
       updateBadge();
     }
-    
+
     // Sync Firefox state on storage changes
     if (isFirefox) {
       if (changes.list) firefoxProxyState.list = changes.list.newValue;
@@ -202,9 +202,9 @@ function applyProxySettings(proxyInfo) {
         // Use provided info or fallback to storage
         firefoxProxyState.currentProxy = proxyInfo || result.currentProxy;
       }
-      
+
       // Update UI
-      chrome.storage.local.set({ 
+      chrome.storage.local.set({
         proxyEnabled: mode !== 'disabled',
         currentProxy: firefoxProxyState.currentProxy // Ensure storage matches state
       }, () => {
@@ -314,14 +314,14 @@ async function applyManualProxySettings(proxyInfo) {
   };
 
   // Check if we have control over proxy settings
-  const controlStatus = await getProxySettings(); 
-  
+  const controlStatus = await getProxySettings();
+
   if (controlStatus.levelOfControl === "controlled_by_other_extensions") {
-      console.warn("Cannot apply proxy - controlled by other extension");
-      return {
-        success: false,
-        error: "Proxy settings are controlled by another extension. Please disable other proxy/VPN extensions."
-      };
+    console.warn("Cannot apply proxy - controlled by other extension");
+    return {
+      success: false,
+      error: "Proxy settings are controlled by another extension. Please disable other proxy/VPN extensions."
+    };
   }
 
   chrome.proxy.settings.set({ value: config, scope: "regular" }, async () => {
@@ -419,8 +419,8 @@ function setupFirefoxProxy() {
   // to ensure it persists through Service Worker/Event Page lifecycles.
   // However, we can ensure it's registered here just in case.
   if (!browser.proxy.onRequest.hasListener(handleFirefoxRequest)) {
-      browser.proxy.onRequest.addListener(handleFirefoxRequest, {urls: ["<all_urls>"]});
-      console.log("Firefox proxy.onRequest listener registered");
+    browser.proxy.onRequest.addListener(handleFirefoxRequest, { urls: ["<all_urls>"] });
+    console.log("Firefox proxy.onRequest listener registered");
   }
 
   setupAuthListener();
@@ -429,7 +429,7 @@ function setupFirefoxProxy() {
 // Ensure listener is registered immediately for Firefox
 if (isFirefox) {
   if (!browser.proxy.onRequest.hasListener(handleFirefoxRequest)) {
-    browser.proxy.onRequest.addListener(handleFirefoxRequest, {urls: ["<all_urls>"]});
+    browser.proxy.onRequest.addListener(handleFirefoxRequest, { urls: ["<all_urls>"] });
   }
 }
 
@@ -471,7 +471,7 @@ async function handleFirefoxRequest(details) {
 
 function checkBypass(bypassUrls, url) {
   if (!bypassUrls) return false;
-  
+
   // Standard bypass for localhost
   const host = new URL(url).hostname;
   if (host === "localhost" || host === "127.0.0.1" || host === "::1") return true;
@@ -487,7 +487,7 @@ function checkBypass(bypassUrls, url) {
 
 function findProxyForRequestFirefox(url) {
   const host = new URL(url).hostname;
-  
+
   // 按代理列表顺序检查，使用第一个匹配的include_urls
   for (const proxy of firefoxProxyState.list) {
     if (proxy.disabled) continue;
@@ -509,7 +509,7 @@ function findProxyForRequestFirefox(url) {
 
 function matchesPattern(url, pattern) {
   const host = new URL(url).hostname;
-  
+
   if (pattern.includes('*')) {
     // Wildcard match
     const regexStr = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
@@ -523,7 +523,7 @@ function matchesPattern(url, pattern) {
 
 function createFirefoxProxyObject(proxy) {
   const type = cleanProtocol(proxy.protocol || proxy.type || "http");
-  
+
   let proxyType = "http";
   let proxyDNS = false;
   let socksVersion = undefined;
@@ -550,10 +550,10 @@ function createFirefoxProxyObject(proxy) {
   if (socksVersion) {
     result.socksVersion = socksVersion;
   }
-  
+
   // Include Auth header for HTTP/HTTPS to potentially skip onAuthRequired
   if ((proxyType === 'http' || proxyType === 'https') && proxy.username && proxy.password) {
-     result.proxyAuthorizationHeader = 'Basic ' + btoa(proxy.username + ':' + proxy.password);
+    result.proxyAuthorizationHeader = 'Basic ' + btoa(proxy.username + ':' + proxy.password);
   }
 
   return result;
@@ -750,7 +750,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 async function testProxyConnection(proxyInfo, sendResponse) {
   const previousAuth = { ...currentProxyAuth };
-  
+
   // Set test auth
   currentProxyAuth = {
     username: proxyInfo.username || '',
@@ -776,11 +776,11 @@ async function testProxyConnection(proxyInfo, sendResponse) {
     // -------------------------
     // Backup state
     const previousMode = firefoxProxyState.mode;
-    
+
     // Set Test Mode
     firefoxProxyState.testMode = true;
     firefoxProxyState.testProxy = proxyInfo;
-    
+
     // In Firefox, we rely on onRequest which reads the state
     // We don't need to "set" anything other than the state variables
     console.log("Firefox: Enabled Test Mode for connectivity check");
@@ -788,11 +788,11 @@ async function testProxyConnection(proxyInfo, sendResponse) {
     try {
       // Wait a bit for state to be picked up
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       const testResult = await runConnectivityTest(proxyInfo);
       sendResponse(testResult);
-      
-    } catch(error) {
+
+    } catch (error) {
       sendResponse({ success: false, error: error.message || "Connection failed" });
     } finally {
       // Restore state
@@ -851,60 +851,60 @@ async function testProxyConnection(proxyInfo, sendResponse) {
 
 // Shared connectivity test logic
 async function runConnectivityTest(proxyInfo) {
-    // First test: Try to connect to a URL that should fail if proxy is invalid
-    const invalidTargetTest = await testProxyConnectivity(proxyInfo);
-    if (!invalidTargetTest.success) {
-      return { success: false, error: invalidTargetTest.error };
-    }
+  // First test: Try to connect to a URL that should fail if proxy is invalid
+  const invalidTargetTest = await testProxyConnectivity(proxyInfo);
+  if (!invalidTargetTest.success) {
+    return { success: false, error: invalidTargetTest.error };
+  }
 
-    // Phase 2: Test with actual URLs
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-    }, 8000); // 8s timeout
+  // Phase 2: Test with actual URLs
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, 8000); // 8s timeout
 
-    const startTime = Date.now();
+  const startTime = Date.now();
 
-    const testUrls = [
-      "https://www.baidu.com/favicon.ico?_t=" + Date.now(),
-      "https://httpbin.org/status/200?_t=" + Date.now()
-    ];
+  const testUrls = [
+    "https://www.baidu.com/favicon.ico?_t=" + Date.now(),
+    "https://httpbin.org/status/200?_t=" + Date.now()
+  ];
 
-    let testResult = null;
-    let lastError = null;
+  let testResult = null;
+  let lastError = null;
 
-    // Try each URL until one succeeds
-    for (const testUrl of testUrls) {
-      try {
-        const response = await fetch(testUrl, {
-          method: 'HEAD',
-          cache: 'no-store',
-          signal: controller.signal,
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          }
-        });
-
-        if (response.ok && response.status === 200) {
-          const latency = Date.now() - startTime;
-          testResult = { success: true, latency: latency, url: testUrl };
-          break;
-        } else {
-          lastError = `HTTP ${response.status} from ${testUrl}`;
+  // Try each URL until one succeeds
+  for (const testUrl of testUrls) {
+    try {
+      const response = await fetch(testUrl, {
+        method: 'HEAD',
+        cache: 'no-store',
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
-      } catch (error) {
-        lastError = `${error.message} for ${testUrl}`;
-        continue; // Try next URL
+      });
+
+      if (response.ok && response.status === 200) {
+        const latency = Date.now() - startTime;
+        testResult = { success: true, latency: latency, url: testUrl };
+        break;
+      } else {
+        lastError = `HTTP ${response.status} from ${testUrl}`;
       }
+    } catch (error) {
+      lastError = `${error.message} for ${testUrl}`;
+      continue; // Try next URL
     }
+  }
 
-    clearTimeout(timeoutId);
+  clearTimeout(timeoutId);
 
-    if (testResult && testResult.success) {
-      return { success: true, latency: testResult.latency, testUrl: testResult.url };
-    } else {
-      return { success: false, error: lastError || "All test URLs failed" };
-    }
+  if (testResult && testResult.success) {
+    return { success: true, latency: testResult.latency, testUrl: testResult.url };
+  } else {
+    return { success: false, error: lastError || "All test URLs failed" };
+  }
 }
 
 // Helper function to validate proxy configuration
