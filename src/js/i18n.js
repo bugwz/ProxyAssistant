@@ -115,7 +115,8 @@ const translations = {
     "pac_copied": "已复制",
     "pac_no_rules": "暂无代理规则",
     "view_pac_button": "查看PAC",
-    "alert_include_urls_conflict": "域名模式 \"{pattern}\" 与代理 \"{proxy}\" 的配置冲突"
+    "alert_include_urls_conflict": "域名模式 \"{pattern}\" 与代理 \"{proxy}\" 的配置冲突",
+    "socks5_auth_not_supported": "Chrome浏览器不支持Socks5连接认证"
   },
   "zh-TW": {
     "app_name": "代理助手",
@@ -233,7 +234,8 @@ const translations = {
     "pac_copied": "已複製",
     "pac_no_rules": "暫無代理規則",
     "view_pac_button": "查看PAC",
-    "alert_include_urls_conflict": "網域名稱模式 \"{pattern}\" 與代理 \"{proxy}\" 的配置衝突"
+    "alert_include_urls_conflict": "網域名稱模式 \"{pattern}\" 與代理 \"{proxy}\" 的配置衝突",
+    "socks5_auth_not_supported": "Chrome瀏覽器不支援Socks5連接認證"
   },
   "en": {
     "app_name": "Proxy Assistant",
@@ -351,7 +353,8 @@ const translations = {
     "pac_copied": "Copied",
     "pac_no_rules": "No proxy rules",
     "view_pac_button": "View PAC",
-    "alert_include_urls_conflict": "Domain pattern \"{pattern}\" conflicts with proxy \"{proxy}\""
+    "alert_include_urls_conflict": "Domain pattern \"{pattern}\" conflicts with proxy \"{proxy}\"",
+    "socks5_auth_not_supported": "Chrome does not support Socks5 authentication"
   },
   "ja": {
     "app_name": "プロキシアシスタント",
@@ -469,7 +472,8 @@ const translations = {
     "pac_copied": "コピー済み",
     "pac_no_rules": "プロキシルールなし",
     "view_pac_button": "PACを表示",
-    "alert_include_urls_conflict": "ドメインパターン \"{pattern}\" はプロキシ \"{proxy}\" と競合しています"
+    "alert_include_urls_conflict": "ドメインパターン \"{pattern}\" はプロキシ \"{proxy}\" と競合しています",
+    "socks5_auth_not_supported": "ChromeはSocks5認証をサポートしていません"
   },
   "fr": {
     "app_name": "Assistant Proxy",
@@ -587,7 +591,8 @@ const translations = {
     "pac_copied": "Copié",
     "pac_no_rules": "Aucune règle proxy",
     "view_pac_button": "Voir PAC",
-    "alert_include_urls_conflict": "Le motif de domaine \"{pattern}\" est en conflit avec le proxy \"{proxy}\""
+    "alert_include_urls_conflict": "Le motif de domaine \"{pattern}\" est en conflit avec le proxy \"{proxy}\"",
+    "socks5_auth_not_supported": "Chrome ne prend pas en charge l'authentification Socks5"
   },
   "de": {
     "app_name": "Proxy-Assistent",
@@ -705,7 +710,8 @@ const translations = {
     "pac_copied": "Kopiert",
     "pac_no_rules": "Keine Proxy-Regeln",
     "view_pac_button": "PAC anzeigen",
-    "alert_include_urls_conflict": "Domänenmuster \"{pattern}\" steht in Konflikt mit Proxy \"{proxy}\""
+    "alert_include_urls_conflict": "Domänenmuster \"{pattern}\" steht in Konflikt mit Proxy \"{proxy}\"",
+    "socks5_auth_not_supported": "Chrome unterstützt keine Socks5-Authentifizierung"
   },
   "es": {
     "app_name": "Asistente de Proxy",
@@ -823,7 +829,8 @@ const translations = {
     "pac_copied": "Copiado",
     "pac_no_rules": "Sin reglas proxy",
     "view_pac_button": "Ver PAC",
-    "alert_include_urls_conflict": "El patrón de dominio \"{pattern}\" entra en conflicto con el proxy \"{proxy}\""
+    "alert_include_urls_conflict": "El patrón de dominio \"{pattern}\" entra en conflicto con el proxy \"{proxy}\"",
+    "socks5_auth_not_supported": "Chrome no admite la autenticación Socks5"
   },
   "ko": {
     "app_name": "프록시 어시스턴트",
@@ -941,7 +948,8 @@ const translations = {
     "pac_copied": "복사됨",
     "pac_no_rules": "프록시 규칙 없음",
     "view_pac_button": "PAC 보기",
-    "alert_include_urls_conflict": "도메인 패턴 \"{pattern}\"이(가) 프록시 \"{proxy}\"과(와) 충돌합니다"
+    "alert_include_urls_conflict": "도메인 패턴 \"{pattern}\"이(가) 프록시 \"{proxy}\"과(와) 충돌합니다",
+    "socks5_auth_not_supported": "Chrome은 Socks5 인증을 지원하지 않습니다"
   },
   "pt": {
     "app_name": "Assistente de Proxy",
@@ -1059,7 +1067,8 @@ const translations = {
     "pac_copied": "Copiado",
     "pac_no_rules": "Sem regras proxy",
     "view_pac_button": "Ver PAC",
-    "alert_include_urls_conflict": "O padrão de domínio \"{pattern}\" está em conflito com o proxy \"{proxy}\""
+    "alert_include_urls_conflict": "O padrão de domínio \"{pattern}\" está em conflito com o proxy \"{proxy}\"",
+    "socks5_auth_not_supported": "O Chrome não suporta autenticação Socks5"
   },
   "ru": {
     "app_name": "Прокси-ассистент",
@@ -1177,7 +1186,8 @@ const translations = {
     "pac_copied": "Скопировано",
     "pac_no_rules": "Нет правил прокси",
     "view_pac_button": "Просмотр PAC",
-    "alert_include_urls_conflict": "Шаблон домена \"{pattern}\" конфликтует с прокси \"{proxy}\""
+    "alert_include_urls_conflict": "Шаблон домена \"{pattern}\" конфликтует с прокси \"{proxy}\"",
+    "socks5_auth_not_supported": "Chrome не поддерживает аутентификацию Socks5"
   }
 };
 
