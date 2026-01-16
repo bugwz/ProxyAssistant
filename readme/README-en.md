@@ -27,7 +27,7 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 
 </div>
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234732/assets/store/promotional/marquee-1632x656.jpg)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117002052/assets/store/promotional/marquee-1400x560.png)
 
 ## ✨ Features
 
@@ -49,7 +49,7 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 | **Manual** | Manually select proxy from proxy list |
 | **Auto** | Automatically select matching proxy based on URL rules (PAC mode) |
 
-| ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234732/assets/screenshots/popup/disabled.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234732/assets/screenshots/popup/manual.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234732/assets/screenshots/popup/auto.png) |
+| ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117002052/assets/screenshots/popup/disabled.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117002052/assets/screenshots/popup/manual.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117002052/assets/screenshots/popup/auto.png) |
 |:---:|:---:|:---:|
 | Disabled Mode | Manual Mode | Auto Mode |
 
@@ -93,7 +93,7 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 - **Dark Mode**: For nighttime use
 - **Auto Switch**: Automatically switch themes based on time (configurable hours)
 
-| ![Light Mode](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234732/assets/screenshots/main/theme-light.png) | ![Dark Mode](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234732/assets/screenshots/main/theme-dark.png) |
+| ![Light Mode](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117002052/assets/screenshots/main/theme-light.png) | ![Dark Mode](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117002052/assets/screenshots/main/theme-dark.png) |
 |:---:|:---:|
 | Light Mode | Dark Mode |
 
@@ -123,7 +123,7 @@ This extension supports the following languages:
 
 ## 📷 Settings Interface
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260115234732/assets/screenshots/main/settings.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117002052/assets/screenshots/main/settings.png)
 
 ## 📁 Project Structure
 
