@@ -460,11 +460,21 @@ function renderList() {
                           </div>
                       </div>
                       <div class="form-item" style="grid-column: span 3;">
-                          <label>${I18n.t('username_optional')}</label>
+                          <label>
+                              ${I18n.t('username_optional')}
+                              <span class="info-icon" data-tooltip="${I18n.t('socks5_auth_not_supported')}">
+                                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                              </span>
+                          </label>
                           <input data-index="${i}" class="username" type="text" placeholder="${I18n.t('username_placeholder')}" value="${info.username}" tabindex="5" ${disabledAttr}>
                       </div>
                       <div class="form-item" style="grid-column: span 3;">
-                          <label>${I18n.t('password_optional')}</label>
+                          <label>
+                              ${I18n.t('password_optional')}
+                              <span class="info-icon" data-tooltip="${I18n.t('socks5_auth_not_supported')}">
+                                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                              </span>
+                          </label>
                           <div style="position: relative; display: flex; align-items: center; width: 100%;">
                               <input data-index="${i}" class="password" type="${info.is_show == 1 ? "text" : "password"}" placeholder="${I18n.t('password_placeholder')}" value="${info.password}" style="padding-right: 35px; width: 100%;" tabindex="6" ${disabledAttr}>
                               <label class="container eye-toggle ${info.is_show == 1 ? 'show-password' : 'hide-password'}" data-index="${i}" style="position: absolute; right: 8px; margin: 0; cursor: pointer;">
