@@ -1,6 +1,6 @@
 {
    "manifest_version": 3,
-   "name": "代理助手",
+   "name": "代理助手(ProxyAssistant)",
    "version": "1.2.3",
    "description": "一款代理管理插件, 支持 HTTP/HTTPS/SOCKS 代理配置, 支持手动/自动模式切换, 保护隐私, 畅享网络.",
    "browser_specific_settings": {
@@ -27,7 +27,7 @@
          "128": "images/icon-128.png"
       },
       "default_popup": "popup.html",
-      "default_title": "代理助手"
+      "default_title": "代理助手(ProxyAssistant)"
    },
    "host_permissions": [
       "<all_urls>"
