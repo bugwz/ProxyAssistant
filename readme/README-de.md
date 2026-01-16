@@ -27,7 +27,7 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome und Firefo
 
 </div>
 
-![](../public/img/promotion/1400-560-big.jpg)
+![](../public/img/promotion/1400-560.png)
 
 ## ✨ Funktionen
 

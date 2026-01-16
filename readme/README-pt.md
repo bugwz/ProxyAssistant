@@ -27,7 +27,7 @@ Uma poderosa extensão de gerenciamento de proxy para navegador que suporta Chro
 
 </div>
 
-![](../public/img/promotion/1400-560-big.jpg)
+![](../public/img/promotion/1400-560.png)
 
 ## ✨ Funcionalidades
 
