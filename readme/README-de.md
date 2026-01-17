@@ -49,9 +49,7 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome und Firefo
 | **Manuell** | Proxy manuell aus der Liste auswählen |
 | **Automatisch** | Automatisch passenden Proxy basierend auf URL-Regeln auswählen (PAC-Modus) |
 
-| ![](../public/img/demo-popup-01.png) | ![](../public/img/demo-popup-02.png) | ![](../public/img/demo-popup-03.png) |
-|:---:|:---:|:---:|
-| Deaktiviert | Manuell | Automatisch |
+![](../public/img/promotion/1280-800-03.png)
 
 ### 📋 Flexible URL-Regelkonfiguration
 
@@ -93,9 +91,7 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome und Firefo
 - **Dunkelmodus**: Für die Nacht
 - **Automatischer Wechsel**: Thema basierend auf der Zeit automatisch wechseln (konfigurierbarer Zeitraum)
 
-| ![Hellmodus](../public/img/demo-light.png) | ![Dunkelmodus](../public/img/demo-night.png) |
-|:---:|:---:|
-| Hellmodus | Dunkelmodus |
+![](../public/img/promotion/1280-800-02.png)
 
 ### ☁️ Datenspeicherung und Synchronisierung
 
@@ -120,6 +116,8 @@ Diese Erweiterung unterstützt die folgenden Sprachen:
 | Português | pt | ✅ Unterstützt |
 | Русский | ru | ✅ Unterstützt |
 | 한국어 | ko | ✅ Unterstützt |
+
+![](../public/img/promotion/1280-800-04.png)
 
 ## 📷 Einstellungsseite
 

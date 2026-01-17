@@ -49,9 +49,7 @@ Una potente extensión de gestión de proxy para navegador que soporta Chrome y 
 | **Manual** | Seleccionar manualmente un proxy de la lista |
 | **Automático** | Seleccionar automáticamente el proxy correspondiente según reglas de URL (modo PAC) |
 
-| ![](../public/img/demo-popup-01.png) | ![](../public/img/demo-popup-02.png) | ![](../public/img/demo-popup-03.png) |
-|:---:|:---:|:---:|
-| Modo Desactivado | Modo Manual | Modo Automático |
+![](../public/img/promotion/1280-800-03.png)
 
 ### 📋 Configuración flexible de reglas URL
 
@@ -93,9 +91,7 @@ Una potente extensión de gestión de proxy para navegador que soporta Chrome y 
 - **Modo Oscuro**: Para uso nocturno
 - **Cambio automático**: Cambiar tema automáticamente según la hora (horario configurable)
 
-| ![Modo Claro](../public/img/demo-light.png) | ![Modo Oscuro](../public/img/demo-night.png) |
-|:---:|:---:|
-| Modo Claro | Modo Oscuro |
+![](../public/img/promotion/1280-800-02.png)
 
 ### ☁️ Almacenamiento y sincronización de datos
 
@@ -120,6 +116,8 @@ Esta extensión soporta los siguientes idiomas:
 | Português | pt | ✅ Soportado |
 | Русский | ru | ✅ Soportado |
 | 한국어 | ko | ✅ Soportado |
+
+![](../public/img/promotion/1280-800-04.png)
 
 ## 📷 Interfaz de configuración
 

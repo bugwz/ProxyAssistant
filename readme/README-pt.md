@@ -49,9 +49,7 @@ Uma poderosa extensão de gerenciamento de proxy para navegador que suporta Chro
 | **Manual** | Selecionar manualmente um proxy da lista |
 | **Automático** | Selecionar automaticamente o proxy correspondente com base nas regras de URL (modo PAC) |
 
-| ![](../public/img/demo-popup-01.png) | ![](../public/img/demo-popup-02.png) | ![](../public/img/demo-popup-03.png) |
-|:---:|:---:|:---:|
-| Modo Desativado | Modo Manual | Modo Automático |
+![](../public/img/promotion/1280-800-03.png)
 
 ### 📋 Configuração flexível de regras de URL
 
@@ -93,9 +91,7 @@ Uma poderosa extensão de gerenciamento de proxy para navegador que suporta Chro
 - **Modo Escuro**: Para uso noturno
 - **Alternância automática**: Alternar tema automaticamente com base no horário (período configurável)
 
-| ![Modo Claro](../public/img/demo-light.png) | ![Modo Escuro](../public/img/demo-night.png) |
-|:---:|:---:|
-| Modo Claro | Modo Escuro |
+![](../public/img/promotion/1280-800-02.png)
 
 ### ☁️ Armazenamento e sincronização de dados
 
@@ -120,6 +116,8 @@ Esta extensão suporta os seguintes idiomas:
 | Português | pt | ✅ Suportado |
 | Русский | ru | ✅ Suportado |
 | 한국어 | ko | ✅ Suportado |
+
+![](../public/img/promotion/1280-800-04.png)
 
 ## 📷 Interface de configuração
 

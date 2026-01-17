@@ -49,9 +49,7 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 | **Manual** | Manually select proxy from proxy list |
 | **Auto** | Automatically select matching proxy based on URL rules (PAC mode) |
 
-| ![](../public/img/demo-popup-01.png) | ![](../public/img/demo-popup-02.png) | ![](../public/img/demo-popup-03.png) |
-|:---:|:---:|:---:|
-| Disabled Mode | Manual Mode | Auto Mode |
+![](../public/img/promotion/1280-800-03.png)
 
 ### 📋 Flexible URL Rule Configuration
 
@@ -93,9 +91,7 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 - **Dark Mode**: For nighttime use
 - **Auto Switch**: Automatically switch themes based on time (configurable hours)
 
-| ![Light Mode](../public/img/demo-light.png) | ![Dark Mode](../public/img/demo-night.png) |
-|:---:|:---:|
-| Light Mode | Dark Mode |
+![](../public/img/promotion/1280-800-02.png)
 
 ### ☁️ Data Storage & Sync
 
@@ -120,6 +116,8 @@ This extension supports the following languages:
 | Portuguese | pt | ✅ Supported |
 | Russian | ru | ✅ Supported |
 | Korean | ko | ✅ Supported |
+
+![](../public/img/promotion/1280-800-04.png)
 
 ## 📷 Settings Interface
 

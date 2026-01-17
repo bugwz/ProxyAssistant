@@ -49,9 +49,7 @@ Une extension puissante de gestion de proxy pour Chrome et Firefox, permettant d
 | **Manuel** | Sélectionner manuellement un proxy depuis la liste |
 | **Automatique** | Sélectionner automatiquement le proxy correspondant selon les règles d'URL (mode PAC) |
 
-| ![](../public/img/demo-popup-01.png) | ![](../public/img/demo-popup-02.png) | ![](../public/img/demo-popup-03.png) |
-|:---:|:---:|:---:|
-| Mode Désactivé | Mode Manuel | Mode Automatique |
+![](../public/img/promotion/1280-800-03.png)
 
 ### 📋 Configuration flexible des règles d'URL
 
@@ -93,9 +91,7 @@ Une extension puissante de gestion de proxy pour Chrome et Firefox, permettant d
 - **Mode Sombre**: Pour une utilisation de nuit
 - **Basculement automatique**: Changer automatiquement de thème selon l'heure (configurable)
 
-| ![Mode Clair](../public/img/demo-light.png) | ![Mode Sombre](../public/img/demo-night.png) |
-|:---:|:---:|
-| Mode Clair | Mode Sombre |
+![](../public/img/promotion/1280-800-02.png)
 
 ### ☁️ Stockage et synchronisation des données
 
@@ -120,6 +116,8 @@ Cette extension prend en charge les langues suivantes :
 | Português | pt | ✅ Pris en charge |
 | Русский | ru | ✅ Pris en charge |
 | 한국어 | ko | ✅ Pris en charge |
+
+![](../public/img/promotion/1280-800-04.png)
 
 ## 📷 Interface de configuration
 
