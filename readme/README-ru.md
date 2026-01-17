@@ -49,9 +49,7 @@
 | **Вручную** | Вручную выбрать прокси из списка |
 | **Автоматически** | Автоматически выбирать соответствующий прокси на основе правил URL (режим PAC) |
 
-| ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/disabled.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/manual.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/auto.png) |
-|:---:|:---:|:---:|
-| Режим отключения | Ручной режим | Автоматический режим |
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/03.png)
 
 ### 📋 Гибкая настройка правил URL
 
@@ -93,9 +91,7 @@
 - **Темная тема**: Для ночного использования
 - **Автоматическое переключение**: Автоматически переключать тему по времени (настраиваемый период)
 
-| ![Светлая тема](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/main/theme-light.png) | ![Темная тема](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/main/theme-dark.png) |
-|:---:|:---:|
-| Светлая тема | Темная тема |
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/02.png)
 
 ### ☁️ Хранение и синхронизация данных
 
@@ -120,6 +116,8 @@
 | Português | pt | ✅ Поддерживается |
 | Русский | ru | ✅ Поддерживается |
 | 한국어 | ko | ✅ Поддерживается |
+
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/04.png)
 
 ## 📷 Интерфейс настроек
 

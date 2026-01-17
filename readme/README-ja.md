@@ -49,9 +49,7 @@
 | **手動** | リストから手動でプロキシを選択 |
 | **自動** | URLルールに基づいて自動的にプロキシを選択（PACモード） |
 
-| ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/disabled.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/manual.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/auto.png) |
-|:---:|:---:|:---:|
-| 無効モード | 手動モード | 自動モード |
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/03.png)
 
 ### 📋 柔軟なURLルール設定
 
@@ -93,9 +91,7 @@
 - **ダークモード**: 夜間使用
 - **自動切り替え**: 時間に応じてテーマを自動切り替え（設定可能）
 
-| ![ライトモード](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/main/theme-light.png) | ![ダークモード](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/main/theme-dark.png) |
-|:---:|:---:|
-| ライトモード | ダークモード |
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/02.png)
 
 ### ☁️ データストレージと同期
 
@@ -120,6 +116,8 @@
 | Português | pt | ✅ 対応済み |
 | Русский | ru | ✅ 対応済み |
 | 한국어 | ko | ✅ 対応済み |
+
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/04.png)
 
 ## 📷 設定画面
 

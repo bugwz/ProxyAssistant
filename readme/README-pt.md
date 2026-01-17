@@ -49,9 +49,7 @@ Uma poderosa extensão de gerenciamento de proxy para navegador que suporta Chro
 | **Manual** | Selecionar manualmente um proxy da lista |
 | **Automático** | Selecionar automaticamente o proxy correspondente com base nas regras de URL (modo PAC) |
 
-| ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/disabled.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/manual.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/auto.png) |
-|:---:|:---:|:---:|
-| Modo Desativado | Modo Manual | Modo Automático |
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/03.png)
 
 ### 📋 Configuração flexível de regras de URL
 
@@ -93,9 +91,7 @@ Uma poderosa extensão de gerenciamento de proxy para navegador que suporta Chro
 - **Modo Escuro**: Para uso noturno
 - **Alternância automática**: Alternar tema automaticamente com base no horário (período configurável)
 
-| ![Modo Claro](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/main/theme-light.png) | ![Modo Escuro](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/main/theme-dark.png) |
-|:---:|:---:|
-| Modo Claro | Modo Escuro |
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/02.png)
 
 ### ☁️ Armazenamento e sincronização de dados
 
@@ -120,6 +116,8 @@ Esta extensão suporta os seguintes idiomas:
 | Português | pt | ✅ Suportado |
 | Русский | ru | ✅ Suportado |
 | 한국어 | ko | ✅ Suportado |
+
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/04.png)
 
 ## 📷 Interface de configuração
 

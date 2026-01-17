@@ -49,9 +49,7 @@ Chrome와 Firefox를 지원하는 강력한 브라우저 프록시 관리 확장
 | **수동** | 목록에서 프록시를 수동으로 선택 |
 | **자동** | URL 규칙에 따라 자동으로 일치하는 프록시 선택 (PAC 모드) |
 
-| ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/disabled.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/manual.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/auto.png) |
-|:---:|:---:|:---:|
-| 비활성화 모드 | 수동 모드 | 자동 모드 |
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/03.png)
 
 ### 📋 유연한 URL 규칙 구성
 
@@ -93,9 +91,7 @@ Chrome와 Firefox를 지원하는 강력한 브라우저 프록시 관리 확장
 - **다크 모드**: 야간 사용
 - **자동 전환**: 시간에 따라 테마 자동 전환 (구성 가능 시간대)
 
-| ![라이트 모드](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/main/theme-light.png) | ![다크 모드](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/main/theme-dark.png) |
-|:---:|:---:|
-| 라이트 모드 | 다크 모드 |
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/02.png)
 
 ### ☁️ 데이터 저장 및 동기화
 
@@ -120,6 +116,8 @@ Chrome와 Firefox를 지원하는 강력한 브라우저 프록시 관리 확장
 | Português | pt | ✅ 지원됨 |
 | Русский | ru | ✅ 지원됨 |
 | 한국어 | ko | ✅ 지원됨 |
+
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/04.png)
 
 ## 📷 설정 인터페이스
 

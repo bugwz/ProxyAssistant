@@ -49,9 +49,7 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome und Firefo
 | **Manuell** | Proxy manuell aus der Liste auswählen |
 | **Automatisch** | Automatisch passenden Proxy basierend auf URL-Regeln auswählen (PAC-Modus) |
 
-| ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/disabled.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/manual.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/auto.png) |
-|:---:|:---:|:---:|
-| Deaktiviert | Manuell | Automatisch |
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/03.png)
 
 ### 📋 Flexible URL-Regelkonfiguration
 
@@ -93,9 +91,7 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome und Firefo
 - **Dunkelmodus**: Für die Nacht
 - **Automatischer Wechsel**: Thema basierend auf der Zeit automatisch wechseln (konfigurierbarer Zeitraum)
 
-| ![Hellmodus](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/main/theme-light.png) | ![Dunkelmodus](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/main/theme-dark.png) |
-|:---:|:---:|
-| Hellmodus | Dunkelmodus |
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/02.png)
 
 ### ☁️ Datenspeicherung und Synchronisierung
 
@@ -120,6 +116,8 @@ Diese Erweiterung unterstützt die folgenden Sprachen:
 | Português | pt | ✅ Unterstützt |
 | Русский | ru | ✅ Unterstützt |
 | 한국어 | ko | ✅ Unterstützt |
+
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/04.png)
 
 ## 📷 Einstellungsseite
 

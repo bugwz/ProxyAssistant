@@ -49,9 +49,7 @@
 | **手動** | 從代理列表中手動選擇要使用的代理 |
 | **自動** | 根據URL規則自動選擇匹配的代理（PAC模式） |
 
-| ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/disabled.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/manual.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/auto.png) |
-|:---:|:---:|:---:|
-| 禁用模式 | 手動模式 | 自動模式 |
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/03.png)
 
 ### 📋 靈活的URL規則配置
 
@@ -93,9 +91,7 @@
 - **深色模式**: 夜間使用
 - **自動切換**: 根據時間自動切換主題（可配置時段）
 
-| ![淺色模式](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/main/theme-light.png) | ![深色模式](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/main/theme-dark.png) |
-|:---:|:---:|
-| 淺色模式 | 深色模式 |
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/02.png)
 
 ### ☁️ 數據存儲與同步
 
@@ -120,6 +116,8 @@
 | Português | pt | ✅ 已支持 |
 | Русский | ru | ✅ 已支持 |
 | 한국어 | ko | ✅ 已支持 |
+
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/04.png)
 
 ## 📷 設置界面
 

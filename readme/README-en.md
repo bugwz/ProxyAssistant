@@ -49,9 +49,7 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 | **Manual** | Manually select proxy from proxy list |
 | **Auto** | Automatically select matching proxy based on URL rules (PAC mode) |
 
-| ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/disabled.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/manual.png) | ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/popup/auto.png) |
-|:---:|:---:|:---:|
-| Disabled Mode | Manual Mode | Auto Mode |
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/03.png)
 
 ### 📋 Flexible URL Rule Configuration
 
@@ -93,9 +91,7 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 - **Dark Mode**: For nighttime use
 - **Auto Switch**: Automatically switch themes based on time (configurable hours)
 
-| ![Light Mode](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/main/theme-light.png) | ![Dark Mode](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/main/theme-dark.png) |
-|:---:|:---:|
-| Light Mode | Dark Mode |
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/02.png)
 
 ### ☁️ Data Storage & Sync
 
@@ -120,6 +116,8 @@ This extension supports the following languages:
 | Portuguese | pt | ✅ Supported |
 | Russian | ru | ✅ Supported |
 | Korean | ko | ✅ Supported |
+
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/04.png)
 
 ## 📷 Settings Interface
 
