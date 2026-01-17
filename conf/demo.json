@@ -1,0 +1,51 @@
+{
+    "version": 1,
+    "settings": {
+        "auto_sync": true,
+        "appLanguage": "zh-CN",
+        "themeMode": "light",
+        "nightModeStart": "22:00",
+        "nightModeEnd": "06:00"
+    },
+    "proxies": [
+        {
+            "name": "办公室代理",
+            "protocol": "http",
+            "ip": "10.45.123.10",
+            "port": "8080",
+            "username": "",
+            "password": "",
+            "fallback_policy": "direct",
+            "is_show": 0,
+            "open": 0,
+            "include_urls": "",
+            "bypass_urls": ""
+        },
+        {
+            "name": "家庭代理",
+            "protocol": "http",
+            "ip": "47.102.108.12",
+            "port": "59901",
+            "username": "",
+            "password": "",
+            "fallback_policy": "direct",
+            "is_show": 0,
+            "open": 0,
+            "include_urls": "baidu.com\nmyip.ipip.net",
+            "bypass_urls": "myip.ipip.net"
+        },
+        {
+            "name": "临时代理",
+            "protocol": "http",
+            "ip": "35.122.11.1",
+            "port": "9999",
+            "username": "",
+            "password": "",
+            "fallback_policy": "direct",
+            "is_show": 0,
+            "open": 0,
+            "include_urls": "",
+            "bypass_urls": "myip.ipip.net"
+        }
+    ]
+}
