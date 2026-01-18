@@ -461,6 +461,36 @@ function bindGlobalEvents() {
   // Detect/PAC Buttons
   $("#detect-proxy-btn").on("click", detectProxy);
   $("#pac-details-btn").on("click", showPacDetails);
+
+  // ESC Key Support for Popups
+  $(document).on("keydown", function (e) {
+    if (e.key === "Escape") {
+      // Sync Config Popup
+      if ($(".sync_config_tip").hasClass("show")) {
+        $(".sync_config_tip").removeClass("show");
+        setTimeout(function () { $(".sync_config_tip").hide(); }, 300);
+      }
+      // Proxy Detection Popup
+      if ($(".proxy_detection_tip").hasClass("show")) {
+        $(".proxy_detection_tip").removeClass("show");
+        setTimeout(function () { $(".proxy_detection_tip").hide(); }, 300);
+      }
+      // PAC Details Popup
+      if ($(".pac_details_tip").hasClass("show")) {
+        if (pacStorageListener) {
+          chrome.storage.onChanged.removeListener(pacStorageListener);
+          pacStorageListener = null;
+        }
+        $(".pac_details_tip").removeClass("show");
+        setTimeout(function () { $(".pac_details_tip").hide(); }, 300);
+      }
+      // Delete Tip Popup
+      if ($(".del_tip").hasClass("show")) {
+        $(".del_tip").removeClass("show");
+        setTimeout(function () { $(".del_tip").hide(); }, 300);
+      }
+    }
+  });
 }
 
 // ==========================================
