@@ -921,8 +921,8 @@ input:checked+.slider-modern:before {
 }
 
 [data-theme="dark"] .del_tip_box {
-  background-color: #1e293b;
-  border: 1px solid #334155;
+  background-color: var(--bg-secondary, #2d2d2d);
+  border: 1px solid var(--border-color, #a0a0a0);
 }
 
 .del_tip.show .del_tip_box {
@@ -1054,8 +1054,8 @@ input:checked+.slider-modern:before {
 }
 
 [data-theme="dark"] .proxy_detection_box {
-  background-color: #1e293b;
-  border: 1px solid #334155;
+  background-color: var(--bg-secondary, #2d2d2d);
+  border: 1px solid var(--border-color, #a0a0a0);
 }
 
 .proxy_detection_tip.show .proxy_detection_box {
@@ -1118,6 +1118,10 @@ input:checked+.slider-modern:before {
   margin-bottom: 20px;
 }
 
+[data-theme="dark"] .detection-status-text {
+  color: #f1f5f9;
+}
+
 .detection-details {
   background-color: #f8fafc;
   border-radius: 10px;
@@ -1127,8 +1131,8 @@ input:checked+.slider-modern:before {
 }
 
 [data-theme="dark"] .detection-details {
-  background-color: #0f172a;
-  border: 1px solid #334155;
+  background-color: var(--bg-secondary, #2d2d2d);
+  border: 1px solid var(--border-color, #a0a0a0);
 }
 
 .detection-row {
@@ -1271,8 +1275,8 @@ input:checked+.slider-modern:before {
 }
 
 [data-theme="dark"] .sync_config_box {
-  background-color: #1e293b;
-  border: 1px solid #334155;
+  background-color: var(--bg-secondary, #2d2d2d);
+  border: 1px solid var(--border-color, #a0a0a0);
 }
 
 .sync_config_tip.show .sync_config_box {
@@ -1348,7 +1352,8 @@ input:checked+.slider-modern:before {
 }
 
 [data-theme="dark"] .native-sync-info {
-  background-color: #0f172a;
+  background-color: var(--bg-secondary, #2d2d2d);
+  border: 1px solid var(--border-color, #a0a0a0);
 }
 
 .native-sync-info span {
@@ -1489,6 +1494,68 @@ input:checked+.slider-modern:before {
   border-color: #4338ca;
 }
 
+/* Sync Selector Dropdown in Popup */
+[data-theme="dark"] .sync-selector .lh-select {
+  background-color: var(--bg-primary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .sync-selector .lh-select_k {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .sync-selector .lh-select-op {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .sync-selector .lh-select-op li {
+  color: #e4e4e7;
+}
+
+[data-theme="dark"] .sync-selector .lh-select-op li:hover {
+  background-color: var(--border-color);
+  color: #e4e4e7;
+}
+
+[data-theme="dark"] .sync-selector .lh-select-op li.op_a {
+  background-color: rgba(129, 140, 248, 0.2);
+  color: var(--accent-color);
+}
+
+/* Gist Input Fields in Sync Popup - Dark Mode */
+[data-theme="dark"] .sync_config_content .form-item input,
+[data-theme="dark"] #gist-token,
+[data-theme="dark"] #gist-filename {
+  background-color: var(--bg-primary) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Ensure password input has same styling as text input in dark mode */
+[data-theme="dark"] input[type="password"]#gist-token {
+  background-color: var(--bg-primary) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .sync_config_content .form-item input:focus,
+[data-theme="dark"] #gist-token:focus,
+[data-theme="dark"] #gist-filename:focus {
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2) !important;
+}
+
+/* Ensure password input focus state matches text input */
+[data-theme="dark"] input[type="password"]#gist-token:focus {
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2) !important;
+}
+
+[data-theme="dark"] .sync_config_content .form-item label {
+  color: #94a3b8;
+}
+
 /* PAC Details Popup */
 .pac_details_tip {
   width: 100%;
@@ -1525,8 +1592,8 @@ input:checked+.slider-modern:before {
 }
 
 [data-theme="dark"] .pac_details_box {
-  background-color: #1e293b;
-  border: 1px solid #334155;
+  background-color: var(--bg-secondary, #2d2d2d);
+  border: 1px solid var(--border-color, #a0a0a0);
 }
 
 .pac_details_tip.show .pac_details_box {
@@ -1585,8 +1652,8 @@ input:checked+.slider-modern:before {
 }
 
 [data-theme="dark"] .pac-info-section {
-  background-color: #0f172a;
-  border: 1px solid #334155;
+  background-color: var(--bg-secondary, #2d2d2d);
+  border: 1px solid var(--border-color, #a0a0a0);
 }
 
 .pac-info-row {
@@ -1635,6 +1702,10 @@ input:checked+.slider-modern:before {
   margin-bottom: 12px;
 }
 
+[data-theme="dark"] .pac-rules-title {
+  color: #f1f5f9;
+}
+
 .pac-rules-list {
   max-height: 200px;
   overflow-y: auto;
@@ -1643,8 +1714,8 @@ input:checked+.slider-modern:before {
 }
 
 [data-theme="dark"] .pac-rules-list {
-  border-color: #334155;
-  background-color: #0f172a;
+  border-color: var(--border-color, #a0a0a0);
+  background-color: var(--bg-secondary, #2d2d2d);
 }
 
 .pac-rule-item {
