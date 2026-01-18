@@ -29,19 +29,19 @@ Uma poderosa extensão de gerenciamento de proxy para navegador que suporta Chro
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/promotional/marquee-1400x560.png)
 
-## ✨ Funcionalidades
+## 1. ✨ Funcionalidades
 
-### 🔌 Suporte a múltiplos protocolos de proxy
+### 1.1 🔌 Suporte a múltiplos protocolos de proxy
 - **HTTP** - Proxy HTTP tradicional
 - **HTTPS** - Proxy HTTPS seguro
 - **SOCKS5** - Proxy SOCKS5 com suporte TCP/UDP
 - **SOCKS4** - Compatibilidade com proxy SOCKS4 legado
 
-### 🌐 Suporte a múltiplos navegadores
+### 1.2 🌐 Suporte a múltiplos navegadores
 - **Chrome** - Usando Manifest V3 + Service Worker
 - **Firefox** - Usando onRequest API para interceptação de proxy
 
-### 🔄 Três modos de proxy
+### 1.3 🔄 Três modos de proxy
 
 | Modo | Descrição |
 |------|-----------|
@@ -51,7 +51,7 @@ Uma poderosa extensão de gerenciamento de proxy para navegador que suporta Chro
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/03.png)
 
-### 📋 Configuração flexível de regras de URL
+### 1.4 📋 Configuração flexível de regras de URL
 
 - **Endereços que ignoram o proxy** (`bypass_urls`): Domínios/IPs de conexão direta no modo manual
 - **Endereços que usam o proxy** (`include_urls`): Domínios que requerem acesso proxy no modo automático
@@ -59,33 +59,33 @@ Uma poderosa extensão de gerenciamento de proxy para navegador que suporta Chro
 - Suporta curinga `*` e correspondência de domínio
 - Adequado para cenários onde diferentes sites usam diferentes proxies
 
-### 🔐 Suporte a autenticação de proxy
+### 1.5 🔐 Suporte a autenticação de proxy
 
 - Autenticação com nome de usuário/senha
 - Tratamento automático de solicitações de autenticação do servidor proxy
 - Armazenamento seguro de credenciais
 
-### 🧪 Funcionalidades de teste de proxy
+### 1.6 🧪 Funcionalidades de teste de proxy
 
 - **Teste de conexão**: Verificar disponibilidade do proxy
 - **Medição de latência**: Testar tempo de resposta do proxy
 - **Teste em lote**: Testar todos os proxies com um clique
 - **Indicadores de cor**: Verde(<500ms) / Laranja(≥500ms) / Vermelho(Falhou)
 
-### 🏃 Detecção de estado do proxy
+### 1.7 🏃 Detecção de estado do proxy
 
 - Detectar a configuração atual do proxy do navegador
 - Verificar se a extensão controlou com sucesso o proxy
 - Identificar outras extensões que controlam o proxy
 - Fornecer três resultados: estado, advertência, erro
 
-### 🔍 Visualização do Script PAC
+### 1.8 🔍 Visualização do Script PAC
 
 - **Visualização do Script**: Ver o conteúdo do script PAC gerado automaticamente
 - **Lista de Regras**: Exibição clara de todas as regras de correspondência de proxy ativas
 - **Suporte a Depuração**: Solução fácil de problemas de correspondência no modo automático
 
-### 🌙 Modos de tema
+### 1.9 🌙 Modos de tema
 
 - **Modo Claro**: Para uso diurno
 - **Modo Escuro**: Para uso noturno
@@ -93,14 +93,81 @@ Uma poderosa extensão de gerenciamento de proxy para navegador que suporta Chro
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/02.png)
 
-### ☁️ Armazenamento e sincronização de dados
+### 1.10 ☁️ Armazenamento e sincronização de dados
 
-- **Armazenamento local primeiro**: A configuração do proxy sempre é salva no armazenamento local
-- **Sincronização em nuvem**: Opcionalmente habilitar sincronização com conta Chrome/Firefox
-- **Mesclagem inteligente**: Mesclar automaticamente dados locais e remotos quando há anomalias na sincronização
-- **Importar/Exportar**: Suporte a backup e restauração de configuração em formato JSON
+#### 1.10.1 Estratégia de armazenamento
 
-### 🌍 Suporte a múltiplos idiomas
+| Tipo de armazenamento | Descrição |
+|----------------------|-----------|
+| **Armazenamento local (local)** | Sempre ativo, armazena a lista de proxies e todos os dados de configuração, garantindo disponibilidade offline |
+| **Sincronização em nuvem (sync)** | Função opcional, sincroniza entre múltiplos dispositivos com a mesma conta do navegador |
+
+#### 1.10.2 Métodos de sincronização
+
+##### 1.10.2.1 Sincronização nativa do navegador (Native Sync)
+- Usa a API `chrome.storage.sync`
+- Sincronização automática através da conta Chrome/Firefox
+- Adequado para sincronização multi-dispositivo com a mesma conta do navegador
+- Funciona sem configuração adicional
+
+##### 1.10.2.2 Sincronização GitHub Gist
+- Sincronização de configuração entre navegadores e dispositivos via GitHub Gist
+- Requer configuração do GitHub Personal Access Token
+- Suporta push/pull manual ou sincronização automática
+- O conteúdo da configuração é armazenado criptografado, informações sensíveis são automaticamente removidas na exportação
+
+| Item de configuração | Descrição |
+|---------------------|-----------|
+| **Chave de acesso** | GitHub Personal Access Token (requer permissão gist) |
+| **Nome do arquivo** | Nome do arquivo no Gist, padrão `proxy_assistant_config.json` |
+| **ID do Gist** | Reconhecimento e salvamento automático, nenhuma entrada manual necessária |
+
+#### 1.10.3 Operações de sincronização
+
+| Operação | Descrição |
+|----------|-----------|
+| **Push** | Carregar configuração local para a nuvem/Gist |
+| **Pull** | Baixar configuração da nuvem/Gist para local |
+| **Testar conexão** | Verificar a validade do Gist Token e o estado da configuração |
+
+#### 1.10.4 Importar/Exportar
+
+- **Exportar configuração**: Gerar arquivo JSON com todas as informações de proxy, configurações de tema, configurações de idioma, etc.
+- **Importar configuração**: Suporte para restaurar configuração a partir de arquivo JSON
+- **Segurança de dados**: O arquivo de exportação remove automaticamente informações sensíveis (Token, senha)
+- **Compatibilidade de formato**: Suporta importação de arquivos de configuração de versões anteriores
+
+**Estrutura de exportação:**
+```json
+{
+  "version": 1,
+  "settings": {
+    "appLanguage": "zh-CN",
+    "themeMode": "light",
+    "nightModeStart": "22:00",
+    "nightModeEnd": "06:00"
+  },
+  "sync": {
+    "type": "native",
+    "gist": { "filename": "proxy_assistant_config.json" }
+  },
+  "proxies": [
+    {
+      "name": "My Proxy",
+      "protocol": "http",
+      "ip": "192.168.1.1",
+      "port": "8080",
+      "username": "",
+      "password": "",
+      "fallback_policy": "direct",
+      "include_urls": "",
+      "bypass_urls": ""
+    }
+  ]
+}
+```
+
+### 1.11 🌍 Suporte a múltiplos idiomas
 
 Esta extensão suporta os seguintes idiomas:
 
@@ -119,20 +186,22 @@ Esta extensão suporta os seguintes idiomas:
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/04.png)
 
-## 📷 Interface de configuração
+## 2. 📷 Interface de configuração
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/main/settings.png)
 
-## 📁 Estrutura do projeto
+## 3. 📁 Estrutura do projeto
 
 ```
 ProxyAssistant/
-├── readme/                    # Documentação multilíngue
+├── conf/                     # Configuração de exemplo
+│   └── demo.json             # Arquivo de configuração de exemplo
+├── readme/                   # Documentação multilíngue
 │   ├── README-zh-CN.md       # Chinês simplificado
 │   ├── README-zh-TW.md       # Chinês tradicional
 │   ├── README-en.md          # Inglês
 │   └── ...
-├── src/                       # Código fonte
+├── src/                      # Código fonte
 │   ├── manifest_chrome.json  # Configuração extensão Chrome
 │   ├── manifest_firefox.json # Configuração extensão Firefox
 │   ├── main.html             # Página de configuração
@@ -158,35 +227,63 @@ ProxyAssistant/
     └── img/                  # Imagens promocionais e de demonstração
 ```
 
-## 🚀 Início rápido
+## 4. 🚀 Início rápido
 
-### Instalação da extensão
+### 4.1 Instalação da extensão
 
-**Chrome:**
+#### 4.1.1 Chrome
 
-Método 1 (Recomendado): Instalar da loja oficial do Chrome
+**Método 1 (Recomendado)**: Instalar da loja oficial do Chrome
 1. Abrir Chrome, visitar [Chrome Web Store](https://chrome.google.com/webstore)
 2. Buscar "Assistente de Proxy"
 3. Clicar em "Adicionar ao Chrome"
 
-Método 2: Instalação local
+**Método 2**: Instalação local
 - **Opção A (usar código fonte)**: Baixar código fonte, renomear `src/manifest_chrome.json` para `manifest.json`, then carregar o diretório `src`
-- **Opção B (usar pacote)**: Baixar o pacote de instalação do Chrome (arquivo `.zip`) do diretório `release`, extrair e carregar o diretório correspondente
+- **Opção B (usar pacote)**:
+  1. Ir para a página [GitHub Releases](https://github.com/bugwz/ProxyAssistant/releases)
+  2. Baixar o arquivo `proxy-assistant-chrome-x.x.x.zip`
+  3. Extrair o arquivo ZIP baixado em um diretório任意
+  4. Abrir Chrome, visitar `chrome://extensions/`
+  5. Ativar o **"Modo de desenvolvedor"** no canto superior direito
+  6. Clicar no botão **"Carregar extensão desempacotada"** no canto superior esquerdo
+  7. Selecionar a pasta extraída no passo 3
+  8. A extensão aparecerá na lista de extensões após uma instalação bem-sucedida
 
-**Firefox:**
+#### 4.1.2 Firefox
 
-Método 1 (Recomendado): Instalar dos extras oficiais do Firefox
+**Método 1 (Recomendado)**: Instalar dos extras oficiais do Firefox
 1. Abrir Firefox, visitar [Extras do Firefox](https://addons.mozilla.org/)
 2. Buscar "Assistente de Proxy"
 3. Clicar em "Adicionar ao Firefox"
 
-Método 2: Instalação local
+**Método 2**: Instalação local
 1. Baixar o pacote de instalação do Firefox (arquivo `.xpi`) do diretório `release`
 2. Abrir Firefox, visitar `about:addons`
 3. Clicar em **ícone de engrenagem** → **Instalar extra a partir do arquivo**
 4. Selecionar o arquivo `.xpi` baixado
 
-### Adicionar um proxy
+#### 4.1.3 Microsoft Edge
+
+O navegador Edge é baseado no núcleo Chromium e pode instalar extensões Chrome diretamente.
+
+**Método 1 (Recomendado)**: Instalar da Chrome Web Store
+1. Abrir Edge, visitar `edge://extensions/`
+2. Na seção "Encontrar novas extensões", clicar em "Obter extensões da Chrome Web Store", visitar [Chrome Web Store](https://chrome.google.com/webstore)
+3. Buscar "Assistente de Proxy"
+4. Clicar em "Obter" e depois "Adicionar ao Microsoft Edge"
+
+**Método 2**: Instalação local
+1. Ir para a página [GitHub Releases](https://github.com/bugwz/ProxyAssistant/releases)
+2. Baixar o arquivo `proxy-assistant-chrome-x.x.x.zip`
+3. Extrair o arquivo ZIP baixado em um diretório任意
+4. Abrir Edge, visitar `edge://extensions/`
+5. Ativar o **"Modo de desenvolvedor"** no canto inferior esquerdo
+6. Clicar no botão **"Selecionar diretório desempacotado"**
+7. Selecionar a pasta extraída no passo 3
+8. A extensão aparecerá na lista de extensões após uma instalação bem-sucedida
+
+### 4.2 Adicionar um proxy
 
 1. Clicar no ícone da extensão para abrir o popup
 2. Clicar no botão **"Configurações"** para abrir a página de configurações
@@ -200,7 +297,7 @@ Método 2: Instalação local
    - (Opcional) Configuração de regras URL
 5. Clicar no botão **"Salvar"**
 
-### Usar proxies
+### 4.3 Usar proxies
 
 **Modo Manual**:
 1. Selecionar **"Manual"** no popup
@@ -212,9 +309,9 @@ Método 2: Instalação local
 2. Configurar regras URL para cada proxy na página de configurações
 3. O proxy é selecionado automaticamente com base no site visitado
 
-## 📖 Documentação detalhada
+## 5. 📖 Documentação detalhada
 
-### Sintaxe de regras de URL
+### 5.1 Sintaxe de regras de URL
 
 Suporta as seguintes regras de correspondência:
 
@@ -235,7 +332,7 @@ www.google.com
 10.0.0.0/8
 ```
 
-### Estratégia de fallback
+### 5.2 Estratégia de fallback
 
 No modo automático, quando a conexão do proxy falha:
 
@@ -244,7 +341,7 @@ No modo automático, quando a conexão do proxy falha:
 | **Conexão direta (DIRECT)** | Ignorar proxy, conectar diretamente ao site de destino |
 | **Rejeitar conexão (REJECT)** | Rejeitar a solicitação |
 
-### Modo automático com script PAC
+### 5.3 Modo automático com script PAC
 
 O modo automático usa scripts PAC (Proxy Auto-Config):
 - Selecionar automaticamente o proxy com base na URL atual
@@ -252,7 +349,7 @@ O modo automático usa scripts PAC (Proxy Auto-Config):
 - Suporta estratégia de fallback
 - Restaurar automaticamente a última configuração ao iniciar o navegador
 
-### Operações de atalho
+### 5.4 Operações de atalho
 
 | Operação | Método |
 |----------|--------|
@@ -263,8 +360,9 @@ O modo automático usa scripts PAC (Proxy Auto-Config):
 | Habilitar/desabilitar proxy individualmente | Toggle no cartão |
 | Testar proxy individual | Clicar no botão "Testar conexão" |
 | Testar todos os proxies | Clicar no botão "Testar tudo" |
+| Fechar popup rapidamente | Pressionar a tecla `ESC` na página |
 
-### Importar/exportar configuração
+### 5.5 Configuração importar/exportar
 
 1. **Exportar configuração**: Clicar em "Exportar configuração" para baixar arquivo JSON
 2. **Importar configuração**: Clicar em "Importar configuração" e selecionar arquivo JSON para restaurar
@@ -276,7 +374,7 @@ A configuração inclui:
 - Configuração de idioma
 - Estado do interruptor de sincronização
 
-### Detecção de estado do proxy
+### 5.6 Detecção de estado do proxy
 
 Clicar no botão "Detectar efeito do proxy" pode:
 - Ver o modo atual do proxy do navegador
@@ -284,15 +382,15 @@ Clicar no botão "Detectar efeito do proxy" pode:
 - Detectar se outras extensões ocuparam o controle
 - Obter diagnóstico e sugestões de problemas
 
-## 🔧 Arquitetura técnica
+## 6. 🔧 Arquitetura técnica
 
-### Manifest V3
+### 6.1 Manifest V3
 
 - Chrome usa especificação Manifest V3
 - Service Worker substitui páginas de segundo plano
 - Firefox usa background scripts + onRequest API
 
-### Módulos principais
+### 6.2 Módulos principais
 
 1. **worker.js (Chrome)**:
    - Gerenciamento de configuração do proxy
@@ -318,13 +416,13 @@ Clicar no botão "Detectar efeito do proxy" pode:
    - Suporte a múltiplos idiomas
    - Alternância de idioma em tempo real
 
-### Armazenamento de dados
+### 6.3 Armazenamento de dados
 
 - `chrome.storage.local`: Armazenamento local (sempre usado)
 - `chrome.storage.sync`: Armazenamento de sincronização em nuvem (opcional)
 - Princípio local first, resolve problema de cota de sincronização
 
-### Compatibilidade de navegador
+### 6.4 Compatibilidade de navegador
 
 | Função | Chrome | Firefox |
 |--------|--------|---------|
@@ -336,34 +434,34 @@ Clicar no botão "Detectar efeito do proxy" pode:
 | Sincronização de dados | ✅ | ✅ |
 | Detecção proxy | ✅ | ✅ |
 
-## 📝 Casos de uso
+## 7. 📝 Casos de uso
 
-### Cenário 1: Alternância entre múltiplos proxies
+### 7.1 Cenário 1: Alternância entre múltiplos proxies
 
 - Configurar diferentes proxies para diferentes ambientes de rede
 - Usar proxy da empresa para rede do escritório
 - Usar proxy científico para rede doméstica
 - Alternância rápida com um clique
 
-### Cenário 2: Roteamento inteligente
+### 7.2 Cenário 2: Roteamento inteligente
 
 - Sites nacionais conexão direta
 - Sites específicos através de proxy
 - Seleção automática com base no domínio
 
-### Cenário 3: Teste de pool de proxies
+### 7.3 Cenário 3: Teste de pool de proxies
 
 - Importar múltiplos proxies
 - Testar latência em lote
 - Selecionar proxy ideal para usar
 
-### Cenário 4: Compartilhamento em equipe
+### 7.4 Cenário 4: Compartilhamento em equipe
 
 - Exportar arquivo de configuração
 - Compartilhar com membros da equipe
 - Configuração de proxy unificada
 
-## ⚠️ Observações importantes
+## 8. ⚠️ Observações importantes
 
 1. **Descrição de permissões**: A extensão requer as seguintes permissões:
    - `proxy`: Gerenciar configurações de proxy
@@ -379,19 +477,19 @@ Clicar no botão "Detectar efeito do proxy" pode:
 
 5. **Restrição de Firefox**: A versão mínima do Firefox necessária é 142.0
 
-## 📄 Política de Privacidade
+## 9. 📄 Política de Privacidade
 
 [Política de Privacidade](https://sites.google.com/view/proxy-assistant/privacy-policy)
 
-## 📄 Licença
+## 10. 📄 Licença
 
 MIT License - Ver arquivo [LICENSE](../LICENSE) para detalhes
 
-## 🤝 Contribuição
+## 11. 🤝 Contribuição
 
 Relatórios de issues e pull requests são bem-vindos!
 
-## 📧 Contato
+## 12. 📧 Contato
 
 Para perguntas ou sugestões, por favor enviar comentários através do GitHub Issues.
 

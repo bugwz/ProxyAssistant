@@ -29,19 +29,19 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome und Firefo
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/promotional/marquee-1400x560.png)
 
-## ✨ Funktionen
+## 1. ✨ Funktionen
 
-### 🔌 Unterstützung mehrerer Proxy-Protokolle
+### 1.1 🔌 Unterstützung mehrerer Proxy-Protokolle
 - **HTTP** - Traditioneller HTTP-Proxy
 - **HTTPS** - Sicherer HTTPS-Proxy
 - **SOCKS5** - SOCKS5-Proxy mit TCP/UDP-Unterstützung
 - **SOCKS4** - Legacy SOCKS4-Proxy-Kompatibilität
 
-### 🌐 Multi-Browser-Unterstützung
+### 1.2 🌐 Multi-Browser-Unterstützung
 - **Chrome** - Verwendung von Manifest V3 + Service Worker
 - **Firefox** - Verwendung von onRequest API für Proxy-Intercept
 
-### 🔄 Drei Proxy-Modi
+### 1.3 🔄 Drei Proxy-Modi
 
 | Modus | Beschreibung |
 |-------|--------------|
@@ -51,7 +51,7 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome und Firefo
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/03.png)
 
-### 📋 Flexible URL-Regelkonfiguration
+### 1.4 📋 Flexible URL-Regelkonfiguration
 
 - **Adressen ohne Proxy** (`bypass_urls`): Direktverbindungs-Domains/IPs im manuellen Modus
 - **Adressen mit Proxy** (`include_urls`): Domains, die Proxy-Zugriff im automatischen Modus erfordern
@@ -59,33 +59,33 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome und Firefo
 - Unterstützt Wildcard `*` und Domain-Matching
 - Geeignet für Szenarien, in denen verschiedene Websites verschiedene Proxys verwenden
 
-### 🔐 Proxy-Authentifizierungsunterstützung
+### 1.5 🔐 Proxy-Authentifizierungsunterstützung
 
 - Benutzername/Passwort-Authentifizierung
 - Automatische Behandlung von Authentifizierungsanforderungen des Proxy-Servers
 - Sichere Speicherung von Anmeldeinformationen
 
-### 🧪 Proxy-Testfunktionen
+### 1.6 🧪 Proxy-Testfunktionen
 
 - **Verbindungstest**: Proxy-Verfügbarkeit überprüfen
 - **Latenzmessung**: Proxy-Antwortzeit testen
 - **Batch-Test**: Alle Proxys mit einem Klick testen
 - **Farbindikatoren**: Grün(<500ms) / Orange(≥500ms) / Rot(Fehlgeschlagen)
 
-### 🏃 Proxy-Statuserkennung
+### 1.7 🏃 Proxy-Statuserkennung
 
 - Erkennen der aktuellen Browser-Proxy-Einstellungen
 - Überprüfen, ob die Erweiterung den Proxy erfolgreich gesteuert hat
 - Identifizieren anderer Erweiterungen, die den Proxy steuern
 - Drei Ergebnisse bereitstellen: Status, Warnung, Fehler
 
-### 🔍 PAC-Skript-Vorschau
+### 1.8 🔍 PAC-Skript-Vorschau
 
 - **Skript-Ansicht**: Automatisch generierten PAC-Skript-Inhalt anzeigen
 - **Regelliste**: Klare Anzeige aller aktiven Proxy-Matching-Regeln
 - **Debug-Support**: Einfache Fehlerbehebung bei Matching-Problemen im Auto-Modus
 
-### 🌙 Themen-Modi
+### 1.9 🌙 Themen-Modi
 
 - **Hellmodus**: Für den Tag
 - **Dunkelmodus**: Für die Nacht
@@ -93,14 +93,81 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome und Firefo
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/02.png)
 
-### ☁️ Datenspeicherung und Synchronisierung
+### 1.10 ☁️ Datenspeicherung und Synchronisierung
 
-- **Lokaler Speicher zuerst**: Proxy-Konfiguration wird immer im lokalen Speicher gespeichert
-- **Cloud-Synchronisierung**: Optional Chrome/Firefox-Kontosynchronisierung aktivieren
-- **Intelligente Zusammenführung**: Automatische Zusammenführung lokaler und entfernter Daten bei Synchronisierungsanomalien
-- **Import/Export**: JSON-Format Konfigurationssicherung und -wiederherstellung unterstützt
+#### 1.10.1 Speicherstrategie
 
-### 🌍 Mehrsprachige Unterstützung
+| Speichertyp | Beschreibung |
+|-------------|--------------|
+| **Lokalspeicher (local)** | Immer aktiv, speichert Proxy-Liste und alle Konfigurationsdaten, Offline-Verfügbarkeit gewährleistet |
+| **Cloud-Synchronisierung (sync)** | Optional, synchronisiert über mehrere Geräte mit demselben Browser-Konto |
+
+#### 1.10.2 Synchronisierungsmethoden
+
+##### 1.10.2.1 Native Browser-Synchronisierung (Native Sync)
+- Verwendet `chrome.storage.sync` API
+- Automatische Synchronisierung über Chrome/Firefox-Konto
+- Geeignet für Multi-Geräte-Synchronisierung mit demselben Browser-Konto
+- Funktioniert ohne zusätzliche Konfiguration
+
+##### 1.10.2.2 GitHub Gist-Synchronisierung
+- Synchronisierung der Konfiguration über Browser und Geräte hinweg via GitHub Gist
+- Erfordert GitHub Personal Access Token
+- Unterstützt manuelles Push/Pull oder automatische Synchronisierung
+- Konfigurationsinhalt verschlüsselt gespeichert, sensible Informationen werden beim Export automatisch gelöscht
+
+| Konfigurationselement | Beschreibung |
+|----------------------|--------------|
+| **Zugriffsschlüssel** | GitHub Personal Access Token (benötigt gist-Berechtigung) |
+| **Dateiname** | Dateiname in Gist, Standard `proxy_assistant_config.json` |
+| **Gist-ID** | Automatisch erkannt und gespeichert, keine manuelle Eingabe erforderlich |
+
+#### 1.10.3 Synchronisierungsvorgänge
+
+| Vorgang | Beschreibung |
+|---------|--------------|
+| **Push** | Lokale Konfiguration in die Cloud/Gist hochladen |
+| **Pull** | Konfiguration aus der Cloud/Gist herunterladen |
+| **Verbindung testen** | Gist Token-Gültigkeit und Konfigurationsstatus überprüfen |
+
+#### 1.10.4 Import/Export
+
+- **Exportieren**: JSON-Datei mit allen Proxy-Informationen, Themen-Einstellungen, Spracheinstellungen usw. generieren
+- **Importieren**: Wiederherstellung der Konfiguration aus JSON-Datei unterstützen
+- **Datensicherheit**: Export-Datei löscht automatisch sensible Informationen (Token, Passwort)
+- **Format-Kompatibilität**: Import von Konfigurationsdateien aus älteren Versionen unterstützt
+
+**Export-Struktur:**
+```json
+{
+  "version": 1,
+  "settings": {
+    "appLanguage": "zh-CN",
+    "themeMode": "light",
+    "nightModeStart": "22:00",
+    "nightModeEnd": "06:00"
+  },
+  "sync": {
+    "type": "native",
+    "gist": { "filename": "proxy_assistant_config.json" }
+  },
+  "proxies": [
+    {
+      "name": "My Proxy",
+      "protocol": "http",
+      "ip": "192.168.1.1",
+      "port": "8080",
+      "username": "",
+      "password": "",
+      "fallback_policy": "direct",
+      "include_urls": "",
+      "bypass_urls": ""
+    }
+  ]
+}
+```
+
+### 1.11 🌍 Mehrsprachige Unterstützung
 
 Diese Erweiterung unterstützt die folgenden Sprachen:
 
@@ -119,20 +186,22 @@ Diese Erweiterung unterstützt die folgenden Sprachen:
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/04.png)
 
-## 📷 Einstellungsseite
+## 2. 📷 Einstellungsseite
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/main/settings.png)
 
-## 📁 Projektstruktur
+## 3. 📁 Projektstruktur
 
 ```
 ProxyAssistant/
-├── readme/                    # Mehrsprachige Dokumentation
+├── conf/                     # Beispielkonfiguration
+│   └── demo.json             # Beispielkonfigurationsdatei
+├── readme/                   # Mehrsprachige Dokumentation
 │   ├── README-zh-CN.md       # Vereinfachtes Chinesisch
 │   ├── README-zh-TW.md       # Traditionelles Chinesisch
 │   ├── README-en.md          # Englisch
 │   └── ...
-├── src/                       # Quellcode
+├── src/                      # Quellcode
 │   ├── manifest_chrome.json  # Chrome-Erweiterungskonfiguration
 │   ├── manifest_firefox.json # Firefox-Erweiterungskonfiguration
 │   ├── main.html             # Einstellungsseite
@@ -158,35 +227,63 @@ ProxyAssistant/
     └── img/                  # Demo- und Werbebilder
 ```
 
-## 🚀 Schnellstart
+## 4. 🚀 Schnellstart
 
-### Installation der Erweiterung
+### 4.1 Installation der Erweiterung
 
-**Chrome:**
+#### 4.1.1 Chrome
 
-Methode 1 (Empfohlen): Aus dem offiziellen Chrome Web Store installieren
+**Methode 1 (Empfohlen)**: Aus dem offiziellen Chrome Web Store installieren
 1. Chrome öffnen und [Chrome Web Store](https://chrome.google.com/webstore) besuchen
 2. Nach "Proxy-Assistent" suchen
 3. Auf "Zu Chrome hinzufügen" klicken
 
-Methode 2: Lokale Installation
+**Methode 2**: Lokale Installation
 - **Option A (Quellcode verwenden)**: Quellcode herunterladen, `src/manifest_chrome.json` in `manifest.json` umbenennen, dann das `src`-Verzeichnis laden
-- **Option B (Installationspaket verwenden)**: Das Chrome-Erweiterungs-Installationspaket (`.zip`-Datei) aus dem `release`-Verzeichnis herunterladen, entpacken und das entsprechende Verzeichnis laden
+- **Option B (Installationspaket verwenden)**:
+  1. Zur Seite [GitHub Releases](https://github.com/bugwz/ProxyAssistant/releases) gehen
+  2. Datei `proxy-assistant-chrome-x.x.x.zip` herunterladen
+  3. Die heruntergeladene ZIP-Datei in ein beliebiges Verzeichnis entpacken
+  4. Chrome öffnen und `chrome://extensions/` besuchen
+  5. Den **"Entwicklermodus"** oben rechts aktivieren
+  6. Auf den Button **"Entpackte Erweiterung laden"** oben links klicken
+  7. Den in Schritt 3 entpackten Ordner auswählen
+  8. Die Erweiterung erscheint in der Erweiterungsliste nach erfolgreicher Installation
 
-**Firefox:**
+#### 4.1.2 Firefox
 
-Methode 1 (Empfohlen): Aus den offiziellen Firefox-Add-ons installieren
+**Methode 1 (Empfohlen)**: Aus den offiziellen Firefox-Add-ons installieren
 1. Firefox öffnen und [Firefox-Add-ons](https://addons.mozilla.org/) besuchen
 2. Nach "Proxy-Assistent" suchen
 3. Auf "Zu Firefox hinzufügen" klicken
 
-Methode 2: Lokale Installation
+**Methode 2**: Lokale Installation
 1. Das Firefox-Erweiterungs-Installationspaket (`.xpi`-Datei) aus dem `release`-Verzeichnis herunterladen
 2. Firefox öffnen und `about:addons` besuchen
 3. Auf **Zahnradsymbol** → **Add-on aus Datei installieren** klicken
 4. Die heruntergeladene `.xpi`-Datei auswählen
 
-### Hinzufügen eines Proxys
+#### 4.1.3 Microsoft Edge
+
+Der Edge-Browser basiert auf dem Chromium-Kernel und kann Chrome-Erweiterungen direkt installieren.
+
+**Methode 1 (Empfohlen)**: Aus dem Chrome Web Store installieren
+1. Edge öffnen und `edge://extensions/` besuchen
+2. Im Abschnitt "Neue Erweiterungen finden" auf "Erweiterungen aus dem Chrome Web Store abrufen" klicken, [Chrome Web Store](https://chrome.google.com/webstore) besuchen
+3. Nach "Proxy-Assistent" suchen
+4. Auf "Abrufen" klicken und dann "Zu Microsoft Edge hinzufügen"
+
+**Methode 2**: Lokale Installation
+1. Zur Seite [GitHub Releases](https://github.com/bugwz/ProxyAssistant/releases) gehen
+2. Datei `proxy-assistant-chrome-x.x.x.zip` herunterladen
+3. Die heruntergeladene ZIP-Datei in ein beliebiges Verzeichnis entpacken
+4. Edge öffnen und `edge://extensions/` besuchen
+5. Den **"Entwicklermodus"** unten links aktivieren
+6. Auf den Button **"Entpacktes Verzeichnis auswählen"** klicken
+7. Den in Schritt 3 entpackten Ordner auswählen
+8. Die Erweiterung erscheint in der Erweiterungsliste nach erfolgreicher Installation
+
+### 4.2 Hinzufügen eines Proxys
 
 1. Auf das Erweiterungssymbol klicken, um das Popup zu öffnen
 2. Auf die **"Einstellungen"**-Schaltfläche klicken, um die Einstellungsseite zu öffnen
@@ -200,7 +297,7 @@ Methode 2: Lokale Installation
    - (Optional) URL-Regelkonfiguration
 5. Auf die **"Speichern"**-Schaltfläche klicken
 
-### Verwenden von Proxys
+### 4.3 Verwenden von Proxys
 
 **Manueller Modus**:
 1. **"Manuell"** Modus im Popup auswählen
@@ -212,9 +309,9 @@ Methode 2: Lokale Installation
 2. URL-Regeln für jeden Proxy auf der Einstellungsseite konfigurieren
 3. Der Proxy wird automatisch basierend auf der besuchten Website ausgewählt
 
-## 📖 Detaillierte Dokumentation
+## 5. 📖 Detaillierte Dokumentation
 
-### URL-Regelsyntax
+### 5.1 URL-Regelsyntax
 
 Unterstützt die folgenden Matching-Regeln:
 
@@ -235,7 +332,7 @@ www.google.com
 10.0.0.0/8
 ```
 
-### Fallback-Strategie
+### 5.2 Fallback-Strategie
 
 Im automatischen Modus, wenn die Proxy-Verbindung fehlschlägt:
 
@@ -244,7 +341,7 @@ Im automatischen Modus, wenn die Proxy-Verbindung fehlschlägt:
 | **Direktverbindung (DIRECT)** | Proxy umgehen, direkt zur Zielwebsite verbinden |
 | **Verbindung ablehnen (REJECT)** | Die Anfrage ablehnen |
 
-### PAC-Skript-Automatikmodus
+### 5.3 PAC-Skript-Automatikmodus
 
 Der automatische Modus verwendet PAC (Proxy Auto-Config) Skripte:
 - Wählt automatisch den Proxy basierend auf der aktuellen URL
@@ -252,7 +349,7 @@ Der automatische Modus verwendet PAC (Proxy Auto-Config) Skripte:
 - Unterstützt Fallback-Strategie
 - Stellt automatisch die letzte Konfiguration beim Browser-Start wieder her
 
-### Schnelloperationen
+### 5.4 Schnelloperationen
 
 | Operation | Methode |
 |-----------|---------|
@@ -263,8 +360,9 @@ Der automatische Modus verwendet PAC (Proxy Auto-Config) Skripte:
 | Einzelnen Proxy aktivieren/deaktivieren | Toggle auf der Karte |
 | Einzelnen Proxy testen | Auf "Verbindung testen"-Button klicken |
 | Alle Proxys testen | Auf "Alle testen"-Button klicken |
+| Popup schnell schließen | Auf der Seite `ESC` Taste drücken |
 
-### Konfiguration importieren/exportieren
+### 5.5 Konfiguration importieren/exportieren
 
 1. **Exportieren**: Auf "Konfiguration exportieren" klicken, um eine JSON-Datei herunterzuladen
 2. **Importieren**: Auf "Konfiguration importieren" klicken und eine JSON-Datei zum Wiederherstellen auswählen
@@ -276,7 +374,7 @@ Die Konfiguration enthält:
 - Spracheinstellungen
 - Synchronisationsschalter-Status
 
-### Proxy-Statuserkennung
+### 5.6 Proxy-Statuserkennung
 
 Auf den Button "Proxy-Effekt erkennen" klicken kann:
 - Den aktuellen Browser-Proxy-Modus anzeigen
@@ -284,15 +382,15 @@ Auf den Button "Proxy-Effekt erkennen" klicken kann:
 - Erkennen, ob andere Erweiterungen die Steuerung übernommen haben
 - Problemdiagnose und Vorschläge erhalten
 
-## 🔧 Technische Architektur
+## 6. 🔧 Technische Architektur
 
-### Manifest V3
+### 6.1 Manifest V3
 
 - Chrome verwendet Manifest V3-Spezifikation
 - Service Worker ersetzt Hintergrundseiten
 - Firefox verwendet background scripts + onRequest API
 
-### Kernmodule
+### 6.2 Kernmodule
 
 1. **worker.js (Chrome)**:
    - Proxy-Konfigurationsverwaltung
@@ -318,13 +416,13 @@ Auf den Button "Proxy-Effekt erkennen" klicken kann:
    - Mehrsprachige Unterstützung
    - Echtzeit-Sprachwechsel
 
-### Datenspeicherung
+### 6.3 Datenspeicherung
 
 - `chrome.storage.local`: Lokaler Speicher (immer verwendet)
 - `chrome.storage.sync`: Cloud-Synchronisierungsspeicher (optional)
 - Lokal-zuerst-Prinzip, löst Problem der Synchronisierungsquote
 
-### Browser-Kompatibilität
+### 6.4 Browser-Kompatibilität
 
 | Funktion | Chrome | Firefox |
 |----------|--------|---------|
@@ -336,34 +434,34 @@ Auf den Button "Proxy-Effekt erkennen" klicken kann:
 | Datensynchronisierung | ✅ | ✅ |
 | Proxy-Erkennung | ✅ | ✅ |
 
-## 📝 Anwendungsfälle
+## 7. 📝 Anwendungsfälle
 
-### Szenario 1: Mehrfacher Proxy-Wechsel
+### 7.1 Szenario 1: Mehrfacher Proxy-Wechsel
 
 - Verschiedene Proxys für verschiedene Netzwerkumgebungen konfigurieren
 - Unternehmens-Proxy für Büronetzwerk verwenden
 - Wissenschaftlichen Proxy für Heimnetzwerk verwenden
 - Schneller Ein-Klick-Wechsel
 
-### Szenario 2: Intelligentes Routing
+### 7.2 Szenario 2: Intelligentes Routing
 
 - Inländische Websites direkte Verbindung
 - Bestimmte Websites über Proxy
 - Automatische Auswahl basierend auf Domain
 
-### Szenario 3: Proxy-Pool-Test
+### 7.3 Szenario 3: Proxy-Pool-Test
 
 - Mehrere Proxys importieren
 - Latenz im Batch testen
 - Optimalen Proxy zum Verwenden auswählen
 
-### Szenario 4: Teamfreigabe
+### 7.4 Szenario 4: Teamfreigabe
 
 - Konfigurationsdatei exportieren
 - Mit Teammitgliedern teilen
 - Einheitliche Proxy-Konfiguration
 
-## ⚠️ Wichtige Hinweise
+## 8. ⚠️ Wichtige Hinweise
 
 1. **Berechtigungsbeschreibung**: Die Erweiterung erfordert die folgenden Berechtigungen:
    - `proxy`: Proxy-Einstellungen verwalten
@@ -379,19 +477,19 @@ Auf den Button "Proxy-Effekt erkennen" klicken kann:
 
 5. **Firefox-Einschränkung**: Die Mindestversion von Firefox ist 142.0
 
-## 📄 Datenschutzrichtlinie
+## 9. 📄 Datenschutzrichtlinie
 
 [Datenschutzrichtlinie](https://sites.google.com/view/proxy-assistant/privacy-policy)
 
-## 📄 Lizenz
+## 10. 📄 Lizenz
 
 MIT License - Siehe [LICENSE](../LICENSE)-Datei für Details
 
-## 🤝 Beiträge
+## 11. 🤝 Beiträge
 
 Issue-Berichte und Pull-Requests sind willkommen!
 
-## 📧 Kontakt
+## 12. 📧 Kontakt
 
 Bei Fragen oder Anregungen senden Sie bitte Feedback über GitHub Issues.
 
