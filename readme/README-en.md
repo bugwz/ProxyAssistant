@@ -95,10 +95,77 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 
 ### ☁️ Data Storage & Sync
 
-- **Local-First Storage**: Proxy configurations always saved to local storage
-- **Cloud Sync**: Optional Chrome/Firefox account sync
-- **Smart Merge**: Automatically merge local and remote data on sync errors
-- **Import/Export**: JSON format configuration backup and restore
+#### 1.10.1 Storage Strategy
+
+| Storage Type | Description |
+|--------------|-------------|
+| **Local Storage** | Always enabled, stores proxy list and all configuration data, ensuring offline availability |
+| **Cloud Sync** | Optional, synchronizes configuration across devices via browser account |
+
+#### 1.10.2 Sync Methods
+
+##### 1.10.2.1 Native Browser Sync
+- Uses `chrome.storage.sync` API
+- Automatic sync via Chrome/Firefox account
+- Suitable for multi-device sync with same browser account
+- Works out of the box, no additional configuration needed
+
+##### 1.10.2.2 GitHub Gist Sync
+- Sync configuration across browsers and devices via GitHub Gist
+- Requires GitHub Personal Access Token
+- Supports manual push/pull or automatic sync
+- Configuration content is encrypted, sensitive info is automatically cleared during export
+
+| Config Item | Description |
+|-------------|-------------|
+| **Access Token** | GitHub Personal Access Token (requires gist permission) |
+| **Filename** | Filename in Gist, default `proxy_assistant_config.json` |
+| **Gist ID** | Automatically recognized and saved, no manual input needed |
+
+#### 1.10.3 Sync Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Push** | Upload local configuration to cloud/Gist |
+| **Pull** | Download configuration from cloud/Gist to local |
+| **Test Connection** | Verify Gist Token validity and configuration status |
+
+#### 1.10.4 Import/Export
+
+- **Export Configuration**: Generate JSON file with all proxy info, theme settings, language settings, etc.
+- **Import Configuration**: Restore configuration from JSON file
+- **Data Security**: Export file automatically clears sensitive info (Token, Password)
+- **Format Compatibility**: Supports import of configuration files from old versions
+
+**Export Structure:**
+```json
+{
+  "version": 1,
+  "settings": {
+    "appLanguage": "zh-CN",
+    "themeMode": "light",
+    "nightModeStart": "22:00",
+    "nightModeEnd": "06:00"
+  },
+  "sync": {
+    "type": "native",
+    "gist": { "filename": "proxy_assistant_config.json" }
+  },
+  "proxies": [
+    {
+      "name": "My Proxy",
+      "protocol": "http",
+      "ip": "192.168.1.1",
+      "port": "8080",
+      "username": "",
+      "password": "",
+      "fallback_policy": "direct",
+      "include_urls": "",
+      "bypass_urls": ""
+    }
+  ]
+}
+```
 
 ### 🌍 Multilingual Support
 
@@ -127,12 +194,14 @@ This extension supports the following languages:
 
 ```
 ProxyAssistant/
-├── readme/                    # Multilingual documentation
+├── conf/                     # Example configuration
+│   └── demo.json             # Example configuration file
+├── readme/                   # Multilingual documentation
 │   ├── README-zh-CN.md       # Simplified Chinese
 │   ├── README-zh-TW.md       # Traditional Chinese
 │   ├── README-en.md          # English
 │   └── ...
-├── src/                       # Source code
+├── src/                      # Source code
 │   ├── manifest_chrome.json  # Chrome extension configuration
 │   ├── manifest_firefox.json # Firefox extension configuration
 │   ├── main.html             # Settings page
@@ -162,29 +231,57 @@ ProxyAssistant/
 
 ### Install Extension
 
-**Chrome:**
+#### Chrome
 
-Method 1 (Recommended): Install from Chrome Web Store
+**Method 1 (Recommended)**: Install from Chrome Web Store
 1. Open Chrome browser, visit [Chrome Web Store](https://chrome.google.com/webstore)
 2. Search for "Proxy Assistant"
 3. Click "Add to Chrome"
 
-Method 2: Local Installation
+**Method 2**: Local Installation
 - **Option A (Using Source Code)**: Download source code, rename `src/manifest_chrome.json` to `manifest.json`, then load `src` directory
-- **Option B (Using Package)**: Download Chrome extension package (`.zip`) from release directory, extract and load the directory
+- **Option B (Using Package)**:
+  1. Go to [GitHub Releases](https://github.com/bugwz/ProxyAssistant/releases) page
+  2. Download `proxy-assistant-chrome-x.x.x.zip` file
+  3. Extract the downloaded ZIP file to any directory
+  4. Open Chrome browser, visit `chrome://extensions/`
+  5. Enable **"Developer mode"** toggle in the top right
+  6. Click **"Load unpacked extension"** button in the top left
+  7. Select the folder extracted in step 3
+  8. Extension will appear in the extension list after successful installation
 
-**Firefox:**
+#### Firefox
 
-Method 1 (Recommended): Install from Firefox Add-ons
+**Method 1 (Recommended)**: Install from Firefox Add-ons
 1. Open Firefox browser, visit [Firefox Add-ons](https://addons.mozilla.org/)
 2. Search for "Proxy Assistant"
 3. Click "Add to Firefox"
 
-Method 2: Local Installation
-1. Download Firefox extension package (`.xpi`) from release directory
+**Method 2**: Local Installation
+1. Download Firefox extension package (`.xpi` file) from release directory
 2. Open Firefox browser, visit `about:addons`
 3. Click **Gear Icon** → **Install Add-on From File**
 4. Select the downloaded `.xpi` file
+
+#### Microsoft Edge
+
+Edge browser is based on Chromium kernel, can directly install Chrome extensions.
+
+**Method 1 (Recommended)**: Install from Chrome Web Store
+1. Open Edge browser, visit `edge://extensions/`
+2. In "Find new extensions" section, click "Get extensions from Chrome Web Store", visit [Chrome Web Store](https://chrome.google.com/webstore)
+3. Search for "Proxy Assistant"
+4. Click "Get" then "Add to Microsoft Edge"
+
+**Method 2**: Local Installation
+1. Go to [GitHub Releases](https://github.com/bugwz/ProxyAssistant/releases) page
+2. Download `proxy-assistant-chrome-x.x.x.zip` file
+3. Extract the downloaded ZIP file to any directory
+4. Open Edge browser, visit `edge://extensions/`
+5. Enable **"Developer mode"** toggle in the bottom left
+6. Click **"Select unpacked directory"** button
+7. Select the folder extracted in step 3
+8. Extension will appear in the extension list after successful installation
 
 ### Add Proxy
 
@@ -263,6 +360,7 @@ Auto mode uses PAC (Proxy Auto-Config) script:
 | Enable/Disable single proxy | Toggle switch on card |
 | Test single proxy | Click "Connection Test" button |
 | Test all proxies | Click "Test All" button |
+| Quick close popup | Press `ESC` key on page |
 
 ### Import/Export Configuration
 
