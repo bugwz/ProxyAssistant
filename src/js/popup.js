@@ -620,11 +620,10 @@ function checkIfBypassed(bypassUrls, hostname) {
 }
 
 function handleAddToBypass(hostname, $btn) {
-  chrome.storage.local.get(['proxyMode', 'currentProxy', 'list', 'auto_sync'], function (result) {
+  chrome.storage.local.get(['proxyMode', 'currentProxy', 'list'], function (result) {
     const mode = result.proxyMode || 'disabled';
     let proxy = result.currentProxy;
     const list = result.list || [];
-    const autoSync = result.auto_sync !== false;
 
     if (mode === 'auto') {
       const autoMatchProxy = getAutoProxy(list, hostname);
@@ -661,14 +660,6 @@ function handleAddToBypass(hostname, $btn) {
 
     // Save to local storage
     chrome.storage.local.set({ currentProxy: proxy, list: list }, function () {
-      if (autoSync) {
-        chrome.storage.sync.set({ list: list }, function () {
-          if (chrome.runtime.lastError) {
-            console.warn("Sync failed:", chrome.runtime.lastError);
-          }
-        });
-      }
-
       chrome.runtime.sendMessage({ action: "refreshProxy" });
 
       // Update button status - show as bypassed (use proxy)
@@ -681,11 +672,10 @@ function handleAddToBypass(hostname, $btn) {
 }
 
 function handleRemoveFromBypass(hostname, $btn) {
-  chrome.storage.local.get(['proxyMode', 'currentProxy', 'list', 'auto_sync'], function (result) {
+  chrome.storage.local.get(['proxyMode', 'currentProxy', 'list'], function (result) {
     const mode = result.proxyMode || 'disabled';
     let proxy = result.currentProxy;
     const list = result.list || [];
-    const autoSync = result.auto_sync !== false;
 
     if (mode === 'auto') {
       const autoMatchProxy = getAutoProxy(list, hostname);
@@ -723,14 +713,6 @@ function handleRemoveFromBypass(hostname, $btn) {
 
     // Save to local storage
     chrome.storage.local.set({ currentProxy: proxy, list: list }, function () {
-      if (autoSync) {
-        chrome.storage.sync.set({ list: list }, function () {
-          if (chrome.runtime.lastError) {
-            console.warn("Sync failed:", chrome.runtime.lastError);
-          }
-        });
-      }
-
       chrome.runtime.sendMessage({ action: "refreshProxy" });
 
       // Update button status - show as not bypassed (bypass site)

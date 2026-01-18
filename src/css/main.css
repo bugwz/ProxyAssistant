@@ -831,6 +831,19 @@ input:checked+.slider-modern:before {
   color: #94a3b8;
 }
 
+/* Sync Config Panel */
+.sync-config-panel {
+  background-color: #f8fafc;
+  padding: 20px 25px;
+  border-bottom: 1px solid #f1f5f9;
+  border-top: none;
+}
+
+[data-theme="dark"] .sync-config-panel {
+  background-color: #0f172a;
+  border-bottom-color: #334155;
+}
+
 .config-actions {
   display: flex;
   gap: 15px;
@@ -861,14 +874,14 @@ input:checked+.slider-modern:before {
 
 [data-theme="dark"] .export_btn,
 [data-theme="dark"] .import_json_btn {
-  background-color: #0f172a;
-  border-color: #334155;
-  color: #cbd5e1;
+  background-color: var(--bg-primary);
+  border-color: var(--border-color);
+  color: #e4e4e7;
 }
 
 [data-theme="dark"] .export_btn:hover,
 [data-theme="dark"] .import_json_btn:hover {
-  background-color: #334155;
+  background-color: var(--border-color);
   color: #f1f5f9;
 }
 
@@ -1222,6 +1235,258 @@ input:checked+.slider-modern:before {
 [data-theme="dark"] .proxy_detection_close_btn2:hover {
   background-color: #475569;
   color: #f1f5f9;
+}
+
+/* Sync Config Popup */
+.sync_config_tip {
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.sync_config_tip.show {
+  opacity: 1;
+}
+
+.sync_config_box {
+  width: 500px;
+  max-width: 90%;
+  background-color: #fff;
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+[data-theme="dark"] .sync_config_box {
+  background-color: #1e293b;
+  border: 1px solid #334155;
+}
+
+.sync_config_tip.show .sync_config_box {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+
+.sync_config_header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .sync_config_header {
+  border-bottom-color: #334155;
+}
+
+.sync_config_header span {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+[data-theme="dark"] .sync_config_header span {
+  color: #f1f5f9;
+}
+
+.sync_config_close_btn {
+  width: 24px;
+  height: 24px;
+  background-image: url(../images/close.png);
+  background-size: 14px 14px;
+  background-position: center;
+  background-repeat: no-repeat;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.sync_config_close_btn:hover {
+  opacity: 1;
+}
+
+.sync_config_content {
+  margin-bottom: 20px;
+}
+
+.sync_config_footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 15px;
+  border-top: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .sync_config_footer {
+  border-top-color: #334155;
+}
+
+.native-sync-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  text-align: center;
+  gap: 15px;
+}
+
+[data-theme="dark"] .native-sync-info {
+  background-color: #0f172a;
+}
+
+.native-sync-info span {
+  color: #64748b;
+  font-size: 13px;
+  max-width: 80%;
+}
+
+[data-theme="dark"] .native-sync-info span {
+  color: #94a3b8;
+}
+
+.sync-status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+  background-color: #f1f5f9;
+  color: #64748b;
+}
+
+[data-theme="dark"] .sync-status-badge {
+  background-color: #334155;
+  color: #cbd5e1;
+}
+
+.sync-status-badge.active {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+[data-theme="dark"] .sync-status-badge.active {
+  background-color: rgba(22, 101, 52, 0.2);
+  color: #4ade80;
+}
+
+/* Gist Instruction Style */
+.gist-instruction {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 15px;
+  background-color: #f1f5f9;
+  padding: 12px 15px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .gist-instruction {
+  color: #94a3b8;
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+.gist-link {
+  color: #4164f5;
+  text-decoration: none;
+  font-weight: 600;
+  margin-left: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.gist-link:hover {
+  text-decoration: underline;
+}
+
+[data-theme="dark"] .gist-link {
+  color: #818cf8;
+}
+
+/* Sync Config Footer Buttons - Optimized Style */
+.sync_config_footer .btn-test,
+.sync_config_footer .btn-save {
+  padding: 8px 24px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 90px;
+  height: 38px;
+}
+
+/* Test Connection Button - Light Mode */
+.sync_config_footer .btn-test {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.sync_config_footer .btn-test:hover {
+  background-color: #e2e8f0;
+  color: #1e293b;
+}
+
+/* Test Connection Button - Dark Mode */
+[data-theme="dark"] .sync_config_footer .btn-test {
+  background-color: #334155;
+  color: #cbd5e1;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .sync_config_footer .btn-test:hover {
+  background-color: #475569;
+  color: #f1f5f9;
+}
+
+/* Save Config Button - Light Mode */
+.sync_config_footer .btn-save {
+  background-color: #4164f5;
+  color: white;
+  border: 1px solid #4164f5;
+  margin-left: 12px;
+}
+
+.sync_config_footer .btn-save:hover {
+  background-color: #3050d0;
+  border-color: #3050d0;
+}
+
+/* Save Config Button - Dark Mode */
+[data-theme="dark"] .sync_config_footer .btn-save {
+  background-color: #4f46e5;
+  border-color: #4f46e5;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .sync_config_footer .btn-save:hover {
+  background-color: #4338ca;
+  border-color: #4338ca;
 }
 
 /* PAC Details Popup */
