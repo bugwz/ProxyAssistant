@@ -4,13 +4,16 @@
 const isFirefox = typeof browser !== 'undefined' && browser.runtime && browser.runtime.getBrowserInfo !== undefined;
 var list = [];
 var save = true;
-var auto_sync = true;
 var themeMode = 'light';
 var nightModeStart = '22:00';
 var nightModeEnd = '06:00';
 var themeInterval = null;
 var del_index = -1;
 let pacStorageListener = null;
+var syncConfig = {
+  type: 'native',
+  gist: { token: '', filename: 'proxy_assistant_config.json', gist_id: '' }
+};
 
 // ==========================================
 // Initialization
@@ -31,46 +34,12 @@ function initApp() {
 
 function loadSettingsAndList() {
   // Load settings
-  chrome.storage.local.get({ auto_sync: true }, function (settings) {
-    auto_sync = settings.auto_sync;
-    $("#auto_sync_toggle").prop("checked", auto_sync);
-
-    // If sync enabled, pull from remote and update local
-    if (auto_sync) {
-      chrome.storage.sync.get({ list: [], themeSettings: {} }, function (remoteItems) {
-        const hasError = chrome.runtime.lastError;
-        const isEmpty = !remoteItems.list || remoteItems.list.length === 0;
-
-        if (hasError) {
-          console.warn("Remote sync error:", chrome.runtime.lastError.message);
-        }
-
-        if (hasError || isEmpty) {
-          // Remote is empty or error - try to merge with local data
-          chrome.storage.local.get({ list: [], themeSettings: {} }, function (localItems) {
-            const localList = localItems.list || [];
-            const remoteList = remoteItems.list || [];
-
-            if (localList.length > 0 && remoteList.length === 0) {
-              console.log("Pushing local data to remote sync...");
-              chrome.storage.sync.set({ list: localList }, function () {
-                if (chrome.runtime.lastError) {
-                  console.warn("Sync push failed:", chrome.runtime.lastError.message);
-                }
-              });
-            }
-            loadFromLocal();
-          });
-        } else {
-          console.log("Sync enabled: Pulled data from remote, updating local");
-          chrome.storage.local.set({ list: remoteItems.list }, function () {
-            loadFromLocal(remoteItems);
-          });
-        }
-      });
-    } else {
-      loadFromLocal();
+  chrome.storage.local.get({ sync_config: null }, async function (settings) {
+    if (settings.sync_config) {
+      syncConfig = settings.sync_config;
     }
+    updateSyncUI();
+    loadFromLocal();
   });
 }
 
@@ -200,11 +169,37 @@ function saveThemeSettings() {
     endTime: nightModeEnd
   };
 
-  chrome.storage.local.set({ themeSettings: themeSettings }, function () {
-    if (auto_sync) {
-      chrome.storage.sync.set({ themeSettings: themeSettings });
-    }
-  });
+  chrome.storage.local.set({ themeSettings: themeSettings });
+}
+
+function updateSyncUI() {
+  const type = syncConfig.type || 'native';
+
+  // Update Badge on Main Page
+  const $badge = $('#sync-status-badge');
+  const typeTextKey = type === 'native' ? 'sync_native' : 'sync_gist';
+  const typeText = I18n.t(typeTextKey);
+
+  $badge.text(typeText).addClass('active');
+
+  // Update Popup UI
+  const $selectedOption = $(`.sync-selector li[data-value="${type}"]`);
+  if ($selectedOption.length) {
+    $('#current-sync-display').text($selectedOption.text());
+  }
+
+  // Handle Panels in Popup
+  $('.sync-panel').hide();
+  $('#test-sync-connection').hide();
+
+  if (type === 'gist') {
+    $('#gist-token').val(syncConfig.gist.token);
+    $('#gist-filename').val(syncConfig.gist.filename || 'proxy_assistant_config.json');
+    $('#gist-config').show();
+    $('#test-sync-connection').show();
+  } else {
+    $('#native-config').show();
+  }
 }
 
 // ==========================================
@@ -361,10 +356,85 @@ function bindGlobalEvents() {
     $btn.prop('disabled', false);
   });
 
-  // Auto Sync Toggle
-  $("#auto_sync_toggle").on("change", function () {
-    auto_sync = $(this).prop("checked");
-    chrome.storage.local.set({ auto_sync: auto_sync });
+  // Open Sync Config Popup
+  $("#open-sync-config-btn").on("click", function () {
+    updateSyncUI();
+    $(".sync_config_tip").show().addClass("show");
+  });
+
+  // Sync Mode Selection in Popup
+  $(".sync-selector .lh-select-op li").on("click", function () {
+    const type = $(this).data("value");
+    syncConfig.type = type;
+    updateSyncUI();
+    $(this).closest('.lh-select-op').hide();
+  });
+
+  // Gist Token Eye Toggle
+  $("#gist-token-eye input").on("change", function () {
+    var isChecked = $(this).prop("checked");
+    var $input = $("#gist-token");
+    $input.attr("type", isChecked ? "text" : "password");
+    var $toggle = $(this).parent();
+    if (isChecked) $toggle.removeClass('hide-password').addClass('show-password');
+    else $toggle.removeClass('show-password').addClass('hide-password');
+  });
+
+  // Save Sync Config
+  $("#save-sync-config").on("click", function () {
+    // Update config object from inputs
+    if (syncConfig.type === 'gist') {
+      syncConfig.gist.token = $("#gist-token").val();
+      syncConfig.gist.filename = $("#gist-filename").val() || 'proxy_assistant_config.json';
+    }
+
+    chrome.storage.local.set({ sync_config: syncConfig }, function () {
+      showTip(I18n.t('save_success'), false);
+      $(".sync_config_tip").removeClass("show");
+      setTimeout(function () { $(".sync_config_tip").hide(); }, 300);
+      updateSyncUI();
+    });
+  });
+
+  // Manual Sync Buttons
+  $("#sync-pull-btn").on("click", function () {
+    manualPull();
+  });
+
+  $("#sync-push-btn").on("click", function () {
+    manualPush();
+  });
+
+  // Test Connection Button
+  $("#test-sync-connection").on("click", async function () {
+    var $btn = $(this);
+    var originalText = $btn.find('span').text();
+    $btn.prop('disabled', true).find('span').text(I18n.t('testing'));
+
+    try {
+      let resultMsg = "";
+      if (syncConfig.type === 'gist') {
+        // Temporarily update config from inputs for testing
+        syncConfig.gist.token = $("#gist-token").val();
+        syncConfig.gist.filename = $("#gist-filename").val() || 'proxy_assistant_config.json';
+        resultMsg = await testGistConnection();
+      }
+
+      showTip(resultMsg, false);
+
+    } catch (e) {
+      showTip(I18n.t('test_failed') + ": " + e.message, true);
+    } finally {
+      $btn.prop('disabled', false).find('span').text(originalText);
+    }
+  });
+
+  // Close Sync Popup
+  $(".sync_config_close_btn, .sync_config_tip").on("click", function (e) {
+    if (this === e.target || $(this).hasClass('sync_config_close_btn')) {
+      $(".sync_config_tip").removeClass("show");
+      setTimeout(function () { $(".sync_config_tip").hide(); }, 300);
+    }
   });
 
   // Expand/Collapse All
@@ -740,18 +810,8 @@ function saveData() {
       showTip(I18n.t('save_failed'), true);
       return;
     }
-    if (auto_sync) {
-      chrome.storage.sync.set({ list: list }, function () {
-        if (chrome.runtime.lastError) {
-          console.error("Remote sync failed:", chrome.runtime.lastError);
-          showTip(I18n.t('sync_failed') || "同步失败，请重试", true);
-        } else {
-          showTip(I18n.t('save_success'), false);
-        }
-      });
-    } else {
-      showTip(I18n.t('save_success'), false);
-    }
+
+    showTip(I18n.t('save_success'), false);
     chrome.runtime.sendMessage({ action: "refreshProxy" });
   });
   save = true;
@@ -887,30 +947,52 @@ function cleanProtocol(protocol) {
 // ==========================================
 // Import / Export
 // ==========================================
-function exportConfig() {
+
+// Unified function to build config data object
+function buildConfigData() {
   var orderedProxies = list.map(function (proxy) {
     var ordered = {
-      "name": proxy.name, "protocol": proxy.protocol, "ip": proxy.ip, "port": proxy.port,
-      "username": proxy.username, "password": proxy.password,
+      "name": proxy.name,
+      "protocol": proxy.protocol,
+      "ip": proxy.ip,
+      "port": proxy.port,
+      "username": proxy.username,
+      "password": proxy.password,
       "fallback_policy": proxy.fallback_policy || "direct",
-      "is_show": proxy.is_show, "open": proxy.open,
-      "include_urls": proxy.include_urls, "bypass_urls": proxy.bypass_urls
+      "is_show": proxy.is_show,
+      "open": proxy.open,
+      "include_urls": proxy.include_urls,
+      "bypass_urls": proxy.bypass_urls
     };
     if (proxy.disabled !== undefined) ordered.disabled = proxy.disabled;
     return ordered;
   });
 
-  var configBundle = {
+  // Clear sensitive fields (token and password) for export
+  var syncForExport = {
+    type: syncConfig.type,
+    gist: {
+      token: '',
+      filename: syncConfig.gist.filename || 'proxy_assistant_config.json',
+      gist_id: ''
+    }
+  };
+
+  return {
     version: 1,
     settings: {
-      auto_sync: auto_sync,
       appLanguage: I18n.getCurrentLanguage(),
       themeMode: themeMode,
       nightModeStart: nightModeStart,
       nightModeEnd: nightModeEnd
     },
+    sync: syncForExport,
     proxies: orderedProxies
   };
+}
+
+function exportConfig() {
+  var configBundle = buildConfigData();
   var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(configBundle, null, 4));
   var downloadAnchorNode = document.createElement('a');
   downloadAnchorNode.setAttribute("href", dataStr);
@@ -946,6 +1028,12 @@ function importConfig(e) {
             saveThemeSettings();
             updateThemeUI();
           }
+        }
+        // Import syncConfig if present
+        if (data.sync) {
+          syncConfig = data.sync;
+          chrome.storage.local.set({ sync_config: syncConfig });
+          updateSyncUI();
         }
         save = false;
         renderList();
@@ -985,7 +1073,6 @@ $(".del_tip_del_btn").on("click", function () {
   if (del_index !== undefined && del_index >= 0 && list[del_index]) {
     list.splice(del_index, 1);
     chrome.storage.local.set({ list: list }, function () {
-      if (auto_sync) chrome.storage.sync.set({ list: list });
       chrome.runtime.sendMessage({ action: "refreshProxy" });
     });
     renderList();
@@ -1228,6 +1315,312 @@ $("#pac-copy-btn").on("click", function () {
 });
 
 $(".pac_details_tip").hide();
+
+// ==========================================
+// Sync Logic (Gist)
+// ==========================================
+
+// ==========================================
+// Manual Sync Handlers
+// ==========================================
+
+async function manualPush() {
+  const type = syncConfig.type || 'native';
+  var $btn = $("#sync-push-btn");
+  $btn.prop('disabled', true);
+
+  // Use unified config data builder
+  const data = buildConfigData();
+
+  try {
+    if (type === 'native') {
+      await new Promise((resolve, reject) => {
+        chrome.storage.sync.set({
+          version: data.version,
+          settings: data.settings,
+          sync: data.sync,
+          proxies: data.proxies
+        }, function () {
+          if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
+          else resolve();
+        });
+      });
+    } else if (type === 'gist') {
+      await pushToGist(data);
+    }
+    showTip(I18n.t('sync_success'), false);
+  } catch (e) {
+    console.error("Sync Push Error:", e);
+    showTip(I18n.t('sync_failed') + (e.message || e), true);
+  } finally {
+    $btn.prop('disabled', false);
+  }
+}
+
+async function manualPull() {
+  const type = syncConfig.type || 'native';
+  var $btn = $("#sync-pull-btn");
+  $btn.prop('disabled', true);
+
+  try {
+    let remoteData = null;
+
+    if (type === 'native') {
+      remoteData = await new Promise((resolve, reject) => {
+        chrome.storage.sync.get({ version: 0, settings: {}, proxies: [] }, function (items) {
+          if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
+          else resolve(items);
+        });
+      });
+    } else if (type === 'gist') {
+      remoteData = await pullFromGist();
+    }
+
+    if (remoteData) {
+      let proxyList = remoteData.proxies || [];
+      let themeSettings = remoteData.settings || {};
+
+      if (proxyList && proxyList.length > 0) {
+        console.log("Sync: Pulled data from " + type);
+
+        // Update local storage
+        chrome.storage.local.set({ list: proxyList }, function () {
+          if (themeSettings) {
+            chrome.storage.local.set({ themeSettings: themeSettings });
+          }
+          // Reload UI
+          loadFromLocal({ list: proxyList, themeSettings: themeSettings });
+          showTip(I18n.t('sync_success'), false);
+        });
+      } else {
+        showTip(I18n.t('sync_failed') + "No data found", true);
+      }
+    } else {
+      showTip(I18n.t('sync_failed') + "No data found", true);
+    }
+  } catch (e) {
+    console.error("Sync Pull Error:", e);
+    showTip(I18n.t('sync_failed') + (e.message || e), true);
+  } finally {
+    $btn.prop('disabled', false);
+  }
+}
+
+// --- GitHub Gist Implementation ---
+
+async function pushToGist(data) {
+  const token = syncConfig.gist.token;
+  const filename = syncConfig.gist.filename || 'proxy_assistant_config.json';
+  if (!token) return;
+
+  // First validate the token by checking user info
+  const validateResponse = await fetch('https://api.github.com/user', {
+    headers: {
+      'Authorization': `token ${token}`,
+      'Accept': 'application/vnd.github.v3+json'
+    }
+  });
+
+  if (!validateResponse.ok) {
+    if (validateResponse.status === 401) throw new Error(I18n.t('sync_error_invalid_token'));
+    throw new Error(I18n.t('sync_error_connection') + validateResponse.status);
+  }
+
+  const content = JSON.stringify(data, null, 2);
+
+  let gistId = syncConfig.gist.gist_id;
+  let fileExists = false;
+
+  // If gist_id exists, check if the gist contains the specified file
+  if (gistId) {
+    try {
+      const gistContent = await getGistContent(token, gistId, filename);
+      if (gistContent) {
+        fileExists = true;
+      }
+    } catch (e) {
+      console.warn("Gist not found or inaccessible, will try to find or create:", e);
+      gistId = null; // Reset gist_id, search or create again
+    }
+  }
+
+  // If no gist_id or file doesn't exist, try to find gist containing the file
+  if (!gistId || !fileExists) {
+    gistId = await findGistByFilename(token, filename);
+    if (gistId) {
+      fileExists = true;
+      syncConfig.gist.gist_id = gistId;
+      chrome.storage.local.set({ sync_config: syncConfig });
+    }
+  }
+
+  // Update or create based on the situation
+  if (gistId && fileExists) {
+    await updateGist(token, gistId, filename, content);
+  } else {
+    const newId = await createGist(token, filename, content);
+    syncConfig.gist.gist_id = newId;
+    chrome.storage.local.set({ sync_config: syncConfig });
+  }
+}
+
+async function pullFromGist() {
+  const token = syncConfig.gist.token;
+  const filename = syncConfig.gist.filename || 'proxy_assistant_config.json';
+  if (!token) return null;
+
+  let gistId = syncConfig.gist.gist_id;
+
+  if (!gistId) {
+    gistId = await findGistByFilename(token, filename);
+    if (gistId) {
+      syncConfig.gist.gist_id = gistId;
+      chrome.storage.local.set({ sync_config: syncConfig });
+    } else {
+      return null;
+    }
+  }
+
+  return await getGistContent(token, gistId, filename);
+}
+
+async function findGistByFilename(token, filename) {
+  // Fetch all pages of gists (GitHub returns 30 per page by default)
+  let page = 1;
+  const perPage = 100;
+  let foundGistId = null;
+
+  while (page <= 10 && !foundGistId) { // Limit to 10 pages (1000 gists) max
+    const response = await fetch(`https://api.github.com/gists?page=${page}&per_page=${perPage}`, {
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) throw new Error("Invalid Token");
+      if (response.status === 403) {
+        // Rate limited - if we already have partial results, try to use them
+        console.warn("GitHub API rate limited while searching for gist");
+        break;
+      }
+      throw new Error(`GitHub API Error: ${response.status}`);
+    }
+
+    const gists = await response.json();
+
+    if (gists.length === 0) {
+      // No more gists to check
+      break;
+    }
+
+    for (const gist of gists) {
+      if (gist.files && gist.files[filename]) {
+        foundGistId = gist.id;
+        break;
+      }
+    }
+
+    page++;
+  }
+
+  return foundGistId;
+}
+
+async function createGist(token, filename, content) {
+  const files = {};
+  files[filename] = { content: content };
+
+  const response = await fetch('https://api.github.com/gists', {
+    method: 'POST',
+    headers: {
+      'Authorization': `token ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      description: 'Proxy Assistant Configuration',
+      public: false,
+      files: files
+    })
+  });
+
+  if (!response.ok) throw new Error(I18n.t('sync_error_create_gist'));
+  const data = await response.json();
+  return data.id;
+}
+
+async function updateGist(token, gistId, filename, content) {
+  const files = {};
+  files[filename] = { content: content };
+
+  const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `token ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ files: files })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Gist update error:", response.status, errorText);
+    throw new Error(I18n.t('sync_error_update_gist') + ` (${response.status})`);
+  }
+}
+
+async function getGistContent(token, gistId, filename) {
+  const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+    headers: {
+      'Authorization': `token ${token}`,
+      'Accept': 'application/vnd.github.v3+json'
+    }
+  });
+  if (!response.ok) throw new Error(I18n.t('sync_error_get_gist'));
+  const data = await response.json();
+
+  if (data.files && data.files[filename]) {
+    const content = data.files[filename].content;
+    try {
+      return JSON.parse(content);
+    } catch (e) {
+      console.error("Parse Gist Content Error", e);
+      return null;
+    }
+  }
+  return null;
+}
+
+async function testGistConnection() {
+  const token = syncConfig.gist.token;
+  if (!token) throw new Error(I18n.t('sync_error_token_empty'));
+
+  const response = await fetch('https://api.github.com/user', {
+    headers: {
+      'Authorization': `token ${token}`,
+      'Accept': 'application/vnd.github.v3+json'
+    }
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) throw new Error(I18n.t('sync_error_invalid_token'));
+    throw new Error(I18n.t('sync_error_connection') + response.status);
+  }
+
+  const filename = syncConfig.gist.filename || 'proxy_assistant_config.json';
+  const gistId = await findGistByFilename(token, filename);
+
+  if (gistId) {
+    syncConfig.gist.gist_id = gistId;
+    chrome.storage.local.set({ sync_config: syncConfig });
+    return I18n.t('sync_success_found') + filename;
+  } else {
+    return I18n.t('sync_success_new');
+  }
+}
 
 // ==========================================
 // Utilities
