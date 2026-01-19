@@ -385,7 +385,7 @@ npm run test:coverage       # Exécuter les tests et générer un rapport de cou
 
 **Spécifier la version**:
 ```bash
-make build VERSION=1.3.1
+make build VERSION=1.4.0
 # ou
 ./script/build.sh 1.3.1
 ```
