@@ -385,7 +385,7 @@ npm run test:coverage       # Tests ausführen und Abdeckungsbericht generieren
 
 **Version angeben**:
 ```bash
-make build VERSION=1.3.1
+make build VERSION=1.4.0
 # oder
 ./script/build.sh 1.3.1
 ```

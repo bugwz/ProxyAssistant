@@ -384,9 +384,9 @@ npm run test:coverage       # 运行测试并生成覆盖率报告
 
 **指定版本号**:
 ```bash
-make build VERSION=1.3.1
+make build VERSION=1.4.0
 # 或
-./script/build.sh 1.3.1
+./script/build.sh 1.4.0
 ```
 
 **构建产物**:

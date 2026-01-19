@@ -385,7 +385,7 @@ npm run test:coverage       # テスト実行してカバレッジレポート�
 
 **バージョン指定**:
 ```bash
-make build VERSION=1.3.1
+make build VERSION=1.4.0
 # または
 ./script/build.sh 1.3.1
 ```
