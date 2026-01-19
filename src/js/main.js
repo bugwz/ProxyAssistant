@@ -204,41 +204,55 @@ function updateSyncUI() {
 }
 
 function updateNativeQuotaInfo() {
-  const quotaLimit = chrome.storage.sync.QUOTA_BYTES_PER_ITEM || 8192; // 8KB default
   const data = buildConfigData();
-  const proxiesData = JSON.stringify(data.proxies);
-  const usageBytes = new Blob([proxiesData]).size; // Calculate UTF-8 bytes
-  const usageKB = (usageBytes / 1024).toFixed(1);
-  const quotaKB = (quotaLimit / 1024).toFixed(1);
-  const percentage = ((usageBytes / quotaLimit) * 100).toFixed(1);
+  const jsonStr = JSON.stringify(data);
+  const chunks = chunkString(jsonStr, SYNC_CHUNK_SIZE);
+  const meta = buildSyncMeta(chunks);
 
-  // Update usage text
-  const usageText = I18n.t('sync_quota_usage')
+  const quotaItemLimit = chrome.storage.sync.QUOTA_BYTES_PER_ITEM || 8192; // 8KB per item
+  const quotaTotalLimit = chrome.storage.sync.QUOTA_BYTES || 524288; // 512KB total (typical)
+
+  const usageBytes = meta.totalSize;
+  const chunksCount = chunks.length;
+  const usageKB = (usageBytes / 1024).toFixed(1);
+  const quotaItemKB = (quotaItemLimit / 1024).toFixed(1);
+  const quotaTotalKB = (quotaTotalLimit / 1024).toFixed(0);
+
+  // Calculate percentage based on total quota (more relevant for chunked storage)
+  const percentage = ((usageBytes / quotaTotalLimit) * 100).toFixed(1);
+
+  // Update usage text with chunk info
+  const usageText = I18n.t('sync_quota_usage_chunked')
     .replace('{usage}', usageKB + 'KB')
-    .replace('{quota}', quotaKB + 'KB')
+    .replace('{chunks}', chunksCount)
+    .replace('{quota}', quotaTotalKB + 'KB')
     .replace('{percent}', percentage + '%');
   $('#quota-usage-text').text(usageText);
 
-  // Update progress bar
+  // Update progress bar (capped at 100% visually)
   const $barFill = $('#quota-bar-fill');
   $barFill.css('width', Math.min(percentage, 100) + '%');
 
   // Update bar color based on usage
   $barFill.removeClass('normal warning exceeded');
-  if (usageBytes > quotaLimit) {
+  if (usageBytes > quotaTotalLimit) {
     $barFill.addClass('exceeded');
-  } else if (usageBytes > quotaLimit * 0.8) {
+  } else if (usageBytes > quotaTotalLimit * 0.8) {
     $barFill.addClass('warning');
   } else {
     $barFill.addClass('normal');
   }
 
-  // Show warning if exceeded
+  // Show warning if approaching limit
   const $warning = $('#quota-warning');
-  if (usageBytes > quotaLimit) {
+  if (usageBytes > quotaTotalLimit) {
     const exceededText = I18n.t('sync_quota_limit_exceeded')
       .replace('{size}', usageKB + 'KB');
     $warning.text(exceededText).show();
+  } else if (usageBytes > quotaTotalLimit * 0.8) {
+    const warningText = I18n.t('sync_quota_warning')
+      .replace('{percent}', percentage + '%');
+    $warning.text(warningText).show();
   } else {
     $warning.hide();
   }
@@ -1394,8 +1408,189 @@ $("#pac-copy-btn").on("click", function () {
 $(".pac_details_tip").hide();
 
 // ==========================================
-// Sync Logic (Gist)
+// Sync Logic (Native + Gist)
 // ==========================================
+
+// Constants for native sync chunked storage
+const SYNC_CHUNK_SIZE = 7 * 1024; // 7KB per chunk (leaving 1KB headroom for overhead)
+
+// ==========================================
+// Chunked Storage Helpers
+// ==========================================
+
+/**
+ * Split a string into chunks of specified size
+ * @param {string} str - The string to split
+ * @param {number} size - Chunk size in bytes
+ * @returns {string[]} Array of chunks
+ */
+function chunkString(str, size) {
+  const chunks = [];
+  let i = 0;
+  while (i < str.length) {
+    chunks.push(str.substring(i, i + size));
+    i += size;
+  }
+  return chunks;
+}
+
+/**
+ * Calculate simple checksum for data integrity verification
+ * @param {string} str - String to checksum
+ * @returns {string} Simple checksum hash
+ */
+function calculateChecksum(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return 'crc:' + Math.abs(hash).toString(16);
+}
+
+/**
+ * Build metadata for chunked storage
+ * @param {string[]} chunks - Array of data chunks
+ * @returns {object} Metadata object
+ */
+function buildSyncMeta(chunks) {
+  const totalSize = chunks.reduce((sum, chunk) => sum + new Blob([chunk]).size, 0);
+  const fullData = chunks.join('');
+  return {
+    version: 1,
+    chunks: {
+      start: 0,
+      end: chunks.length - 1
+    },
+    totalSize: totalSize,
+    checksum: calculateChecksum(fullData)
+  };
+}
+
+/**
+ * Validate metadata structure
+ * @param {object} meta - Metadata to validate
+ * @returns {boolean} True if valid
+ */
+function isValidMeta(meta) {
+  return meta &&
+    typeof meta.version === 'number' &&
+    meta.chunks &&
+    typeof meta.chunks.start === 'number' &&
+    typeof meta.chunks.end === 'number' &&
+    typeof meta.checksum === 'string';
+}
+
+// ==========================================
+// Native Sync Push (Chunked)
+// ==========================================
+
+async function nativePush(data) {
+  // 1. Serialize and chunk the data
+  const jsonStr = JSON.stringify(data);
+  const chunks = chunkString(jsonStr, SYNC_CHUNK_SIZE);
+
+  // 2. Build metadata
+  const meta = buildSyncMeta(chunks);
+
+  // 3. Build write object with all chunks and meta
+  const toWrite = { 'meta': meta };
+  chunks.forEach((chunk, index) => {
+    toWrite['data.' + index] = chunk;
+  });
+
+  // 4. Clear all existing sync data first
+  await new Promise((resolve, reject) => {
+    chrome.storage.sync.clear(function () {
+      if (chrome.runtime.lastError) {
+        reject(new Error('Clear failed: ' + chrome.runtime.lastError.message));
+      } else {
+        resolve();
+      }
+    });
+  });
+
+  // 5. Atomically write all new data
+  await new Promise((resolve, reject) => {
+    chrome.storage.sync.set(toWrite, function () {
+      if (chrome.runtime.lastError) {
+        reject(new Error('Write failed: ' + chrome.runtime.lastError.message));
+      } else {
+        resolve();
+      }
+    });
+  });
+
+  return {
+    chunks: chunks.length,
+    totalSize: meta.totalSize
+  };
+}
+
+// ==========================================
+// Native Sync Pull (Chunked)
+// ==========================================
+
+async function nativePull() {
+  // 1. Read metadata first
+  const metaResult = await new Promise((resolve, reject) => {
+    chrome.storage.sync.get('meta', function (items) {
+      if (chrome.runtime.lastError) {
+        reject(new Error('Read meta failed: ' + chrome.runtime.lastError.message));
+      } else {
+        resolve(items);
+      }
+    });
+  });
+
+  const meta = metaResult.meta;
+
+  // 2. Validate metadata
+  if (!isValidMeta(meta)) {
+    throw new Error('Invalid or missing metadata');
+  }
+
+  // 3. Build keys list for all chunks
+  const keys = ['meta'];
+  for (let i = meta.chunks.start; i <= meta.chunks.end; i++) {
+    keys.push('data.' + i);
+  }
+
+  // 4. Read all chunks
+  const items = await new Promise((resolve, reject) => {
+    chrome.storage.sync.get(keys, function (result) {
+      if (chrome.runtime.lastError) {
+        reject(new Error('Read chunks failed: ' + chrome.runtime.lastError.message));
+      } else {
+        resolve(result);
+      }
+    });
+  });
+
+  // 5. Verify all chunks exist
+  for (let i = meta.chunks.start; i <= meta.chunks.end; i++) {
+    if (!items['data.' + i]) {
+      throw new Error('Missing chunk: data.' + i);
+    }
+  }
+
+  // 6. Merge chunks and validate checksum
+  const mergedData = [];
+  for (let i = meta.chunks.start; i <= meta.chunks.end; i++) {
+    mergedData.push(items['data.' + i]);
+  }
+  const fullData = mergedData.join('');
+
+  // Verify checksum
+  const calculatedChecksum = calculateChecksum(fullData);
+  if (calculatedChecksum !== meta.checksum) {
+    throw new Error('Checksum mismatch - data may be corrupted');
+  }
+
+  // 7. Parse and return
+  return JSON.parse(fullData);
+}
 
 // ==========================================
 // Manual Sync Handlers
@@ -1411,17 +1606,8 @@ async function manualPush() {
 
   try {
     if (type === 'native') {
-      await new Promise((resolve, reject) => {
-        chrome.storage.sync.set({
-          version: data.version,
-          settings: data.settings,
-          sync: data.sync,
-          proxies: data.proxies
-        }, function () {
-          if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
-          else resolve();
-        });
-      });
+      const result = await nativePush(data);
+      console.log('Native sync: Pushed ' + result.chunks + ' chunks, ' + result.totalSize + ' bytes');
     } else if (type === 'gist') {
       await pushToGist(data);
     }
@@ -1443,12 +1629,8 @@ async function manualPull() {
     let remoteData = null;
 
     if (type === 'native') {
-      remoteData = await new Promise((resolve, reject) => {
-        chrome.storage.sync.get({ version: 0, settings: {}, proxies: [] }, function (items) {
-          if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
-          else resolve(items);
-        });
-      });
+      remoteData = await nativePull();
+      console.log('Native sync: Pulled ' + remoteData.proxies.length + ' proxies');
     } else if (type === 'gist') {
       remoteData = await pullFromGist();
     }

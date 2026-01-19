@@ -149,6 +149,8 @@ const translations = {
     "sync_error_update_gist": "更新 Gist 失败",
     "sync_error_get_gist": "获取 Gist 失败",
     "sync_quota_usage": "存储使用: {usage} / {quota} ({percent})",
+    "sync_quota_usage_chunked": "存储使用: {usage} ({chunks} 块) / {quota} ({percent})",
+    "sync_quota_warning": "⚠️ 已使用 {percent}，接近限制",
     "sync_quota_limit_exceeded": "⚠️ 已超出限制 ({size})！请减少代理数量"
   },
   "zh-TW": {
@@ -301,6 +303,8 @@ const translations = {
     "sync_error_update_gist": "更新 Gist 失敗",
     "sync_error_get_gist": "取得 Gist 失敗",
     "sync_quota_usage": "儲存使用: {usage} / {quota} ({percent})",
+    "sync_quota_usage_chunked": "儲存使用: {usage} ({chunks} 塊) / {quota} ({percent})",
+    "sync_quota_warning": "⚠️ 已使用 {percent}，接近限制",
     "sync_quota_limit_exceeded": "⚠️ 已超出限制 ({size})！請減少代理數量"
   },
   "en": {
@@ -453,6 +457,8 @@ const translations = {
     "sync_error_update_gist": "Failed to update Gist",
     "sync_error_get_gist": "Failed to get Gist",
     "sync_quota_usage": "Usage: {usage} / {quota} ({percent})",
+    "sync_quota_usage_chunked": "Usage: {usage} ({chunks} chunks) / {quota} ({percent})",
+    "sync_quota_warning": "⚠️ {percent} used, approaching limit",
     "sync_quota_limit_exceeded": "⚠️ Limit Exceeded ({size})! Please reduce proxies."
   },
   "ja": {
@@ -605,6 +611,8 @@ const translations = {
     "sync_error_update_gist": "Gist の更新に失敗しました",
     "sync_error_get_gist": "Gist の取得に失敗しました",
     "sync_quota_usage": "使用量: {usage} / {quota} ({percent})",
+    "sync_quota_usage_chunked": "使用量: {usage} ({chunks} ブロック) / {quota} ({percent})",
+    "sync_quota_warning": "⚠️ {percent} 使用、上限に近づいています",
     "sync_quota_limit_exceeded": "⚠️ 制限超過 ({size})！プロキシを減らしてください"
   },
   "fr": {
@@ -757,6 +765,8 @@ const translations = {
     "sync_error_update_gist": "Échec de la mise à jour du Gist",
     "sync_error_get_gist": "Échec de l'obtention du Gist",
     "sync_quota_usage": "Usage: {usage} / {quota} ({percent})",
+    "sync_quota_usage_chunked": "Usage: {usage} ({chunks} blocs) / {quota} ({percent})",
+    "sync_quota_warning": "⚠️ {percent} utilisé,接近限制",
     "sync_quota_limit_exceeded": "⚠️ Limite dépassée ({size})! Réduisez les proxys."
   },
   "de": {
@@ -909,6 +919,8 @@ const translations = {
     "sync_error_update_gist": "Gist aktualisieren fehlgeschlagen",
     "sync_error_get_gist": "Gist abrufen fehlgeschlagen",
     "sync_quota_usage": "Nutzung: {usage} / {quota} ({percent})",
+    "sync_quota_usage_chunked": "Nutzung: {usage} ({chunks} Blöcke) / {quota} ({percent})",
+    "sync_quota_warning": "⚠️ {percent} verwendet,接近限制",
     "sync_quota_limit_exceeded": "⚠️ Limit überschritten ({size})! Proxys reduzieren."
   },
   "es": {
@@ -1061,6 +1073,8 @@ const translations = {
     "sync_error_update_gist": "Error al actualizar Gist",
     "sync_error_get_gist": "Error al obtener Gist",
     "sync_quota_usage": "Uso: {usage} / {quota} ({percent})",
+    "sync_quota_usage_chunked": "Uso: {usage} ({chunks} bloques) / {quota} ({percent})",
+    "sync_quota_warning": "⚠️ {percent} utilizado,接近限制",
     "sync_quota_limit_exceeded": "⚠️ Límite excedido ({size})! Reduzca los proxies."
   },
   "ko": {
@@ -1213,6 +1227,8 @@ const translations = {
     "sync_error_update_gist": "Gist 업데이트 실패",
     "sync_error_get_gist": "Gist 가져오기 실패",
     "sync_quota_usage": "사용량: {usage} / {quota} ({percent})",
+    "sync_quota_usage_chunked": "사용량: {usage} ({chunks} 블록) / {quota} ({percent})",
+    "sync_quota_warning": "⚠️ {percent} 사용,接近限制",
     "sync_quota_limit_exceeded": "⚠️ 제한 초과 ({size})! 프록시를 줄이세요."
   },
   "pt": {
@@ -1365,6 +1381,8 @@ const translations = {
     "sync_error_update_gist": "Falha ao atualizar Gist",
     "sync_error_get_gist": "Falha ao obter Gist",
     "sync_quota_usage": "Uso: {usage} / {quota} ({percent})",
+    "sync_quota_usage_chunked": "Uso: {usage} ({chunks} blocos) / {quota} ({percent})",
+    "sync_quota_warning": "⚠️ {percent} utilizado,接近限制",
     "sync_quota_limit_exceeded": "⚠️ Limite excedido ({size})! Reduza proxies."
   },
   "ru": {
@@ -1517,6 +1535,8 @@ const translations = {
     "sync_error_update_gist": "Не удалось обновить Gist",
     "sync_error_get_gist": "Не удалось получить Gist",
     "sync_quota_usage": "Использование: {usage} / {quota} ({percent})",
+    "sync_quota_usage_chunked": "Использование: {usage} ({chunks} блоков) / {quota} ({percent})",
+    "sync_quota_warning": "⚠️ Использовано {percent},接近限制",
     "sync_quota_limit_exceeded": "⚠️ Лимит превышен ({size})! Уменьшите прокси."
   }
 };
