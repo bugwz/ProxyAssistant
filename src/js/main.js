@@ -199,6 +199,48 @@ function updateSyncUI() {
     $('#test-sync-connection').show();
   } else {
     $('#native-config').show();
+    updateNativeQuotaInfo();
+  }
+}
+
+function updateNativeQuotaInfo() {
+  const quotaLimit = chrome.storage.sync.QUOTA_BYTES_PER_ITEM || 8192; // 8KB default
+  const data = buildConfigData();
+  const proxiesData = JSON.stringify(data.proxies);
+  const usageBytes = new Blob([proxiesData]).size; // Calculate UTF-8 bytes
+  const usageKB = (usageBytes / 1024).toFixed(1);
+  const quotaKB = (quotaLimit / 1024).toFixed(1);
+  const percentage = ((usageBytes / quotaLimit) * 100).toFixed(1);
+
+  // Update usage text
+  const usageText = I18n.t('sync_quota_usage')
+    .replace('{usage}', usageKB + 'KB')
+    .replace('{quota}', quotaKB + 'KB')
+    .replace('{percent}', percentage + '%');
+  $('#quota-usage-text').text(usageText);
+
+  // Update progress bar
+  const $barFill = $('#quota-bar-fill');
+  $barFill.css('width', Math.min(percentage, 100) + '%');
+
+  // Update bar color based on usage
+  $barFill.removeClass('normal warning exceeded');
+  if (usageBytes > quotaLimit) {
+    $barFill.addClass('exceeded');
+  } else if (usageBytes > quotaLimit * 0.8) {
+    $barFill.addClass('warning');
+  } else {
+    $barFill.addClass('normal');
+  }
+
+  // Show warning if exceeded
+  const $warning = $('#quota-warning');
+  if (usageBytes > quotaLimit) {
+    const exceededText = I18n.t('sync_quota_limit_exceeded')
+      .replace('{size}', usageKB + 'KB');
+    $warning.text(exceededText).show();
+  } else {
+    $warning.hide();
   }
 }
 
@@ -843,6 +885,11 @@ function saveData() {
 
     showTip(I18n.t('save_success'), false);
     chrome.runtime.sendMessage({ action: "refreshProxy" });
+
+    // Update quota info if sync config popup is open and native mode is selected
+    if ($(".sync_config_tip").hasClass("show") && syncConfig.type === 'native') {
+      updateNativeQuotaInfo();
+    }
   });
   save = true;
 }

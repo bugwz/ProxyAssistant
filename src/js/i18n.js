@@ -147,7 +147,9 @@ const translations = {
     "sync_error_connection": "连接失败: ",
     "sync_error_create_gist": "创建 Gist 失败",
     "sync_error_update_gist": "更新 Gist 失败",
-    "sync_error_get_gist": "获取 Gist 失败"
+    "sync_error_get_gist": "获取 Gist 失败",
+    "sync_quota_usage": "存储使用: {usage} / {quota} ({percent})",
+    "sync_quota_limit_exceeded": "⚠️ 已超出限制 ({size})！请减少代理数量"
   },
   "zh-TW": {
     "app_name": "代理助手",
@@ -297,7 +299,9 @@ const translations = {
     "sync_error_connection": "連線失敗: ",
     "sync_error_create_gist": "建立 Gist 失敗",
     "sync_error_update_gist": "更新 Gist 失敗",
-    "sync_error_get_gist": "取得 Gist 失敗"
+    "sync_error_get_gist": "取得 Gist 失敗",
+    "sync_quota_usage": "儲存使用: {usage} / {quota} ({percent})",
+    "sync_quota_limit_exceeded": "⚠️ 已超出限制 ({size})！請減少代理數量"
   },
   "en": {
     "app_name": "Proxy Assistant",
@@ -447,7 +451,9 @@ const translations = {
     "sync_error_connection": "Connection Failed: ",
     "sync_error_create_gist": "Failed to create Gist",
     "sync_error_update_gist": "Failed to update Gist",
-    "sync_error_get_gist": "Failed to get Gist"
+    "sync_error_get_gist": "Failed to get Gist",
+    "sync_quota_usage": "Usage: {usage} / {quota} ({percent})",
+    "sync_quota_limit_exceeded": "⚠️ Limit Exceeded ({size})! Please reduce proxies."
   },
   "ja": {
     "app_name": "プロキシアシスタント",
@@ -597,7 +603,9 @@ const translations = {
     "sync_error_connection": "接続失敗: ",
     "sync_error_create_gist": "Gist の作成に失敗しました",
     "sync_error_update_gist": "Gist の更新に失敗しました",
-    "sync_error_get_gist": "Gist の取得に失敗しました"
+    "sync_error_get_gist": "Gist の取得に失敗しました",
+    "sync_quota_usage": "使用量: {usage} / {quota} ({percent})",
+    "sync_quota_limit_exceeded": "⚠️ 制限超過 ({size})！プロキシを減らしてください"
   },
   "fr": {
     "app_name": "Assistant Proxy",
@@ -747,7 +755,9 @@ const translations = {
     "sync_error_connection": "Échec de la connexion : ",
     "sync_error_create_gist": "Échec de la création du Gist",
     "sync_error_update_gist": "Échec de la mise à jour du Gist",
-    "sync_error_get_gist": "Échec de l'obtention du Gist"
+    "sync_error_get_gist": "Échec de l'obtention du Gist",
+    "sync_quota_usage": "Usage: {usage} / {quota} ({percent})",
+    "sync_quota_limit_exceeded": "⚠️ Limite dépassée ({size})! Réduisez les proxys."
   },
   "de": {
     "app_name": "Proxy-Assistent",
@@ -897,7 +907,9 @@ const translations = {
     "sync_error_connection": "Verbindung fehlgeschlagen: ",
     "sync_error_create_gist": "Gist erstellen fehlgeschlagen",
     "sync_error_update_gist": "Gist aktualisieren fehlgeschlagen",
-    "sync_error_get_gist": "Gist abrufen fehlgeschlagen"
+    "sync_error_get_gist": "Gist abrufen fehlgeschlagen",
+    "sync_quota_usage": "Nutzung: {usage} / {quota} ({percent})",
+    "sync_quota_limit_exceeded": "⚠️ Limit überschritten ({size})! Proxys reduzieren."
   },
   "es": {
     "app_name": "Asistente de Proxy",
@@ -1047,7 +1059,9 @@ const translations = {
     "sync_error_connection": "Conexión Fallida: ",
     "sync_error_create_gist": "Error al crear Gist",
     "sync_error_update_gist": "Error al actualizar Gist",
-    "sync_error_get_gist": "Error al obtener Gist"
+    "sync_error_get_gist": "Error al obtener Gist",
+    "sync_quota_usage": "Uso: {usage} / {quota} ({percent})",
+    "sync_quota_limit_exceeded": "⚠️ Límite excedido ({size})! Reduzca los proxies."
   },
   "ko": {
     "app_name": "프록시 어시스턴트",
@@ -1197,7 +1211,9 @@ const translations = {
     "sync_error_connection": "연결 실패: ",
     "sync_error_create_gist": "Gist 생성 실패",
     "sync_error_update_gist": "Gist 업데이트 실패",
-    "sync_error_get_gist": "Gist 가져오기 실패"
+    "sync_error_get_gist": "Gist 가져오기 실패",
+    "sync_quota_usage": "사용량: {usage} / {quota} ({percent})",
+    "sync_quota_limit_exceeded": "⚠️ 제한 초과 ({size})! 프록시를 줄이세요."
   },
   "pt": {
     "app_name": "Assistente de Proxy",
@@ -1347,7 +1363,9 @@ const translations = {
     "sync_error_connection": "Falha na Conexão: ",
     "sync_error_create_gist": "Falha ao criar Gist",
     "sync_error_update_gist": "Falha ao atualizar Gist",
-    "sync_error_get_gist": "Falha ao obter Gist"
+    "sync_error_get_gist": "Falha ao obter Gist",
+    "sync_quota_usage": "Uso: {usage} / {quota} ({percent})",
+    "sync_quota_limit_exceeded": "⚠️ Limite excedido ({size})! Reduza proxies."
   },
   "ru": {
     "app_name": "Прокси-ассистент",
@@ -1497,7 +1515,9 @@ const translations = {
     "sync_error_connection": "Ошибка Соединения: ",
     "sync_error_create_gist": "Не удалось создать Gist",
     "sync_error_update_gist": "Не удалось обновить Gist",
-    "sync_error_get_gist": "Не удалось получить Gist"
+    "sync_error_get_gist": "Не удалось получить Gist",
+    "sync_quota_usage": "Использование: {usage} / {quota} ({percent})",
+    "sync_quota_limit_exceeded": "⚠️ Лимит превышен ({size})! Уменьшите прокси."
   }
 };
 
