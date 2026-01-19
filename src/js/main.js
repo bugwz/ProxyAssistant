@@ -209,8 +209,8 @@ function updateNativeQuotaInfo() {
   const chunks = chunkString(jsonStr, SYNC_CHUNK_SIZE);
   const meta = buildSyncMeta(chunks);
 
-  const quotaItemLimit = chrome.storage.sync.QUOTA_BYTES_PER_ITEM || 8192; // 8KB per item
-  const quotaTotalLimit = chrome.storage.sync.QUOTA_BYTES || 524288; // 512KB total (typical)
+  const quotaItemLimit = chrome.storage.sync.QUOTA_BYTES_PER_ITEM || 7168; // 7KB per item
+  const quotaTotalLimit = chrome.storage.sync.QUOTA_BYTES || 102400; // 100KB total (typical)
 
   const usageBytes = meta.totalSize;
   const chunksCount = chunks.length;
