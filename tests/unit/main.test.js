@@ -1,3 +1,211 @@
+// ==========================================
+// Chunked Storage Helper Functions (for testing)
+// ==========================================
+
+function chunkString(str, size) {
+  const chunks = [];
+  let i = 0;
+  while (i < str.length) {
+    chunks.push(str.substring(i, i + size));
+    i += size;
+  }
+  return chunks;
+}
+
+function calculateChecksum(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return 'crc:' + Math.abs(hash).toString(16);
+}
+
+function buildSyncMeta(chunks) {
+  const totalSize = chunks.reduce((sum, chunk) => sum + new Blob([chunk]).size, 0);
+  const fullData = chunks.join('');
+  return {
+    version: 1,
+    chunks: {
+      start: 0,
+      end: chunks.length - 1
+    },
+    totalSize: totalSize,
+    checksum: calculateChecksum(fullData)
+  };
+}
+
+function isValidMeta(meta) {
+  return meta &&
+    typeof meta.version === 'number' &&
+    meta.chunks &&
+    typeof meta.chunks.start === 'number' &&
+    typeof meta.chunks.end === 'number' &&
+    typeof meta.checksum === 'string';
+}
+
+// ==========================================
+// Tests
+// ==========================================
+
+describe('Main.js - Chunked Storage Functions', () => {
+  describe('chunkString', () => {
+    test('should split string into chunks of specified size', () => {
+      const str = 'Hello, World! This is a test string.';
+      const chunks = chunkString(str, 10);
+
+      // 'Hello, World! This is a test string.' (37 chars)
+      // chunk0: Hello, Wor (10)
+      // chunk1: ld! This i (10)
+      // chunk2: s a test s (10)
+      // chunk3: tring. (7)
+      expect(chunks.length).toBe(4);
+      expect(chunks[0]).toBe('Hello, Wor');
+      expect(chunks[1]).toBe('ld! This i');
+      expect(chunks[2]).toBe('s a test s');
+      expect(chunks[3]).toBe('tring.');
+    });
+
+    test('should handle empty string', () => {
+      const chunks = chunkString('', 10);
+      expect(chunks.length).toBe(0);
+    });
+
+    test('should handle string shorter than chunk size', () => {
+      const chunks = chunkString('Hello', 10);
+      expect(chunks.length).toBe(1);
+      expect(chunks[0]).toBe('Hello');
+    });
+
+    test('should handle exact chunk size', () => {
+      const chunks = chunkString('1234567890', 10);
+      expect(chunks.length).toBe(1);
+      expect(chunks[0]).toBe('1234567890');
+    });
+
+    test('should handle large data with 7KB chunk size', () => {
+      const SYNC_CHUNK_SIZE = 7 * 1024;
+      // Create larger data that will exceed 7KB
+      const largeData = JSON.stringify({ proxies: Array(200).fill({ name: 'TestProxyServerNumber123456789', ip: '1.1.1.1', port: 8080, username: 'user', password: 'pass', fallback_policy: 'direct', include_urls: 'example.com,test.org,foo.bar,baz.qux,hello.world', bypass_urls: 'localhost,127.0.0.1' }) });
+      const chunks = chunkString(largeData, SYNC_CHUNK_SIZE);
+
+      // Should create multiple chunks for large data (data is ~15KB+)
+      expect(chunks.length).toBeGreaterThan(1);
+      // Each chunk should be within size limit
+      chunks.forEach(chunk => {
+        expect(chunk.length).toBeLessThanOrEqual(SYNC_CHUNK_SIZE);
+      });
+    });
+  });
+
+  describe('calculateChecksum', () => {
+    test('should generate consistent checksum for same input', () => {
+      const str = 'test string';
+      const checksum1 = calculateChecksum(str);
+      const checksum2 = calculateChecksum(str);
+      expect(checksum1).toBe(checksum2);
+    });
+
+    test('should generate different checksums for different inputs', () => {
+      const checksum1 = calculateChecksum('test1');
+      const checksum2 = calculateChecksum('test2');
+      expect(checksum1).not.toBe(checksum2);
+    });
+
+    test('should generate checksum with crc prefix', () => {
+      const checksum = calculateChecksum('test');
+      expect(checksum.startsWith('crc:')).toBe(true);
+    });
+
+    test('should handle empty string', () => {
+      const checksum = calculateChecksum('');
+      expect(checksum).toBe('crc:0');
+    });
+  });
+
+  describe('buildSyncMeta', () => {
+    test('should build valid metadata from chunks', () => {
+      const chunks = ['chunk1', 'chunk2', 'chunk3'];
+      const meta = buildSyncMeta(chunks);
+
+      expect(meta.version).toBe(1);
+      expect(meta.chunks.start).toBe(0);
+      expect(meta.chunks.end).toBe(2);
+      expect(meta.totalSize).toBe(18); // 3 chunks * 6 chars
+      expect(meta.checksum).toBeDefined();
+    });
+
+    test('should handle single chunk', () => {
+      const chunks = ['single'];
+      const meta = buildSyncMeta(chunks);
+
+      expect(meta.chunks.start).toBe(0);
+      expect(meta.chunks.end).toBe(0);
+      expect(meta.totalSize).toBe(6);
+    });
+
+    test('should calculate correct totalSize for multi-byte characters', () => {
+      const chunks = ['你好世界'];
+      const meta = buildSyncMeta(chunks);
+      expect(meta.totalSize).toBe(12); // 4 chars * 3 bytes for UTF-8
+    });
+  });
+
+  describe('isValidMeta', () => {
+    test('should validate correct metadata', () => {
+      const meta = {
+        version: 1,
+        chunks: { start: 0, end: 2 },
+        totalSize: 100,
+        checksum: 'crc:abc'
+      };
+      expect(isValidMeta(meta)).toBe(true);
+    });
+
+    test('should reject null metadata', () => {
+      expect(isValidMeta(null)).toBeFalsy();
+    });
+
+    test('should reject missing version', () => {
+      const meta = {
+        chunks: { start: 0, end: 2 },
+        totalSize: 100,
+        checksum: 'crc:abc'
+      };
+      expect(isValidMeta(meta)).toBeFalsy();
+    });
+
+    test('should reject missing chunks', () => {
+      const meta = {
+        version: 1,
+        totalSize: 100,
+        checksum: 'crc:abc'
+      };
+      expect(isValidMeta(meta)).toBeFalsy();
+    });
+
+    test('should reject missing checksum', () => {
+      const meta = {
+        version: 1,
+        chunks: { start: 0, end: 2 },
+        totalSize: 100
+      };
+      expect(isValidMeta(meta)).toBeFalsy();
+    });
+
+    test('should reject non-numeric version', () => {
+      const meta = {
+        version: '1',
+        chunks: { start: 0, end: 2 },
+        totalSize: 100,
+        checksum: 'crc:abc'
+      };
+      expect(isValidMeta(meta)).toBe(false);
+    });
+  });
+});
+
 describe('Main.js - Validation Functions', () => {
   function validateIPAddress(ip) {
     if (!ip || ip.trim() === '') return { isValid: false, error: 'IP地址不能为空' };
