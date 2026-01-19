@@ -29,19 +29,19 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/promotional/marquee-1400x560.png)
 
-## ✨ Features
+## 1. ✨ Features
 
-### 🔌 Multiple Proxy Protocol Support
+### 1.1 🔌 Multiple Proxy Protocol Support
 - **HTTP** - Traditional HTTP proxy
 - **HTTPS** - Secure HTTPS proxy
 - **SOCKS5** - SOCKS5 proxy supporting TCP/UDP
 - **SOCKS4** - Compatible with legacy SOCKS4 proxy
 
-### 🌐 Multi-Browser Support
+### 1.2 🌐 Multi-Browser Support
 - **Chrome** - Using Manifest V3 + Service Worker
 - **Firefox** - Using onRequest API for proxy interception
 
-### 🔄 Three Proxy Modes
+### 1.3 🔄 Three Proxy Modes
 
 | Mode | Description |
 |------|-------------|
@@ -51,7 +51,7 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/03.png)
 
-### 📋 Flexible URL Rule Configuration
+### 1.4 📋 Flexible URL Rule Configuration
 
 - **No proxy addresses** (`bypass_urls`): Domains/IPs for direct connection in manual mode
 - **Use proxy addresses** (`include_urls`): Domains that need proxy access in auto mode
@@ -59,33 +59,33 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 - Supports wildcards `*` and domain matching
 - Suitable for scenarios where different websites use different proxies
 
-### 🔐 Proxy Authentication Support
+### 1.5 🔐 Proxy Authentication Support
 
 - Username/password authentication support
 - Automatic handling of proxy server authentication requests
 - Secure credential storage
 
-### 🧪 Proxy Testing Functionality
+### 1.6 🧪 Proxy Testing Functionality
 
 - **Connection Test**: Verify if proxy is available
 - **Latency Measurement**: Test proxy response time
 - **Batch Testing**: One-click test all proxies
 - **Color Coding**: Green (<500ms) / Orange (≥500ms) / Red (failed)
 
-### 🏃 Proxy Status Detection
+### 1.7 🏃 Proxy Status Detection
 
 - Detect current browser proxy settings
 - Verify if extension successfully controls proxy
 - Identify other extensions controlling proxy
 - Provides status, warning, and error results
 
-### 🔍 PAC Script Preview
+### 1.8 🔍 PAC Script Preview
 
 - **Script Viewing**: View the automatically generated PAC script content
 - **Rules List**: Clearly display all active proxy matching rules
 - **Debug Support**: Easy troubleshooting of matching issues in auto mode
 
-### 🌙 Theme Modes
+### 1.9 🌙 Theme Modes
 
 - **Light Mode**: For daytime use
 - **Dark Mode**: For nighttime use
@@ -93,22 +93,25 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/02.png)
 
-### ☁️ Data Storage & Sync
+### 1.10 ☁️ Data Storage & Sync
 
 #### 1.10.1 Storage Strategy
 
-| Storage Type | Description |
-|--------------|-------------|
-| **Local Storage** | Always enabled, stores proxy list and all configuration data, ensuring offline availability |
-| **Cloud Sync** | Optional, synchronizes configuration across devices via browser account |
+| Storage Type | Storage Content | Description |
+|--------------|-----------------|-------------|
+| **Local Storage** | Proxy list, theme settings, language settings, sync config | Always enabled, ensuring offline availability and data persistence |
+| **Cloud Sync** | Complete configuration data (chunked storage) | Optional, uses chunked storage to bypass quota limits |
 
 #### 1.10.2 Sync Methods
 
 ##### 1.10.2.1 Native Browser Sync
-- Uses `chrome.storage.sync` API
+- Uses `chrome.storage.sync` API (Chrome) or `browser.storage.sync` (Firefox)
 - Automatic sync via Chrome/Firefox account
 - Suitable for multi-device sync with same browser account
-- Works out of the box, no additional configuration needed
+- **Chunked Storage**: Configuration data automatically chunked (7KB per chunk) to bypass 8KB single item quota limit
+- **Data Integrity**: Uses checksums to ensure sync data integrity
+- **Atomic Operations**: Push operation clears old data before writing new data to ensure consistency
+- **Quota Display**: Real-time display of used/total quota (100KB) and chunk count
 
 ##### 1.10.2.2 GitHub Gist Sync
 - Sync configuration across browsers and devices via GitHub Gist
@@ -167,7 +170,7 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 }
 ```
 
-### 🌍 Multilingual Support
+### 1.11 🌍 Multilingual Support
 
 This extension supports the following languages:
 
@@ -186,11 +189,11 @@ This extension supports the following languages:
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/04.png)
 
-## 📷 Settings Interface
+## 2. 📷 Settings Interface
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/main/settings.png)
 
-## 📁 Project Structure
+## 3. 📁 Project Structure
 
 ```
 ProxyAssistant/
@@ -200,16 +203,22 @@ ProxyAssistant/
 │   ├── README-zh-CN.md       # Simplified Chinese
 │   ├── README-zh-TW.md       # Traditional Chinese
 │   ├── README-en.md          # English
-│   └── ...
+│   ├── README-ja.md          # Japanese
+│   ├── README-fr.md          # French
+│   ├── README-de.md          # German
+│   ├── README-es.md          # Spanish
+│   ├── README-pt.md          # Portuguese
+│   ├── README-ru.md          # Russian
+│   └── README-ko.md          # Korean
 ├── src/                      # Source code
-│   ├── manifest_chrome.json  # Chrome extension configuration
+│   ├── manifest_chrome.json  # Chrome extension configuration (Manifest V3)
 │   ├── manifest_firefox.json # Firefox extension configuration
 │   ├── main.html             # Settings page
 │   ├── popup.html            # Popup page
 │   ├── js/
-│   │   ├── worker.js         # Background service (Chrome: Service Worker)
-│   │   ├── popup.js          # Popup main logic
 │   │   ├── main.js           # Settings page main logic
+│   │   ├── popup.js          # Popup UI logic
+│   │   ├── worker.js         # Service Worker (Chrome) / Background Script (Firefox)
 │   │   ├── i18n.js           # Internationalization support
 │   │   └── jquery.js         # jQuery library
 │   ├── css/
@@ -223,15 +232,33 @@ ProxyAssistant/
 │       ├── icon-48.png
 │       ├── icon-128.png
 │       └── logo-128.png
-└── public/                   # Public resources
-    └── img/                  # Demo & Promotion images
+├── public/                   # Public resources
+│   └── img/                  # Demo & Promotion images
+├── tests/                    # Tests
+│   ├── jest.config.js        # Jest configuration
+│   ├── setup.js              # Test environment setup
+│   ├── __mocks__/            # Mock files
+│   │   └── chrome.js         # Chrome API Mock
+│   ├── unit/                 # Unit tests
+│   ├── integration/          # Integration tests
+│   └── e2e/                  # End-to-end tests
+├── script/                   # Build scripts
+│   └── build.sh              # Extension build script
+├── release/                  # Release notes
+│   └── *.md                  # Update logs for versions
+├── build/                    # Build output directory
+├── package.json              # Project dependencies
+├── package-lock.json         # Dependency versions lock
+├── Makefile                  # Build command entry
+├── jest.config.js            # Jest configuration (points to tests/jest.config.js)
+└── AGENTS.md                 # Development guide
 ```
 
-## 🚀 Quick Start
+## 4. 🚀 Quick Start
 
-### Install Extension
+### 4.1 Install Extension
 
-#### Chrome
+#### 4.1.1 Chrome
 
 **Method 1 (Recommended)**: Install from Chrome Web Store
 1. Open Chrome browser, visit [Chrome Web Store](https://chrome.google.com/webstore)
@@ -250,7 +277,7 @@ ProxyAssistant/
   7. Select the folder extracted in step 3
   8. Extension will appear in the extension list after successful installation
 
-#### Firefox
+#### 4.1.2 Firefox
 
 **Method 1 (Recommended)**: Install from Firefox Add-ons
 1. Open Firefox browser, visit [Firefox Add-ons](https://addons.mozilla.org/)
@@ -263,7 +290,7 @@ ProxyAssistant/
 3. Click **Gear Icon** → **Install Add-on From File**
 4. Select the downloaded `.xpi` file
 
-#### Microsoft Edge
+#### 4.1.3 Microsoft Edge
 
 Edge browser is based on Chromium kernel, can directly install Chrome extensions.
 
@@ -283,7 +310,7 @@ Edge browser is based on Chromium kernel, can directly install Chrome extensions
 7. Select the folder extracted in step 3
 8. Extension will appear in the extension list after successful installation
 
-### Add Proxy
+### 4.2 Add Proxy
 
 1. Click the extension icon to open popup
 2. Click **"Settings"** button to enter settings page
@@ -297,7 +324,7 @@ Edge browser is based on Chromium kernel, can directly install Chrome extensions
    - (Optional) URL rules configuration
 5. Click **"Save"** button
 
-### Use Proxy
+### 4.3 Use Proxy
 
 **Manual Mode**:
 1. Select **"Manual"** mode in popup
@@ -309,9 +336,97 @@ Edge browser is based on Chromium kernel, can directly install Chrome extensions
 2. Configure URL rules for each proxy in settings page
 3. Automatically select matching proxy when visiting websites
 
-## 📖 Detailed Instructions
+## 5. 🛠️ Development Guide
 
-### URL Rule Syntax
+### 5.1 Development Environment
+
+**Prerequisites**:
+- Node.js >= 14
+- npm >= 6
+- Chrome / Firefox browser (for testing)
+- web-ext (for building Firefox XPI, optional)
+
+**Install Dependencies**:
+```bash
+make test_init
+# or
+npm install
+```
+
+### 5.2 Test Commands
+
+| Command | Description |
+|---------|-------------|
+| `make test` | Run all tests (unit + integration + e2e) |
+| `make test_nocache` | Run tests without cache |
+| `make test_unit` | Run unit tests only |
+| `make test_integration` | Run integration tests only |
+| `make test_e2e` | Run e2e tests only |
+| `make test_watch_nocache` | Run tests in watch mode |
+| `make test_cov_nocache` | Run tests and generate coverage report |
+
+**Using npm directly**:
+```bash
+npm test                    # Run all tests
+npm run test:unit           # Run unit tests only
+npm run test:integration    # Run integration tests only
+npm run test:e2e            # Run e2e tests only
+npm run test:watch          # Run tests in watch mode
+npm run test:coverage       # Run tests and generate coverage report
+```
+
+### 5.3 Build Commands
+
+| Command | Description |
+|---------|-------------|
+| `make build` | Build Chrome and Firefox extensions |
+| `make clean` | Clean build artifacts |
+| `make test_clean` | Clean test cache and coverage files |
+
+**Specify Version**:
+```bash
+make build VERSION=1.3.1
+# or
+./script/build.sh 1.3.1
+```
+
+**Build Artifacts**:
+```
+build/
+├── ProxyAssistant_{VERSION}_chrome.zip      # Chrome package
+├── ProxyAssistant_{VERSION}_chrome.tar.gz   # Chrome source package
+├── ProxyAssistant_{VERSION}_firefox.zip     # Firefox package
+├── ProxyAssistant_{VERSION}_firefox.tar.gz  # Firefox source package
+└── ProxyAssistant_{VERSION}_firefox.xpi     # Firefox official extension package
+```
+
+### 5.4 Local Development
+
+**Chrome Local Installation**:
+1. Rename `src/manifest_chrome.json` to `manifest.json`
+2. Open Chrome, visit `chrome://extensions/`
+3. Enable **"Developer mode"**
+4. Click **"Load unpacked"**
+5. Select `src` directory
+
+**Firefox Local Installation**:
+1. Use `make build` to generate XPI file
+2. Open Firefox, visit `about:addons`
+3. Click **Gear Icon** → **Install Add-on From File**
+4. Select the generated `.xpi` file
+
+### 5.5 Code Style
+
+- **Indentation**: 2 spaces
+- **Quotes**: Single quotes
+- **Naming**: camelCase, constants use UPPER_SNAKE_CASE
+- **Semicolons**: Consistent usage
+
+For detailed specifications, please refer to [AGENTS.md](../AGENTS.md)
+
+## 6. 📖 Detailed Instructions
+
+### 6.1 URL Rule Syntax
 
 Supports the following matching rules:
 
@@ -332,7 +447,7 @@ www.google.com
 10.0.0.0/8
 ```
 
-### Fallback Policy
+### 6.2 Fallback Policy
 
 In auto mode, when proxy connection fails:
 
@@ -341,7 +456,7 @@ In auto mode, when proxy connection fails:
 | **Direct Connection (DIRECT)** | Bypass proxy, connect directly to target website |
 | **Reject Connection (REJECT)** | Reject the request |
 
-### PAC Script Auto Mode
+### 6.3 PAC Script Auto Mode
 
 Auto mode uses PAC (Proxy Auto-Config) script:
 - Automatically select proxy based on currently visited URL
@@ -349,7 +464,7 @@ Auto mode uses PAC (Proxy Auto-Config) script:
 - Supports fallback policy
 - Automatically restore last configuration when browser starts
 
-### Quick Operations
+### 6.4 Quick Operations
 
 | Operation | Method |
 |-----------|--------|
@@ -362,7 +477,7 @@ Auto mode uses PAC (Proxy Auto-Config) script:
 | Test all proxies | Click "Test All" button |
 | Quick close popup | Press `ESC` key on page |
 
-### Import/Export Configuration
+### 6.5 Import/Export Configuration
 
 1. **Export Configuration**: Click "Export Configuration" to download JSON file
 2. **Import Configuration**: Click "Import Configuration" to select JSON file to restore
@@ -374,7 +489,7 @@ Configuration includes:
 - Language settings
 - Sync toggle status
 
-### Proxy Status Detection
+### 6.6 Proxy Status Detection
 
 Click "Detect Proxy Effect" button to:
 - View current browser proxy mode
@@ -382,15 +497,15 @@ Click "Detect Proxy Effect" button to:
 - Detect if other extensions seize control
 - Get problem diagnosis and suggestions
 
-## 🔧 Technical Architecture
+## 7. 🔧 Technical Architecture
 
-### Manifest V3
+### 7.1 Manifest V3
 
 - Chrome uses Manifest V3 specification
 - Service Worker replaces background page
 - Firefox uses background scripts + onRequest API
 
-### Core Modules
+### 7.2 Core Modules
 
 1. **worker.js (Chrome)**:
    - Proxy configuration management
@@ -416,13 +531,13 @@ Click "Detect Proxy Effect" button to:
    - Multilingual support
    - Real-time language switching
 
-### Data Storage
+### 7.3 Data Storage
 
 - `chrome.storage.local`: Local storage (always used)
 - `chrome.storage.sync`: Cloud sync storage (optional)
 - Follow local-first principle, solves sync quota issues
 
-### Browser Compatibility
+### 7.4 Browser Compatibility
 
 | Feature | Chrome | Firefox |
 |---------|--------|---------|
@@ -434,34 +549,34 @@ Click "Detect Proxy Effect" button to:
 | Data Sync | ✅ | ✅ |
 | Proxy Detection | ✅ | ✅ |
 
-## 📝 Use Cases
+## 8. 📝 Use Cases
 
-### Scenario 1: Multi-Proxy Switching
+### 8.1 Scenario 1: Multi-Proxy Switching
 
 - Configure different proxies for different network environments
 - Use company proxy for office network
 - Use scientific proxy for home network
 - Quick one-click switching
 
-### Scenario 2: Smart Routing
+### 8.2 Scenario 2: Smart Routing
 
 - Direct connection for domestic websites
 - Use proxy for specific websites
 - Automatic selection based on domain
 
-### Scenario 3: Proxy Pool Testing
+### 8.3 Scenario 3: Proxy Pool Testing
 
 - Import multiple proxies
 - Batch test latency
 - Select optimal proxy to use
 
-### Scenario 4: Team Sharing
+### 8.4 Scenario 4: Team Sharing
 
 - Export configuration file
 - Share with team members
 - Unified proxy configuration
 
-## ⚠️ Notes
+## 9. ⚠️ Notes
 
 1. **Permission Description**: Extension requires the following permissions:
    - `proxy`: Manage proxy settings
@@ -477,19 +592,19 @@ Click "Detect Proxy Effect" button to:
 
 5. **Firefox Limitation**: Firefox minimum version required: 142.0
 
-## 📄 Privacy Policy
+## 10. 📄 Privacy Policy
 
 [Privacy Policy](https://sites.google.com/view/proxy-assistant/privacy-policy)
 
-## 📄 License
+## 11. 📄 License
 
 MIT License - See [LICENSE](../LICENSE) file for details
 
-## 🤝 Contributing
+## 12. 🤝 Contributing
 
 Welcome to submit Issues and Pull Requests!
 
-## 📧 Contact
+## 13. 📧 Contact
 
 For questions or suggestions, please provide feedback through GitHub Issues.
 

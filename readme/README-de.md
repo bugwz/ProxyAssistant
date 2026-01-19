@@ -97,18 +97,21 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome und Firefo
 
 #### 1.10.1 Speicherstrategie
 
-| Speichertyp | Beschreibung |
-|-------------|--------------|
-| **Lokalspeicher (local)** | Immer aktiv, speichert Proxy-Liste und alle Konfigurationsdaten, Offline-Verfügbarkeit gewährleistet |
-| **Cloud-Synchronisierung (sync)** | Optional, synchronisiert über mehrere Geräte mit demselben Browser-Konto |
+| Speichertyp | Speicherinhalt | Beschreibung |
+|-------------|----------------|--------------|
+| **Lokalspeicher (local)** | Proxy-Liste, Themeneinstellungen, Spracheinstellungen, Synchronisierungseinstellungen | Immer aktiv, Offline-Verfügbarkeit und Datenpersistenz gewährleistet |
+| **Cloud-Synchronisierung (sync)** | Vollständige Konfigurationsdaten (Chunk-Speicher) | Optional, verwendet Chunk-Speicher, um Quotenlimits zu umgehen |
 
 #### 1.10.2 Synchronisierungsmethoden
 
 ##### 1.10.2.1 Native Browser-Synchronisierung (Native Sync)
-- Verwendet `chrome.storage.sync` API
+- Verwendet `chrome.storage.sync` API (Chrome) oder `browser.storage.sync` (Firefox)
 - Automatische Synchronisierung über Chrome/Firefox-Konto
 - Geeignet für Multi-Geräte-Synchronisierung mit demselben Browser-Konto
-- Funktioniert ohne zusätzliche Konfiguration
+- **Chunk-Speicher**: Konfigurationsdaten werden automatisch in Chunks (7KB pro Chunk) aufgeteilt, um das 8KB-Limit für einzelne Elemente zu umgehen
+- **Datenintegrität**: Verwendet Prüfsummen, um die Integrität der Synchronisierungsdaten sicherzustellen
+- **Atomare Operationen**: Push-Vorgang löscht alte Daten, bevor neue Daten geschrieben werden, um Konsistenz zu gewährleisten
+- **Quotenanzeige**: Echtzeitanzeige der genutzten/gesamten Quote (100KB) und Anzahl der Chunks
 
 ##### 1.10.2.2 GitHub Gist-Synchronisierung
 - Synchronisierung der Konfiguration über Browser und Geräte hinweg via GitHub Gist
@@ -200,16 +203,22 @@ ProxyAssistant/
 │   ├── README-zh-CN.md       # Vereinfachtes Chinesisch
 │   ├── README-zh-TW.md       # Traditionelles Chinesisch
 │   ├── README-en.md          # Englisch
-│   └── ...
+│   ├── README-ja.md          # Japanisch
+│   ├── README-fr.md          # Französisch
+│   ├── README-de.md          # Deutsch
+│   ├── README-es.md          # Spanisch
+│   ├── README-pt.md          # Portugiesisch
+│   ├── README-ru.md          # Russisch
+│   └── README-ko.md          # Koreanisch
 ├── src/                      # Quellcode
-│   ├── manifest_chrome.json  # Chrome-Erweiterungskonfiguration
+│   ├── manifest_chrome.json  # Chrome-Erweiterungskonfiguration (Manifest V3)
 │   ├── manifest_firefox.json # Firefox-Erweiterungskonfiguration
 │   ├── main.html             # Einstellungsseite
 │   ├── popup.html            # Popup-Seite
 │   ├── js/
-│   │   ├── worker.js         # Hintergrunddienst (Chrome: Service Worker)
-│   │   ├── popup.js          # Hauptlogik des Popups
 │   │   ├── main.js           # Hauptlogik der Einstellungsseite
+│   │   ├── popup.js          # Hauptlogik des Popups
+│   │   ├── worker.js         # Hintergrunddienst (Chrome: Service Worker)
 │   │   ├── i18n.js           # Internationalisierungsunterstützung
 │   │   └── jquery.js         # jQuery-Bibliothek
 │   ├── css/
@@ -223,8 +232,26 @@ ProxyAssistant/
 │       ├── icon-48.png
 │       ├── icon-128.png
 │       └── logo-128.png
-└── public/                   # Öffentliche Ressourcen
+├── public/                   # Öffentliche Ressourcen
     └── img/                  # Demo- und Werbebilder
+├── tests/                    # Tests
+│   ├── jest.config.js        # Jest-Konfiguration
+│   ├── setup.js              # Testumgebung-Setup
+│   ├── __mocks__/            # Mock-Dateien
+│   │   └── chrome.js         # Chrome API Mock
+│   ├── unit/                 # Unit-Tests
+│   ├── integration/          # Integrationstests
+│   └── e2e/                  # End-to-End-Tests
+├── script/                   # Build-Skripte
+│   └── build.sh              # Erweiterungs-Build-Skript
+├── release/                  # Release-Notizen
+│   └── *.md                  # Update-Logs für Versionen
+├── build/                    # Build-Ausgabeverzeichnis
+├── package.json              # Projektabhängigkeiten
+├── package-lock.json         # Abhängigkeitsversionen-Sperre
+├── Makefile                  # Build-Befehlseingang
+├── jest.config.js            # Jest-Konfiguration (verweist auf tests/jest.config.js)
+└── AGENTS.md                 # Entwicklungsleitfaden
 ```
 
 ## 4. 🚀 Schnellstart
@@ -309,9 +336,97 @@ Der Edge-Browser basiert auf dem Chromium-Kernel und kann Chrome-Erweiterungen d
 2. URL-Regeln für jeden Proxy auf der Einstellungsseite konfigurieren
 3. Der Proxy wird automatisch basierend auf der besuchten Website ausgewählt
 
-## 5. 📖 Detaillierte Dokumentation
+## 5. 🛠️ Entwicklerhandbuch
 
-### 5.1 URL-Regelsyntax
+### 5.1 Entwicklungsumgebung
+
+**Voraussetzungen**:
+- Node.js >= 14
+- npm >= 6
+- Chrome / Firefox Browser (zum Testen)
+- web-ext (für Firefox XPI Build, optional)
+
+**Abhängigkeiten installieren**:
+```bash
+make test_init
+# oder
+npm install
+```
+
+### 5.2 Testbefehle
+
+| Befehl | Beschreibung |
+|--------|--------------|
+| `make test` | Alle Tests ausführen (Unit + Integration + E2E) |
+| `make test_nocache` | Tests ohne Cache ausführen |
+| `make test_unit` | Nur Unit-Tests ausführen |
+| `make test_integration` | Nur Integrationstests ausführen |
+| `make test_e2e` | Nur E2E-Tests ausführen |
+| `make test_watch_nocache` | Tests im Watch-Modus ausführen |
+| `make test_cov_nocache` | Tests ausführen und Abdeckungsbericht generieren |
+
+**npm direkt verwenden**:
+```bash
+npm test                    # Alle Tests ausführen
+npm run test:unit           # Nur Unit-Tests ausführen
+npm run test:integration    # Nur Integrationstests ausführen
+npm run test:e2e            # Nur E2E-Tests ausführen
+npm run test:watch          # Tests im Watch-Modus ausführen
+npm run test:coverage       # Tests ausführen und Abdeckungsbericht generieren
+```
+
+### 5.3 Build-Befehle
+
+| Befehl | Beschreibung |
+|--------|--------------|
+| `make build` | Chrome- und Firefox-Erweiterungen bauen |
+| `make clean` | Build-Artefakte bereinigen |
+| `make test_clean` | Test-Cache und Abdeckungsdateien bereinigen |
+
+**Version angeben**:
+```bash
+make build VERSION=1.3.1
+# oder
+./script/build.sh 1.3.1
+```
+
+**Build-Artefakte**:
+```
+build/
+├── ProxyAssistant_{VERSION}_chrome.zip      # Chrome Installationspaket
+├── ProxyAssistant_{VERSION}_chrome.tar.gz   # Chrome Quellpaket
+├── ProxyAssistant_{VERSION}_firefox.zip     # Firefox Installationspaket
+├── ProxyAssistant_{VERSION}_firefox.tar.gz  # Firefox Quellpaket
+└── ProxyAssistant_{VERSION}_firefox.xpi     # Firefox offizielles Erweiterungspaket
+```
+
+### 5.4 Lokale Entwicklung
+
+**Chrome Lokale Installation**:
+1. `src/manifest_chrome.json` in `manifest.json` umbenennen
+2. Chrome öffnen, `chrome://extensions/` besuchen
+3. **"Entwicklermodus"** aktivieren
+4. **"Entpackte Erweiterung laden"** klicken
+5. `src` Verzeichnis auswählen
+
+**Firefox Lokale Installation**:
+1. `make build` verwenden, um XPI-Datei zu generieren
+2. Firefox öffnen, `about:addons` besuchen
+3. **Zahnradsymbol** → **Add-on aus Datei installieren** klicken
+4. Die generierte `.xpi`-Datei auswählen
+
+### 5.5 Code-Stil
+
+- **Einrückung**: 2 Leerzeichen
+- **Anführungszeichen**: Einfache Anführungszeichen
+- **Benennung**: camelCase, Konstanten verwenden UPPER_SNAKE_CASE
+- **Semikolons**: Konsistente Verwendung
+
+Detaillierte Spezifikationen finden Sie in [AGENTS.md](../AGENTS.md)
+
+## 6. 📖 Detaillierte Dokumentation
+
+### 6.1 URL-Regelsyntax
 
 Unterstützt die folgenden Matching-Regeln:
 
@@ -332,7 +447,7 @@ www.google.com
 10.0.0.0/8
 ```
 
-### 5.2 Fallback-Strategie
+### 6.2 Fallback-Strategie
 
 Im automatischen Modus, wenn die Proxy-Verbindung fehlschlägt:
 
@@ -341,7 +456,7 @@ Im automatischen Modus, wenn die Proxy-Verbindung fehlschlägt:
 | **Direktverbindung (DIRECT)** | Proxy umgehen, direkt zur Zielwebsite verbinden |
 | **Verbindung ablehnen (REJECT)** | Die Anfrage ablehnen |
 
-### 5.3 PAC-Skript-Automatikmodus
+### 6.3 PAC-Skript-Automatikmodus
 
 Der automatische Modus verwendet PAC (Proxy Auto-Config) Skripte:
 - Wählt automatisch den Proxy basierend auf der aktuellen URL
@@ -349,7 +464,7 @@ Der automatische Modus verwendet PAC (Proxy Auto-Config) Skripte:
 - Unterstützt Fallback-Strategie
 - Stellt automatisch die letzte Konfiguration beim Browser-Start wieder her
 
-### 5.4 Schnelloperationen
+### 6.4 Schnelloperationen
 
 | Operation | Methode |
 |-----------|---------|
@@ -362,7 +477,7 @@ Der automatische Modus verwendet PAC (Proxy Auto-Config) Skripte:
 | Alle Proxys testen | Auf "Alle testen"-Button klicken |
 | Popup schnell schließen | Auf der Seite `ESC` Taste drücken |
 
-### 5.5 Konfiguration importieren/exportieren
+### 6.5 Konfiguration importieren/exportieren
 
 1. **Exportieren**: Auf "Konfiguration exportieren" klicken, um eine JSON-Datei herunterzuladen
 2. **Importieren**: Auf "Konfiguration importieren" klicken und eine JSON-Datei zum Wiederherstellen auswählen
@@ -374,7 +489,7 @@ Die Konfiguration enthält:
 - Spracheinstellungen
 - Synchronisationsschalter-Status
 
-### 5.6 Proxy-Statuserkennung
+### 6.6 Proxy-Statuserkennung
 
 Auf den Button "Proxy-Effekt erkennen" klicken kann:
 - Den aktuellen Browser-Proxy-Modus anzeigen
@@ -382,15 +497,15 @@ Auf den Button "Proxy-Effekt erkennen" klicken kann:
 - Erkennen, ob andere Erweiterungen die Steuerung übernommen haben
 - Problemdiagnose und Vorschläge erhalten
 
-## 6. 🔧 Technische Architektur
+## 7. 🔧 Technische Architektur
 
-### 6.1 Manifest V3
+### 7.1 Manifest V3
 
 - Chrome verwendet Manifest V3-Spezifikation
 - Service Worker ersetzt Hintergrundseiten
 - Firefox verwendet background scripts + onRequest API
 
-### 6.2 Kernmodule
+### 7.2 Kernmodule
 
 1. **worker.js (Chrome)**:
    - Proxy-Konfigurationsverwaltung
@@ -416,13 +531,13 @@ Auf den Button "Proxy-Effekt erkennen" klicken kann:
    - Mehrsprachige Unterstützung
    - Echtzeit-Sprachwechsel
 
-### 6.3 Datenspeicherung
+### 7.3 Datenspeicherung
 
 - `chrome.storage.local`: Lokaler Speicher (immer verwendet)
 - `chrome.storage.sync`: Cloud-Synchronisierungsspeicher (optional)
 - Lokal-zuerst-Prinzip, löst Problem der Synchronisierungsquote
 
-### 6.4 Browser-Kompatibilität
+### 7.4 Browser-Kompatibilität
 
 | Funktion | Chrome | Firefox |
 |----------|--------|---------|
@@ -434,34 +549,34 @@ Auf den Button "Proxy-Effekt erkennen" klicken kann:
 | Datensynchronisierung | ✅ | ✅ |
 | Proxy-Erkennung | ✅ | ✅ |
 
-## 7. 📝 Anwendungsfälle
+## 8. 📝 Anwendungsfälle
 
-### 7.1 Szenario 1: Mehrfacher Proxy-Wechsel
+### 8.1 Szenario 1: Mehrfacher Proxy-Wechsel
 
 - Verschiedene Proxys für verschiedene Netzwerkumgebungen konfigurieren
 - Unternehmens-Proxy für Büronetzwerk verwenden
 - Wissenschaftlichen Proxy für Heimnetzwerk verwenden
 - Schneller Ein-Klick-Wechsel
 
-### 7.2 Szenario 2: Intelligentes Routing
+### 8.2 Szenario 2: Intelligentes Routing
 
 - Inländische Websites direkte Verbindung
 - Bestimmte Websites über Proxy
 - Automatische Auswahl basierend auf Domain
 
-### 7.3 Szenario 3: Proxy-Pool-Test
+### 8.3 Szenario 3: Proxy-Pool-Test
 
 - Mehrere Proxys importieren
 - Latenz im Batch testen
 - Optimalen Proxy zum Verwenden auswählen
 
-### 7.4 Szenario 4: Teamfreigabe
+### 8.4 Szenario 4: Teamfreigabe
 
 - Konfigurationsdatei exportieren
 - Mit Teammitgliedern teilen
 - Einheitliche Proxy-Konfiguration
 
-## 8. ⚠️ Wichtige Hinweise
+## 9. ⚠️ Wichtige Hinweise
 
 1. **Berechtigungsbeschreibung**: Die Erweiterung erfordert die folgenden Berechtigungen:
    - `proxy`: Proxy-Einstellungen verwalten
@@ -477,19 +592,19 @@ Auf den Button "Proxy-Effekt erkennen" klicken kann:
 
 5. **Firefox-Einschränkung**: Die Mindestversion von Firefox ist 142.0
 
-## 9. 📄 Datenschutzrichtlinie
+## 10. 📄 Datenschutzrichtlinie
 
 [Datenschutzrichtlinie](https://sites.google.com/view/proxy-assistant/privacy-policy)
 
-## 10. 📄 Lizenz
+## 11. 📄 Lizenz
 
 MIT License - Siehe [LICENSE](../LICENSE)-Datei für Details
 
-## 11. 🤝 Beiträge
+## 12. 🤝 Beiträge
 
 Issue-Berichte und Pull-Requests sind willkommen!
 
-## 12. 📧 Kontakt
+## 13. 📧 Kontakt
 
 Bei Fragen oder Anregungen senden Sie bitte Feedback über GitHub Issues.
 
