@@ -97,18 +97,21 @@ Una potente extensión de gestión de proxy para navegador que soporta Chrome y 
 
 #### 1.10.1 Estrategia de almacenamiento
 
-| Tipo de almacenamiento | Descripción |
-|------------------------|-------------|
-| **Almacenamiento local (local)** | Siempre activo, almacena la lista de proxies y todos los datos de configuración, asegurando disponibilidad sin conexión |
-| **Sincronización en la nube (sync)** | Función opcional, sincroniza entre múltiples dispositivos con la misma cuenta del navegador |
+| Tipo de almacenamiento | Contenido de almacenamiento | Descripción |
+|------------------------|-----------------------------|-------------|
+| **Almacenamiento local (local)** | Lista de proxies, configuración de tema, configuración de idioma, configuración de sincronización | Siempre activo, asegurando disponibilidad sin conexión y persistencia de datos |
+| **Sincronización en la nube (sync)** | Datos de configuración completos (almacenamiento por fragmentos) | Opcional, utiliza almacenamiento por fragmentos para evitar límites de cuota |
 
 #### 1.10.2 Métodos de sincronización
 
 ##### 1.10.2.1 Sincronización nativa del navegador (Native Sync)
-- Usa la API `chrome.storage.sync`
+- Usa la API `chrome.storage.sync` (Chrome) o `browser.storage.sync` (Firefox)
 - Sincronización automática a través de la cuenta de Chrome/Firefox
 - Adecuado para sincronización multi-dispositivo con la misma cuenta del navegador
-- Funciona sin configuración adicional
+- **Almacenamiento por fragmentos**: Los datos de configuración se fragmentan automáticamente (7KB por fragmento) para evitar el límite de cuota de 8KB por elemento
+- **Integridad de datos**: Utiliza sumas de verificación para asegurar la integridad de los datos de sincronización
+- **Operaciones atómicas**: La operación Push borra los datos antiguos antes de escribir los nuevos para asegurar la consistencia
+- **Visualización de cuota**: Visualización en tiempo real de la cuota utilizada/total (100KB) y número de fragmentos
 
 ##### 1.10.2.2 Sincronización GitHub Gist
 - Sincronización de configuración entre navegadores y dispositivos a través de GitHub Gist
@@ -200,16 +203,22 @@ ProxyAssistant/
 │   ├── README-zh-CN.md       # Chino simplificado
 │   ├── README-zh-TW.md       # Chino tradicional
 │   ├── README-en.md          # Inglés
-│   └── ...
+│   ├── README-ja.md          # Japonés
+│   ├── README-fr.md          # Francés
+│   ├── README-de.md          # Alemán
+│   ├── README-es.md          # Español
+│   ├── README-pt.md          # Portugués
+│   ├── README-ru.md          # Ruso
+│   └── README-ko.md          # Coreano
 ├── src/                      # Código fuente
-│   ├── manifest_chrome.json  # Configuración extensión Chrome
+│   ├── manifest_chrome.json  # Configuración extensión Chrome (Manifest V3)
 │   ├── manifest_firefox.json # Configuración extensión Firefox
 │   ├── main.html             # Página de configuración
 │   ├── popup.html            # Página emergente
 │   ├── js/
-│   │   ├── worker.js         # Servicio en segundo plano (Chrome: Service Worker)
-│   │   ├── popup.js          # Lógica principal del popup
 │   │   ├── main.js           # Lógica principal de página de configuración
+│   │   ├── popup.js          # Lógica principal del popup
+│   │   ├── worker.js         # Servicio en segundo plano (Chrome: Service Worker)
 │   │   ├── i18n.js           # Soporte de internacionalización
 │   │   └── jquery.js         # Biblioteca jQuery
 │   ├── css/
@@ -223,8 +232,26 @@ ProxyAssistant/
 │       ├── icon-48.png
 │       ├── icon-128.png
 │       └── logo-128.png
-└── public/                   # Recursos públicos
+├── public/                   # Recursos públicos
     └── img/                  # Imágenes promocionales y de demostración
+├── tests/                    # Pruebas
+│   ├── jest.config.js        # Configuración de Jest
+│   ├── setup.js              # Configuración de entorno de prueba
+│   ├── __mocks__/            # Archivos Mock
+│   │   └── chrome.js         # Mock de API de Chrome
+│   ├── unit/                 # Pruebas unitarias
+│   ├── integration/          # Pruebas de integración
+│   └── e2e/                  # Pruebas de extremo a extremo
+├── script/                   # Scripts de compilación
+│   └── build.sh              # Script de compilación de extensión
+├── release/                  # Notas de versión
+│   └── *.md                  # Registros de actualización de versiones
+├── build/                    # Directorio de salida de compilación
+├── package.json              # Dependencias del proyecto
+├── package-lock.json         # Bloqueo de versiones de dependencias
+├── Makefile                  # Entrada de comandos de compilación
+├── jest.config.js            # Configuración de Jest (apunta a tests/jest.config.js)
+└── AGENTS.md                 # Guía de desarrollo
 ```
 
 ## 4. 🚀 Inicio rápido
@@ -309,9 +336,97 @@ El navegador Edge está basado en el núcleo Chromium y puede instalar extension
 2. Configurar reglas URL para cada proxy en la página de configuración
 3. El proxy se selecciona automáticamente según el sitio web visitado
 
-## 5. 📖 Documentación detallada
+## 5. 🛠️ Guía de desarrollo
 
-### 5.1 Sintaxis de reglas URL
+### 5.1 Entorno de desarrollo
+
+**Requisitos previos**:
+- Node.js >= 14
+- npm >= 6
+- Navegador Chrome / Firefox (para pruebas)
+- web-ext (para construir XPI de Firefox, opcional)
+
+**Instalar dependencias**:
+```bash
+make test_init
+# o
+npm install
+```
+
+### 5.2 Comandos de prueba
+
+| Comando | Descripción |
+|---------|-------------|
+| `make test` | Ejecutar todas las pruebas (unitaria + integración + e2e) |
+| `make test_nocache` | Ejecutar pruebas sin caché |
+| `make test_unit` | Ejecutar solo pruebas unitarias |
+| `make test_integration` | Ejecutar solo pruebas de integración |
+| `make test_e2e` | Ejecutar solo pruebas e2e |
+| `make test_watch_nocache` | Ejecutar pruebas en modo watch |
+| `make test_cov_nocache` | Ejecutar pruebas y generar informe de cobertura |
+
+**Uso directo de npm**:
+```bash
+npm test                    # Ejecutar todas las pruebas
+npm run test:unit           # Ejecutar solo pruebas unitarias
+npm run test:integration    # Ejecutar solo pruebas de integración
+npm run test:e2e            # Ejecutar solo pruebas e2e
+npm run test:watch          # Ejecutar pruebas en modo watch
+npm run test:coverage       # Ejecutar pruebas y generar informe de cobertura
+```
+
+### 5.3 Comandos de compilación
+
+| Comando | Descripción |
+|---------|-------------|
+| `make build` | Construir extensiones Chrome y Firefox |
+| `make clean` | Limpiar artefactos de compilación |
+| `make test_clean` | Limpiar caché de pruebas y archivos de cobertura |
+
+**Especificar versión**:
+```bash
+make build VERSION=1.3.1
+# o
+./script/build.sh 1.3.1
+```
+
+**Artefactos de compilación**:
+```
+build/
+├── ProxyAssistant_{VERSION}_chrome.zip      # Paquete de instalación Chrome
+├── ProxyAssistant_{VERSION}_chrome.tar.gz   # Paquete fuente Chrome
+├── ProxyAssistant_{VERSION}_firefox.zip     # Paquete de instalación Firefox
+├── ProxyAssistant_{VERSION}_firefox.tar.gz  # Paquete fuente Firefox
+└── ProxyAssistant_{VERSION}_firefox.xpi     # Paquete de extensión oficial Firefox
+```
+
+### 5.4 Desarrollo local
+
+**Instalación local Chrome**:
+1. Renombrar `src/manifest_chrome.json` a `manifest.json`
+2. Abrir Chrome, visitar `chrome://extensions/`
+3. Activar **"Modo de desarrollador"**
+4. Click en **"Cargar extensión descomprimida"**
+5. Seleccionar directorio `src`
+
+**Instalación local Firefox**:
+1. Usar `make build` para generar archivo XPI
+2. Abrir Firefox, visitar `about:addons`
+3. Click en **ícono de engranaje** → **Instalar complemento desde archivo**
+4. Seleccionar el archivo `.xpi` generado
+
+### 5.5 Estilo de código
+
+- **Indentación**: 2 espacios
+- **Comillas**: Comillas simples
+- **Nombres**: camelCase, constantes usan UPPER_SNAKE_CASE
+- **Punto y coma**: Uso consistente
+
+Para especificaciones detalladas, consulte [AGENTS.md](../AGENTS.md)
+
+## 6. 📖 Documentación detallada
+
+### 6.1 Sintaxis de reglas URL
 
 Soporta las siguientes reglas de coincidencia:
 
@@ -332,7 +447,7 @@ www.google.com
 10.0.0.0/8
 ```
 
-### 5.2 Estrategia de fallback
+### 6.2 Estrategia de fallback
 
 En modo automático, cuando la conexión del proxy falla:
 
@@ -341,7 +456,7 @@ En modo automático, cuando la conexión del proxy falla:
 | **Conexión directa (DIRECT)** | Omitir proxy, conectar directamente al sitio de destino |
 | **Rechazar conexión (REJECT)** | Rechazar la solicitud |
 
-### 5.3 Modo automático con script PAC
+### 6.3 Modo automático con script PAC
 
 El modo automático usa scripts PAC (Proxy Auto-Config):
 - Seleccionar automáticamente el proxy según la URL actual
@@ -349,7 +464,7 @@ El modo automático usa scripts PAC (Proxy Auto-Config):
 - Soporta estrategia de fallback
 - Restaurar automáticamente la última configuración al iniciar el navegador
 
-### 5.4 Atajos de operación
+### 6.4 Atajos de operación
 
 | Operación | Método |
 |-----------|--------|
@@ -362,7 +477,7 @@ El modo automático usa scripts PAC (Proxy Auto-Config):
 | Probar todos los proxies | Click en botón "Probar todo" |
 | Cerrar popup rápidamente | Presionar la tecla `ESC` en la página |
 
-### 5.5 Importar/exportar configuración
+### 6.5 Importar/exportar configuración
 
 1. **Exportar configuración**: Click en "Exportar configuración" para descargar archivo JSON
 2. **Importar configuración**: Click en "Importar configuración" y seleccionar archivo JSON para restaurar
@@ -374,7 +489,7 @@ La configuración incluye:
 - Configuración de idioma
 - Estado de sincronización
 
-### 5.6 Detección de estado del proxy
+### 6.6 Detección de estado del proxy
 
 Click en el botón "Detectar estado del proxy" puede:
 - Ver el modo actual del proxy del navegador
@@ -382,15 +497,15 @@ Click en el botón "Detectar estado del proxy" puede:
 - Detectar si otras extensiones ocuparon el control
 - Obtener diagnóstico y sugerencias de problemas
 
-## 6. 🔧 Arquitectura técnica
+## 7. 🔧 Arquitectura técnica
 
-### 6.1 Manifest V3
+### 7.1 Manifest V3
 
 - Chrome usa especificación Manifest V3
 - Service Worker代替 páginas de fondo
 - Firefox usa background scripts + onRequest API
 
-### 6.2 Módulos principales
+### 7.2 Módulos principales
 
 1. **worker.js (Chrome)**:
    - Gestión de configuración de proxy
@@ -416,13 +531,13 @@ Click en el botón "Detectar estado del proxy" puede:
    - Soporte multilingüe
    - Cambio de idioma en tiempo real
 
-### 6.3 Almacenamiento de datos
+### 7.3 Almacenamiento de datos
 
 - `chrome.storage.local`: Almacenamiento local (siempre usado)
 - `chrome.storage.sync`: Almacenamiento de sincronización en la nube (opcional)
 - Principio de local first, resuelve problema de cuota de sincronización
 
-### 6.4 Compatibilidad de navegador
+### 7.4 Compatibilidad de navegador
 
 | Función | Chrome | Firefox |
 |---------|--------|---------|
@@ -434,34 +549,34 @@ Click en el botón "Detectar estado del proxy" puede:
 | Sincronización de datos | ✅ | ✅ |
 | Detección proxy | ✅ | ✅ |
 
-## 7. 📝 Casos de uso
+## 8. 📝 Casos de uso
 
-### 7.1 Escenario 1: Cambio entre múltiples proxies
+### 8.1 Escenario 1: Cambio entre múltiples proxies
 
 - Configurar diferentes proxies para diferentes entornos de red
 - Usar proxy de empresa para red de oficina
 - Usar proxy científico para red doméstica
 - Cambio rápido con un clic
 
-### 7.2 Escenario 2: Enrutamiento inteligente
+### 8.2 Escenario 2: Enrutamiento inteligente
 
 - Sitios web nacionales conexión directa
 - Sitios específicos a través de proxy
 - Selección automática basada en dominio
 
-### 7.3 Escenario 3: Prueba de pool de proxies
+### 8.3 Escenario 3: Prueba de pool de proxies
 
 - Importar múltiples proxies
 - Probar latencia en lote
 - Seleccionar proxy óptimo para usar
 
-### 7.4 Escenario 4: Compartición en equipo
+### 8.4 Escenario 4: Compartición en equipo
 
 - Exportar archivo de configuración
 - Compartir con miembros del equipo
 - Configuración de proxy unificada
 
-## 8. ⚠️ Notas importantes
+## 9. ⚠️ Notas importantes
 
 1. **Descripción de permisos**: La extensión requiere los siguientes permisos:
    - `proxy`: Gestionar configuraciones de proxy
@@ -477,19 +592,19 @@ Click en el botón "Detectar estado del proxy" puede:
 
 5. **Restricción de Firefox**: La versión mínima de Firefox requerida es 142.0
 
-## 9. 📄 Política de privacidad
+## 10. 📄 Política de privacidad
 
 [Política de privacidad](https://sites.google.com/view/proxy-assistant/privacy-policy)
 
-## 10. 📄 Licencia
+## 11. 📄 Licencia
 
 MIT License - Ver archivo [LICENSE](../LICENSE) para detalles
 
-## 11. 🤝 Contribución
+## 12. 🤝 Contribución
 
 ¡Informes de issues y pull requests son bienvenidos!
 
-## 12. 📧 Contacto
+## 13. 📧 Contacto
 
 Para preguntas o sugerencias, por favor enviar comentarios a través de GitHub Issues.
 

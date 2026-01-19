@@ -97,18 +97,21 @@
 
 #### 1.10.1 存储策略
 
-| 存储类型 | 描述 |
-|----------|------|
-| **本地存储 (local)** | 始终启用，存储代理列表和所有配置数据，确保离线可用 |
-| **云端同步 (sync)** | 可选功能，通过浏览器账号在多个设备间同步 |
+| 存储类型 | 存储内容 | 描述 |
+|----------|----------|------|
+| **本地存储 (local)** | 代理列表、主题设置、语言设置、同步配置 | 始终启用，确保离线可用和数据持久化 |
+| **云端同步 (sync)** | 完整配置数据（分块存储） | 可选功能，使用分块存储绕过配额限制 |
 
 #### 1.10.2 同步方式
 
 ##### 1.10.2.1 浏览器原生同步 (Native Sync)
-- 使用 `chrome.storage.sync` API
+- 使用 `chrome.storage.sync` API（Chrome）或 `browser.storage.sync`（Firefox）
 - 通过 Chrome/Firefox 账号自动同步
 - 适用于同一浏览器账号的多设备同步
-- 无需额外配置即可使用
+- **分块存储**: 配置数据自动分块（每块 7KB）存储，绕过 8KB 单项配额限制
+- **数据校验**: 使用校验和确保同步数据的完整性
+- **原子操作**: Push 操作先清空旧数据再写入新数据，保证一致性
+- **配额显示**: 实时显示已用/总配额（100KB）和分块数量
 
 ##### 1.10.2.2 GitHub Gist 同步
 - 通过 GitHub Gist 在浏览器和设备间同步配置
@@ -197,19 +200,24 @@ ProxyAssistant/
 ├── conf/                     # 示例配置
 │   └── demo.json             # 示例配置文件
 ├── readme/                   # 多语言文档
-│   ├── README-zh-CN.md       # 简体中文
 │   ├── README-zh-TW.md       # 繁体中文
 │   ├── README-en.md          # 英文
-│   └── ...
+│   ├── README-ja.md          # 日文
+│   ├── README-fr.md          # 法文
+│   ├── README-de.md          # 德文
+│   ├── README-es.md          # 西班牙文
+│   ├── README-pt.md          # 葡萄牙文
+│   ├── README-ru.md          # 俄文
+│   └── README-ko.md          # 韩文
 ├── src/                      # 源代码
-│   ├── manifest_chrome.json  # Chrome 扩展配置
+│   ├── manifest_chrome.json  # Chrome 扩展配置 (Manifest V3)
 │   ├── manifest_firefox.json # Firefox 扩展配置
 │   ├── main.html             # 设置页面
 │   ├── popup.html            # 弹窗页面
 │   ├── js/
-│   │   ├── worker.js         # 后台服务 (Chrome: Service Worker)
-│   │   ├── popup.js          # 弹窗主逻辑
 │   │   ├── main.js           # 设置页面主逻辑
+│   │   ├── popup.js          # 弹窗 UI 逻辑
+│   │   ├── worker.js         # Service Worker (Chrome) / Background Script (Firefox)
 │   │   ├── i18n.js           # 国际化支持
 │   │   └── jquery.js         # jQuery 库
 │   ├── css/
@@ -223,8 +231,26 @@ ProxyAssistant/
 │       ├── icon-48.png
 │       ├── icon-128.png
 │       └── logo-128.png
-└── public/                   # 公共资源
-    └── img/                  # 演示和宣传图片
+├── public/                   # 公共资源
+│   └── img/                  # 演示和宣传图片
+├── tests/                    # 测试目录
+│   ├── jest.config.js        # Jest 测试配置
+│   ├── setup.js              # 测试环境设置
+│   ├── __mocks__/            # Mock 文件
+│   │   └── chrome.js         # Chrome API Mock
+│   ├── unit/                 # 单元测试
+│   ├── integration/          # 集成测试
+│   └── e2e/                  # 端到端测试
+├── script/                   # 构建脚本
+│   └── build.sh              # 扩展构建脚本
+├── release/                  # 版本发布说明
+│   └── *.md                  # 各版本更新日志
+├── build/                    # 构建产物目录
+├── package.json              # 项目依赖配置
+├── package-lock.json         # 锁定依赖版本
+├── Makefile                  # 构建命令入口
+├── jest.config.js            # Jest 配置（指向 tests/jest.config.js）
+└── AGENTS.md                 # 开发指南
 ```
 
 ## 4. 🚀 快速开始
@@ -309,9 +335,97 @@ Edge 浏览器基于 Chromium 内核，可以直接安装 Chrome 扩展。
 2. 在设置页面为每个代理配置 URL 规则
 3. 根据访问的网站自动选择代理
 
-## 5. 📖 详细文档
+## 5. 🛠️ 开发指南
 
-### 5.1 URL 规则语法
+### 5.1 开发环境
+
+**前置要求**:
+- Node.js >= 14
+- npm >= 6
+- Chrome / Firefox 浏览器（用于测试）
+- web-ext（用于构建 Firefox XPI，可选）
+
+**安装依赖**:
+```bash
+make test_init
+# 或
+npm install
+```
+
+### 5.2 测试命令
+
+| 命令 | 描述 |
+|------|------|
+| `make test` | 运行所有测试（单元 + 集成 + e2e） |
+| `make test_nocache` | 不使用缓存运行测试 |
+| `make test_unit` | 仅运行单元测试 |
+| `make test_integration` | 仅运行集成测试 |
+| `make test_e2e` | 仅运行 e2e 测试 |
+| `make test_watch_nocache` | 监听模式运行测试 |
+| `make test_cov_nocache` | 运行测试并生成覆盖率报告 |
+
+**直接使用 npm**:
+```bash
+npm test                    # 运行所有测试
+npm run test:unit           # 仅运行单元测试
+npm run test:integration    # 仅运行集成测试
+npm run test:e2e            # 仅运行 e2e 测试
+npm run test:watch          # 监听模式运行测试
+npm run test:coverage       # 运行测试并生成覆盖率报告
+```
+
+### 5.3 构建命令
+
+| 命令 | 描述 |
+|------|------|
+| `make build` | 构建 Chrome 和 Firefox 扩展 |
+| `make clean` | 清理构建产物 |
+| `make test_clean` | 清理测试缓存和覆盖率文件 |
+
+**指定版本号**:
+```bash
+make build VERSION=1.3.1
+# 或
+./script/build.sh 1.3.1
+```
+
+**构建产物**:
+```
+build/
+├── ProxyAssistant_{VERSION}_chrome.zip      # Chrome 安装包
+├── ProxyAssistant_{VERSION}_chrome.tar.gz   # Chrome 源码包
+├── ProxyAssistant_{VERSION}_firefox.zip     # Firefox 安装包
+├── ProxyAssistant_{VERSION}_firefox.tar.gz  # Firefox 源码包
+└── ProxyAssistant_{VERSION}_firefox.xpi     # Firefox 官方扩展包
+```
+
+### 5.4 本地开发测试
+
+**Chrome 本地安装**:
+1. 修改 `src/manifest_chrome.json` 为 `manifest.json`
+2. 打开 Chrome，访问 `chrome://extensions/`
+3. 开启 **"开发者模式"**
+4. 点击 **"加载已解压的扩展程序"**
+5. 选择 `src` 目录
+
+**Firefox 本地安装**:
+1. 使用 `make build` 生成 XPI 文件
+2. 打开 Firefox，访问 `about:addons`
+3. 点击 **齿轮图标** → **从文件安装附加组件**
+4. 选择生成的 `.xpi` 文件
+
+### 5.5 代码风格
+
+- **缩进**: 2 个空格
+- **引号**: 单引号
+- **命名**: 小驼峰 (camelCase)，常量使用大写下划线
+- **分号**: 一致使用
+
+详细规范请参考 [AGENTS.md](AGENTS.md)
+
+## 6. 📖 详细文档
+
+### 6.1 URL 规则语法
 
 支持以下匹配规则：
 
@@ -332,7 +446,7 @@ www.google.com
 10.0.0.0/8
 ```
 
-### 5.2 失败回退策略
+### 6.2 失败回退策略
 
 自动模式下，当代理连接失败时：
 
@@ -341,7 +455,7 @@ www.google.com
 | **直接连接 (DIRECT)** | 绕过代理，直接连接目标网站 |
 | **拒绝连接 (REJECT)** | 拒绝该请求 |
 
-### 5.3 PAC 脚本自动模式
+### 6.3 PAC 脚本自动模式
 
 自动模式使用 PAC（Proxy Auto-Config）脚本：
 - 根据当前 URL 自动选择代理
@@ -349,7 +463,7 @@ www.google.com
 - 支持失败回退策略
 - 浏览器启动时自动恢复上次配置
 
-### 5.4 快捷操作
+### 6.4 快捷操作
 
 | 操作 | 方式 |
 |------|------|
@@ -362,7 +476,7 @@ www.google.com
 | 测试所有代理 | 点击"全部测试"按钮 |
 | 快速关闭弹窗 | 在页面按 `ESC` 键 |
 
-### 5.5 导入导出配置
+### 6.5 导入导出配置
 
 1. **导出配置**: 点击"导出配置"下载 JSON 文件
 2. **导入配置**: 点击"导入配置"选择 JSON 文件恢复
@@ -374,7 +488,7 @@ www.google.com
 - 语言设置
 - 同步开关状态
 
-### 5.6 代理状态检测
+### 6.6 代理状态检测
 
 点击"检测代理效果"按钮可以：
 - 查看当前浏览器代理模式
@@ -382,15 +496,15 @@ www.google.com
 - 检测是否有其他扩展抢占控制
 - 获取问题诊断和建议
 
-## 6. 🔧 技术架构
+## 7. 🔧 技术架构
 
-### 6.1 Manifest V3
+### 7.1 Manifest V3
 
 - Chrome 使用 Manifest V3 规范
 - Service Worker 替代后台页面
 - Firefox 使用 background scripts + onRequest API
 
-### 6.2 核心模块
+### 7.2 核心模块
 
 1. **worker.js (Chrome)**:
    - 代理配置管理
@@ -416,13 +530,13 @@ www.google.com
    - 多语言支持
    - 实时切换语言
 
-### 6.3 数据存储
+### 7.3 数据存储
 
 - `chrome.storage.local`: 本地存储（始终使用）
 - `chrome.storage.sync`: 云端同步存储（可选）
 - 遵循本地优先原则，解决同步配额问题
 
-### 6.4 浏览器兼容性
+### 7.4 浏览器兼容性
 
 | 功能 | Chrome | Firefox |
 |------|--------|---------|
@@ -434,34 +548,34 @@ www.google.com
 | 数据同步 | ✅ | ✅ |
 | 代理检测 | ✅ | ✅ |
 
-## 7. 📝 使用场景
+## 8. 📝 使用场景
 
-### 7.1 场景1：多代理切换
+### 8.1 场景1：多代理切换
 
 - 为不同网络环境配置不同代理
 - 办公网络使用公司代理
 - 家庭网络使用科学上网代理
 - 一键快速切换
 
-### 7.2 场景2：智能路由
+### 8.2 场景2：智能路由
 
 - 国内网站直连
 - 特定网站走代理
 - 根据域名自动选择
 
-### 7.3 场景3：代理池测试
+### 8.3 场景3：代理池测试
 
 - 导入多个代理
 - 批量测试延迟
 - 选取最优代理使用
 
-### 7.4 场景4：团队共享
+### 8.4 场景4：团队共享
 
 - 导出配置文件
 - 分享给团队成员
 - 统一的代理配置
 
-## 8. ⚠️ 注意事项
+## 9. ⚠️ 注意事项
 
 1. **权限说明**: 本扩展需要以下权限：
    - `proxy`: 管理代理设置
@@ -477,19 +591,19 @@ www.google.com
 
 5. **Firefox 限制**: Firefox 最低支持版本为 142.0
 
-## 9. 📄 隐私政策
+## 10. 📄 隐私政策
 
 [隐私政策](https://sites.google.com/view/proxy-assistant/privacy-policy)
 
-## 10. 📄 开源协议
+## 11. 📄 开源协议
 
 MIT License - 详见 [LICENSE](LICENSE) 文件
 
-## 11. 🤝 贡献
+## 12. 🤝 贡献
 
 欢迎提交 Issues 和 Pull Requests！
 
-## 12. 📧 联系方式
+## 13. 📧 联系方式
 
 如有问题或建议，请通过 GitHub Issues 反馈。
 

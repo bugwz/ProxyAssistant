@@ -97,18 +97,21 @@ Chrome와 Firefox를 지원하는 강력한 브라우저 프록시 관리 확장
 
 #### 1.10.1 저장 전략
 
-| 저장 유형 | 설명 |
-|----------|------|
-| **로컬 저장소 (local)** | 항상 활성화, 프록시 목록 및 모든 구성 데이터 저장, 오프라인 사용 가능 보장 |
-| **클라우드 동기화 (sync)** | 선택적 기능, 동일한 브라우저 계정으로 여러 기기 간 동기화 |
+| 저장 유형 | 저장 내용 | 설명 |
+|----------|-----------|------|
+| **로컬 저장소 (local)** | 프록시 목록, 테마 설정, 언어 설정, 동기화 구성 | 항상 활성화, 오프라인 사용 가능 및 데이터 지속성 보장 |
+| **클라우드 동기화 (sync)** | 전체 구성 데이터 (청크 저장) | 선택적 기능, 할당량 제한을 우회하기 위해 청크 저장 사용 |
 
 #### 1.10.2 동기화 방식
 
 ##### 1.10.2.1 브라우저 네이티브 동기화 (Native Sync)
-- `chrome.storage.sync` API 사용
+- `chrome.storage.sync` API(Chrome) 또는 `browser.storage.sync`(Firefox) 사용
 - Chrome/Firefox 계정을 통한 자동 동기화
 - 동일한 브라우저 계정으로 여러 기기 동기화에 적합
-- 추가 구성 없이 즉시 사용 가능
+- **청크 저장**: 구성 데이터는 항목당 8KB 할당량 제한을 우회하기 위해 자동으로 청크(청크당 7KB)로 분할됩니다
+- **데이터 무결성**: 체크섬을 사용하여 동기화 데이터 무결성 보장
+- **원자적 작업**: Push 작업은 일관성을 보장하기 위해 새 데이터를 쓰기 전에 이전 데이터를 지웁니다
+- **할당량 표시**: 사용/총 할당량(100KB) 및 청크 수를 실시간으로 표시
 
 ##### 1.10.2.2 GitHub Gist 동기화
 - GitHub Gist를 통해 브라우저 및 기기 간 구성 동기화
@@ -200,16 +203,22 @@ ProxyAssistant/
 │   ├── README-zh-CN.md       # 간체 중국어
 │   ├── README-zh-TW.md       # 번체 중국어
 │   ├── README-en.md          # 영어
-│   └── ...
+│   ├── README-ja.md          # 일본어
+│   ├── README-fr.md          # 프랑스어
+│   ├── README-de.md          # 독일어
+│   ├── README-es.md          # 스페인어
+│   ├── README-pt.md          # 포르투갈어
+│   ├── README-ru.md          # 러시아어
+│   └── README-ko.md          # 한국어
 ├── src/                      # 소스 코드
-│   ├── manifest_chrome.json  # Chrome 확장 프로그램 구성
+│   ├── manifest_chrome.json  # Chrome 확장 프로그램 구성 (Manifest V3)
 │   ├── manifest_firefox.json # Firefox 확장 프로그램 구성
 │   ├── main.html             # 설정 페이지
 │   ├── popup.html            # 팝업 페이지
 │   ├── js/
-│   │   ├── worker.js         # 백그라운드 서비스 (Chrome: Service Worker)
-│   │   ├── popup.js          # 팝업 메인 로직
 │   │   ├── main.js           # 설정 페이지 메인 로직
+│   │   ├── popup.js          # 팝업 UI 로직
+│   │   ├── worker.js         # 백그라운드 서비스 (Chrome: Service Worker)
 │   │   ├── i18n.js           # 국제화 지원
 │   │   └── jquery.js         # jQuery 라이브러리
 │   ├── css/
@@ -223,8 +232,26 @@ ProxyAssistant/
 │       ├── icon-48.png
 │       ├── icon-128.png
 │       └── logo-128.png
-└── public/                   # 공개 리소스
+├── public/                   # 공개 리소스
     └── img/                  # 데모 및 홍보 이미지
+├── tests/                    # 테스트
+│   ├── jest.config.js        # Jest 구성
+│   ├── setup.js              # 테스트 환경 설정
+│   ├── __mocks__/            # Mock 파일
+│   │   └── chrome.js         # Chrome API Mock
+│   ├── unit/                 # 단위 테스트
+│   ├── integration/          # 통합 테스트
+│   └── e2e/                  # E2E 테스트
+├── script/                   # 빌드 스크립트
+│   └── build.sh              # 확장 프로그램 빌드 스크립트
+├── release/                  # 릴리스 노트
+│   └── *.md                  # 버전 업데이트 로그
+├── build/                    # 빌드 출력 디렉토리
+├── package.json              # 프로젝트 의존성
+├── package-lock.json         # 의존성 버전 잠금
+├── Makefile                  # 빌드 명령 진입점
+├── jest.config.js            # Jest 구성 (tests/jest.config.js를 가리킴)
+└── AGENTS.md                 # 개발 가이드
 ```
 
 ## 4. 🚀 빠른 시작
@@ -309,9 +336,97 @@ Edge 브라우저는 Chromium 커널을 기반으로 하며, Chrome 확장 프�
 2. 설정 페이지에서 각 프록시에 대한 URL 규칙 구성
 3. 방문하는 웹사이트에 따라 프록시가 자동으로 선택됨
 
-## 5. 📖 상세 설명
+## 5. 🛠️ 개발 가이드
 
-### 5.1 URL 규칙 구문
+### 5.1 개발 환경
+
+**전제 조건**:
+- Node.js >= 14
+- npm >= 6
+- Chrome / Firefox 브라우저 (테스트용)
+- web-ext (Firefox XPI 빌드용, 선택 사항)
+
+**의존성 설치**:
+```bash
+make test_init
+# 또는
+npm install
+```
+
+### 5.2 테스트 명령
+
+| 명령 | 설명 |
+|------|------|
+| `make test` | 모든 테스트 실행 (단위 + 통합 + e2e) |
+| `make test_nocache` | 캐시 없이 테스트 실행 |
+| `make test_unit` | 단위 테스트만 실행 |
+| `make test_integration` | 통합 테스트만 실행 |
+| `make test_e2e` | e2e 테스트만 실행 |
+| `make test_watch_nocache` | 감시 모드에서 테스트 실행 |
+| `make test_cov_nocache` | 테스트 실행 및 커버리지 보고서 생성 |
+
+**npm 직접 사용**:
+```bash
+npm test                    # 모든 테스트 실행
+npm run test:unit           # 단위 테스트만 실행
+npm run test:integration    # 통합 테스트만 실행
+npm run test:e2e            # e2e 테스트만 실행
+npm run test:watch          # 감시 모드에서 테스트 실행
+npm run test:coverage       # 테스트 실행 및 커버리지 보고서 생성
+```
+
+### 5.3 빌드 명령
+
+| 명령 | 설명 |
+|------|------|
+| `make build` | Chrome 및 Firefox 확장 프로그램 빌드 |
+| `make clean` | 빌드 아티팩트 정리 |
+| `make test_clean` | 테스트 캐시 및 커버리지 파일 정리 |
+
+**버전 지정**:
+```bash
+make build VERSION=1.3.1
+# 또는
+./script/build.sh 1.3.1
+```
+
+**빌드 아티팩트**:
+```
+build/
+├── ProxyAssistant_{VERSION}_chrome.zip      # Chrome 설치 패키지
+├── ProxyAssistant_{VERSION}_chrome.tar.gz   # Chrome 소스 패키지
+├── ProxyAssistant_{VERSION}_firefox.zip     # Firefox 설치 패키지
+├── ProxyAssistant_{VERSION}_firefox.tar.gz  # Firefox 소스 패키지
+└── ProxyAssistant_{VERSION}_firefox.xpi     # Firefox 공식 확장 패키지
+```
+
+### 5.4 로컬 개발
+
+**Chrome 로컬 설치**:
+1. `src/manifest_chrome.json`을 `manifest.json`으로 이름 변경
+2. Chrome 열기, `chrome://extensions/` 방문
+3. **"개발자 모드"** 활성화
+4. **"압축 해제된 확장 프로그램 로드"** 클릭
+5. `src` 디렉토리 선택
+
+**Firefox 로컬 설치**:
+1. `make build`를 사용하여 XPI 파일 생성
+2. Firefox 열기, `about:addons` 방문
+3. **톱니바퀴 아이콘** → **파일에서 애드온 설치** 클릭
+4. 생성된 `.xpi` 파일 선택
+
+### 5.5 코드 스타일
+
+- **들여쓰기**: 2 공백
+- **따옴표**: 작은따옴표
+- **명명**: camelCase, 상수는 UPPER_SNAKE_CASE 사용
+- **세미콜론**: 일관된 사용
+
+자세한 사양은 [AGENTS.md](../AGENTS.md)를 참조하십시오
+
+## 6. 📖 상세 설명
+
+### 6.1 URL 규칙 구문
 
 다음과 같은 매칭 규칙을 지원합니다:
 
@@ -332,7 +447,7 @@ www.google.com
 10.0.0.0/8
 ```
 
-### 5.2 대체 전략
+### 6.2 대체 전략
 
 자동 모드에서 프록시 연결이 실패할 때:
 
@@ -341,7 +456,7 @@ www.google.com
 | **직접 연결 (DIRECT)** | 프록시 우회, 대상 웹사이트에 직접 연결 |
 | **연결 거부 (REJECT)** | 요청 거부 |
 
-### 5.3 PAC 스크립트 자동 모드
+### 6.3 PAC 스크립트 자동 모드
 
 자동 모드는 PAC (Proxy Auto-Config) 스크립트를 사용합니다:
 - 현재 URL에 따라 프록시 자동 선택
@@ -349,7 +464,7 @@ www.google.com
 - 대체 전략 지원
 - 브라우저 시작 시 마지막 구성 자동 복원
 
-### 5.4 바로 가기 작업
+### 6.4 바로 가기 작업
 
 | 작업 | 방법 |
 |------|------|
@@ -362,7 +477,7 @@ www.google.com
 | 모든 프록시 테스트 | "모두 테스트" 버튼 클릭 |
 | 팝업快速关闭 | 페이지에서 `ESC` 키 누르기 |
 
-### 5.5 구성 가져오기/내보내기
+### 6.5 구성 가져오기/내보내기
 
 1. **구성 내보내기**: "구성 내보내기"를 클릭하여 JSON 파일 다운로드
 2. **구성 가져오기**: "구성 가져오기"를 클릭하고 복원할 JSON 파일 선택
@@ -374,7 +489,7 @@ www.google.com
 - 언어 설정
 - 동기화 스위치 상태
 
-### 5.6 프록시 상태 감지
+### 6.6 프록시 상태 감지
 
 "프록시 효과 감지" 버튼을 클릭하면:
 - 현재 브라우저 프록시 모드 확인
@@ -382,15 +497,15 @@ www.google.com
 - 다른 확장 프로그램이 제어를 차지했는지 감지
 - 문제 진단 및 제안 얻기
 
-## 6. 🔧 기술 아키텍처
+## 7. 🔧 기술 아키텍처
 
-### 6.1 Manifest V3
+### 7.1 Manifest V3
 
 - Chrome은 Manifest V3 사양 사용
 - Service Worker가 백그라운드 페이지 대체
 - Firefox는 background scripts + onRequest API 사용
 
-### 6.2 핵심 모듈
+### 7.2 핵심 모듈
 
 1. **worker.js (Chrome)**:
    - 프록시 구성 관리
@@ -416,13 +531,13 @@ www.google.com
    - 다국어 지원
    - 실시간 언어 전환
 
-### 6.3 데이터 저장
+### 7.3 데이터 저장
 
 - `chrome.storage.local`: 로컬 저장 (항상 사용)
 - `chrome.storage.sync`: 클라우드 동기화 저장 (선택 사항)
 - 로컬 우선 원칙, 동기화 할당량 문제 해결
 
-### 6.4 브라우저 호환성
+### 7.4 브라우저 호환성
 
 | 기능 | Chrome | Firefox |
 |------|--------|---------|
@@ -434,34 +549,34 @@ www.google.com
 | 데이터 동기화 | ✅ | ✅ |
 | 프록시 감지 | ✅ | ✅ |
 
-## 7. 📝 사용 시나리오
+## 8. 📝 사용 시나리오
 
-### 7.1 시나리오 1: 다중 프록시 전환
+### 8.1 시나리오 1: 다중 프록시 전환
 
 - 서로 다른 네트워크 환경에 대해 서로 다른 프록시 구성
 - 사무실 네트워크에는 회사 프록시 사용
 - 가정 네트워크에는 과학上网 프록시 사용
 - 빠른 원클릭 전환
 
-### 7.2 시나리오 2: 스마트 라우팅
+### 8.2 시나리오 2: 스마트 라우팅
 
 - 국내 웹사이트는 직접 연결
 - 특정 웹사이트는 프록시 통해
 - 도메인에 따른 자동 선택
 
-### 7.3 시나리오 3: 프록시 풀 테스트
+### 8.3 시나리오 3: 프록시 풀 테스트
 
 - 여러 프록시 가져오기
 - 일괄 지연 시간 테스트
 - 사용할 최적의 프록시 선택
 
-### 7.4 시나리오 4: 팀 공유
+### 8.4 시나리오 4: 팀 공유
 
 - 구성 파일 내보내기
 - 팀원과 공유
 - 통합 프록시 구성
 
-## 8. ⚠️ 주요 사항
+## 9. ⚠️ 주요 사항
 
 1. **권한 설명**: 확장에 다음 권한이 필요합니다:
    - `proxy`: 프록시 설정 관리
@@ -477,19 +592,19 @@ www.google.com
 
 5. **Firefox 제한**: Firefox 최소 버전 요구 사항은 142.0입니다
 
-## 9. 📄 개인정보 처리방침
+## 10. 📄 개인정보 처리방침
 
 [개인정보 처리방침](https://sites.google.com/view/proxy-assistant/privacy-policy)
 
-## 10. 📄 라이선스
+## 11. 📄 라이선스
 
 MIT License - 자세한 내용은 [LICENSE](../LICENSE) 파일을 참조하세요.
 
-## 11. 🤝 기여
+## 12. 🤝 기여
 
 이슈 보고 및 풀 리퀘스트를 환영합니다!
 
-## 12. 📧 연락처
+## 13. 📧 연락처
 
 질문이나 제안이 있으시면 GitHub Issues를 통해 피드백을 보내주세요.
 

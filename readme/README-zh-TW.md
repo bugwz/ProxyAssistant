@@ -97,18 +97,21 @@
 
 #### 1.10.1 存儲策略
 
-| 存儲類型 | 說明 |
-|---------|------|
-| **本地存儲 (local)** | 始終啟用，存儲代理列表和所有配置數據，確保離線可用 |
-| **雲端同步 (sync)** | 可選功能，通過瀏覽器帳號實現同瀏覽器多設備同步 |
+| 存儲類型 | 存儲內容 | 說明 |
+|---------|----------|------|
+| **本地存儲 (local)** | 代理列表、主題設置、語言設置、同步配置 | 始終啟用，確保離線可用和數據持久化 |
+| **雲端同步 (sync)** | 完整配置數據（分塊存儲） | 可選功能，使用分塊存儲繞過配額限制 |
 
 #### 1.10.2 同步方式
 
 ##### 1.10.2.1 瀏覽器原生同步 (Native Sync)
-- 使用 `chrome.storage.sync` API
+- 使用 `chrome.storage.sync` API（Chrome）或 `browser.storage.sync`（Firefox）
 - 通過 Chrome/Firefox 帳號自動同步
 - 適合同一瀏覽器帳號的多設備同步
-- 無需額外配置，開箱即用
+- **分塊存儲**: 配置數據自動分塊（每塊 7KB）存儲，繞過 8KB 單項配額限制
+- **數據校驗**: 使用校驗和確保同步數據的完整性
+- **原子操作**: Push 操作先清空舊數據再寫入新數據，保證一致性
+- **配額顯示**: 實時顯示已用/總配額（100KB）和分塊數量
 
 ##### 1.10.2.2 GitHub Gist 同步
 - 通過 GitHub Gist 實現跨瀏覽器、跨設備的配置同步
@@ -197,34 +200,57 @@ ProxyAssistant/
 ├── conf/                     # 示例配置
 │   └── demo.json             # 示例配置文件
 ├── readme/                   # 多語言文檔
-│   ├── README-zh-CN.md       # 簡體中文
 │   ├── README-zh-TW.md       # 繁體中文
 │   ├── README-en.md          # 英文
-│   └── ...
+│   ├── README-ja.md          # 日文
+│   ├── README-fr.md          # 法文
+│   ├── README-de.md          # 德文
+│   ├── README-es.md          # 西班牙文
+│   ├── README-pt.md          # 葡萄牙文
+│   ├── README-ru.md          # 俄文
+│   └── README-ko.md          # 韓文
 ├── src/                      # 源代碼
-│   ├── manifest_chrome.json  # Chrome 擴展配置
+│   ├── manifest_chrome.json  # Chrome 擴展配置 (Manifest V3)
 │   ├── manifest_firefox.json # Firefox 擴展配置
 │   ├── main.html             # 設置頁面
 │   ├── popup.html            # 彈窗頁面
 │   ├── js/
-│   │   ├── worker.js         # 後台服務（Chrome: Service Worker）
-│   │   ├── popup.js          # 彈窗主邏輯
-│   │   ├── main.js           # 設置頁主邏輯
+│   │   ├── main.js           # 設置頁面主邏輯
+│   │   ├── popup.js          # 彈窗 UI 邏輯
+│   │   ├── worker.js         # Service Worker (Chrome) / Background Script (Firefox)
 │   │   ├── i18n.js           # 國際化支持
-│   │   └── jquery.js         # jQuery庫
+│   │   └── jquery.js         # jQuery 庫
 │   ├── css/
-│   │   ├── main.css          # 設置頁樣式（含通用組件樣式）
+│   │   ├── main.css          # 設置頁面樣式 (含通用組件)
 │   │   ├── popup.css         # 彈窗樣式
 │   │   ├── theme.css         # 主題樣式
-│   │   └── eye-button.css    # 密碼可見按鈕樣式
-│   └── images/               # 圖標資源
+│   │   └── eye-button.css    # 顯示密碼按鈕樣式
+│   └── images/               # 圖片資源
 │       ├── icon-16.png
 │       ├── icon-32.png
 │       ├── icon-48.png
 │       ├── icon-128.png
 │       └── logo-128.png
-└── public/                   # 公共資源
-    └── img/                  # 演示與宣傳圖片
+├── public/                   # 公共資源
+│   └── img/                  # 演示和宣傳圖片
+├── tests/                    # 測試目錄
+│   ├── jest.config.js        # Jest 測試配置
+│   ├── setup.js              # 測試環境設置
+│   ├── __mocks__/            # Mock 文件
+│   │   └── chrome.js         # Chrome API Mock
+│   ├── unit/                 # 單元測試
+│   ├── integration/          # 集成測試
+│   └── e2e/                  # 端到端測試
+├── script/                   # 構建腳本
+│   └── build.sh              # 擴展構建腳本
+├── release/                  # 版本發佈說明
+│   └── *.md                  # 各版本更新日誌
+├── build/                    # 構建產物目錄
+├── package.json              # 項目依賴配置
+├── package-lock.json         # 鎖定依賴版本
+├── Makefile                  # 構建命令入口
+├── jest.config.js            # Jest 配置（指向 tests/jest.config.js）
+└── AGENTS.md                 # 開發指南
 ```
 
 ## 4. 🚀 快速開始
@@ -309,9 +335,97 @@ Edge 瀏覽器基於 Chromium 內核，可直接安裝 Chrome 擴展。
 2. 在設置頁面為每個代理配置URL規則
 3. 訪問網站時自動選擇匹配的代理
 
-## 5. 📖 詳細說明
+## 5. 🛠️ 開發指南
 
-### 5.1 URL規則語法
+### 5.1 開發環境
+
+**前置要求**:
+- Node.js >= 14
+- npm >= 6
+- Chrome / Firefox 瀏覽器（用於測試）
+- web-ext（用於構建 Firefox XPI，可選）
+
+**安裝依賴**:
+```bash
+make test_init
+# 或
+npm install
+```
+
+### 5.2 測試命令
+
+| 命令 | 說明 |
+|------|------|
+| `make test` | 運行所有測試（單元 + 集成 + e2e） |
+| `make test_nocache` | 不使用緩存運行測試 |
+| `make test_unit` | 僅運行單元測試 |
+| `make test_integration` | 僅運行集成測試 |
+| `make test_e2e` | 僅運行 e2e 測試 |
+| `make test_watch_nocache` | 監聽模式運行測試 |
+| `make test_cov_nocache` | 運行測試並生成覆蓋率報告 |
+
+**直接使用 npm**:
+```bash
+npm test                    # 運行所有測試
+npm run test:unit           # 僅運行單元測試
+npm run test:integration    # 僅運行集成測試
+npm run test:e2e            # 僅運行 e2e 測試
+npm run test:watch          # 監聽模式運行測試
+npm run test:coverage       # 運行測試並生成覆蓋率報告
+```
+
+### 5.3 構建命令
+
+| 命令 | 說明 |
+|------|------|
+| `make build` | 構建 Chrome 和 Firefox 擴展 |
+| `make clean` | 清理構建產物 |
+| `make test_clean` | 清理測試緩存和覆蓋率文件 |
+
+**指定版本號**:
+```bash
+make build VERSION=1.3.1
+# 或
+./script/build.sh 1.3.1
+```
+
+**構建產物**:
+```
+build/
+├── ProxyAssistant_{VERSION}_chrome.zip      # Chrome 安裝包
+├── ProxyAssistant_{VERSION}_chrome.tar.gz   # Chrome 源碼包
+├── ProxyAssistant_{VERSION}_firefox.zip     # Firefox 安裝包
+├── ProxyAssistant_{VERSION}_firefox.tar.gz  # Firefox 源碼包
+└── ProxyAssistant_{VERSION}_firefox.xpi     # Firefox 官方擴展包
+```
+
+### 5.4 本地開發測試
+
+**Chrome 本地安裝**:
+1. 修改 `src/manifest_chrome.json` 為 `manifest.json`
+2. 打開 Chrome，訪問 `chrome://extensions/`
+3. 開啟 **"開發者模式"**
+4. 點擊 **"加載已解壓的擴展程序"**
+5. 選擇 `src` 目錄
+
+**Firefox 本地安裝**:
+1. 使用 `make build` 生成 XPI 文件
+2. 打開 Firefox，訪問 `about:addons`
+3. 點擊 **齒輪圖標** → **從文件安裝附加組件**
+4. 選擇生成的 `.xpi` 文件
+
+### 5.5 代碼風格
+
+- **縮進**: 2 個空格
+- **引號**: 單引號
+- **命名**: 小駝峰 (camelCase)，常量使用大寫下劃線
+- **分號**: 一致使用
+
+詳細規範請參考 [AGENTS.md](../AGENTS.md)
+
+## 6. 📖 詳細說明
+
+### 6.1 URL規則語法
 
 支持以下匹配規則：
 
@@ -332,7 +446,7 @@ www.google.com
 10.0.0.0/8
 ```
 
-### 5.2 失敗回退策略
+### 6.2 失敗回退策略
 
 在自動模式下，當代理連接失敗時：
 
@@ -341,7 +455,7 @@ www.google.com
 | **直接連接 (DIRECT)** | 繞過代理，直接連接目標網站 |
 | **拒絕連接 (REJECT)** | 拒絕該請求 |
 
-### 5.3 PAC腳本自動模式
+### 6.3 PAC腳本自動模式
 
 自動模式使用 PAC (Proxy Auto-Config) 腳本：
 - 根據當前訪問的URL自動選擇代理
@@ -349,7 +463,7 @@ www.google.com
 - 支持失敗回退策略
 - 瀏覽器啟動時自動恢復上次配置
 
-### 5.4 快捷操作
+### 6.4 快捷操作
 
 | 操作 | 方式 |
 |------|------|
@@ -362,7 +476,7 @@ www.google.com
 | 測試全部代理 | 點擊"測試全部"按鈕 |
 | 快速關閉彈窗 | 頁面內按 `ESC` 鍵 |
 
-### 5.5 導入導出配置
+### 6.5 導入導出配置
 
 1. **導出配置**: 點擊"導出配置"下載 JSON 文件
 2. **導入配置**: 點擊"導入配置"選擇 JSON 文件恢復
@@ -374,7 +488,7 @@ www.google.com
 - 語言設置
 - 同步開關狀態
 
-### 5.6 代理狀態檢測
+### 6.6 代理狀態檢測
 
 點擊"檢測代理效果"按鈕可以：
 - 查看當前瀏覽器代理模式
@@ -382,15 +496,15 @@ www.google.com
 - 檢測其他擴展是否搶佔控制權
 - 獲得問題診斷和建議
 
-## 6. 🔧 技術架構
+## 7. 🔧 技術架構
 
-### 6.1 Manifest V3
+### 7.1 Manifest V3
 
 - Chrome 使用 Manifest V3 規範
 - Service Worker 代替後台頁面
 - Firefox 使用 background scripts + onRequest API
 
-### 6.2 核心模塊
+### 7.2 核心模塊
 
 1. **worker.js (Chrome)**:
    - 代理配置管理
@@ -416,13 +530,13 @@ www.google.com
    - 多語言支持
    - 實時語言切換
 
-### 6.3 數據存儲
+### 7.3 數據存儲
 
 - `chrome.storage.local`: 本地存儲（始終使用）
 - `chrome.storage.sync`: 雲端同步存儲（可選）
 - 遵循本地優先原則，解決同步配額問題
 
-### 6.4 瀏覽器兼容性
+### 7.4 瀏覽器兼容性
 
 | 功能 | Chrome | Firefox |
 |------|--------|---------|
@@ -434,34 +548,34 @@ www.google.com
 | 數據同步 | ✅ | ✅ |
 | 代理檢測 | ✅ | ✅ |
 
-## 7. 📝 使用場景
+## 8. 📝 使用場景
 
-### 7.1 場景1: 多代理切換
+### 8.1 場景1: 多代理切換
 
 - 為不同網絡環境配置不同代理
 - 辦公室網絡使用公司代理
 - 家庭網絡使用科學上網代理
 - 快速一鍵切換
 
-### 7.2 場景2: 智能路由
+### 8.2 場景2: 智能路由
 
 - 國內網站直連
 - 特定網站走代理
 - 根據域名自動選擇
 
-### 7.3 場景3: 代理池測試
+### 8.3 場景3: 代理池測試
 
 - 導入多個代理
 - 批量測試延遲
 - 選擇最優代理使用
 
-### 7.4 場景4: 團隊共享
+### 8.4 場景4: 團隊共享
 
 - 導出配置文件
 - 分享給團隊成員
 - 統一代理配置
 
-## 8. ⚠️ 注意事項
+## 9. ⚠️ 注意事項
 
 1. **權限說明**: 擴展需要以下權限：
    - `proxy`: 管理代理設置
@@ -477,19 +591,19 @@ www.google.com
 
 5. **Firefox 限制**: Firefox 最低版本要求 142.0
 
-## 9. 📄 隱私權政策
+## 10. 📄 隱私權政策
 
 [隱私權政策](https://sites.google.com/view/proxy-assistant/privacy-policy)
 
-## 10. 📄 許可證
+## 11. 📄 許可證
 
 MIT License - 詳見 [LICENSE](../LICENSE) 文件
 
-## 11. 🤝 貢獻
+## 12. 🤝 貢獻
 
 歡迎提交 Issue 和 Pull Request！
 
-## 12. 📧 聯繫
+## 13. 📧 聯繫
 
 如有問題或建議，請通過 GitHub Issues 反饋。
 
