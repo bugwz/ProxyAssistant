@@ -3,6 +3,8 @@
 // ==========================================
 var themeMode = 'light';
 var list = [];
+var scenarios = [];
+var currentScenarioId = 'default';
 
 // ==========================================
 // Initialization
@@ -17,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function initApp() {
-  chrome.storage.local.get(['proxyMode', 'currentProxy', 'list'], function (result) {
+  chrome.storage.local.get(['proxyMode', 'currentProxy', 'list', 'scenarios', 'currentScenarioId'], function (result) {
     // If no stored mode, default to 'disabled'
     let mode = result.proxyMode;
     if (!mode) {
@@ -31,8 +33,20 @@ function initApp() {
       mode = 'disabled';
     }
 
-    // Load list into memory
+    // Load scenarios and list
+    scenarios = result.scenarios || [];
+    currentScenarioId = result.currentScenarioId || 'default';
     list = result.list || [];
+
+    // If scenarios empty but list exists (migration case not handled by main page yet), use default
+    // Note: main.js handles migration on load, popup assumes valid state or graceful fallback
+    if (scenarios.length === 0 && list.length > 0) {
+      scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: list }];
+      currentScenarioId = 'default';
+    } else if (scenarios.length === 0) {
+      scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: [] }];
+      currentScenarioId = 'default';
+    }
 
     const currentProxy = result.currentProxy;
 
@@ -48,6 +62,10 @@ function initApp() {
       }
     }
 
+    // Render Scenario Selector
+    renderScenarioSelector();
+    updateScenarioVisibility();
+
     // Initial list render
     list_init();
     // Initialize bypass button
@@ -62,7 +80,7 @@ function initApp() {
 
 function bindGlobalEvents() {
   // Settings button click event
-  $(".filter").on("click", function () {
+  $(".settings-btn").on("click", function () {
     window.open("./main.html");
   });
 
@@ -83,14 +101,14 @@ function bindGlobalEvents() {
         // Re-render list to apply auto-match highlighting
         list_init();
         updateBypassButton();
-        updateCurrentSiteDisplay();
+        updateCurrentSiteDisplay(); updateScenarioVisibility();
       } else if (mode === 'disabled') {
         // Disabled mode
         chrome.runtime.sendMessage({ action: "turnOffProxy" }, function () {
           list_init();
           updateStatusDisplay('disabled', null);
           updateBypassButton();
-          updateCurrentSiteDisplay();
+          updateCurrentSiteDisplay(); updateScenarioVisibility();
         });
       } else {
         // Manual mode - restore previous selection or show disconnected
@@ -103,12 +121,47 @@ function bindGlobalEvents() {
           }
           list_init();
           updateBypassButton();
-          updateCurrentSiteDisplay();
+          updateCurrentSiteDisplay(); updateScenarioVisibility();
           // Apply the current proxy settings
           chrome.runtime.sendMessage({ action: "refreshProxy" });
         });
       }
     });
+  });
+
+  // Dropdown handling
+  $("html").on("click", function () {
+    $(".lh-select-op").hide();
+  });
+
+  $(document).on("click", ".lh-select_k", function (e) {
+    e.stopPropagation();
+    var that = this;
+    var $op = $(that).next();
+    var display = $op.css('display');
+
+    $(".lh-select-op").not($op).hide();
+
+    if (display != 'none') {
+      $op.hide();
+      return;
+    }
+    setTimeout(function () {
+      $op.toggle();
+    }, 50);
+  });
+
+  $(document).on("click", ".lh-select-op li", function (e) {
+    e.stopPropagation();
+    var $li = $(this);
+    var $container = $li.closest('.lh-select');
+    var type = $container.data("type");
+
+    if (type === 'popup_scenario') {
+      const scenarioId = $li.data('value');
+      switchScenario(scenarioId);
+      $li.parent().hide();
+    }
   });
 }
 
@@ -120,9 +173,17 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
       refreshProxyStatus();
     }
     if (changes.list) {
-      // Reload list if it changes (e.g. sync)
+      // Reload list if it changes (e.g. sync or scenario switch from main page)
       list = changes.list.newValue || [];
       list_init();
+    }
+    if (changes.scenarios || changes.currentScenarioId) {
+      // Refresh scenario selector if scenarios change
+      chrome.storage.local.get(['scenarios', 'currentScenarioId'], function (res) {
+        scenarios = res.scenarios || scenarios;
+        currentScenarioId = res.currentScenarioId || currentScenarioId;
+        renderScenarioSelector();
+      });
     }
   }
 });
@@ -146,6 +207,85 @@ function applyTheme(mode) {
     $('body').attr('data-theme', 'dark');
   } else {
     $('body').removeAttr('data-theme');
+  }
+}
+
+// ==========================================
+// Scenario Logic
+// ==========================================
+function renderScenarioSelector() {
+  var html = "";
+  var currentScenarioName = "";
+
+  scenarios.forEach(function (scenario) {
+    const isCurrent = scenario.id === currentScenarioId;
+    const displayName = scenario.name || I18n.t('unnamed_proxy');
+    const cssClass = isCurrent ? 'current-scenario' : '';
+    const proxyCount = scenario.proxies ? scenario.proxies.length : 0;
+    html += `<li data-value="${scenario.id}" class="${cssClass}">
+      <span class="scenario-name">${displayName}</span>
+      <span class="scenario-count">${proxyCount}</span>
+    </li>`;
+    if (isCurrent) {
+      currentScenarioName = displayName;
+    }
+  });
+
+  // Safety check if current scenario not found
+  if (!currentScenarioName && scenarios.length > 0) {
+    currentScenarioName = scenarios[0].name;
+    currentScenarioId = scenarios[0].id;
+  }
+
+  $("#popup-scenario-options").html(html);
+  $(".scenario-btn").attr("title", `${I18n.t("switch_scenario_tooltip")} (${currentScenarioName})`);
+}
+
+function updateScenarioVisibility() {
+  $('.header-scenario-selector').show();
+}
+
+function switchScenario(id) {
+  if (currentScenarioId === id) return;
+
+  const scenario = scenarios.find(s => s.id === id);
+  if (scenario) {
+    chrome.storage.local.get(['proxyMode'], function (result) {
+      const mode = result.proxyMode || 'disabled';
+
+      currentScenarioId = id;
+      list = scenario.proxies || [];
+      const displayName = scenario.name || I18n.t("scenario_default");
+      $(".scenario-btn").attr("title", `${I18n.t("switch_scenario_tooltip")} (${displayName})`);
+
+      if (mode === 'manual') {
+        chrome.storage.local.set({
+          currentScenarioId: currentScenarioId,
+          list: list,
+          currentProxy: null
+        }, function () {
+          list_init();
+          updateStatusDisplay('manual', null);
+          chrome.runtime.sendMessage({ action: "turnOffProxy" });
+        });
+      } else if (mode === 'auto') {
+        chrome.storage.local.set({
+          currentScenarioId: currentScenarioId,
+          list: list
+        }, function () {
+          list_init();
+          chrome.runtime.sendMessage({ action: "refreshProxy" });
+          updateCurrentSiteDisplay();
+        });
+      } else {
+        chrome.storage.local.set({
+          currentScenarioId: currentScenarioId,
+          list: list
+        }, function () {
+          list_init();
+        });
+      }
+    });
   }
 }
 
@@ -258,7 +398,7 @@ function updateCurrentSiteDisplay() {
   });
 }
 
-// Update refresh indicator visibility
+// Update current site display area (unified for manual/auto mode)
 function updateRefreshIndicator() {
   // Add visual indicator that status is being refreshed
   // Apply animation to outer container instead of text to avoid color flashing

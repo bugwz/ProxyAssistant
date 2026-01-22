@@ -18,13 +18,25 @@
       <img src="./images/icon-32.png" alt="Logo" class="header-logo" />
       <span class="header-title" data-i18n="app_name">代理助手</span>
     </div>
-  <button title="设置" data-i18n-title="settings_tooltip" class="filter">
-    <svg viewBox="0 0 512 512" height="1em">
-      <path
-        d="M487.4 315.7l-42.6-24.6c4.3-23.2 4.3-47 0-70.2l42.6-24.6c4.9-2.8 7.1-8.6 5.5-14-11.1-35.6-30-67.8-54.7-94.6-3.8-4.1-10-5.1-14.8-2.3L380.8 110c-17.9-15.4-38.5-27.3-60.8-35.1V25.8c0-5.6-3.9-10.5-9.4-11.7-36.7-8.2-74.3-7.8-109.2 0-5.5 1.2-9.4 6.1-9.4 11.7V75c-22.2 7.9-42.8 19.8-60.8 35.1L88.7 85.5c-4.9-2.8-11-1.9-14.8 2.3-24.7 26.7-43.6 58.9-54.7 94.6-1.7 5.4.6 11.2 5.5 14L67.3 221c-4.3 23.2-4.3 47 0 70.2l-42.6 24.6c-4.9 2.8-7.1 8.6-5.5 14 11.1 35.6 30 67.8 54.7 94.6 3.8 4.1 10 5.1 14.8 2.3l42.6-24.6c17.9 15.4 38.5 27.3 60.8 35.1v49.2c0 5.6 3.9 10.5 9.4 11.7 36.7 8.2 74.3 7.8 109.2 0 5.5-1.2 9.4-6.1 9.4-11.7v-49.2c22.2-7.9 42.8-19.8 60.8-35.1l42.6 24.6c4.9 2.8 11 1.9 14.8-2.3 24.7-26.7 43.6-58.9 54.7-94.6 1.5-5.5-.7-11.3-5.6-14.1zM256 336c-44.1 0-80-35.9-80-80s35.9-80 80-80 80 35.9 80 80-35.9 80-80 80z">
-      </path>
-    </svg>
-  </button>
+    <div class="header-right">
+        <div class="lh-select header-scenario-selector" data-type="popup_scenario">
+        <button title="切换场景" data-i18n-title="switch_scenario_tooltip" class="filter scenario-btn lh-select_k">
+          <svg viewBox="0 0 24 24" height="1em">
+            <path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/>
+          </svg>
+        </button>
+        <ul class="lh-select-op" id="popup-scenario-options">
+          <!-- Scenarios injected here -->
+        </ul>
+      </div>
+      <button title="设置" data-i18n-title="settings_tooltip" class="filter settings-btn">
+        <svg viewBox="0 0 512 512" height="1em">
+          <path
+            d="M487.4 315.7l-42.6-24.6c4.3-23.2 4.3-47 0-70.2l42.6-24.6c4.9-2.8 7.1-8.6 5.5-14-11.1-35.6-30-67.8-54.7-94.6-3.8-4.1-10-5.1-14.8-2.3L380.8 110c-17.9-15.4-38.5-27.3-60.8-35.1V25.8c0-5.6-3.9-10.5-9.4-11.7-36.7-8.2-74.3-7.8-109.2 0-5.5 1.2-9.4 6.1-9.4 11.7V75c-22.2 7.9-42.8 19.8-60.8 35.1L88.7 85.5c-4.9-2.8-11-1.9-14.8 2.3-24.7 26.7-43.6 58.9-54.7 94.6-1.7 5.4.6 11.2 5.5 14L67.3 221c-4.3 23.2-4.3 47 0 70.2l-42.6 24.6c-4.9 2.8-7.1 8.6-5.5 14 11.1 35.6 30 67.8 54.7 94.6 3.8 4.1 10 5.1 14.8 2.3l42.6-24.6c17.9 15.4 38.5 27.3 60.8 35.1v49.2c0 5.6 3.9 10.5 9.4 11.7 36.7 8.2 74.3 7.8 109.2 0 5.5-1.2 9.4-6.1 9.4-11.7v-49.2c22.2-7.9 42.8-19.8 60.8-35.1l42.6 24.6c4.9 2.8 11 1.9 14.8-2.3 24.7-26.7 43.6-58.9 54.7-94.6 1.5-5.5-.7-11.3-5.6-14.1zM256 336c-44.1 0-80-35.9-80-80s35.9-80 80-80 80 35.9 80 80-35.9 80-80 80z">
+        </path>
+        </svg>
+      </button>
+    </div>
   </div>
 
   <!-- Initialization Box -->
@@ -49,12 +61,12 @@
   </div>
 
   <!-- Current Site Display - Shown in Manual/Auto Mode -->
-  <div class="current-site-bar" id="current-site-bar" style="display: none;">
+  <div class="current-site-bar hidden" id="current-site-bar">
     <div class="site-info">
       <span class="site-label" data-i18n="current_site">当前网站:</span>
       <span class="site-url" id="current-site-url" title=""></span>
     </div>
-    <button class="bypass-btn" id="add-bypass-btn" data-i18n="bypass_proxy" style="display: none;">
+    <button class="bypass-btn hidden" id="add-bypass-btn" data-i18n="bypass_proxy">
       绕过该站
     </button>
   </div>
