@@ -817,13 +817,27 @@ function switchScenario(id) {
 
 function renderScenarioManagementList() {
   var html = "";
-  scenarios.forEach(function (scenario) {
+  scenarios.forEach(function (scenario, index) {
     const isCurrent = scenario.id === currentScenarioId;
     const proxyCount = (scenario.proxies || []).length;
+    const isFirst = index === 0;
+    const isLast = index === scenarios.length - 1;
 
     html += `
-      <div class="scenario-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--border-color);">
+      <div class="scenario-item" data-id="${scenario.id}" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--border-color);">
         <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="sort-buttons" style="display: flex; flex-direction: column; gap: 0px;">
+            ${!isFirst ? `<button class="move-up-btn" data-id="${scenario.id}" style="border: none; background: none; color: var(--text-secondary); cursor: pointer; padding: 0px;">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="18 15 12 9 6 15"></polyline>
+              </svg>
+            </button>` : ''}
+            ${!isLast ? `<button class="move-down-btn" data-id="${scenario.id}" style="border: none; background: none; color: var(--text-secondary); cursor: pointer; padding: 0px;">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>` : ''}
+          </div>
           <span style="font-weight: 500; color: var(--text-primary);">${escapeHtml(scenario.name)}</span>
           <span style="font-size: 12px; color: var(--text-secondary); background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px;">${proxyCount}</span>
           ${isCurrent ? '<span style="font-size: 12px; color: var(--accent-color);">(' + I18n.t('status_current') + ')</span>' : ''}
@@ -840,6 +854,17 @@ function renderScenarioManagementList() {
     `;
   });
   $("#scenario-manage-list").html(html);
+
+  // Bind move buttons
+  $("#scenario-manage-list").off("click", ".move-up-btn").on("click", ".move-up-btn", function () {
+    const scenarioId = $(this).data("id");
+    moveScenarioUp(scenarioId);
+  });
+
+  $("#scenario-manage-list").off("click", ".move-down-btn").on("click", ".move-down-btn", function () {
+    const scenarioId = $(this).data("id");
+    moveScenarioDown(scenarioId);
+  });
 }
 
 function addScenario(name, callback) {
@@ -1329,6 +1354,26 @@ function initSortable() {
       }
     });
   });
+}
+
+
+
+function moveScenarioUp(scenarioId) {
+  const index = scenarios.findIndex(s => s.id === scenarioId);
+  if (index > 0) {
+    [scenarios[index], scenarios[index - 1]] = [scenarios[index - 1], scenarios[index]];
+    renderScenarioManagementList();
+    saveData();
+  }
+}
+
+function moveScenarioDown(scenarioId) {
+  const index = scenarios.findIndex(s => s.id === scenarioId);
+  if (index < scenarios.length - 1) {
+    [scenarios[index], scenarios[index + 1]] = [scenarios[index + 1], scenarios[index]];
+    renderScenarioManagementList();
+    saveData();
+  }
 }
 
 // ==========================================
