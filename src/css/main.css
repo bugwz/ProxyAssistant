@@ -1166,14 +1166,16 @@ input:checked+.slider-modern:before {
 
 .config-row {
   display: flex;
+  flex-wrap: nowrap;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   padding: 20px 25px;
   border-bottom: 1px solid #f1f5f9;
 }
 
 .config-row.auto-mode-time-row {
-  display: none;
+  display: flex;
+  align-items: center;
 }
 
 [data-theme="dark"] .config-row {
@@ -1181,7 +1183,8 @@ input:checked+.slider-modern:before {
 }
 
 [data-theme="dark"] .config-row.auto-mode-time-row {
-  display: none;
+  display: flex;
+  align-items: center;
 }
 
 .config-row:last-child {
@@ -1192,6 +1195,13 @@ input:checked+.slider-modern:before {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.config-row-right {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .config-row-title {
