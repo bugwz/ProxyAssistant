@@ -758,8 +758,8 @@ body {
 }
 
 .header-scenario-selector .lh-select-op {
-  top: 39px;
-  right: 0;
+  top: 29px;
+  right: -54px;
   left: auto;
   width: 180px;
   max-height: 250px;
