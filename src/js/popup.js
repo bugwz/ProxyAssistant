@@ -798,8 +798,14 @@ function handleAddToBypass(hostname, $btn) {
       list[proxyIndex].bypass_urls = bypassUrls;
     }
 
+    // Update scenarios with modified list
+    const currentScenario = scenarios.find(s => s.id === currentScenarioId);
+    if (currentScenario) {
+      currentScenario.proxies = list;
+    }
+
     // Save to local storage
-    chrome.storage.local.set({ currentProxy: proxy, list: list }, function () {
+    chrome.storage.local.set({ currentProxy: proxy, scenarios: scenarios }, function () {
       chrome.runtime.sendMessage({ action: "refreshProxy" });
 
       // Update button status - show as bypassed (use proxy)
@@ -851,8 +857,14 @@ function handleRemoveFromBypass(hostname, $btn) {
       list[proxyIndex].bypass_urls = proxy.bypass_urls;
     }
 
+    // Update scenarios with modified list
+    const currentScenario = scenarios.find(s => s.id === currentScenarioId);
+    if (currentScenario) {
+      currentScenario.proxies = list;
+    }
+
     // Save to local storage
-    chrome.storage.local.set({ currentProxy: proxy, list: list }, function () {
+    chrome.storage.local.set({ currentProxy: proxy, scenarios: scenarios }, function () {
       chrome.runtime.sendMessage({ action: "refreshProxy" });
 
       // Update button status - show as not bypassed (bypass site)
