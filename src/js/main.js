@@ -1696,7 +1696,13 @@ $(".delete-tip-confirm-btn").on("click", function () {
 
   if (del_index !== undefined && del_index >= 0 && list[del_index]) {
     list.splice(del_index, 1);
-    chrome.storage.local.set({ list: list }, function () {
+
+    var currentScenario = scenarios.find(s => s.id === currentScenarioId);
+    if (currentScenario) {
+      currentScenario.proxies = list;
+    }
+
+    chrome.storage.local.set({ scenarios: scenarios, list: list }, function () {
       chrome.runtime.sendMessage({ action: "refreshProxy" });
     });
     renderList();
