@@ -76,11 +76,11 @@ body[data-theme="dark"] .logo-text {
 }
 
 /* Title text in dark mode */
-body[data-theme="dark"] .t1 {
+body[data-theme="dark"] .section-title {
   color: #e4e4e7;
 }
 
-body[data-theme="dark"] .t2 {
+body[data-theme="dark"] .section-subtitle {
   color: #a1a1aa;
 }
 
@@ -126,12 +126,12 @@ body[data-theme="dark"] .config-row-desc {
 }
 
 /* Card style in dark mode */
-body[data-theme="dark"] .list_a {
+body[data-theme="dark"] .proxy-card {
   background-color: var(--bg-secondary);
   border-color: var(--border-color);
 }
 
-body[data-theme="dark"] .list_a:hover {
+body[data-theme="dark"] .proxy-card:hover {
   border-color: #e5e5e5;
 }
 
@@ -172,7 +172,7 @@ body[data-theme="dark"] .lh-select-op li:hover {
   color: #e4e4e7;
 }
 
-body[data-theme="dark"] .lh-select-op li.op_a {
+body[data-theme="dark"] .lh-select-op li.selected-option {
   background-color: rgba(129, 140, 248, 0.2);
   color: var(--accent-color);
 }
@@ -189,7 +189,7 @@ body[data-theme="dark"] .config-row {
 
 /* Select box background in dark mode */
 body[data-theme="dark"] .lh-select-k,
-body[data-theme="dark"] .lh-select-val {
+body[data-theme="dark"] .lh-select-value {
   color: var(--text-primary);
 }
 
@@ -256,4 +256,71 @@ body[data-theme="dark"] .time-input-group input[type="time"]:focus {
 
 body[data-theme="dark"] .time-input-group input[type="time"]:hover {
   border-color: var(--accent-color);
+}
+
+/* Popup dark mode styles */
+body[data-theme="dark"] .popup-header {
+  background: #1a1a1a;
+}
+
+body[data-theme="dark"] .status-label {
+  color: #a1a1aa;
+}
+
+body[data-theme="dark"] .status-value {
+  color: #e4e4e7;
+}
+
+body[data-theme="dark"] .proxy-name {
+  color: #e4e4e7;
+}
+
+body[data-theme="dark"] .proxy-ip {
+  color: #a1a1aa;
+}
+
+body[data-theme="dark"] .site-label {
+  color: #a1a1aa;
+}
+
+body[data-theme="dark"] .site-url {
+  color: #e4e4e7;
+}
+
+body[data-theme="dark"] .scenario-label {
+  color: #a1a1aa;
+}
+
+body[data-theme="dark"] .popup-scenario-selector .lh-select-value {
+  color: #e4e4e7;
+}
+
+body[data-theme="dark"] .version-info {
+  color: #a1a1aa;
+}
+
+body[data-theme="dark"] .github-link {
+  color: #a1a1aa;
+}
+
+body[data-theme="dark"] .github-link:hover {
+  color: #818cf8;
+}
+
+body[data-theme="dark"] .empty-state-text {
+  color: #a1a1aa;
+}
+
+body[data-theme="dark"] .add-btn {
+  background-color: #818cf8;
+}
+
+body[data-theme="dark"] .add-btn:hover {
+  background-color: #a5b4fc;
+  box-shadow: 0 4px 12px rgba(129, 140, 248, 0.3);
+}
+
+body[data-theme="dark"] .list-bottom-buttons {
+  background-color: #2d2d2d;
+  border-color: #4a4a4a;
 }
