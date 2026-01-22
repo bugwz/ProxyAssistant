@@ -327,7 +327,7 @@ function initDropdowns() {
   });
 
   // Delegate event to support dynamic elements
-  $(document).off("click", ".lh-select_k").on("click", ".lh-select_k", function (e) {
+  $(document).off("click", ".lh-select-k").on("click", ".lh-select-k", function (e) {
     e.stopPropagation();
     var that = this;
     var $op = $(that).next();
@@ -396,14 +396,14 @@ function initDropdowns() {
     }
 
     // Default handling for other dropdowns
-    $li.siblings().removeClass("op_a");
-    $li.addClass("op_a");
+    $li.siblings().removeClass("selected-option");
+    $li.addClass("selected-option");
     $li.parent().hide();
 
     var txt = $li.text();
     var val = $li.data("value") || txt;
 
-    var $selectVal = $container.find(".lh-select-val");
+    var $selectVal = $container.find(".lh-select-value");
     $selectVal.text(txt);
 
     var i = $selectVal.data("index");
@@ -412,7 +412,7 @@ function initDropdowns() {
       if (type === 'protocol') {
         var cleanVal = cleanProtocol(val);
         list[i].protocol = cleanVal;
-        var $badge = $li.closest('.list_a').find('.proxy-type-badge');
+        var $badge = $li.closest('.proxy-card').find('.proxy-type-badge');
         $badge.text(cleanVal.toUpperCase()).removeClass('http https socks5').addClass(cleanVal);
 
         var isSocks5 = cleanVal === 'socks5';
@@ -470,7 +470,7 @@ function bindGlobalEvents() {
     renderList();
 
     setTimeout(function () {
-      var $newItem = $(".list_a").last();
+      var $newItem = $(".proxy-card").last();
       if ($newItem.length) {
         $("html, body").animate({ scrollTop: $newItem.offset().top - 100 }, 500);
       }
@@ -487,11 +487,11 @@ function bindGlobalEvents() {
 
     for (let index = 0; index < list.length; index++) {
       var proxy = list[index];
-      var $item = $(`.list_a[data-id="${index}"]`);
+      var $item = $(`.proxy-card[data-id="${index}"]`);
 
       // Sync latest values from DOM just in case
       proxy.name = $item.find('.name').val();
-      proxy.protocol = cleanProtocol($item.find('.lh-select-val[data-index="' + index + '"]').closest('.lh-select[data-type="protocol"]').find('.lh-select-op li.op_a').data('value') || proxy.protocol);
+      proxy.protocol = cleanProtocol($item.find('.lh-select-value[data-index="' + index + '"]').closest('.lh-select[data-type="protocol"]').find('.lh-select-op li.selected-option').data('value') || proxy.protocol);
       proxy.ip = $item.find('.ip').val();
       proxy.port = $item.find('.port').val();
       proxy.username = $item.find('.username').val();
@@ -528,7 +528,7 @@ function bindGlobalEvents() {
   // Open Sync Config Popup
   $("#open-sync-config-btn").on("click", function () {
     updateSyncUI();
-    $(".sync_config_tip").show().addClass("show");
+    $(".sync-config-tip").show().addClass("show");
   });
 
   // Sync Mode Selection in Popup
@@ -559,8 +559,8 @@ function bindGlobalEvents() {
 
     chrome.storage.local.set({ sync_config: syncConfig }, function () {
       showTip(I18n.t('save_success'), false);
-      $(".sync_config_tip").removeClass("show");
-      setTimeout(function () { $(".sync_config_tip").hide(); }, 300);
+      $(".sync-config-tip").removeClass("show");
+      setTimeout(function () { $(".sync-config-tip").hide(); }, 300);
       updateSyncUI();
     });
   });
@@ -599,10 +599,10 @@ function bindGlobalEvents() {
   });
 
   // Close Sync Popup
-  $(".sync_config_close_btn, .sync_config_tip").on("click", function (e) {
-    if (this === e.target || $(this).hasClass('sync_config_close_btn')) {
-      $(".sync_config_tip").removeClass("show");
-      setTimeout(function () { $(".sync_config_tip").hide(); }, 300);
+  $(".sync-config-close-btn, .sync-config-tip").on("click", function (e) {
+    if (this === e.target || $(this).hasClass('sync-config-close-btn')) {
+      $(".sync-config-tip").removeClass("show");
+      setTimeout(function () { $(".sync-config-tip").hide(); }, 300);
     }
   });
 
@@ -612,20 +612,20 @@ function bindGlobalEvents() {
     var isExpanded = $btn.hasClass("expanded");
 
     if (isExpanded) {
-      $(".list_a").addClass("collapsed");
+      $(".proxy-card").addClass("collapsed");
       $btn.removeClass("expanded");
       $btn.html(`<svg class="icon-expand" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg> <span data-i18n="expand_all">${I18n.t('expand_all')}</span>`);
     } else {
-      $(".list_a").removeClass("collapsed");
+      $(".proxy-card").removeClass("collapsed");
       $btn.addClass("expanded");
       $btn.html(`<svg class="icon-collapse" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg> <span data-i18n="collapse_all">${I18n.t('collapse_all')}</span>`);
     }
   });
 
   // Export/Import Events
-  $(".export_btn").on("click", exportConfig);
-  $(".import_json_btn").on("click", function () { $("#json_file_input").click(); });
-  $("#json_file_input").on("change", importConfig);
+  $(".export-btn").on("click", exportConfig);
+  $(".import-json-btn").on("click", function () { $("#json-file-input").click(); });
+  $("#json-file-input").on("change", importConfig);
 
   // Detect/PAC Buttons
   $("#detect-proxy-btn").on("click", detectProxy);
@@ -633,10 +633,10 @@ function bindGlobalEvents() {
 
   // Scenario dropdown is handled by initDropdowns()
   // The button now shows a dropdown for scenario selection
-  $(".scenario_manage_close_btn, .scenario_manage_tip").on("click", function (e) {
-    if (this === e.target || $(this).hasClass('scenario_manage_close_btn')) {
-      $(".scenario_manage_tip").removeClass("show");
-      setTimeout(function () { $(".scenario_manage_tip").hide(); }, 300);
+  $(".scenario-manage-close-btn, .scenario-manage-tip").on("click", function (e) {
+    if (this === e.target || $(this).hasClass('scenario-manage-close-btn')) {
+      $(".scenario-manage-tip").removeClass("show");
+      setTimeout(function () { $(".scenario-manage-tip").hide(); }, 300);
     }
   });
 
@@ -649,10 +649,10 @@ function bindGlobalEvents() {
 
   // Edit Scenario Modal Events
   let editingScenarioId = null;
-  $(".edit_scenario_close_btn, .edit_scenario_cancel_btn, .edit_scenario_tip").on("click", function (e) {
-    if (this === e.target || $(this).hasClass('edit_scenario_close_btn') || $(this).hasClass('edit_scenario_cancel_btn')) {
-      $(".edit_scenario_tip").removeClass("show");
-      setTimeout(function () { $(".edit_scenario_tip").hide(); }, 300);
+  $(".edit-scenario-close-btn, .edit-scenario-cancel-btn, .edit-scenario-tip").on("click", function (e) {
+    if (this === e.target || $(this).hasClass('edit-scenario-close-btn') || $(this).hasClass('edit-scenario-cancel-btn')) {
+      $(".edit-scenario-tip").removeClass("show");
+      setTimeout(function () { $(".edit-scenario-tip").hide(); }, 300);
       editingScenarioId = null;
     }
   });
@@ -661,18 +661,18 @@ function bindGlobalEvents() {
     const newName = $("#edit-scenario-name").val().trim();
     if (editingScenarioId) {
       renameScenario(editingScenarioId, newName);
-      $(".edit_scenario_tip").removeClass("show");
-      setTimeout(function () { $(".edit_scenario_tip").hide(); }, 300);
+      $(".edit-scenario-tip").removeClass("show");
+      setTimeout(function () { $(".edit-scenario-tip").hide(); }, 300);
       editingScenarioId = null;
     }
   });
 
   // Delete Scenario Modal Events
   let deletingScenarioId = null;
-  $(".delete_scenario_close_btn, .delete_scenario_cancel_btn, .delete_scenario_tip").on("click", function (e) {
-    if (this === e.target || $(this).hasClass('delete_scenario_close_btn') || $(this).hasClass('delete_scenario_cancel_btn')) {
-      $(".delete_scenario_tip").removeClass("show");
-      setTimeout(function () { $(".delete_scenario_tip").hide(); }, 300);
+  $(".delete-scenario-close-btn, .delete-scenario-cancel-btn, .delete-scenario-tip").on("click", function (e) {
+    if (this === e.target || $(this).hasClass('delete-scenario-close-btn') || $(this).hasClass('delete-scenario-cancel-btn')) {
+      $(".delete-scenario-tip").removeClass("show");
+      setTimeout(function () { $(".delete-scenario-tip").hide(); }, 300);
       deletingScenarioId = null;
     }
   });
@@ -680,17 +680,17 @@ function bindGlobalEvents() {
   $("#confirm-delete-scenario-btn").on("click", function () {
     if (deletingScenarioId) {
       doDeleteScenario(deletingScenarioId);
-      $(".delete_scenario_tip").removeClass("show");
-      setTimeout(function () { $(".delete_scenario_tip").hide(); }, 300);
+      $(".delete-scenario-tip").removeClass("show");
+      setTimeout(function () { $(".delete-scenario-tip").hide(); }, 300);
       deletingScenarioId = null;
     }
   });
 
   // Alert Modal Events
-  $(".alert_scenario_close_btn, .alert_scenario_tip, #alert-scenario-ok-btn").on("click", function (e) {
-    if (this === e.target || $(this).hasClass('alert_scenario_close_btn') || $(this).is("#alert-scenario-ok-btn")) {
-      $(".alert_scenario_tip").removeClass("show");
-      setTimeout(function () { $(".alert_scenario_tip").hide(); }, 300);
+  $(".alert-scenario-close-btn, .alert-scenario-tip, #alert-scenario-ok-btn").on("click", function (e) {
+    if (this === e.target || $(this).hasClass('alert-scenario-close-btn') || $(this).is("#alert-scenario-ok-btn")) {
+      $(".alert-scenario-tip").removeClass("show");
+      setTimeout(function () { $(".alert-scenario-tip").hide(); }, 300);
     }
   });
 
@@ -704,7 +704,7 @@ function bindGlobalEvents() {
     }
     deletingScenarioId = id;
     $("#delete-scenario-message").html(`${I18n.t('scenario_delete_confirm')}<br><span style="color: #ef4444; font-weight: 600; margin-top: 10px; display: block; text-align: center; font-size: 16px;">${escapeHtml(scenario.name)}</span>`);
-    $(".delete_scenario_tip").show().addClass("show");
+    $(".delete-scenario-tip").show().addClass("show");
   });
 
   $("#scenario-manage-list").on("click", ".edit-scenario-btn", function () {
@@ -714,15 +714,15 @@ function bindGlobalEvents() {
     $("#edit-scenario-oldname").text(escapeHtml(oldName));
     $("#edit-scenario-name").val(oldName);
     $("#edit-scenario-name").removeClass('input-error');
-    $(".edit_scenario_tip").show().addClass("show");
+    $(".edit-scenario-tip").show().addClass("show");
     setTimeout(() => $("#edit-scenario-name").focus(), 100);
   });
 
   // Move Proxy Modal Events
-  $(".move_proxy_close_btn, .move_proxy_cancel_btn, .move_proxy_tip").on("click", function (e) {
-    if (this === e.target || $(this).hasClass('move_proxy_close_btn') || $(this).hasClass('move_proxy_cancel_btn')) {
-      $(".move_proxy_tip").removeClass("show");
-      setTimeout(function () { $(".move_proxy_tip").hide(); }, 300);
+  $(".move-proxy-close-btn, .move-proxy-cancel-btn, .move-proxy-tip").on("click", function (e) {
+    if (this === e.target || $(this).hasClass('move-proxy-close-btn') || $(this).hasClass('move-proxy-cancel-btn')) {
+      $(".move-proxy-tip").removeClass("show");
+      setTimeout(function () { $(".move-proxy-tip").hide(); }, 300);
     }
   });
 
@@ -730,8 +730,8 @@ function bindGlobalEvents() {
     const targetScenarioId = $("#target-scenario-display").data("value");
     if (targetScenarioId && move_proxy_index !== -1) {
       moveProxy(move_proxy_index, targetScenarioId);
-      $(".move_proxy_tip").removeClass("show");
-      setTimeout(function () { $(".move_proxy_tip").hide(); }, 300);
+      $(".move-proxy-tip").removeClass("show");
+      setTimeout(function () { $(".move-proxy-tip").hide(); }, 300);
     }
   });
 
@@ -739,15 +739,15 @@ function bindGlobalEvents() {
   $(document).on("keydown", function (e) {
     if (e.key === "Escape") {
       var popupOrder = [
-        '.edit_scenario_tip',
-        '.delete_scenario_tip',
-        '.move_proxy_tip',
-        '.alert_scenario_tip',
-        '.scenario_manage_tip',
-        '.sync_config_tip',
-        '.pac_details_tip',
-        '.proxy_detection_tip',
-        '.del_tip'
+        '.edit-scenario-tip',
+        '.delete-scenario-tip',
+        '.move-proxy-tip',
+        '.alert-scenario-tip',
+        '.scenario-manage-tip',
+        '.sync-config-tip',
+        '.pac-details-tip',
+        '.proxy-detection-tip',
+        '.delete-tip'
       ];
 
       for (var i = 0; i < popupOrder.length; i++) {
@@ -766,7 +766,7 @@ function bindGlobalEvents() {
   // Scenario Manage Button
   $("#scenario-manage-btn").on("click", function () {
     renderScenarioManagementList();
-    $(".scenario_manage_tip").show().addClass("show");
+    $(".scenario-manage-tip").show().addClass("show");
   });
 }
 
@@ -934,7 +934,7 @@ function doDeleteScenario(id) {
 
 function showAlertScenario(message) {
   $("#alert-scenario-message").text(message);
-  $(".alert_scenario_tip").show().addClass("show");
+  $(".alert-scenario-tip").show().addClass("show");
 }
 
 function moveProxy(proxyIndex, targetScenarioId) {
@@ -1005,7 +1005,7 @@ function renderList() {
     var collapsedClass = info.is_new ? "" : "collapsed";
     delete info.is_new;
 
-    html += `<div class="list_a ${collapsedClass} ${is_disabled ? "disabled" : ""}" data-id="${i}">
+    html += `<div class="proxy-card ${collapsedClass} ${is_disabled ? "disabled" : ""}" data-id="${i}">
       <div class="proxy-header" data-index="${i}">
           <div class="header-left">
               <div class="drag-handle" title="${I18n.t('drag_sort')}">
@@ -1038,8 +1038,8 @@ function renderList() {
                       <div class="form-item" style="grid-column: span 2;">
                           <label>${I18n.t('protocol')}</label>
                           <div class="lh-select" data-type="protocol" tabindex="2">
-                              <div class="lh-select_k">
-                                  <span class="lh-select-val" data-index="${i}">${displayProtocol}</span>
+                              <div class="lh-select-k">
+                                  <span class="lh-select-value" data-index="${i}">${displayProtocol}</span>
                                   <span class="iconfont"></span>
                               </div>
                               <ul class="lh-select-op">
@@ -1088,8 +1088,8 @@ function renderList() {
                       <div class="form-item" style="grid-column: span 6;">
                           <label>${I18n.t('fallback_policy')}</label>
                           <div class="lh-select" data-type="fallback" tabindex="7">
-                              <div class="lh-select_k">
-                                  <span class="lh-select-val" data-index="${i}">${displayFallback}</span>
+                              <div class="lh-select-k">
+                                  <span class="lh-select-value" data-index="${i}">${displayFallback}</span>
                                   <span class="iconfont"></span>
                               </div>
                               <ul class="lh-select-op">
@@ -1131,7 +1131,7 @@ function renderList() {
       </div>
     </div>`;
   }
-  $(".list").html(html);
+  $("#proxy-list").html(html);
 
   initDropdowns(); // Re-bind dropdowns in list
   initSortable();
@@ -1160,7 +1160,7 @@ function renderList() {
 
     $("#target-scenario-options").html(html);
     $("#target-scenario-display").text("请选择").removeData("value");
-    $(".move_proxy_tip").show().addClass("show");
+    $(".move-proxy-tip").show().addClass("show");
   });
 }
 
@@ -1212,8 +1212,8 @@ function bindItemEvents() {
     if (index !== undefined && list[index]) {
       var info = list[index];
       var previewText = `${info.name || I18n.t('unnamed_proxy')} (${info.ip || "0.0.0.0"}:${info.port || "0"})`;
-      $(".del_tip_content").html(`${I18n.t('delete_proxy_confirm')}<br><span style="color: #e11d48; font-weight: 600; margin-top: 10px; display: block;">${previewText}</span>`);
-      $(".del_tip").show().addClass("show");
+      $(".delete-tip-content").html(`${I18n.t('delete_proxy_confirm')}<br><span style="color: #e11d48; font-weight: 600; margin-top: 10px; display: block;">${previewText}</span>`);
+      $(".delete-tip").show().addClass("show");
       del_index = index;
     }
   });
@@ -1231,9 +1231,9 @@ function bindItemEvents() {
 
     if (i !== undefined && list[i]) {
       // Sync DOM
-      var $item = $(`.list_a[data-id="${i}"]`);
+      var $item = $(`.proxy-card[data-id="${i}"]`);
       list[i].name = $item.find('.name').val();
-      list[i].protocol = cleanProtocol($item.find('.lh-select-val').text());
+      list[i].protocol = cleanProtocol($item.find('.lh-select-value').text());
       list[i].ip = $item.find('.ip').val();
       list[i].port = $item.find('.port').val();
       list[i].username = $item.find('.username').val();
@@ -1269,7 +1269,7 @@ function bindItemEvents() {
     var i = $(this).data("index");
     if (i !== undefined && list[i]) {
       list[i].disabled = !$(this).prop("checked");
-      const $item = $(this).closest('.list_a');
+      const $item = $(this).closest('.proxy-card');
       const $statusText = $item.find('.status-text');
       if (list[i].disabled) {
         $item.addClass('disabled');
@@ -1285,14 +1285,14 @@ function bindItemEvents() {
   // Header Collapse (excluding inputs)
   $(document).off("click", ".proxy-header").on("click", ".proxy-header", function (e) {
     if ($(e.target).closest('.switch-modern, .action-btn-delete, input').length) return;
-    $(this).closest('.list_a').toggleClass("collapsed");
+    $(this).closest('.proxy-card').toggleClass("collapsed");
   });
 }
 
 function initSortable() {
   const container = document.getElementById('proxy-list');
   let dragItem = null;
-  const items = container.querySelectorAll('.list_a');
+  const items = container.querySelectorAll('.proxy-card');
 
   items.forEach(item => {
     const handle = item.querySelector('.drag-handle');
@@ -1307,7 +1307,7 @@ function initSortable() {
     handle.addEventListener('dragend', () => {
       item.classList.remove('dragging');
       dragItem = null;
-      const newItems = Array.from(container.querySelectorAll('.list_a'));
+      const newItems = Array.from(container.querySelectorAll('.proxy-card'));
       const newList = newItems.map(node => {
         const oldIdx = parseInt(node.getAttribute('data-id'));
         return list[oldIdx];
@@ -1321,7 +1321,7 @@ function initSortable() {
     handle.addEventListener('dragover', (e) => {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
-      const target = e.target.closest('.list_a');
+      const target = e.target.closest('.proxy-card');
       if (target && target !== dragItem) {
         const rect = target.getBoundingClientRect();
         const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > 0.5;
@@ -1346,7 +1346,7 @@ function input_blur(i, name, val) {
       if (["name", "ip", "port"].includes(name)) {
         var info = list[i];
         var previewText = `${info.name || I18n.t('unnamed_proxy')} · ${info.ip || "0.0.0.0"}:${info.port || "0"}`;
-        $(`.list_a[data-id="${i}"] .proxy-title-preview`).text(previewText).attr('title', previewText);
+        $(`.proxy-card[data-id="${i}"] .proxy-title-preview`).text(previewText).attr('title', previewText);
       }
     }
   }
@@ -1374,7 +1374,7 @@ function saveData() {
     chrome.runtime.sendMessage({ action: "refreshProxy" });
 
     // Update quota info if sync config popup is open and native mode is selected
-    if ($(".sync_config_tip").hasClass("show") && syncConfig.type === 'native') {
+    if ($(".sync-config-tip").hasClass("show") && syncConfig.type === 'native') {
       updateNativeQuotaInfo();
     }
   });
@@ -1411,7 +1411,7 @@ function saveSingleProxy(i) {
   var includeUrlsCheck = checkIncludeUrlsConflict(i, info.include_urls);
   if (includeUrlsCheck.hasConflict) { isIncludeUrlsValid = false; includeUrlsErrorMsg = includeUrlsCheck.error; }
 
-  var $item = $(`.list_a[data-id="${i}"]`);
+  var $item = $(`.proxy-card[data-id="${i}"]`);
 
   if (isNameValid) $item.find('.name').removeClass('input-error'); else $item.find('.name').addClass('input-error');
   if (isIpValid) $item.find('.ip').removeClass('input-error'); else $item.find('.ip').addClass('input-error');
@@ -1440,7 +1440,7 @@ function saveSingleProxy(i) {
 function validateProxy(i, name, val) {
   var isValid = true;
   var errorMessage = '';
-  var $item = $(`.list_a[data-id="${i}"]`);
+  var $item = $(`.proxy-card[data-id="${i}"]`);
   var $input = $item.find('.' + name);
 
   if (name === 'name') {
@@ -1628,7 +1628,7 @@ function importConfig(e) {
     } catch (err) {
       alert(I18n.t('alert_parse_error') + err.message);
     }
-    $("#json_file_input").val("");
+    $("#json-file-input").val("");
   };
   reader.readAsText(file);
 }
@@ -1638,16 +1638,16 @@ function importConfig(e) {
 // ==========================================
 
 // Delete Popup
-$(".del_tip_close_btn, .del_tip_Cancel_btn, .del_tip").on("click", function (e) {
-  if (this === e.target || $(this).hasClass('del_tip_close_btn') || $(this).hasClass('del_tip_Cancel_btn')) {
-    $(".del_tip").removeClass("show");
-    setTimeout(function () { $(".del_tip").hide(); }, 300);
+$(".delete-tip-close-btn, .delete-tip-cancel-btn, .delete-tip").on("click", function (e) {
+  if (this === e.target || $(this).hasClass('delete-tip-close-btn') || $(this).hasClass('delete-tip-cancel-btn')) {
+    $(".delete-tip").removeClass("show");
+    setTimeout(function () { $(".delete-tip").hide(); }, 300);
   }
 });
 
-$(".del_tip_del_btn").on("click", function () {
-  $(".del_tip").removeClass("show");
-  setTimeout(function () { $(".del_tip").hide(); }, 300);
+$(".delete-tip-confirm-btn").on("click", function () {
+  $(".delete-tip").removeClass("show");
+  setTimeout(function () { $(".delete-tip").hide(); }, 300);
 
   if (del_index !== undefined && del_index >= 0 && list[del_index]) {
     list.splice(del_index, 1);
@@ -1658,7 +1658,7 @@ $(".del_tip_del_btn").on("click", function () {
   }
 });
 
-$(".del_tip").hide();
+$(".delete-tip").hide();
 
 // Proxy Detection
 async function detectProxy() {
@@ -1668,7 +1668,7 @@ async function detectProxy() {
   $("#detection-status-icon").html(detectionIcons.loading);
   $("#detection-status-text").text(I18n.t('proxy_effect_testing'));
   $("#detection-details, #detection-warning, #detection-suggestion").hide();
-  $(".proxy_detection_tip").show().addClass("show");
+  $(".proxy-detection-tip").show().addClass("show");
 
   try {
     var browserConfig = await getBrowserProxyConfig();
@@ -1801,10 +1801,10 @@ function displayErrorResult(errorMsg) {
   $("#detection-suggestion").show();
 }
 
-$(".proxy_detection_close_btn, .proxy_detection_close_btn2, .proxy_detection_tip").on("click", function (e) {
-  if (this === e.target || $(this).hasClass('proxy_detection_close_btn') || $(this).hasClass('proxy_detection_close_btn2')) {
-    $(".proxy_detection_tip").removeClass("show");
-    setTimeout(function () { $(".proxy_detection_tip").hide(); }, 300);
+$(".proxy-detection-close-btn, .proxy-detection-close-btn-secondary, .proxy-detection-tip").on("click", function (e) {
+  if (this === e.target || $(this).hasClass('proxy-detection-close-btn') || $(this).hasClass('proxy-detection-close-btn-secondary')) {
+    $(".proxy-detection-tip").removeClass("show");
+    setTimeout(function () { $(".proxy-detection-tip").hide(); }, 300);
   }
 });
 
@@ -1817,7 +1817,7 @@ function showPacDetails() {
     }
   };
   chrome.storage.onChanged.addListener(pacStorageListener);
-  $(".pac_details_tip").show().addClass("show");
+  $(".pac-details-tip").show().addClass("show");
 }
 
 function updatePacDetails() {
@@ -1875,11 +1875,11 @@ function generatePacDetailsData(proxyList) {
   return { rules: rules, script: script };
 }
 
-$(".pac_details_close_btn, .pac_details_close_btn2, .pac_details_tip").on("click", function (e) {
-  if (this === e.target || $(this).hasClass('pac_details_close_btn') || $(this).hasClass('pac_details_close_btn2')) {
+$(".pac-details-close-btn, .pac-details-close-btn-secondary, .pac-details-tip").on("click", function (e) {
+  if (this === e.target || $(this).hasClass('pac-details-close-btn') || $(this).hasClass('pac-details-close-btn-secondary')) {
     if (pacStorageListener) { chrome.storage.onChanged.removeListener(pacStorageListener); pacStorageListener = null; }
-    $(".pac_details_tip").removeClass("show");
-    setTimeout(function () { $(".pac_details_tip").hide(); }, 300);
+    $(".pac-details-tip").removeClass("show");
+    setTimeout(function () { $(".pac-details-tip").hide(); }, 300);
   }
 });
 
@@ -1893,7 +1893,7 @@ $("#pac-copy-btn").on("click", function () {
   }).catch(function (err) { console.error("Failed to copy:", err); });
 });
 
-$(".pac_details_tip").hide();
+$(".pac-details-tip").hide();
 
 // ==========================================
 // Sync Logic (Native + Gist)
@@ -2390,10 +2390,14 @@ async function testGistConnection() {
 // Utilities
 // ==========================================
 function showTip(msg, isError) {
-  var $tip = $(".su_tip");
+  console.log("Show Tip:", msg, isError);
+  var $tip = $(".save-success-toast");
   $tip.text(msg);
   if (isError) $tip.addClass("error"); else $tip.removeClass("error");
   $tip.stop(true, true).fadeIn("slow").delay(1000).fadeOut("slow");
+  // $tip.css({ visibility: 'visible', opacity: 0 }).stop(true, true).animate({ opacity: 1 }, 300).delay(1000).animate({ opacity: 0 }, 300, function() {
+  //   $tip.css({ visibility: 'hidden' });
+  // });
 }
 
 function escapeHtml(text) {
@@ -2403,7 +2407,7 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-$(".su_tip").hide();
+$(".save-success-toast").hide();
 
 // Spin Animation
 var style = document.createElement('style');

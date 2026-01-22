@@ -84,7 +84,7 @@ function bindGlobalEvents() {
     window.open("./main.html");
   });
 
-  $(".add_btn").on("click", function () {
+  $(".add-btn").on("click", function () {
     window.open("./main.html");
   });
 
@@ -134,7 +134,7 @@ function bindGlobalEvents() {
     $(".lh-select-op").hide();
   });
 
-  $(document).on("click", ".lh-select_k", function (e) {
+  $(document).on("click", ".lh-select-k", function (e) {
     e.stopPropagation();
     var that = this;
     var $op = $(that).next();
@@ -299,12 +299,12 @@ function updateModeUI(mode) {
 
   // Update list interaction status
   if (mode === 'manual') {
-    $('.set_box_user').removeClass('list-disabled').removeClass('mode-auto');
+    $('.proxy-list-container').removeClass('list-disabled').removeClass('mode-auto');
   } else if (mode === 'auto') {
     // Auto mode: do not add list-disabled, but add mode-auto class for styling
-    $('.set_box_user').removeClass('list-disabled').addClass('mode-auto');
+    $('.proxy-list-container').removeClass('list-disabled').addClass('mode-auto');
   } else {
-    $('.set_box_user').addClass('list-disabled').removeClass('mode-auto');
+    $('.proxy-list-container').addClass('list-disabled').removeClass('mode-auto');
   }
 }
 
@@ -457,12 +457,12 @@ function list_init() {
           const displayProtocol = (info.protocol || "HTTP").toUpperCase();
           const hasAuth = info.username || info.password;
 
-          html += `<div class="set_box_user_box ${selectedClass}" data-index="${i}">
+          html += `<div class="proxy-item-card ${selectedClass}" data-index="${i}">
               <div style="flex: 1; overflow: hidden; pointer-events: none;">
-                <div class="name_txt">${info.name || I18n.t('unnamed_proxy')}</div>
+                <div class="proxy-name">${info.name || I18n.t('unnamed_proxy')}</div>
                 <div class="proxy-details">
                   <span class="proxy-badge ${protocolClass}">${displayProtocol}</span>
-                  <span class="ip_txt">${info.ip}:${info.port}</span>
+                  <span class="proxy-ip">${info.ip}:${info.port}</span>
                   ${hasAuth ? `<span class="auth-badge" title="${I18n.t('authentication')}" data-i18n-title="authentication"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> <span data-i18n="authentication">${I18n.t('authentication')}</span></span>` : ""}
                 </div>
               </div>
@@ -471,14 +471,14 @@ function list_init() {
           len++;
         }
       }
-      $(".set_box_user_list").html(html);
+      $(".proxy-list").html(html);
 
       if (len == 0) {
-        $(".init_box").show();
-        $(".set_box").hide();
+        $(".init-box").show();
+        $(".settings-box").hide();
       } else {
-        $(".init_box").hide();
-        $(".set_box").show();
+        $(".init-box").hide();
+        $(".settings-box").show();
 
         // Bind click events
         bindListEvents();
@@ -500,11 +500,11 @@ function list_init() {
 
 function bindListEvents() {
   // Remove previous events using namespace to prevent duplicate binding
-  $(".set_box_user_list").off("click.proxySelect");
+  $(".proxy-list").off("click.proxySelect");
 
-  $(".set_box_user_list").on("click.proxySelect", ".set_box_user_box", function (e) {
+  $(".proxy-list").on("click.proxySelect", ".proxy-item-card", function (e) {
     // Allow click switch only in manual mode (disabled mode has list-disabled, auto mode has mode-auto)
-    if ($('.set_box_user').hasClass('list-disabled') || $('.set_box_user').hasClass('mode-auto')) {
+    if ($('.proxy-list-container').hasClass('list-disabled') || $('.proxy-list-container').hasClass('mode-auto')) {
       console.log("Manual mode not active, ignoring click");
       return;
     }
@@ -516,7 +516,7 @@ function bindListEvents() {
     if (!info) return;
 
     // Update UI immediately for responsiveness
-    $(".set_box_user_box").removeClass("selected");
+    $(".proxy-item-card").removeClass("selected");
     $this.addClass("selected");
 
     const proxyName = info.name || "Proxy";
