@@ -3,12 +3,15 @@
 // ==========================================
 const isFirefox = typeof browser !== 'undefined' && browser.runtime && browser.runtime.getBrowserInfo !== undefined;
 var list = [];
+var scenarios = [];
+var currentScenarioId = 'default';
 var save = true;
 var themeMode = 'light';
 var nightModeStart = '22:00';
 var nightModeEnd = '06:00';
 var themeInterval = null;
 var del_index = -1;
+var move_proxy_index = -1;
 let pacStorageListener = null;
 var syncConfig = {
   type: 'native',
@@ -44,18 +47,42 @@ function loadSettingsAndList() {
 }
 
 function loadFromLocal(remoteItems) {
-  chrome.storage.local.get({ list: [], themeSettings: {} }, function (items) {
+  chrome.storage.local.get({ list: [], scenarios: [], currentScenarioId: 'default', themeSettings: {} }, function (items) {
     if (chrome.runtime.lastError) {
       console.warn("Local storage get error:", chrome.runtime.lastError);
       items = {};
     }
     items = items || {};
 
-    if (remoteItems && remoteItems.list) {
-      list = remoteItems.list;
+    // Data Migration: If scenarios missing, create default from list
+    if (remoteItems) {
+      if (remoteItems.scenarios) {
+        scenarios = remoteItems.scenarios;
+        currentScenarioId = remoteItems.currentScenarioId || 'default';
+      } else if (remoteItems.proxies) {
+        var proxyList = remoteItems.proxies;
+        scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: proxyList }];
+        currentScenarioId = 'default';
+      }
     } else {
-      list = items.list || [];
+      if (!items.scenarios || items.scenarios.length === 0) {
+        // Migration from local list
+        scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: items.list || [] }];
+        currentScenarioId = 'default';
+        saveData(); // Persist migration
+      } else {
+        scenarios = items.scenarios;
+        currentScenarioId = items.currentScenarioId || 'default';
+      }
     }
+
+    // Ensure current scenario exists
+    if (!scenarios.find(s => s.id === currentScenarioId)) {
+      currentScenarioId = scenarios[0]?.id || 'default';
+    }
+
+    // Sync list with current scenario
+    updateCurrentListFromScenario();
 
     // Load theme settings
     var themeSettings = items.themeSettings || {};
@@ -65,7 +92,13 @@ function loadFromLocal(remoteItems) {
 
     updateThemeUI();
     renderList();
+    renderScenarioSelector();
   });
+}
+
+function updateCurrentListFromScenario() {
+  const scenario = scenarios.find(s => s.id === currentScenarioId);
+  list = scenario ? scenario.proxies : [];
 }
 
 // ==========================================
@@ -280,6 +313,8 @@ function initLanguage() {
 
     I18n.setLanguage(lang);
     renderList();
+    renderScenarioSelector();
+    updateSyncUI();
   });
 }
 
@@ -291,46 +326,98 @@ function initDropdowns() {
     $(".lh-select-op").hide();
   });
 
-  $(".lh-select_k").off().on("click", function (e) {
+  // Delegate event to support dynamic elements
+  $(document).off("click", ".lh-select_k").on("click", ".lh-select_k", function (e) {
     e.stopPropagation();
     var that = this;
-    var display = $(that).next().css('display');
-    if (display != 'none') return;
+    var $op = $(that).next();
+    var display = $op.css('display');
 
     // Close other dropdowns
-    $(".lh-select-op").hide();
+    $(".lh-select-op").not($op).hide();
+
+    if (display != 'none') {
+      $op.hide();
+      return;
+    }
 
     setTimeout(function () {
-      $(that).next().toggle();
+      $op.toggle();
     }, 50);
   });
 
-  $("#proxy-list").off("click", ".lh-select-op li").on("click", ".lh-select-op li", function (e) {
+  // Main scenario button click handler
+  $(document).off("click", ".main-scenario-btn").on("click", ".main-scenario-btn", function (e) {
     e.stopPropagation();
-    $(this).siblings().removeClass("op_a");
-    $(this).addClass("op_a");
-    $(this).parent().hide();
+    var $btn = $(this);
+    var $op = $btn.siblings('.main-scenario-dropdown');
+    var display = $op.css('display');
 
-    var txt = $(this).text();
-    var val = $(this).data("value") || txt;
+    // Close other dropdowns
+    $(".lh-select-op").not($op).hide();
 
-    var $selectContainer = $(this).closest('.lh-select');
-    var $selectVal = $selectContainer.find(".lh-select-val");
+    if (display !== 'none') {
+      $op.hide();
+      return;
+    }
+
+    setTimeout(function () {
+      $op.show();
+    }, 50);
+  });
+
+  $(document).off("click", ".lh-select-op li").on("click", ".lh-select-op li", function (e) {
+    e.stopPropagation();
+    var $li = $(this);
+    var $container = $li.closest('.lh-select');
+    var type = $container.data("type");
+
+    // Special handling for main scenario selector
+    if (type === 'main_scenario') {
+      const scenarioId = $li.data('value');
+      switchScenario(scenarioId);
+      $li.parent().hide();
+      return;
+    }
+
+    // Special handling for main scenario dropdown (not inside lh-select)
+    if ($li.parent().hasClass('main-scenario-dropdown')) {
+      const scenarioId = $li.data('value');
+      switchScenario(scenarioId);
+      $li.parent().hide();
+      return;
+    }
+
+    // Special handling for target scenario selector in move modal
+    if ($container.hasClass('target-scenario-selector')) {
+      $('#target-scenario-display').text($li.text()).data('value', $li.data('value'));
+      $li.parent().hide();
+      return;
+    }
+
+    // Default handling for other dropdowns
+    $li.siblings().removeClass("op_a");
+    $li.addClass("op_a");
+    $li.parent().hide();
+
+    var txt = $li.text();
+    var val = $li.data("value") || txt;
+
+    var $selectVal = $container.find(".lh-select-val");
     $selectVal.text(txt);
 
     var i = $selectVal.data("index");
-    var type = $selectContainer.data("type");
 
     if (typeof i !== 'undefined' && list && list[i]) {
       if (type === 'protocol') {
         var cleanVal = cleanProtocol(val);
         list[i].protocol = cleanVal;
-        var $badge = $(this).closest('.list_a').find('.proxy-type-badge');
+        var $badge = $li.closest('.list_a').find('.proxy-type-badge');
         $badge.text(cleanVal.toUpperCase()).removeClass('http https socks5').addClass(cleanVal);
 
         var isSocks5 = cleanVal === 'socks5';
         var disableAuth = !isFirefox && isSocks5;
-        var $formGrid = $(this).closest('.proxy-body-container');
+        var $formGrid = $li.closest('.proxy-body-container');
         var $authInputs = $formGrid.find('.username, .password');
 
         $authInputs.prop('disabled', disableAuth);
@@ -341,6 +428,32 @@ function initDropdowns() {
         list[i].fallback_policy = val;
       }
       save = false;
+    }
+  });
+
+  // Storage change listener
+  chrome.storage.onChanged.addListener(function (changes, namespace) {
+    if (namespace === 'local') {
+      if (changes.scenarios || changes.currentScenarioId) {
+        chrome.storage.local.get(['scenarios', 'currentScenarioId'], function (res) {
+          if (res.scenarios) {
+            scenarios = res.scenarios;
+          }
+          if (res.currentScenarioId) {
+            currentScenarioId = res.currentScenarioId;
+          }
+          renderScenarioSelector();
+        });
+      }
+      if (changes.list) {
+        chrome.storage.local.get(['currentScenarioId'], function (res) {
+          const scenario = scenarios.find(s => s.id === (res.currentScenarioId || currentScenarioId));
+          if (scenario) {
+            list = scenario.proxies || [];
+            renderList();
+          }
+        });
+      }
     }
   });
 }
@@ -518,35 +631,356 @@ function bindGlobalEvents() {
   $("#detect-proxy-btn").on("click", detectProxy);
   $("#pac-details-btn").on("click", showPacDetails);
 
+  // Scenario dropdown is handled by initDropdowns()
+  // The button now shows a dropdown for scenario selection
+  $(".scenario_manage_close_btn, .scenario_manage_tip").on("click", function (e) {
+    if (this === e.target || $(this).hasClass('scenario_manage_close_btn')) {
+      $(".scenario_manage_tip").removeClass("show");
+      setTimeout(function () { $(".scenario_manage_tip").hide(); }, 300);
+    }
+  });
+
+  $("#add-scenario-btn").on("click", function () {
+    const name = $("#new-scenario-name").val().trim();
+    if (addScenario(name)) {
+      $("#new-scenario-name").val("");
+    }
+  });
+
+  // Edit Scenario Modal Events
+  let editingScenarioId = null;
+  $(".edit_scenario_close_btn, .edit_scenario_cancel_btn, .edit_scenario_tip").on("click", function (e) {
+    if (this === e.target || $(this).hasClass('edit_scenario_close_btn') || $(this).hasClass('edit_scenario_cancel_btn')) {
+      $(".edit_scenario_tip").removeClass("show");
+      setTimeout(function () { $(".edit_scenario_tip").hide(); }, 300);
+      editingScenarioId = null;
+    }
+  });
+
+  $("#confirm-edit-scenario-btn").on("click", function () {
+    const newName = $("#edit-scenario-name").val().trim();
+    if (editingScenarioId) {
+      renameScenario(editingScenarioId, newName);
+      $(".edit_scenario_tip").removeClass("show");
+      setTimeout(function () { $(".edit_scenario_tip").hide(); }, 300);
+      editingScenarioId = null;
+    }
+  });
+
+  // Delete Scenario Modal Events
+  let deletingScenarioId = null;
+  $(".delete_scenario_close_btn, .delete_scenario_cancel_btn, .delete_scenario_tip").on("click", function (e) {
+    if (this === e.target || $(this).hasClass('delete_scenario_close_btn') || $(this).hasClass('delete_scenario_cancel_btn')) {
+      $(".delete_scenario_tip").removeClass("show");
+      setTimeout(function () { $(".delete_scenario_tip").hide(); }, 300);
+      deletingScenarioId = null;
+    }
+  });
+
+  $("#confirm-delete-scenario-btn").on("click", function () {
+    if (deletingScenarioId) {
+      doDeleteScenario(deletingScenarioId);
+      $(".delete_scenario_tip").removeClass("show");
+      setTimeout(function () { $(".delete_scenario_tip").hide(); }, 300);
+      deletingScenarioId = null;
+    }
+  });
+
+  // Alert Modal Events
+  $(".alert_scenario_close_btn, .alert_scenario_tip, #alert-scenario-ok-btn").on("click", function (e) {
+    if (this === e.target || $(this).hasClass('alert_scenario_close_btn') || $(this).is("#alert-scenario-ok-btn")) {
+      $(".alert_scenario_tip").removeClass("show");
+      setTimeout(function () { $(".alert_scenario_tip").hide(); }, 300);
+    }
+  });
+
+  // Scenario List Actions (Delete/Edit)
+  $("#scenario-manage-list").on("click", ".delete-scenario-btn", function () {
+    const id = $(this).data("id");
+    const scenario = scenarios.find(s => s.id === id);
+    if (scenario && scenario.proxies && scenario.proxies.length > 0) {
+      showAlertScenario(I18n.t('scenario_delete_not_empty'));
+      return;
+    }
+    deletingScenarioId = id;
+    $("#delete-scenario-message").html(`${I18n.t('scenario_delete_confirm')}<br><span style="color: #ef4444; font-weight: 600; margin-top: 10px; display: block; text-align: center; font-size: 16px;">${escapeHtml(scenario.name)}</span>`);
+    $(".delete_scenario_tip").show().addClass("show");
+  });
+
+  $("#scenario-manage-list").on("click", ".edit-scenario-btn", function () {
+    const id = $(this).data("id");
+    const oldName = $(this).data("name");
+    editingScenarioId = id;
+    $("#edit-scenario-oldname").text(escapeHtml(oldName));
+    $("#edit-scenario-name").val(oldName);
+    $("#edit-scenario-name").removeClass('input-error');
+    $(".edit_scenario_tip").show().addClass("show");
+    setTimeout(() => $("#edit-scenario-name").focus(), 100);
+  });
+
+  // Move Proxy Modal Events
+  $(".move_proxy_close_btn, .move_proxy_cancel_btn, .move_proxy_tip").on("click", function (e) {
+    if (this === e.target || $(this).hasClass('move_proxy_close_btn') || $(this).hasClass('move_proxy_cancel_btn')) {
+      $(".move_proxy_tip").removeClass("show");
+      setTimeout(function () { $(".move_proxy_tip").hide(); }, 300);
+    }
+  });
+
+  $("#confirm-move-proxy-btn").on("click", function () {
+    const targetScenarioId = $("#target-scenario-display").data("value");
+    if (targetScenarioId && move_proxy_index !== -1) {
+      moveProxy(move_proxy_index, targetScenarioId);
+      $(".move_proxy_tip").removeClass("show");
+      setTimeout(function () { $(".move_proxy_tip").hide(); }, 300);
+    }
+  });
+
   // ESC Key Support for Popups
   $(document).on("keydown", function (e) {
     if (e.key === "Escape") {
-      // Sync Config Popup
-      if ($(".sync_config_tip").hasClass("show")) {
-        $(".sync_config_tip").removeClass("show");
-        setTimeout(function () { $(".sync_config_tip").hide(); }, 300);
-      }
-      // Proxy Detection Popup
-      if ($(".proxy_detection_tip").hasClass("show")) {
-        $(".proxy_detection_tip").removeClass("show");
-        setTimeout(function () { $(".proxy_detection_tip").hide(); }, 300);
-      }
-      // PAC Details Popup
-      if ($(".pac_details_tip").hasClass("show")) {
-        if (pacStorageListener) {
-          chrome.storage.onChanged.removeListener(pacStorageListener);
-          pacStorageListener = null;
+      var popupOrder = [
+        '.edit_scenario_tip',
+        '.delete_scenario_tip',
+        '.move_proxy_tip',
+        '.alert_scenario_tip',
+        '.scenario_manage_tip',
+        '.sync_config_tip',
+        '.pac_details_tip',
+        '.proxy_detection_tip',
+        '.del_tip'
+      ];
+
+      for (var i = 0; i < popupOrder.length; i++) {
+        var $popup = $(popupOrder[i]);
+        if ($popup.hasClass('show')) {
+          $popup.removeClass("show");
+          setTimeout(function (popup) {
+            return function () { popup.hide(); };
+          }($popup), 300);
+          return;
         }
-        $(".pac_details_tip").removeClass("show");
-        setTimeout(function () { $(".pac_details_tip").hide(); }, 300);
-      }
-      // Delete Tip Popup
-      if ($(".del_tip").hasClass("show")) {
-        $(".del_tip").removeClass("show");
-        setTimeout(function () { $(".del_tip").hide(); }, 300);
       }
     }
   });
+
+  // Scenario Manage Button
+  $("#scenario-manage-btn").on("click", function () {
+    renderScenarioManagementList();
+    $(".scenario_manage_tip").show().addClass("show");
+  });
+}
+
+// ==========================================
+// Scenario Logic
+// ==========================================
+
+function renderScenarioSelector() {
+  var html = "";
+  var currentScenarioName = "";
+
+  scenarios.forEach(function (scenario) {
+    const isCurrent = scenario.id === currentScenarioId;
+    const proxyCount = scenario.proxies ? scenario.proxies.length : 0;
+    const cssClass = isCurrent ? 'current-scenario' : '';
+    html += `<li data-value="${scenario.id}" class="${cssClass}">
+      <span class="scenario-name">${escapeHtml(scenario.name)}</span>
+      <span class="scenario-count">${proxyCount}</span>
+    </li>`;
+    if (scenario.id === currentScenarioId) {
+      currentScenarioName = scenario.name;
+    }
+  });
+
+  $(".main-scenario-dropdown").html(html);
+  $(".main-scenario-btn").attr("title", `${I18n.t("switch_scenario_tooltip")} (${currentScenarioName || I18n.t('scenario_default')})`);
+  $("#current-scenario-indicator").text(currentScenarioName || I18n.t('scenario_default'));
+}
+
+function switchScenario(id) {
+  if (currentScenarioId === id) return;
+
+  const scenario = scenarios.find(s => s.id === id);
+  if (scenario) {
+    currentScenarioId = id;
+    list = scenario.proxies || [];
+
+    // Save state immediately
+    chrome.storage.local.set({
+      currentScenarioId: currentScenarioId,
+      list: list // Sync list for worker/popup compatibility
+    });
+
+    renderList();
+    renderScenarioSelector();
+  }
+}
+
+function renderScenarioManagementList() {
+  var html = "";
+  scenarios.forEach(function (scenario) {
+    const isCurrent = scenario.id === currentScenarioId;
+    const proxyCount = (scenario.proxies || []).length;
+
+    html += `
+      <div class="scenario-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--border-color);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-weight: 500; color: var(--text-primary);">${escapeHtml(scenario.name)}</span>
+          <span style="font-size: 12px; color: var(--text-secondary); background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px;">${proxyCount}</span>
+          ${isCurrent ? '<span style="font-size: 12px; color: var(--accent-color);">(' + I18n.t('status_current') + ')</span>' : ''}
+        </div>
+        <div class="scenario-actions">
+          <button class="edit-scenario-btn" data-id="${scenario.id}" data-name="${escapeHtml(scenario.name)}" style="border: none; background: none; color: var(--text-secondary); cursor: pointer; padding: 4px; margin-right: 4px;" title="${I18n.t('scenario_edit')}">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          </button>
+          <button class="delete-scenario-btn" data-id="${scenario.id}" style="border: none; background: none; color: #ef4444; cursor: pointer; padding: 4px;" title="${I18n.t('delete')}">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          </button>
+        </div>
+      </div>
+    `;
+  });
+  $("#scenario-manage-list").html(html);
+}
+
+function addScenario(name, callback) {
+  if (!name) {
+    showAlertScenario(I18n.t('scenario_name_required'));
+    return false;
+  }
+
+  if (/\s/.test(name)) {
+    showAlertScenario(I18n.t('alert_scenario_name_spaces'));
+    return false;
+  }
+
+  if (scenarios.some(s => s.name === name)) {
+    showAlertScenario(I18n.t('scenario_name_duplicate'));
+    return false;
+  }
+
+  const newId = 'scenario_' + Date.now();
+  scenarios.push({
+    id: newId,
+    name: name,
+    proxies: []
+  });
+
+  saveData();
+  renderScenarioManagementList();
+  renderScenarioSelector();
+  if (callback) callback();
+  return true;
+}
+
+function renameScenario(id, newName) {
+  if (!newName) {
+    showAlertScenario(I18n.t('scenario_name_required'));
+    return;
+  }
+
+  if (/\s/.test(newName)) {
+    showAlertScenario(I18n.t('alert_scenario_name_spaces'));
+    return;
+  }
+
+  // Check duplicate (excluding self)
+  if (scenarios.some(s => s.name === newName && s.id !== id)) {
+    showAlertScenario(I18n.t('scenario_name_duplicate'));
+    return;
+  }
+
+  const scenario = scenarios.find(s => s.id === id);
+  if (scenario) {
+    scenario.name = newName;
+    saveData();
+    renderScenarioManagementList();
+    renderScenarioSelector();
+  }
+}
+
+function doDeleteScenario(id) {
+  const scenarioIndex = scenarios.findIndex(s => s.id === id);
+  if (scenarioIndex === -1) return;
+
+  // If deleting current scenario, switch to another one first
+  if (id === currentScenarioId) {
+    // Find another scenario
+    let nextScenario = scenarios.find(s => s.id !== id);
+    if (!nextScenario) {
+      // If this is the last scenario, create a default one or block deletion
+      if (scenarios.length === 1) {
+        // Re-init default
+        scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: [] }];
+        currentScenarioId = 'default';
+        list = [];
+        saveData();
+        renderScenarioManagementList();
+        renderScenarioSelector();
+        renderList();
+        return;
+      } else {
+        switchScenario(nextScenario.id);
+      }
+    } else {
+      switchScenario(nextScenario.id);
+    }
+  }
+
+  scenarios.splice(scenarioIndex, 1);
+  saveData();
+  renderScenarioManagementList();
+  renderScenarioSelector();
+}
+
+function showAlertScenario(message) {
+  $("#alert-scenario-message").text(message);
+  $(".alert_scenario_tip").show().addClass("show");
+}
+
+function moveProxy(proxyIndex, targetScenarioId) {
+  if (proxyIndex === -1 || !list[proxyIndex]) return;
+  if (targetScenarioId === currentScenarioId) return;
+
+  const targetScenario = scenarios.find(s => s.id === targetScenarioId);
+  if (!targetScenario) return;
+
+  const proxy = list[proxyIndex];
+
+  // Check name conflict in target (Global check already covers this, but double check is safe)
+  // Actually, user requires global uniqueness. If it's unique now, it's unique everywhere.
+  // BUT, if we are moving, we need to make sure we don't duplicate logic.
+
+  // Remove from current list
+  list.splice(proxyIndex, 1);
+
+  // Add to target
+  if (!targetScenario.proxies) targetScenario.proxies = [];
+  targetScenario.proxies.push(proxy);
+
+  saveData();
+  renderList();
+  showTip(I18n.t('move_success'), false);
+}
+
+// Global Uniqueness Check
+function checkNameGlobalUniqueness(name, excludeProxyIndex, excludeScenarioId) {
+  for (const scenario of scenarios) {
+    if (!scenario.proxies) continue;
+
+    for (let i = 0; i < scenario.proxies.length; i++) {
+      const p = scenario.proxies[i];
+      // If checking current scenario and index matches, skip (editing self)
+      if (scenario.id === excludeScenarioId && i === excludeProxyIndex) continue;
+
+      if (p.name === name) {
+        return {
+          isDuplicate: true,
+          scenarioName: scenario.name
+        };
+      }
+    }
+  }
+  return { isDuplicate: false };
 }
 
 // ==========================================
@@ -678,19 +1112,21 @@ function renderList() {
                   </div>
               </div>
 
-              <div class="proxy-content-right">
-                  <label>&nbsp;</label>
-                  <button class="right-panel-btn btn-test test-proxy-btn" data-index="${i}" tabindex="-1">
-                       ${I18n.t('link_test')}
-                  </button>
-                  <div class="test-result-display test-result" data-index="${i}"></div>
-                  <button class="right-panel-btn btn-save item-save-btn" data-index="${i}" tabindex="10">
-                       ${I18n.t('save')}
-                  </button>
-                  <button class="right-panel-btn btn-delete del" data-index="${i}" title="${I18n.t('delete_proxy_title')}" tabindex="11">
-                       ${I18n.t('delete')}
-                  </button>
-              </div>
+               <div class="proxy-content-right">
+                   <button class="right-panel-btn btn-test test-proxy-btn" data-index="${i}" tabindex="-1">
+                        ${I18n.t('link_test')}
+                   </button>
+                   <button class="right-panel-btn btn-move move-proxy-btn" data-index="${i}" title="${I18n.t('move_proxy_title')}">
+                        ${I18n.t('move_proxy')}
+                   </button>
+                   <div class="test-result-display test-result" data-index="${i}"></div>
+                   <button class="right-panel-btn btn-save item-save-btn" data-index="${i}" tabindex="10">
+                        ${I18n.t('save')}
+                   </button>
+                   <button class="right-panel-btn btn-delete del" data-index="${i}" title="${I18n.t('delete_proxy_title')}" tabindex="11">
+                        ${I18n.t('delete')}
+                   </button>
+               </div>
           </div>
       </div>
     </div>`;
@@ -700,7 +1136,34 @@ function renderList() {
   initDropdowns(); // Re-bind dropdowns in list
   initSortable();
   bindItemEvents();
+
+  // Bind Move Button
+  $(".move-proxy-btn").on("click", function () {
+    move_proxy_index = $(this).data("index");
+    var proxy = list[move_proxy_index];
+    var currentScenario = scenarios.find(s => s.id === currentScenarioId);
+    $("#current-scenario-display").text(currentScenario ? currentScenario.name : I18n.t('scenario_default'));
+
+    // Populate modal with other scenarios
+    var html = "";
+    var hasOptions = false;
+    scenarios.forEach(function (scenario) {
+      if (scenario.id !== currentScenarioId) {
+        html += `<li data-value="${scenario.id}">${escapeHtml(scenario.name)}</li>`;
+        hasOptions = true;
+      }
+    });
+
+    if (!hasOptions) {
+      html = `<li class="disabled" style="color: var(--text-secondary); cursor: not-allowed; font-style: italic; padding: 8px 12px;">无其他场景可用</li>`;
+    }
+
+    $("#target-scenario-options").html(html);
+    $("#target-scenario-display").text("请选择").removeData("value");
+    $(".move_proxy_tip").show().addClass("show");
+  });
 }
+
 
 function bindItemEvents() {
   // Input Blur
@@ -890,7 +1353,17 @@ function input_blur(i, name, val) {
 }
 
 function saveData() {
-  chrome.storage.local.set({ list: list }, function () {
+  // Update the current scenario in the scenarios array with current list state
+  const scenario = scenarios.find(s => s.id === currentScenarioId);
+  if (scenario) {
+    scenario.proxies = list;
+  }
+
+  chrome.storage.local.set({
+    scenarios: scenarios,
+    currentScenarioId: currentScenarioId,
+    list: list // Sync current list for background worker compatibility
+  }, function () {
     if (chrome.runtime.lastError) {
       console.error("Local save failed:", chrome.runtime.lastError);
       showTip(I18n.t('save_failed'), true);
@@ -912,7 +1385,14 @@ function saveSingleProxy(i) {
   var info = list[i];
   if (!info) return;
 
-  var isNameValid = info.name.trim() !== '' && !list.some((item, index) => index !== i && item.name === info.name);
+  var isNameValid = info.name.trim() !== '';
+
+  // Check global uniqueness
+  const conflict = checkNameGlobalUniqueness(info.name, i, currentScenarioId);
+  if (conflict.isDuplicate) {
+    isNameValid = false;
+  }
+
   var isIpValid = true, ipErrorMsg = '';
   var parts = info.ip.split('.');
   var isIpLike = parts.length === 4 && parts.every(p => /^\d+$/.test(p));
@@ -940,7 +1420,13 @@ function saveSingleProxy(i) {
 
   if (!isNameValid || !isIpValid || !isPortValid || !isIncludeUrlsValid) {
     var failMsg = I18n.t('save_failed');
-    if (!isNameValid) showTip(failMsg + (list.some((item, index) => index !== i && item.name === info.name) ? I18n.t('alert_name_duplicate') : I18n.t('alert_name_required')), true);
+    if (!isNameValid) {
+      if (conflict.isDuplicate) {
+        showTip(failMsg + I18n.t('global_name_conflict').replace('{name}', info.name).replace('{scenario}', conflict.scenarioName), true);
+      } else {
+        showTip(failMsg + I18n.t('alert_name_required'), true);
+      }
+    }
     else if (!isIpValid) showTip(failMsg + (ipErrorMsg || I18n.t('alert_ip_invalid')), true);
     else if (!isPortValid) showTip(failMsg + I18n.t('alert_port_invalid'), true);
     else if (!isIncludeUrlsValid) showTip(failMsg + includeUrlsErrorMsg, true);
@@ -1041,23 +1527,11 @@ function cleanProtocol(protocol) {
 
 // Unified function to build config data object
 function buildConfigData() {
-  var orderedProxies = list.map(function (proxy) {
-    var ordered = {
-      "name": proxy.name,
-      "protocol": proxy.protocol,
-      "ip": proxy.ip,
-      "port": proxy.port,
-      "username": proxy.username,
-      "password": proxy.password,
-      "fallback_policy": proxy.fallback_policy || "direct",
-      "is_show": proxy.is_show,
-      "open": proxy.open,
-      "include_urls": proxy.include_urls,
-      "bypass_urls": proxy.bypass_urls
-    };
-    if (proxy.disabled !== undefined) ordered.disabled = proxy.disabled;
-    return ordered;
-  });
+  // Sync list back to current scenario before building
+  const currentScenario = scenarios.find(s => s.id === currentScenarioId);
+  if (currentScenario) {
+    currentScenario.proxies = list;
+  }
 
   // Clear sensitive fields (token and password) for export
   var syncForExport = {
@@ -1070,15 +1544,16 @@ function buildConfigData() {
   };
 
   return {
-    version: 1,
-    settings: {
+    version: 2,
+    system: {
       appLanguage: I18n.getCurrentLanguage(),
       themeMode: themeMode,
       nightModeStart: nightModeStart,
-      nightModeEnd: nightModeEnd
+      nightModeEnd: nightModeEnd,
+      sync: syncForExport
     },
-    sync: syncForExport,
-    proxies: orderedProxies
+    currentScenarioId: currentScenarioId,
+    scenarios: scenarios
   };
 }
 
@@ -1100,42 +1575,55 @@ function importConfig(e) {
   reader.onload = function (e) {
     try {
       var data = JSON.parse(e.target.result);
-      if (data && data.proxies && Array.isArray(data.proxies)) {
-        list = data.proxies.map(p => ({ ...p, protocol: cleanProtocol(p.protocol || p.type || 'http') }));
-        if (data.settings) {
-          if (data.settings.auto_sync !== undefined) {
-            auto_sync = data.settings.auto_sync;
-            $("#auto_sync_toggle").prop("checked", auto_sync);
-            chrome.storage.local.set({ auto_sync: auto_sync });
+      if (data) {
+        // Handle V2 Import
+        if (data.scenarios) {
+          scenarios = data.scenarios;
+          currentScenarioId = data.currentScenarioId || 'default';
+          updateCurrentListFromScenario();
+        }
+        // Handle V1 Import (fallback)
+        else if (data.proxies && Array.isArray(data.proxies)) {
+          list = data.proxies.map(p => ({ ...p, protocol: cleanProtocol(p.protocol || p.type || 'http') }));
+          scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: list }];
+          currentScenarioId = 'default';
+        } else if (Array.isArray(data)) {
+          // Plain array import
+          list = data.map(p => ({ ...p, protocol: cleanProtocol(p.protocol || p.type || 'http') }));
+          scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: list }];
+          currentScenarioId = 'default';
+        } else {
+          alert(I18n.t('alert_invalid_format'));
+          return;
+        }
+
+        var systemData = data.system;
+        if (systemData) {
+          if (systemData.auto_sync !== undefined) {
+            chrome.storage.local.set({ auto_sync: systemData.auto_sync });
           }
-          if (data.settings.appLanguage) {
-            I18n.setLanguage(data.settings.appLanguage);
-            $('#current-language-display').text($(`#language-options li[data-value="${data.settings.appLanguage}"]`).text());
+          if (systemData.appLanguage) {
+            I18n.setLanguage(systemData.appLanguage);
+            $('#current-language-display').text($(`#language-options li[data-value="${systemData.appLanguage}"]`).text());
           }
-          if (data.settings.themeMode) {
-            themeMode = data.settings.themeMode;
-            if (data.settings.nightModeStart) nightModeStart = data.settings.nightModeStart;
-            if (data.settings.nightModeEnd) nightModeEnd = data.settings.nightModeEnd;
+          if (systemData.themeMode) {
+            themeMode = systemData.themeMode;
+            if (systemData.nightModeStart) nightModeStart = systemData.nightModeStart;
+            if (systemData.nightModeEnd) nightModeEnd = systemData.nightModeEnd;
             saveThemeSettings();
             updateThemeUI();
           }
-        }
-        // Import syncConfig if present
-        if (data.sync) {
-          syncConfig = data.sync;
-          chrome.storage.local.set({ sync_config: syncConfig });
-          updateSyncUI();
+          if (systemData.sync) {
+            syncConfig = systemData.sync;
+            chrome.storage.local.set({ sync_config: syncConfig });
+            updateSyncUI();
+          }
         }
         save = false;
         renderList();
+        renderScenarioSelector();
         saveData();
-      } else if (Array.isArray(data)) {
-        list = data.map(p => ({ ...p, protocol: cleanProtocol(p.protocol || p.type || 'http') }));
-        save = false;
-        renderList();
-        saveData();
-      } else {
-        alert(I18n.t('alert_invalid_format'));
+        showTip(I18n.t('save_success'), false);
       }
     } catch (err) {
       alert(I18n.t('alert_parse_error') + err.message);
@@ -1630,29 +2118,46 @@ async function manualPull() {
 
     if (type === 'native') {
       remoteData = await nativePull();
-      console.log('Native sync: Pulled ' + remoteData.proxies.length + ' proxies');
     } else if (type === 'gist') {
       remoteData = await pullFromGist();
     }
 
     if (remoteData) {
-      let proxyList = remoteData.proxies || [];
-      let themeSettings = remoteData.settings || {};
+      console.log("Sync: Pulled data from " + type);
 
-      if (proxyList && proxyList.length > 0) {
-        console.log("Sync: Pulled data from " + type);
+      // Support both V1 (proxies at top) and V2 (scenarios)
+      let hasData = false;
+      let toSave = {};
 
-        // Update local storage
-        chrome.storage.local.set({ list: proxyList }, function () {
-          if (themeSettings) {
-            chrome.storage.local.set({ themeSettings: themeSettings });
+      if (remoteData.scenarios && Array.isArray(remoteData.scenarios)) {
+        toSave.scenarios = remoteData.scenarios;
+        toSave.currentScenarioId = remoteData.currentScenarioId || 'default';
+        const currentScenario = remoteData.scenarios.find(s => s.id === toSave.currentScenarioId) || remoteData.scenarios[0];
+        toSave.list = currentScenario ? currentScenario.proxies : [];
+        hasData = true;
+      } else if (remoteData.proxies && Array.isArray(remoteData.proxies)) {
+        toSave.list = remoteData.proxies;
+        toSave.scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: remoteData.proxies }];
+        toSave.currentScenarioId = 'default';
+        hasData = true;
+      }
+
+      if (hasData) {
+        if (remoteData.settings) {
+          toSave.themeSettings = remoteData.settings;
+        }
+
+        chrome.storage.local.set(toSave, function () {
+          if (chrome.runtime.lastError) {
+            showTip(I18n.t('sync_failed') + chrome.runtime.lastError.message, true);
+            return;
           }
-          // Reload UI
-          loadFromLocal({ list: proxyList, themeSettings: themeSettings });
+          // Reload UI using the remote structure
+          loadFromLocal(remoteData);
           showTip(I18n.t('sync_success'), false);
         });
       } else {
-        showTip(I18n.t('sync_failed') + "No data found", true);
+        showTip(I18n.t('sync_failed') + "No valid data found", true);
       }
     } else {
       showTip(I18n.t('sync_failed') + "No data found", true);
