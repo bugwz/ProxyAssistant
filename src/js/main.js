@@ -1905,8 +1905,8 @@ function displayErrorResult(errorMsg) {
   $("#detection-suggestion").show();
 }
 
-$(".proxy-detection-close-btn, .proxy-detection-close-btn-secondary, .proxy-detection-tip").on("click", function (e) {
-  if (this === e.target || $(this).hasClass('proxy-detection-close-btn') || $(this).hasClass('proxy-detection-close-btn-secondary')) {
+$(".proxy-detection-close-btn, .proxy-detection-tip").on("click", function (e) {
+  if (this === e.target || $(this).hasClass('proxy-detection-close-btn')) {
     $(".proxy-detection-tip").removeClass("show");
     setTimeout(function () { $(".proxy-detection-tip").hide(); }, 300);
   }
