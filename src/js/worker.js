@@ -42,10 +42,10 @@ chrome.runtime.onInstalled.addListener((details) => {
         }
       });
     });
-  }
 
-  // Disable proxy on initialization
-  turnOffProxy();
+    // Disable proxy on initialization only for new installs
+    turnOffProxy();
+  }
 });
 
 // Restore previous proxy settings
