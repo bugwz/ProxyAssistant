@@ -1025,7 +1025,8 @@ function renderList() {
 
     var fallbackPolicy = info.fallback_policy || "direct";
     var displayFallback = fallbackPolicy === "reject" ? I18n.t('fallback_reject') : I18n.t('fallback_direct');
-    var previewText = `${info.name || I18n.t('unnamed_proxy')} · ${info.ip || "0.0.0.0"}:${info.port || "0"}`;
+    var rawPreviewText = `${info.name || I18n.t('unnamed_proxy')} · ${info.ip || "0.0.0.0"}:${info.port || "0"}`;
+    var previewText = escapeHtml(rawPreviewText);
 
     var collapsedClass = info.is_new ? "" : "collapsed";
     delete info.is_new;
@@ -1058,7 +1059,7 @@ function renderList() {
                   <div class="form-grid">
                       <div class="form-item" style="grid-column: span 4;">
                           <label>${I18n.t('proxy_name')}</label>
-                          <input data-index="${i}" class="name" type="text" placeholder="${I18n.t('proxy_name_placeholder')}" value="${info.name}" tabindex="1">
+                          <input data-index="${i}" class="name" type="text" placeholder="${I18n.t('proxy_name_placeholder')}" value="${escapeHtml(info.name)}" tabindex="1">
                       </div>
                       <div class="form-item" style="grid-column: span 2;">
                           <label>${I18n.t('protocol')}</label>
@@ -1081,7 +1082,7 @@ function renderList() {
                                   <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
                               </span>
                           </label>
-                          <input data-index="${i}" class="username" type="text" placeholder="${I18n.t('username_placeholder')}" value="${info.username}" tabindex="5" ${disabledAttr}>
+                          <input data-index="${i}" class="username" type="text" placeholder="${I18n.t('username_placeholder')}" value="${escapeHtml(info.username)}" tabindex="5" ${disabledAttr}>
                       </div>
                       <div class="form-item" style="grid-column: span 3;">
                           <label>
@@ -1091,7 +1092,7 @@ function renderList() {
                               </span>
                           </label>
                           <div style="position: relative; display: flex; align-items: center; width: 100%;">
-                              <input data-index="${i}" class="password" type="${info.is_show == 1 ? "text" : "password"}" placeholder="${I18n.t('password_placeholder')}" value="${info.password}" style="padding-right: 35px; width: 100%;" tabindex="6" ${disabledAttr}>
+                              <input data-index="${i}" class="password" type="${info.is_show == 1 ? "text" : "password"}" placeholder="${I18n.t('password_placeholder')}" value="${escapeHtml(info.password)}" style="padding-right: 35px; width: 100%;" tabindex="6" ${disabledAttr}>
                               <label class="container eye-toggle ${info.is_show == 1 ? 'show-password' : 'hide-password'}" data-index="${i}" style="position: absolute; right: 8px; margin: 0; cursor: pointer;">
                                   <input type="checkbox" ${info.is_show == 1 ? "checked" : ""}>
                                   <svg class="eye" xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 576 512"><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM144 256a144 144 0 1 1 288 0 144 144 0 1 1 -288 0zm144-64c0 35.3-28.7 64-64 64c-7.1 0-13.9-1.2-20.3-3.3c-5.5-1.8-11.9 1.6-11.7 7.4c.3 6.9 1.3 13.8 3.2 20.7c13.7 51.2 66.4 81.6 117.6 67.9s81.6-66.4 67.9-117.6c-11.1-41.5-47.8-69.4-88.6-71.1c-5.8-.2-9.2 6.1-7.4 11.7c2.1 6.4 3.3 13.2 3.3 20.3z"></path></svg>
@@ -1104,11 +1105,11 @@ function renderList() {
                   <div class="form-grid" style="margin-top: 15px;">
                       <div class="form-item" style="grid-column: span 4;">
                           <label>${I18n.t('ip_address')}</label>
-                          <input data-index="${i}" class="ip" type="text" placeholder="127.0.0.1" value="${info.ip}" tabindex="3">
+                          <input data-index="${i}" class="ip" type="text" placeholder="127.0.0.1" value="${escapeHtml(info.ip)}" tabindex="3">
                       </div>
                       <div class="form-item" style="grid-column: span 2;">
                           <label>${I18n.t('port')}</label>
-                          <input data-index="${i}" class="port" type="text" placeholder="8080" value="${info.port}" tabindex="4">
+                          <input data-index="${i}" class="port" type="text" placeholder="8080" value="${escapeHtml(info.port)}" tabindex="4">
                       </div>
                       <div class="form-item" style="grid-column: span 6;">
                           <label>${I18n.t('fallback_policy')}</label>
@@ -1128,11 +1129,11 @@ function renderList() {
                   <div class="url-config-section">
                       <div class="form-item">
                           <label>${I18n.t('bypass_urls')}</label>
-                          <textarea data-index="${i}" class="bypass_urls" placeholder="${I18n.t('bypass_urls_placeholder')}" tabindex="8">${info.bypass_urls || ""}</textarea>
+                          <textarea data-index="${i}" class="bypass_urls" placeholder="${I18n.t('bypass_urls_placeholder')}" tabindex="8">${escapeHtml(info.bypass_urls || "")}</textarea>
                       </div>
                       <div class="form-item">
                           <label>${I18n.t('include_urls')}</label>
-                          <textarea data-index="${i}" class="include_urls" placeholder="${I18n.t('include_urls_placeholder')}" tabindex="9">${info.include_urls || ""}</textarea>
+                          <textarea data-index="${i}" class="include_urls" placeholder="${I18n.t('include_urls_placeholder')}" tabindex="9">${escapeHtml(info.include_urls || "")}</textarea>
                       </div>
                   </div>
               </div>
@@ -2453,9 +2454,12 @@ function showTip(msg, isError) {
 
 function escapeHtml(text) {
   if (!text) return '';
-  var div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 $(".save-success-toast").hide();
