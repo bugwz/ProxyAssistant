@@ -23,7 +23,7 @@
 
 <div align="center">
 
-Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome und Firefox unterstützt und Ihnen hilft, Netzwerk-Proxys einfach zu konfigurieren und zu wechseln.
+Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome/Firefox/Edge und mehrere andere Browser unterstützt, mit Multi-Szenarien-Management, die Ihnen hilft, Netzwerk-Proxys einfach zu konfigurieren und zu wechseln.
 
 </div>
 
@@ -39,7 +39,8 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome und Firefo
 
 ### 1.2 🌐 Multi-Browser-Unterstützung
 - **Chrome** - Verwendung von Manifest V3 + Service Worker
-- **Firefox** - Verwendung von onRequest API für Proxy-Intercept
+- **Firefox** - Verwendung von Manifest V3 + `proxy.onRequest` API für Proxy-Anfragen-Intercept
+- **Edge** - Perfekt kompatibel mit Chrome-Erweiterungen, basierend auf Chromium-Kernel
 
 ### 1.3 🔄 Drei Proxy-Modi
 
@@ -51,7 +52,14 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome und Firefo
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/03.png)
 
-### 1.4 📋 Flexible URL-Regelkonfiguration
+### 1.4 🎬 Szenario-Modus
+
+- **Multi-Szenario-Unterstützung**: Erstellen verschiedener Proxy-Konfigurationssets (z.B.: Unternehmen, Zuhause, Entwicklungsumgebung)
+- **Schnelles Wechseln**: Ein-Klick-Wechsel der Proxy-Listen zwischen verschiedenen Szenarien
+- **Flexible Verwaltung**: Unterstützung für Hinzufügen, Umbenennen, Löschen und Sortieren von Szenarien
+- **Proxy-Migration**: Unterstützung für das Verschieben von Proxies zwischen verschiedenen Szenarien
+
+### 1.5 📋 Flexible URL-Regelkonfiguration
 
 - **Adressen ohne Proxy** (`bypass_urls`): Direktverbindungs-Domains/IPs im manuellen Modus
 - **Adressen mit Proxy** (`include_urls`): Domains, die Proxy-Zugriff im automatischen Modus erfordern
@@ -59,33 +67,33 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome und Firefo
 - Unterstützt Wildcard `*` und Domain-Matching
 - Geeignet für Szenarien, in denen verschiedene Websites verschiedene Proxys verwenden
 
-### 1.5 🔐 Proxy-Authentifizierungsunterstützung
+### 1.6 🔐 Proxy-Authentifizierungsunterstützung
 
 - Benutzername/Passwort-Authentifizierung
 - Automatische Behandlung von Authentifizierungsanforderungen des Proxy-Servers
 - Sichere Speicherung von Anmeldeinformationen
 
-### 1.6 🧪 Proxy-Testfunktionen
+### 1.7 🧪 Proxy-Testfunktionen
 
 - **Verbindungstest**: Proxy-Verfügbarkeit überprüfen
 - **Latenzmessung**: Proxy-Antwortzeit testen
 - **Batch-Test**: Alle Proxys mit einem Klick testen
 - **Farbindikatoren**: Grün(<500ms) / Orange(≥500ms) / Rot(Fehlgeschlagen)
 
-### 1.7 🏃 Proxy-Statuserkennung
+### 1.8 🏃 Proxy-Statuserkennung
 
 - Erkennen der aktuellen Browser-Proxy-Einstellungen
 - Überprüfen, ob die Erweiterung den Proxy erfolgreich gesteuert hat
 - Identifizieren anderer Erweiterungen, die den Proxy steuern
 - Drei Ergebnisse bereitstellen: Status, Warnung, Fehler
 
-### 1.8 🔍 PAC-Skript-Vorschau
+### 1.9 🔍 PAC-Skript-Vorschau
 
 - **Skript-Ansicht**: Automatisch generierten PAC-Skript-Inhalt anzeigen
 - **Regelliste**: Klare Anzeige aller aktiven Proxy-Matching-Regeln
 - **Debug-Support**: Einfache Fehlerbehebung bei Matching-Problemen im Auto-Modus
 
-### 1.9 🌙 Themen-Modi
+### 1.10 🌙 Themen-Modi
 
 - **Hellmodus**: Für den Tag
 - **Dunkelmodus**: Für die Nacht
@@ -93,18 +101,18 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome und Firefo
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/02.png)
 
-### 1.10 ☁️ Datenspeicherung und Synchronisierung
+### 1.11 ☁️ Datenspeicherung und Synchronisierung
 
-#### 1.10.1 Speicherstrategie
+#### 1.11.1 Speicherstrategie
 
 | Speichertyp | Speicherinhalt | Beschreibung |
 |-------------|----------------|--------------|
 | **Lokalspeicher (local)** | Proxy-Liste, Themeneinstellungen, Spracheinstellungen, Synchronisierungseinstellungen | Immer aktiv, Offline-Verfügbarkeit und Datenpersistenz gewährleistet |
 | **Cloud-Synchronisierung (sync)** | Vollständige Konfigurationsdaten (Chunk-Speicher) | Optional, verwendet Chunk-Speicher, um Quotenlimits zu umgehen |
 
-#### 1.10.2 Synchronisierungsmethoden
+#### 1.11.2 Synchronisierungsmethoden
 
-##### 1.10.2.1 Native Browser-Synchronisierung (Native Sync)
+##### 1.11.2.1 Native Browser-Synchronisierung (Native Sync)
 - Verwendet `chrome.storage.sync` API (Chrome) oder `browser.storage.sync` (Firefox)
 - Automatische Synchronisierung über Chrome/Firefox-Konto
 - Geeignet für Multi-Geräte-Synchronisierung mit demselben Browser-Konto
@@ -113,7 +121,7 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome und Firefo
 - **Atomare Operationen**: Push-Vorgang löscht alte Daten, bevor neue Daten geschrieben werden, um Konsistenz zu gewährleisten
 - **Quotenanzeige**: Echtzeitanzeige der genutzten/gesamten Quote (100KB) und Anzahl der Chunks
 
-##### 1.10.2.2 GitHub Gist-Synchronisierung
+##### 1.11.2.2 GitHub Gist-Synchronisierung
 - Synchronisierung der Konfiguration über Browser und Geräte hinweg via GitHub Gist
 - Erfordert GitHub Personal Access Token
 - Unterstützt manuelles Push/Pull oder automatische Synchronisierung
@@ -125,7 +133,7 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome und Firefo
 | **Dateiname** | Dateiname in Gist, Standard `proxy_assistant_config.json` |
 | **Gist-ID** | Automatisch erkannt und gespeichert, keine manuelle Eingabe erforderlich |
 
-#### 1.10.3 Synchronisierungsvorgänge
+#### 1.11.3 Synchronisierungsvorgänge
 
 | Vorgang | Beschreibung |
 |---------|--------------|
@@ -133,7 +141,7 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome und Firefo
 | **Pull** | Konfiguration aus der Cloud/Gist herunterladen |
 | **Verbindung testen** | Gist Token-Gültigkeit und Konfigurationsstatus überprüfen |
 
-#### 1.10.4 Import/Export
+#### 1.11.4 Import/Export
 
 - **Exportieren**: JSON-Datei mit allen Proxy-Informationen, Themen-Einstellungen, Spracheinstellungen usw. generieren
 - **Importieren**: Wiederherstellung der Konfiguration aus JSON-Datei unterstützen
@@ -170,7 +178,7 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome und Firefo
 }
 ```
 
-### 1.11 🌍 Mehrsprachige Unterstützung
+### 1.12 🌍 Mehrsprachige Unterstützung
 
 Diese Erweiterung unterstützt die folgenden Sprachen:
 
@@ -363,7 +371,6 @@ npm install
 | `make test_integration` | Nur Integrationstests ausführen |
 | `make test_e2e` | Nur E2E-Tests ausführen |
 | `make test_watch_nocache` | Tests im Watch-Modus ausführen |
-| `make test_cov_nocache` | Tests ausführen und Abdeckungsbericht generieren |
 
 **npm direkt verwenden**:
 ```bash
@@ -385,9 +392,9 @@ npm run test:coverage       # Tests ausführen und Abdeckungsbericht generieren
 
 **Version angeben**:
 ```bash
-make build VERSION=1.4.0
+make build VERSION=dev
 # oder
-./script/build.sh 1.3.1
+./script/build.sh dev
 ```
 
 **Build-Artefakte**:
@@ -522,6 +529,7 @@ Auf den Button "Proxy-Effekt erkennen" klicken kann:
 
 3. **main.js**:
    - Einstellungsseitenlogik
+   - Szenario-Verwaltung (Scenarios)
    - Proxy-Verwaltung (CRUD)
    - Drag & Drop-Sortierung
    - Import/Export
