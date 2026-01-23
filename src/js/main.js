@@ -551,6 +551,7 @@ function bindGlobalEvents() {
 
   // Save Sync Config
   $("#save-sync-config").on("click", function () {
+    showProcessingTip(I18n.t('processing'));
     // Update config object from inputs
     if (syncConfig.type === 'gist') {
       syncConfig.gist.token = $("#gist-token").val();
@@ -558,7 +559,11 @@ function bindGlobalEvents() {
     }
 
     chrome.storage.local.set({ sync_config: syncConfig }, function () {
-      showTip(I18n.t('save_success'), false);
+      if (chrome.runtime.lastError) {
+        showTip(I18n.t('save_failed'), true);
+      } else {
+        showTip(I18n.t('save_success'), false);
+      }
       $(".sync-config-tip").removeClass("show");
       setTimeout(function () { $(".sync-config-tip").hide(); }, 300);
       updateSyncUI();
@@ -567,10 +572,12 @@ function bindGlobalEvents() {
 
   // Manual Sync Buttons
   $("#sync-pull-btn").on("click", function () {
+    showProcessingTip(I18n.t('processing'));
     manualPull();
   });
 
   $("#sync-push-btn").on("click", function () {
+    showProcessingTip(I18n.t('processing'));
     manualPush();
   });
 
@@ -578,6 +585,7 @@ function bindGlobalEvents() {
   $("#test-sync-connection").on("click", async function () {
     const $btn = $(this);
     const originalText = $btn.find('span').text();
+    showProcessingTip(I18n.t('processing'));
     $btn.prop('disabled', true).find('span').text(I18n.t('testing'));
 
     try {
@@ -660,6 +668,7 @@ function bindGlobalEvents() {
   $("#confirm-edit-scenario-btn").on("click", function () {
     const newName = $("#edit-scenario-name").val().trim();
     if (editingScenarioId) {
+      showProcessingTip(I18n.t('processing'));
       renameScenario(editingScenarioId, newName);
       $(".edit-scenario-tip").removeClass("show");
       setTimeout(function () { $(".edit-scenario-tip").hide(); }, 300);
@@ -679,6 +688,7 @@ function bindGlobalEvents() {
 
   $("#confirm-delete-scenario-btn").on("click", function () {
     if (deletingScenarioId) {
+      showProcessingTip(I18n.t('processing'));
       doDeleteScenario(deletingScenarioId);
       $(".delete-scenario-tip").removeClass("show");
       setTimeout(function () { $(".delete-scenario-tip").hide(); }, 300);
@@ -729,6 +739,7 @@ function bindGlobalEvents() {
   $("#confirm-move-proxy-btn").on("click", function () {
     const targetScenarioId = $("#target-scenario-display").data("value");
     if (targetScenarioId && move_proxy_index !== -1) {
+      showProcessingTip(I18n.t('processing'));
       moveProxy(move_proxy_index, targetScenarioId);
       $(".move-proxy-tip").removeClass("show");
       setTimeout(function () { $(".move-proxy-tip").hide(); }, 300);
@@ -857,11 +868,13 @@ function renderScenarioManagementList() {
 
   // Bind move buttons
   $("#scenario-manage-list").off("click", ".move-up-btn").on("click", ".move-up-btn", function () {
+    showProcessingTip(I18n.t('processing'));
     const scenarioId = $(this).data("id");
     moveScenarioUp(scenarioId);
   });
 
   $("#scenario-manage-list").off("click", ".move-down-btn").on("click", ".move-down-btn", function () {
+    showProcessingTip(I18n.t('processing'));
     const scenarioId = $(this).data("id");
     moveScenarioDown(scenarioId);
   });
@@ -982,9 +995,22 @@ function moveProxy(proxyIndex, targetScenarioId) {
   if (!targetScenario.proxies) targetScenario.proxies = [];
   targetScenario.proxies.push(proxy);
 
-  saveData();
-  renderList();
-  showTip(I18n.t('move_success'), false);
+  // Save data and show appropriate tip
+  chrome.storage.local.set({
+    scenarios: scenarios,
+    currentScenarioId: currentScenarioId,
+    list: list // Sync current list for background worker compatibility
+  }, function () {
+    if (chrome.runtime.lastError) {
+      console.error("Move proxy failed:", chrome.runtime.lastError);
+      showTip(I18n.t('move_failed') + chrome.runtime.lastError.message, true);
+      return;
+    }
+
+    renderList();
+    showTip(I18n.t('move_success'), false);
+    chrome.runtime.sendMessage({ action: "refreshProxy" });
+  });
 }
 
 // Global Uniqueness Check
@@ -1264,6 +1290,7 @@ function bindItemEvents() {
 
   // Save Item
   $(".item-save-btn").on("click", function () {
+    showProcessingTip(I18n.t('processing'));
     saveSingleProxy($(this).data("index"));
   });
 
@@ -1710,6 +1737,7 @@ $(".delete-tip-close-btn, .delete-tip-cancel-btn, .delete-tip").on("click", func
 });
 
 $(".delete-tip-confirm-btn").on("click", function () {
+  showProcessingTip(I18n.t('processing'));
   $(".delete-tip").removeClass("show");
   setTimeout(function () { $(".delete-tip").hide(); }, 300);
 
@@ -1722,7 +1750,13 @@ $(".delete-tip-confirm-btn").on("click", function () {
     }
 
     chrome.storage.local.set({ scenarios: scenarios, list: list }, function () {
-      chrome.runtime.sendMessage({ action: "refreshProxy" });
+      if (chrome.runtime.lastError) {
+        console.error("Delete failed:", chrome.runtime.lastError);
+        showTip(I18n.t('delete_failed'), true);
+      } else {
+        showTip(I18n.t('delete_success'), false);
+        chrome.runtime.sendMessage({ action: "refreshProxy" });
+      }
     });
     renderList();
   }
@@ -2186,10 +2220,10 @@ async function manualPush() {
     } else if (type === 'gist') {
       await pushToGist(data);
     }
-    showTip(I18n.t('sync_success'), false);
+    showTip(I18n.t('push_success'), false);
   } catch (e) {
     console.error("Sync Push Error:", e);
-    showTip(I18n.t('sync_failed') + (e.message || e), true);
+    showTip(I18n.t('push_failed') + (e.message || e), true);
   } finally {
     $btn.prop('disabled', false);
   }
@@ -2236,22 +2270,22 @@ async function manualPull() {
 
         chrome.storage.local.set(toSave, function () {
           if (chrome.runtime.lastError) {
-            showTip(I18n.t('sync_failed') + chrome.runtime.lastError.message, true);
+            showTip(I18n.t('pull_failed') + chrome.runtime.lastError.message, true);
             return;
           }
           // Reload UI using the remote structure
           loadFromLocal(remoteData);
-          showTip(I18n.t('sync_success'), false);
+          showTip(I18n.t('pull_success'), false);
         });
       } else {
-        showTip(I18n.t('sync_failed') + "No valid data found", true);
+        showTip(I18n.t('pull_failed'), true);
       }
     } else {
-      showTip(I18n.t('sync_failed') + "No data found", true);
+      showTip(I18n.t('pull_failed'), true);
     }
   } catch (e) {
     console.error("Sync Pull Error:", e);
-    showTip(I18n.t('sync_failed') + (e.message || e), true);
+    showTip(I18n.t('pull_failed') + (e.message || e), true);
   } finally {
     $btn.prop('disabled', false);
   }
@@ -2479,12 +2513,20 @@ async function testGistConnection() {
 function showTip(msg, isError) {
   console.log("Show Tip:", msg, isError);
   var $tip = $(".save-success-toast");
-  $tip.text(msg);
-  if (isError) $tip.addClass("error"); else $tip.removeClass("error");
+  $tip.removeClass("error processing");
+  if (isError) $tip.addClass("error");
+  $tip.find('.icon').html('');
+  $tip.find('.message').text(msg);
   $tip.stop(true, true).fadeIn("slow").delay(1000).fadeOut("slow");
-  // $tip.css({ visibility: 'visible', opacity: 0 }).stop(true, true).animate({ opacity: 1 }, 300).delay(1000).animate({ opacity: 0 }, 300, function() {
-  //   $tip.css({ visibility: 'hidden' });
-  // });
+}
+
+function showProcessingTip(msg) {
+  console.log("Show Processing Tip:", msg);
+  var $tip = $(".save-success-toast");
+  $tip.removeClass("error").addClass("processing");
+  $tip.find('.icon').html('<svg class="spin" viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="10" fill="#22c55e"/><path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8z" fill="#3b82f6"/></svg>');
+  $tip.find('.message').text(msg);
+  $tip.stop(true, true).show();
 }
 
 function escapeHtml(text) {
