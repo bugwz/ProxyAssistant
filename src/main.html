@@ -469,41 +469,54 @@
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
                 </div>
             </div>
-           <div class="pac-details-content">
-               <!-- PAC Info -->
-               <div class="pac-info-section">
-                   <div class="pac-info-row">
-                       <span class="pac-info-label" data-i18n="pac_mode">模式</span>
-                       <span class="pac-info-value" id="pac-mode-value">自动</span>
+            <div class="pac-details-scroll-content">
+                <div class="pac-details-content">
+                   <!-- PAC Info -->
+                   <div class="pac-info-section">
+                       <div class="pac-info-row">
+                           <span class="pac-info-label" data-i18n="pac_mode">模式</span>
+                           <span class="pac-info-value" id="pac-mode-value">自动</span>
+                       </div>
+                       <div class="pac-info-row">
+                           <span class="pac-info-label" data-i18n="pac_generated">生成时间</span>
+                           <span class="pac-info-value" id="pac-generated-time">-</span>
+                       </div>
+                       <div class="pac-info-row">
+                           <span class="pac-info-label" data-i18n="pac_rules_count">规则数量</span>
+                           <span class="pac-info-value" id="pac-rules-count">0</span>
+                       </div>
                    </div>
-                   <div class="pac-info-row">
-                       <span class="pac-info-label" data-i18n="pac_generated">生成时间</span>
-                       <span class="pac-info-value" id="pac-generated-time">-</span>
+                   <!-- Rules List -->
+                   <div class="pac-rules-section">
+                       <div class="pac-rules-title" data-i18n="pac_rules_title">代理规则</div>
+                       <div class="pac-rules-table">
+                           <div class="pac-rules-header">
+                               <span class="pac-rules-header-pattern" data-i18n="pac_rule_pattern">匹配规则</span>
+                               <span class="pac-rules-header-proxy" data-i18n="pac_rule_proxy">代理服务器</span>
+                           </div>
+                           <div class="pac-rules-list" id="pac-rules-list">
+                               <!-- Dynamically inserted rules -->
+                           </div>
+                       </div>
                    </div>
-                   <div class="pac-info-row">
-                       <span class="pac-info-label" data-i18n="pac_rules_count">规则数量</span>
-                       <span class="pac-info-value" id="pac-rules-count">0</span>
+                   <!-- Full Script -->
+                   <div class="pac-script-section">
+                       <div class="pac-script-header">
+                           <span data-i18n="pac_full_script">完整脚本</span>
+                           <div class="pac-script-actions">
+                               <button class="pac-script-toggle-btn" id="pac-toggle-btn">
+                                   <svg class="pac-toggle-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+                               </button>
+                               <button class="pac-script-copy-btn" id="pac-copy-btn">
+                                   <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                               </button>
+                           </div>
+                       </div>
+                   <div class="pac-script-wrapper collapsed" id="pac-script-wrapper">
+                       <pre class="pac-script-content" id="pac-script-content"></pre>
                    </div>
-               </div>
-               <!-- Rules List -->
-               <div class="pac-rules-section">
-                   <div class="pac-rules-title" data-i18n="pac_rules_title">代理规则</div>
-                   <div class="pac-rules-list" id="pac-rules-list">
-                       <!-- Dynamically inserted rules -->
-                   </div>
-               </div>
-               <!-- Full Script -->
-               <div class="pac-script-section">
-                   <div class="pac-script-header">
-                       <span data-i18n="pac_full_script">完整脚本</span>
-                       <button class="pac-script-copy-btn" id="pac-copy-btn" data-i18n="pac_copy_script">复制</button>
-                   </div>
-                   <pre class="pac-script-content" id="pac-script-content"></pre>
-               </div>
-           </div>
-           <div class="pac-details-btn">
-               <div class="pac-details-close-btn-secondary" data-i18n="close">关闭</div>
-           </div>
+                </div>
+            </div>
        </div>
    </div>
 </body>
