@@ -2154,9 +2154,9 @@ input:checked+.slider-modern:before {
 }
 
 [data-theme="dark"] .add-scenario-form .form-control {
-  background-color: #0f172a;
-  border-color: #334155;
-  color: #f1f5f9;
+  background-color: var(--bg-primary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
 }
 
 .add-scenario-form .form-control:focus {
