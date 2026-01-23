@@ -2480,7 +2480,7 @@ function escapeHtml(text) {
     .replace(/'/g, "&#039;");
 }
 
-$(".save-success-toast").hide();
+
 
 // Spin Animation
 var style = document.createElement('style');

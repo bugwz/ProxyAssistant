@@ -3167,6 +3167,7 @@ input:checked+.slider-modern:before {
 
 /* Save Success Toast */
 .save-success-toast {
+  display: none;
   position: fixed;
   top: 20px;
   left: 50%;
