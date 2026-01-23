@@ -23,7 +23,7 @@
 
 <div align="center">
 
-A powerful browser proxy management extension for Chrome and Firefox, easy configuration and switching of network proxies.
+A powerful browser proxy management extension, compatible with Chrome/Firefox/Edge, supports multi-scenario management, helping you easily configure and switch network proxies.
 
 </div>
 
@@ -39,7 +39,8 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 
 ### 1.2 🌐 Multi-Browser Support
 - **Chrome** - Using Manifest V3 + Service Worker
-- **Firefox** - Using onRequest API for proxy interception
+- **Firefox** - Using Manifest V3 + `proxy.onRequest` API for proxy interception
+- **Edge** - Perfectly compatible with Chrome extensions, based on Chromium kernel
 
 ### 1.3 🔄 Three Proxy Modes
 
@@ -51,7 +52,14 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 
 ![](../public/img/promotion/1280-800-03.png)
 
-### 1.4 📋 Flexible URL Rule Configuration
+### 1.4 🎬 Scene Mode
+
+- **Multi-scenario Support**: Create different sets of proxy configurations (e.g., Company, Home, Dev environment)
+- **Quick Switch**: One-click switch of proxy lists between different scenarios
+- **Flexible Management**: Support adding, renaming, deleting, and sorting scenarios
+- **Proxy Migration**: Support moving proxies between different scenarios
+
+### 1.5 📋 Flexible URL Rule Configuration
 
 - **No proxy addresses** (`bypass_urls`): Domains/IPs for direct connection in manual mode
 - **Use proxy addresses** (`include_urls`): Domains that need proxy access in auto mode
@@ -59,33 +67,33 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 - Supports wildcards `*` and domain matching
 - Suitable for scenarios where different websites use different proxies
 
-### 1.5 🔐 Proxy Authentication Support
+### 1.6 🔐 Proxy Authentication Support
 
 - Username/password authentication support
 - Automatic handling of proxy server authentication requests
 - Secure credential storage
 
-### 1.6 🧪 Proxy Testing Functionality
+### 1.7 🧪 Proxy Testing Functionality
 
 - **Connection Test**: Verify if proxy is available
 - **Latency Measurement**: Test proxy response time
 - **Batch Testing**: One-click test all proxies
 - **Color Coding**: Green (<500ms) / Orange (≥500ms) / Red (failed)
 
-### 1.7 🏃 Proxy Status Detection
+### 1.8 🏃 Proxy Status Detection
 
 - Detect current browser proxy settings
 - Verify if extension successfully controls proxy
 - Identify other extensions controlling proxy
 - Provides status, warning, and error results
 
-### 1.8 🔍 PAC Script Preview
+### 1.9 🔍 PAC Script Preview
 
 - **Script Viewing**: View the automatically generated PAC script content
 - **Rules List**: Clearly display all active proxy matching rules
 - **Debug Support**: Easy troubleshooting of matching issues in auto mode
 
-### 1.9 🌙 Theme Modes
+### 1.10 🌙 Theme Modes
 
 - **Light Mode**: For daytime use
 - **Dark Mode**: For nighttime use
@@ -93,18 +101,18 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 
 ![](../public/img/promotion/1280-800-02.png)
 
-### 1.10 ☁️ Data Storage & Sync
+### 1.11 ☁️ Data Storage & Sync
 
-#### 1.10.1 Storage Strategy
+#### 1.11.1 Storage Strategy
 
 | Storage Type | Storage Content | Description |
 |--------------|-----------------|-------------|
 | **Local Storage** | Proxy list, theme settings, language settings, sync config | Always enabled, ensuring offline availability and data persistence |
 | **Cloud Sync** | Complete configuration data (chunked storage) | Optional, uses chunked storage to bypass quota limits |
 
-#### 1.10.2 Sync Methods
+#### 1.11.2 Sync Methods
 
-##### 1.10.2.1 Native Browser Sync
+##### 1.11.2.1 Native Browser Sync
 - Uses `chrome.storage.sync` API (Chrome) or `browser.storage.sync` (Firefox)
 - Automatic sync via Chrome/Firefox account
 - Suitable for multi-device sync with same browser account
@@ -113,7 +121,7 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 - **Atomic Operations**: Push operation clears old data before writing new data to ensure consistency
 - **Quota Display**: Real-time display of used/total quota (100KB) and chunk count
 
-##### 1.10.2.2 GitHub Gist Sync
+##### 1.11.2.2 GitHub Gist Sync
 - Sync configuration across browsers and devices via GitHub Gist
 - Requires GitHub Personal Access Token
 - Supports manual push/pull or automatic sync
@@ -125,7 +133,7 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 | **Filename** | Filename in Gist, default `proxy_assistant_config.json` |
 | **Gist ID** | Automatically recognized and saved, no manual input needed |
 
-#### 1.10.3 Sync Operations
+#### 1.11.3 Sync Operations
 
 | Operation | Description |
 |-----------|-------------|
@@ -133,7 +141,7 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 | **Pull** | Download configuration from cloud/Gist to local |
 | **Test Connection** | Verify Gist Token validity and configuration status |
 
-#### 1.10.4 Import/Export
+#### 1.11.4 Import/Export
 
 - **Export Configuration**: Generate JSON file with all proxy info, theme settings, language settings, etc.
 - **Import Configuration**: Restore configuration from JSON file
@@ -170,7 +178,7 @@ A powerful browser proxy management extension for Chrome and Firefox, easy confi
 }
 ```
 
-### 1.11 🌍 Multilingual Support
+### 1.12 🌍 Multilingual Support
 
 This extension supports the following languages:
 
@@ -363,7 +371,6 @@ npm install
 | `make test_integration` | Run integration tests only |
 | `make test_e2e` | Run e2e tests only |
 | `make test_watch_nocache` | Run tests in watch mode |
-| `make test_cov_nocache` | Run tests and generate coverage report |
 
 **Using npm directly**:
 ```bash
@@ -385,9 +392,9 @@ npm run test:coverage       # Run tests and generate coverage report
 
 **Specify Version**:
 ```bash
-make build VERSION=1.4.0
+make build VERSION=dev
 # or
-./script/build.sh 1.3.1
+./script/build.sh dev
 ```
 
 **Build Artifacts**:
@@ -522,6 +529,7 @@ Click "Detect Proxy Effect" button to:
 
 3. **main.js**:
    - Settings page logic
+   - Scenario Management
    - Proxy management (CRUD)
    - Drag and drop sorting
    - Import/Export

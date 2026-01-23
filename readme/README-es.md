@@ -23,7 +23,7 @@
 
 <div align="center">
 
-Una potente extensión de gestión de proxy para navegador que soporta Chrome y Firefox, facilitando la configuración y conmutación de proxies de red.
+Una potente extensión de gestión de proxy para navegador que soporta Chrome/Firefox/Edge y otros navegadores múltiples, con gestión de múltiples escenarios, facilitando la configuración y conmutación de proxies de red.
 
 </div>
 
@@ -39,7 +39,8 @@ Una potente extensión de gestión de proxy para navegador que soporta Chrome y 
 
 ### 1.2 🌐 Soporte multi-navegador
 - **Chrome** - Usando Manifest V3 + Service Worker
-- **Firefox** - Usando onRequest API para interceptación de proxy
+- **Firefox** - Usando Manifest V3 + API `proxy.onRequest` para interceptación de solicitudes proxy
+- **Edge** - Totalmente compatible con extensiones de Chrome, basado en kernel Chromium
 
 ### 1.3 🔄 Tres modos de proxy
 
@@ -51,7 +52,14 @@ Una potente extensión de gestión de proxy para navegador que soporta Chrome y 
 
 ![](../public/img/promotion/1280-800-03.png)
 
-### 1.4 📋 Configuración flexible de reglas URL
+### 1.4 🎬 Modo Escenario
+
+- **Soporte Multi-escenario**: Crear diferentes conjuntos de configuraciones de proxy (ej: Empresa, Hogar, Entorno de desarrollo)
+- **Cambio Rápido**: Cambio con un clic de listas de proxy entre diferentes escenarios
+- **Gestión Flexible**: Soporte para agregar, renombrar, eliminar y ordenar escenarios
+- **Migración de Proxy**: Soporte para mover proxies entre diferentes escenarios
+
+### 1.5 📋 Configuración flexible de reglas URL
 
 - **Direcciones que omiten el proxy** (`bypass_urls`): Dominios/IPs de conexión directa en modo manual
 - **Direcciones que usan el proxy** (`include_urls`): Dominios que requieren acceso proxy en modo automático
@@ -59,33 +67,33 @@ Una potente extensión de gestión de proxy para navegador que soporta Chrome y 
 - Soporta comodín `*` y coincidencia de dominio
 - Ideal para escenarios donde diferentes sitios web usan diferentes proxies
 
-### 1.5 🔐 Soporte de autenticación proxy
+### 1.6 🔐 Soporte de autenticación proxy
 
 - Autenticación con nombre de usuario/contraseña
 - Manejo automático de solicitudes de autenticación del servidor proxy
 - Almacenamiento seguro de credenciales
 
-### 1.6 🧪 Funciones de prueba de proxy
+### 1.7 🧪 Funciones de prueba de proxy
 
 - **Prueba de conexión**: Verificar disponibilidad del proxy
 - **Medición de latencia**: Probar tiempo de respuesta del proxy
 - **Prueba en lote**: Probar todos los proxies con un clic
 - **Indicadores de color**: Verde(<500ms) / Naranja(≥500ms) / Rojo(Fallido)
 
-### 1.7 🏃 Detección de estado del proxy
+### 1.8 🏃 Detección de estado del proxy
 
 - Detectar la configuración actual del proxy del navegador
 - Verificar si la extensión controló exitosamente el proxy
 - Identificar otras extensiones que controlan el proxy
 - Proporcionar tres resultados: estado, advertencia, error
 
-### 1.8 🔍 Vista previa del script PAC
+### 1.9 🔍 Vista previa del script PAC
 
 - **Visualización de scripts**: Ver el contenido del script PAC generado automáticamente
 - **Lista de reglas**: Visualización clara de todas las reglas de coincidencia de proxy activas
 - **Soporte de depuración**: Solución fácil de problemas de coincidencia en modo automático
 
-### 1.9 🌙 Modos de tema
+### 1.10 🌙 Modos de tema
 
 - **Modo Claro**: Para uso diurno
 - **Modo Oscuro**: Para uso nocturno
@@ -93,18 +101,18 @@ Una potente extensión de gestión de proxy para navegador que soporta Chrome y 
 
 ![](../public/img/promotion/1280-800-02.png)
 
-### 1.10 ☁️ Almacenamiento y sincronización de datos
+### 1.11 ☁️ Almacenamiento y sincronización de datos
 
-#### 1.10.1 Estrategia de almacenamiento
+#### 1.11.1 Estrategia de almacenamiento
 
 | Tipo de almacenamiento | Contenido de almacenamiento | Descripción |
 |------------------------|-----------------------------|-------------|
 | **Almacenamiento local (local)** | Lista de proxies, configuración de tema, configuración de idioma, configuración de sincronización | Siempre activo, asegurando disponibilidad sin conexión y persistencia de datos |
 | **Sincronización en la nube (sync)** | Datos de configuración completos (almacenamiento por fragmentos) | Opcional, utiliza almacenamiento por fragmentos para evitar límites de cuota |
 
-#### 1.10.2 Métodos de sincronización
+#### 1.11.2 Métodos de sincronización
 
-##### 1.10.2.1 Sincronización nativa del navegador (Native Sync)
+##### 1.11.2.1 Sincronización nativa del navegador (Native Sync)
 - Usa la API `chrome.storage.sync` (Chrome) o `browser.storage.sync` (Firefox)
 - Sincronización automática a través de la cuenta de Chrome/Firefox
 - Adecuado para sincronización multi-dispositivo con la misma cuenta del navegador
@@ -113,7 +121,7 @@ Una potente extensión de gestión de proxy para navegador que soporta Chrome y 
 - **Operaciones atómicas**: La operación Push borra los datos antiguos antes de escribir los nuevos para asegurar la consistencia
 - **Visualización de cuota**: Visualización en tiempo real de la cuota utilizada/total (100KB) y número de fragmentos
 
-##### 1.10.2.2 Sincronización GitHub Gist
+##### 1.11.2.2 Sincronización GitHub Gist
 - Sincronización de configuración entre navegadores y dispositivos a través de GitHub Gist
 - Requiere configurar GitHub Personal Access Token
 - Soporta push/pull manual o sincronización automática
@@ -125,7 +133,7 @@ Una potente extensión de gestión de proxy para navegador que soporta Chrome y 
 | **Nombre de archivo** | Nombre de archivo en Gist, por defecto `proxy_assistant_config.json` |
 | **ID de Gist** | Reconocimiento y guardado automático, no requiere entrada manual |
 
-#### 1.10.3 Operaciones de sincronización
+#### 1.11.3 Operaciones de sincronización
 
 | Operación | Descripción |
 |-----------|-------------|
@@ -133,7 +141,7 @@ Una potente extensión de gestión de proxy para navegador que soporta Chrome y 
 | **Pull** | Descargar configuración desde la nube/Gist a local |
 | **Probar conexión** | Verificar la validez del Gist Token y el estado de la configuración |
 
-#### 1.10.4 Importar/Exportar
+#### 1.11.4 Importar/Exportar
 
 - **Exportar configuración**: Generar archivo JSON con toda la información de proxy, configuraciones de tema, configuraciones de idioma, etc.
 - **Importar configuración**: Soporte para restaurar configuración desde archivo JSON
@@ -170,7 +178,7 @@ Una potente extensión de gestión de proxy para navegador que soporta Chrome y 
 }
 ```
 
-### 1.11 🌍 Soporte multilingüe
+### 1.12 🌍 Soporte multilingüe
 
 Esta extensión soporta los siguientes idiomas:
 
@@ -363,7 +371,6 @@ npm install
 | `make test_integration` | Ejecutar solo pruebas de integración |
 | `make test_e2e` | Ejecutar solo pruebas e2e |
 | `make test_watch_nocache` | Ejecutar pruebas en modo watch |
-| `make test_cov_nocache` | Ejecutar pruebas y generar informe de cobertura |
 
 **Uso directo de npm**:
 ```bash
@@ -385,9 +392,9 @@ npm run test:coverage       # Ejecutar pruebas y generar informe de cobertura
 
 **Especificar versión**:
 ```bash
-make build VERSION=1.4.0
+make build VERSION=dev
 # o
-./script/build.sh 1.3.1
+./script/build.sh dev
 ```
 
 **Artefactos de compilación**:
@@ -522,6 +529,7 @@ Click en el botón "Detectar estado del proxy" puede:
 
 3. **main.js**:
    - Lógica de página de configuración
+   - Gestión de escenarios (Scenarios)
    - Gestión de proxies (CRUD)
    - Ordenación arrastrando
    - Importar/Exportar

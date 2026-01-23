@@ -23,7 +23,7 @@
 
 <div align="center">
 
-Une extension puissante de gestion de proxy pour Chrome et Firefox, permettant de configurer et de basculer facilement entre différents proxies réseau.
+Une extension puissante de gestion de proxy pour navigateur, compatible avec Chrome/Firefox/Edge, supportant la gestion multi-scénarios, vous permettant de configurer et de basculer facilement entre différents proxies réseau.
 
 </div>
 
@@ -39,7 +39,8 @@ Une extension puissante de gestion de proxy pour Chrome et Firefox, permettant d
 
 ### 1.2 🌐 Prise en charge multi-navigateurs
 - **Chrome** - Utilise Manifest V3 + Service Worker
-- **Firefox** - Utilise l'API onRequest pour l'interception proxy
+- **Firefox** - Utilise Manifest V3 + l'API `proxy.onRequest` pour l'interception des requêtes proxy
+- **Edge** - Parfaitement compatible avec les extensions Chrome, basé sur le noyau Chromium
 
 ### 1.3 🔄 Trois modes proxy
 
@@ -51,7 +52,14 @@ Une extension puissante de gestion de proxy pour Chrome et Firefox, permettant d
 
 ![](../public/img/promotion/1280-800-03.png)
 
-### 1.4 📋 Configuration flexible des règles d'URL
+### 1.4 🎬 Mode Scénario
+
+- **Support Multi-scénarios**: Créer différents ensembles de configurations de proxy (ex: Entreprise, Domicile, Environnement de développement)
+- **Basculement Rapide**: Changement en un clic des listes de proxy entre différents scénarios
+- **Gestion Flexible**: Support de l'ajout, renommage, suppression et tri des scénarios
+- **Migration de Proxy**: Support du déplacement des proxies entre différents scénarios
+
+### 1.5 📋 Configuration flexible des règles d'URL
 
 - **Adresses bypassant le proxy** (`bypass_urls`): Domaines/IP de connexion directe en mode manuel
 - **Adresses utilisant le proxy** (`include_urls`): Domaines nécessitant un accès proxy en mode automatique
@@ -59,33 +67,33 @@ Une extension puissante de gestion de proxy pour Chrome et Firefox, permettant d
 - Prise en charge du joker `*` et de la correspondance de domaine
 - Convient aux scénarios où différents sites web utilisent différents proxies
 
-### 1.5 🔐 Prise en charge de l'authentification proxy
+### 1.6 🔐 Prise en charge de l'authentification proxy
 
 - Authentification par nom d'utilisateur/mot de passe
 - Traitement automatique des demandes d'authentification du serveur proxy
 - Stockage sécurisé des identifiants
 
-### 1.6 🧪 Fonctionnalités de test de proxy
+### 1.7 🧪 Fonctionnalités de test de proxy
 
 - **Test de connexion**: Vérifier la disponibilité du proxy
 - **Mesure de latence**: Tester le temps de réponse du proxy
 - **Test en lot**: Tester tous les proxies en un clic
 - **Indicateurs de couleur**: Vert(<500ms) / Orange(≥500ms) / Rouge(Echec)
 
-### 1.7 🏃 Détection de l'état du proxy
+### 1.8 🏃 Détection de l'état du proxy
 
 - Détecter les paramètres proxy actuels du navigateur
 - Vérifier si l'extension contrôle correctement le proxy
 - Identifier si d'autres extensions contrôlent le proxy
 - Fournit des résultats d'état, d'avertissement et d'erreur
 
-### 1.8 🔍 Aperçu du script PAC
+### 1.9 🔍 Aperçu du script PAC
 
 - **Visualisation du script**: Voir le contenu du script PAC généré automatiquement
 - **Liste des règles**: Affichage clair de toutes les règles de correspondance de proxy actives
 - **Support de débogage**: Dépannage facile des problèmes de correspondance en mode automatique
 
-### 1.9 🌙 Modes de thème
+### 1.10 🌙 Modes de thème
 
 - **Mode Clair**: Pour une utilisation de jour
 - **Mode Sombre**: Pour une utilisation de nuit
@@ -93,18 +101,18 @@ Une extension puissante de gestion de proxy pour Chrome et Firefox, permettant d
 
 ![](../public/img/promotion/1280-800-02.png)
 
-### 1.10 ☁️ Stockage et synchronisation des données
+### 1.11 ☁️ Stockage et synchronisation des données
 
-#### 1.10.1 Stratégie de stockage
+#### 1.11.1 Stratégie de stockage
 
 | Type de stockage | Contenu de stockage | Description |
 |------------------|---------------------|-------------|
 | **Stockage local (local)** | Liste des proxies, paramètres de thème, paramètres de langue, configuration de synchronisation | Toujours activé, assurant la disponibilité hors ligne et la persistance des données |
 | **Synchronisation cloud (sync)** | Données de configuration complètes (stockage par morceaux) | Optionnel, utilise le stockage par morceaux pour contourner les limites de quota |
 
-#### 1.10.2 Méthodes de synchronisation
+#### 1.11.2 Méthodes de synchronisation
 
-##### 1.10.2.1 Synchronisation native du navigateur (Native Sync)
+##### 1.11.2.1 Synchronisation native du navigateur (Native Sync)
 - Utilise l'API `chrome.storage.sync` (Chrome) ou `browser.storage.sync` (Firefox)
 - Synchronisation automatique via le compte Chrome/Firefox
 - Convient à la synchronisation multi-appareils avec le même compte navigateur
@@ -113,7 +121,7 @@ Une extension puissante de gestion de proxy pour Chrome et Firefox, permettant d
 - **Opérations atomiques**: L'opération Push efface les anciennes données avant d'écrire les nouvelles pour assurer la cohérence
 - **Affichage du quota**: Affichage en temps réel du quota utilisé/total (100KB) et du nombre de morceaux
 
-##### 1.10.2.2 Synchronisation GitHub Gist
+##### 1.11.2.2 Synchronisation GitHub Gist
 - Synchronisation de configuration entre navigateurs et appareils via GitHub Gist
 - Nécessite la configuration d'un Personal Access Token GitHub
 - Prise en charge du push/pull manuel ou de la synchronisation automatique
@@ -125,7 +133,7 @@ Une extension puissante de gestion de proxy pour Chrome et Firefox, permettant d
 | **Nom de fichier** | Nom de fichier dans Gist, par défaut `proxy_assistant_config.json` |
 | **ID Gist** | Reconnaissance et sauvegarde automatiques, aucune saisie manuelle requise |
 
-#### 1.10.3 Opérations de synchronisation
+#### 1.11.3 Opérations de synchronisation
 
 | Opération | Description |
 |-----------|-------------|
@@ -133,7 +141,7 @@ Une extension puissante de gestion de proxy pour Chrome et Firefox, permettant d
 | **Pull** | Télécharger la configuration depuis le cloud/Gist vers local |
 | **Tester la connexion** | Vérifier la validité du Gist Token et l'état de la configuration |
 
-#### 1.10.4 Importation/Exportation
+#### 1.11.4 Importation/Exportation
 
 - **Exporter la configuration**: Générer un fichier JSON contenant toutes les informations de proxy, paramètres de thème, paramètres de langue, etc.
 - **Importer la configuration**: Prise en charge de la restauration de la configuration depuis un fichier JSON
@@ -170,7 +178,7 @@ Une extension puissante de gestion de proxy pour Chrome et Firefox, permettant d
 }
 ```
 
-### 1.11 🌍 Prise en charge multilingue
+### 1.12 🌍 Prise en charge multilingue
 
 Cette extension prend en charge les langues suivantes :
 
@@ -363,7 +371,6 @@ npm install
 | `make test_integration` | Exécuter uniquement les tests d'intégration |
 | `make test_e2e` | Exécuter uniquement les tests e2e |
 | `make test_watch_nocache` | Exécuter les tests en mode watch |
-| `make test_cov_nocache` | Exécuter les tests et générer un rapport de couverture |
 
 **Utilisation directe de npm**:
 ```bash
@@ -385,9 +392,9 @@ npm run test:coverage       # Exécuter les tests et générer un rapport de cou
 
 **Spécifier la version**:
 ```bash
-make build VERSION=1.4.0
+make build VERSION=dev
 # ou
-./script/build.sh 1.3.1
+./script/build.sh dev
 ```
 
 **Artefacts de construction**:
@@ -522,6 +529,7 @@ Cliquez sur le bouton "Détecter l'effet du proxy" pour :
 
 3. **main.js**:
    - Logique de la page de paramètres
+   - Gestion des scénarios (Scenarios)
    - Gestion des proxies (CRUD)
    - Réorganisation par glisser-déposer
    - Importation/Exportation
