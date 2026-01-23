@@ -2,18 +2,18 @@
 // State & Constants
 // ==========================================
 const isFirefox = typeof browser !== 'undefined' && browser.runtime && browser.runtime.getBrowserInfo !== undefined;
-var list = [];
-var scenarios = [];
-var currentScenarioId = 'default';
-var save = true;
-var themeMode = 'light';
-var nightModeStart = '22:00';
-var nightModeEnd = '06:00';
-var themeInterval = null;
-var del_index = -1;
-var move_proxy_index = -1;
+let list = [];
+let scenarios = [];
+let currentScenarioId = 'default';
+let save = true;
+let themeMode = 'light';
+let nightModeStart = '22:00';
+let nightModeEnd = '06:00';
+let themeInterval = null;
+let del_index = -1;
+let move_proxy_index = -1;
 let pacStorageListener = null;
-var syncConfig = {
+let syncConfig = {
   type: 'native',
   gist: { token: '', filename: 'proxy_assistant_config.json', gist_id: '' }
 };
@@ -60,7 +60,7 @@ function loadFromLocal(remoteItems) {
         scenarios = remoteItems.scenarios;
         currentScenarioId = remoteItems.currentScenarioId || 'default';
       } else if (remoteItems.proxies) {
-        var proxyList = remoteItems.proxies;
+        const proxyList = remoteItems.proxies;
         scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: proxyList }];
         currentScenarioId = 'default';
       }
@@ -85,7 +85,7 @@ function loadFromLocal(remoteItems) {
     updateCurrentListFromScenario();
 
     // Load theme settings
-    var themeSettings = items.themeSettings || {};
+    const themeSettings = items.themeSettings || {};
     themeMode = themeSettings.mode || 'light';
     nightModeStart = themeSettings.startTime || '22:00';
     nightModeEnd = themeSettings.endTime || '06:00';
@@ -106,7 +106,7 @@ function updateCurrentListFromScenario() {
 // ==========================================
 function initTheme() {
   $('.theme-btn').on('click', function () {
-    var mode = $(this).data('theme');
+    const mode = $(this).data('theme');
     $('.theme-btn').removeClass('active');
     $(this).addClass('active');
 
@@ -166,17 +166,17 @@ function applyTheme(theme) {
 }
 
 function updateThemeByTime() {
-  var now = new Date();
-  var currentHour = now.getHours();
-  var currentMinute = now.getMinutes();
-  var currentTime = currentHour * 60 + currentMinute;
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const currentTime = currentHour * 60 + currentMinute;
 
-  var startParts = nightModeStart.split(':');
-  var endParts = nightModeEnd.split(':');
-  var startMinutes = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
-  var endMinutes = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+  const startParts = nightModeStart.split(':');
+  const endParts = nightModeEnd.split(':');
+  const startMinutes = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+  const endMinutes = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
 
-  var isNightMode;
+  let isNightMode;
   if (startMinutes < endMinutes) {
     isNightMode = currentTime >= startMinutes || currentTime < endMinutes;
   } else {
@@ -196,7 +196,7 @@ function startThemeInterval() {
 }
 
 function saveThemeSettings() {
-  var themeSettings = {
+  const themeSettings = {
     mode: themeMode,
     startTime: nightModeStart,
     endTime: nightModeEnd
@@ -329,9 +329,9 @@ function initDropdowns() {
   // Delegate event to support dynamic elements
   $(document).off("click", ".lh-select-k").on("click", ".lh-select-k", function (e) {
     e.stopPropagation();
-    var that = this;
-    var $op = $(that).next();
-    var display = $op.css('display');
+    const that = this;
+    const $op = $(that).next();
+    const display = $op.css('display');
 
     // Close other dropdowns
     $(".lh-select-op").not($op).hide();
@@ -349,9 +349,9 @@ function initDropdowns() {
   // Main scenario button click handler
   $(document).off("click", ".main-scenario-btn").on("click", ".main-scenario-btn", function (e) {
     e.stopPropagation();
-    var $btn = $(this);
-    var $op = $btn.siblings('.main-scenario-dropdown');
-    var display = $op.css('display');
+    const $btn = $(this);
+    const $op = $btn.siblings('.main-scenario-dropdown');
+    const display = $op.css('display');
 
     // Close other dropdowns
     $(".lh-select-op").not($op).hide();
@@ -368,9 +368,9 @@ function initDropdowns() {
 
   $(document).off("click", ".lh-select-op li").on("click", ".lh-select-op li", function (e) {
     e.stopPropagation();
-    var $li = $(this);
-    var $container = $li.closest('.lh-select');
-    var type = $container.data("type");
+    const $li = $(this);
+    const $container = $li.closest('.lh-select');
+    const type = $container.data("type");
 
     // Special handling for main scenario selector
     if (type === 'main_scenario') {
@@ -400,25 +400,25 @@ function initDropdowns() {
     $li.addClass("selected-option");
     $li.parent().hide();
 
-    var txt = $li.text();
-    var val = $li.data("value") || txt;
+    const txt = $li.text();
+    const val = $li.data("value") || txt;
 
-    var $selectVal = $container.find(".lh-select-value");
+    const $selectVal = $container.find(".lh-select-value");
     $selectVal.text(txt);
 
-    var i = $selectVal.data("index");
+    const i = $selectVal.data("index");
 
     if (typeof i !== 'undefined' && list && list[i]) {
       if (type === 'protocol') {
-        var cleanVal = cleanProtocol(val);
+        const cleanVal = cleanProtocol(val);
         list[i].protocol = cleanVal;
-        var $badge = $li.closest('.proxy-card').find('.proxy-type-badge');
+        const $badge = $li.closest('.proxy-card').find('.proxy-type-badge');
         $badge.text(cleanVal.toUpperCase()).removeClass('http https socks5').addClass(cleanVal);
 
-        var isSocks5 = cleanVal === 'socks5';
-        var disableAuth = !isFirefox && isSocks5;
-        var $formGrid = $li.closest('.proxy-body-container');
-        var $authInputs = $formGrid.find('.username, .password');
+        const isSocks5 = cleanVal === 'socks5';
+        const disableAuth = !isFirefox && isSocks5;
+        const $formGrid = $li.closest('.proxy-body-container');
+        const $authInputs = $formGrid.find('.username, .password');
 
         $authInputs.prop('disabled', disableAuth);
         if (!disableAuth) {
@@ -470,7 +470,7 @@ function bindGlobalEvents() {
     renderList();
 
     setTimeout(function () {
-      var $newItem = $(".proxy-card").last();
+      const $newItem = $(".proxy-card").last();
       if ($newItem.length) {
         $("html, body").animate({ scrollTop: $newItem.offset().top - 100 }, 500);
       }
@@ -479,15 +479,15 @@ function bindGlobalEvents() {
 
   // Test All Button
   $("#test-all-btn").on("click", async function () {
-    var $btn = $(this);
+    const $btn = $(this);
     if ($btn.prop('disabled')) return;
     $btn.prop('disabled', true);
 
     $(".proxy-header-test-result").text("").removeClass("text-green text-orange text-red text-blue");
 
     for (let index = 0; index < list.length; index++) {
-      var proxy = list[index];
-      var $item = $(`.proxy-card[data-id="${index}"]`);
+      const proxy = list[index];
+      const $item = $(`.proxy-card[data-id="${index}"]`);
 
       // Sync latest values from DOM just in case
       proxy.name = $item.find('.name').val();
@@ -499,7 +499,7 @@ function bindGlobalEvents() {
 
       if (proxy.disabled || !proxy.ip || !proxy.port) continue;
 
-      var $resultSpan = $(`.proxy-header-test-result[data-index="${index}"]`);
+      const $resultSpan = $(`.proxy-header-test-result[data-index="${index}"]`);
       $resultSpan.text(I18n.t('testing')).removeClass("text-green text-orange text-red").addClass("text-blue");
 
       await new Promise(function (resolve) {
@@ -510,11 +510,11 @@ function bindGlobalEvents() {
           if (chrome.runtime.lastError) {
             $resultSpan.text(I18n.t('test_failed')).removeClass("text-blue").addClass("text-red");
           } else if (response && response.success) {
-            var latency = response.latency;
-            var colorClass = latency < 500 ? "text-green" : "text-orange";
+            const latency = response.latency;
+            const colorClass = latency < 500 ? "text-green" : "text-orange";
             $resultSpan.text(latency + "ms").removeClass("text-blue").addClass(colorClass);
           } else {
-            var errorMsg = (response && response.error) ? response.error : I18n.t('test_failed');
+            let errorMsg = (response && response.error) ? response.error : I18n.t('test_failed');
             if (errorMsg.length > 10) errorMsg = I18n.t('test_failed');
             $resultSpan.text(errorMsg).removeClass("text-blue").addClass("text-red");
           }
@@ -541,10 +541,10 @@ function bindGlobalEvents() {
 
   // Gist Token Eye Toggle
   $("#gist-token-eye input").on("change", function () {
-    var isChecked = $(this).prop("checked");
-    var $input = $("#gist-token");
+    const isChecked = $(this).prop("checked");
+    const $input = $("#gist-token");
     $input.attr("type", isChecked ? "text" : "password");
-    var $toggle = $(this).parent();
+    const $toggle = $(this).parent();
     if (isChecked) $toggle.removeClass('hide-password').addClass('show-password');
     else $toggle.removeClass('show-password').addClass('hide-password');
   });
@@ -576,8 +576,8 @@ function bindGlobalEvents() {
 
   // Test Connection Button
   $("#test-sync-connection").on("click", async function () {
-    var $btn = $(this);
-    var originalText = $btn.find('span').text();
+    const $btn = $(this);
+    const originalText = $btn.find('span').text();
     $btn.prop('disabled', true).find('span').text(I18n.t('testing'));
 
     try {
@@ -608,8 +608,8 @@ function bindGlobalEvents() {
 
   // Expand/Collapse All
   $("#expand-collapse-btn").on("click", function () {
-    var $btn = $(this);
-    var isExpanded = $btn.hasClass("expanded");
+    const $btn = $(this);
+    const isExpanded = $btn.hasClass("expanded");
 
     if (isExpanded) {
       $(".proxy-card").addClass("collapsed");
@@ -738,7 +738,7 @@ function bindGlobalEvents() {
   // ESC Key Support for Popups
   $(document).on("keydown", function (e) {
     if (e.key === "Escape") {
-      var popupOrder = [
+      const popupOrder = [
         '.edit-scenario-tip',
         '.delete-scenario-tip',
         '.move-proxy-tip',
@@ -750,8 +750,8 @@ function bindGlobalEvents() {
         '.delete-tip'
       ];
 
-      for (var i = 0; i < popupOrder.length; i++) {
-        var $popup = $(popupOrder[i]);
+      for (let i = 0; i < popupOrder.length; i++) {
+        const $popup = $(popupOrder[i]);
         if ($popup.hasClass('show')) {
           $popup.removeClass("show");
           setTimeout(function (popup) {
@@ -775,8 +775,8 @@ function bindGlobalEvents() {
 // ==========================================
 
 function renderScenarioSelector() {
-  var html = "";
-  var currentScenarioName = "";
+  let html = "";
+  let currentScenarioName = "";
 
   scenarios.forEach(function (scenario) {
     const isCurrent = scenario.id === currentScenarioId;
@@ -816,7 +816,7 @@ function switchScenario(id) {
 }
 
 function renderScenarioManagementList() {
-  var html = "";
+  let html = "";
   scenarios.forEach(function (scenario, index) {
     const isCurrent = scenario.id === currentScenarioId;
     const proxyCount = (scenario.proxies || []).length;
@@ -1012,23 +1012,23 @@ function checkNameGlobalUniqueness(name, excludeProxyIndex, excludeScenarioId) {
 // List Rendering
 // ==========================================
 function renderList() {
-  var html = "";
-  for (var i = 0; i < list.length; i++) {
-    var info = list[i];
-    var is_disabled = info.disabled === true;
-    var protocolClass = (info.protocol || "http").toLowerCase();
-    var displayProtocol = (info.protocol || "http").toUpperCase();
+  let html = "";
+  for (let i = 0; i < list.length; i++) {
+    const info = list[i];
+    const is_disabled = info.disabled === true;
+    const protocolClass = (info.protocol || "http").toLowerCase();
+    const displayProtocol = (info.protocol || "http").toUpperCase();
 
-    var isSocks5 = protocolClass === 'socks5';
-    var disableAuth = !isFirefox && isSocks5;
-    var disabledAttr = disableAuth ? 'disabled' : '';
+    const isSocks5 = protocolClass === 'socks5';
+    const disableAuth = !isFirefox && isSocks5;
+    const disabledAttr = disableAuth ? 'disabled' : '';
 
-    var fallbackPolicy = info.fallback_policy || "direct";
-    var displayFallback = fallbackPolicy === "reject" ? I18n.t('fallback_reject') : I18n.t('fallback_direct');
-    var rawPreviewText = `${info.name || I18n.t('unnamed_proxy')} · ${info.ip || "0.0.0.0"}:${info.port || "0"}`;
-    var previewText = escapeHtml(rawPreviewText);
+    const fallbackPolicy = info.fallback_policy || "direct";
+    const displayFallback = fallbackPolicy === "reject" ? I18n.t('fallback_reject') : I18n.t('fallback_direct');
+    const rawPreviewText = `${info.name || I18n.t('unnamed_proxy')} · ${info.ip || "0.0.0.0"}:${info.port || "0"}`;
+    const previewText = escapeHtml(rawPreviewText);
 
-    var collapsedClass = info.is_new ? "" : "collapsed";
+    const collapsedClass = info.is_new ? "" : "collapsed";
     delete info.is_new;
 
     html += `<div class="proxy-card ${collapsedClass} ${is_disabled ? "disabled" : ""}" data-id="${i}">
@@ -1194,21 +1194,21 @@ function renderList() {
 function bindItemEvents() {
   // Input Blur
   $("input, textarea").on("blur", function () {
-    var i = $(this).data("index");
-    var val = $(this).val();
-    var name = $(this).attr("class");
+    const i = $(this).data("index");
+    const val = $(this).val();
+    let name = $(this).attr("class");
     if (name && name.indexOf(" ") !== -1) name = name.split(" ")[0];
     input_blur(i, name, val);
   });
 
   // Paste handling for IP
   $("input.ip").on("paste", function () {
-    var i = $(this).data("index");
-    var that = this;
+    const i = $(this).data("index");
+    const that = this;
     setTimeout(function () {
-      var val = $(that).val();
+      const val = $(that).val();
       if (val.indexOf(":") != -1) {
-        var txt_arr = val.split(":");
+        const txt_arr = val.split(":");
         $(that).val(txt_arr[0]);
         $(that).closest('.form-grid').find('.port').val(txt_arr[1]);
         input_blur(i, 'ip', txt_arr[0]);
@@ -1219,14 +1219,14 @@ function bindItemEvents() {
 
   // Eye Toggle
   $(".eye-toggle input").on("change", function () {
-    var i = $(this).parent().data("index");
+    const i = $(this).parent().data("index");
     if (i !== undefined && list[i]) {
       list[i].is_show = $(this).prop("checked") ? 1 : 0;
       save = false;
-      var passwordInput = $(".password[data-index='" + i + "']");
+      const passwordInput = $(".password[data-index='" + i + "']");
       passwordInput.attr("type", list[i].is_show == 1 ? "text" : "password");
 
-      var $toggle = $(this).parent();
+      const $toggle = $(this).parent();
       if (list[i].is_show == 1) $toggle.removeClass('hide-password').addClass('show-password');
       else $toggle.removeClass('show-password').addClass('hide-password');
     }
@@ -1234,10 +1234,10 @@ function bindItemEvents() {
 
   // Delete
   $(".del").on("click", function () {
-    var index = $(this).data("index");
+    const index = $(this).data("index");
     if (index !== undefined && list[index]) {
-      var info = list[index];
-      var previewText = `${info.name || I18n.t('unnamed_proxy')} (${info.ip || "0.0.0.0"}:${info.port || "0"})`;
+      const info = list[index];
+      const previewText = `${info.name || I18n.t('unnamed_proxy')} (${info.ip || "0.0.0.0"}:${info.port || "0"})`;
       $(".delete-tip-content").html(`${I18n.t('delete_proxy_confirm')}<br><span style="color: #e11d48; font-weight: 600; margin-top: 10px; display: block;">${previewText}</span>`);
       $(".delete-tip").show().addClass("show");
       del_index = index;
@@ -1251,13 +1251,13 @@ function bindItemEvents() {
 
   // Test Item
   $(".test-proxy-btn").on("click", function () {
-    var i = $(this).data("index");
-    var $btn = $(this);
-    var $headerResultSpan = $(`.proxy-header-test-result[data-index="${i}"]`);
+    const i = $(this).data("index");
+    const $btn = $(this);
+    const $headerResultSpan = $(`.proxy-header-test-result[data-index="${i}"]`);
 
     if (i !== undefined && list[i]) {
       // Sync DOM
-      var $item = $(`.proxy-card[data-id="${i}"]`);
+      const $item = $(`.proxy-card[data-id="${i}"]`);
       list[i].name = $item.find('.name').val();
       list[i].protocol = cleanProtocol($item.find('.lh-select-value').text());
       list[i].ip = $item.find('.ip').val();
@@ -1278,8 +1278,8 @@ function bindItemEvents() {
         if (chrome.runtime.lastError) {
           $headerResultSpan.text(I18n.t('test_failed')).removeClass("text-blue").addClass("text-red");
         } else if (response && response.success) {
-          var latency = response.latency;
-          var colorClass = latency < 500 ? "text-green" : "text-orange";
+          const latency = response.latency;
+          const colorClass = latency < 500 ? "text-green" : "text-orange";
           $headerResultSpan.text(latency + "ms").removeClass("text-blue").addClass(colorClass);
         } else {
           var errorMsg = (response && response.error) ? response.error : I18n.t('test_failed');
