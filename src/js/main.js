@@ -1955,12 +1955,29 @@ $(".pac-details-close-btn, .pac-details-close-btn-secondary, .pac-details-tip").
 
 $("#pac-copy-btn").on("click", function () {
   var script = $("#pac-script-content").text();
+  var $btn = $(this);
+  var copyIcon = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
+  var checkIcon = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+
   navigator.clipboard.writeText(script).then(function () {
-    var $btn = $("#pac-copy-btn");
-    var originalText = $btn.text();
-    $btn.text(I18n.t('pac_copied'));
-    setTimeout(function () { $btn.text(originalText); }, 2000);
+    $btn.html(checkIcon);
+    setTimeout(function () { $btn.html(copyIcon); }, 2000);
   }).catch(function (err) { console.error("Failed to copy:", err); });
+});
+
+// PAC Script Toggle (Expand/Collapse)
+$("#pac-toggle-btn").on("click", function () {
+  var $btn = $(this);
+  var $wrapper = $("#pac-script-wrapper");
+  var isExpanded = !$wrapper.hasClass("collapsed");
+
+  if (isExpanded) {
+    $wrapper.addClass("collapsed");
+    $btn.removeClass("expanded");
+  } else {
+    $wrapper.removeClass("collapsed");
+    $btn.addClass("expanded");
+  }
 });
 
 $(".pac-details-tip").hide();
