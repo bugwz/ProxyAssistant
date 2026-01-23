@@ -27,7 +27,7 @@
 
 </div>
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/promotional/marquee-1400x560.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/promotional/marquee-1400x560.png)
 
 ## 1. ✨ Функции
 
@@ -50,7 +50,7 @@
 | **Вручную** | Вручную выбрать прокси из списка |
 | **Автоматически** | Автоматически выбирать соответствующий прокси на основе правил URL (режим PAC) |
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/03.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/features/03.png)
 
 ### 1.4 🎬 Режим сценария
 
@@ -99,7 +99,7 @@
 - **Темная тема**: Для ночного использования
 - **Автоматическое переключение**: Автоматически переключать тему по времени (настраиваемый период)
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/02.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/features/02.png)
 
 ### 1.11 ☁️ Хранение и синхронизация данных
 
@@ -195,11 +195,11 @@
 | Русский | ru | ✅ Поддерживается |
 | 한국어 | ko | ✅ Поддерживается |
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/store/features/04.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/features/04.png)
 
 ## 2. 📷 Интерфейс настроек
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260117084453/assets/screenshots/main/settings.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/screenshots/main/settings.png)
 
 ## 3. 📁 Структура проекта
 
