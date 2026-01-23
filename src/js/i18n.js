@@ -173,7 +173,9 @@ const translations = {
     "status_current": "当前",
     "alert_scenario_name_spaces": "场景名称不能包含空格",
     "alert": "提示",
-    "ok": "确定"
+    "ok": "确定",
+    "sort_success": "调整顺序成功",
+    "sort_failed": "调整顺序失败"
   },
   "zh-TW": {
     "app_name": "代理助手",
@@ -349,7 +351,9 @@ const translations = {
     "status_current": "當前",
     "alert_scenario_name_spaces": "場景名稱不能包含空格",
     "alert": "提示",
-    "ok": "確定"
+    "ok": "確定",
+    "sort_success": "調整順序成功",
+    "sort_failed": "調整順序失敗"
   },
   "en": {
     "app_name": "Proxy Assistant",
@@ -525,7 +529,9 @@ const translations = {
     "status_current": "Current",
     "alert_scenario_name_spaces": "Scenario name cannot contain spaces",
     "alert": "Alert",
-    "ok": "OK"
+    "ok": "OK",
+    "sort_success": "Sort Successful",
+    "sort_failed": "Sort Failed"
   },
   "ja": {
     "app_name": "プロキシアシスタント",
@@ -701,7 +707,9 @@ const translations = {
     "status_current": "現在",
     "alert_scenario_name_spaces": "シナリオ名にスペースを含めることはできません",
     "alert": "警告",
-    "ok": "OK"
+    "ok": "OK",
+    "sort_success": "並べ替え成功",
+    "sort_failed": "並べ替え失敗"
   },
   "fr": {
     "app_name": "Assistant Proxy",
@@ -877,7 +885,9 @@ const translations = {
     "status_current": "Actuel",
     "alert_scenario_name_spaces": "Le nom du scénario ne peut pas contenir d'espaces",
     "alert": "Alerte",
-    "ok": "OK"
+    "ok": "OK",
+    "sort_success": "Tri réussi",
+    "sort_failed": "Échec du tri"
   },
   "de": {
     "app_name": "Proxy-Assistent",
@@ -1053,7 +1063,9 @@ const translations = {
     "status_current": "Aktuell",
     "alert_scenario_name_spaces": "Szenarioname darf keine Leerzeichen enthalten",
     "alert": "Hinweis",
-    "ok": "OK"
+    "ok": "OK",
+    "sort_success": "Sortieren erfolgreich",
+    "sort_failed": "Sortieren fehlgeschlagen"
   },
   "es": {
     "app_name": "Asistente de Proxy",
@@ -1229,7 +1241,9 @@ const translations = {
     "status_current": "Actual",
     "alert_scenario_name_spaces": "El nombre del escenario no puede contener espacios",
     "alert": "Alerta",
-    "ok": "OK"
+    "ok": "OK",
+    "sort_success": "Ordenación exitosa",
+    "sort_failed": "Ordenación fallida"
   },
   "ko": {
     "app_name": "프록시 어시스턴트",
@@ -1405,7 +1419,9 @@ const translations = {
     "status_current": "현재",
     "alert_scenario_name_spaces": "시나리오 이름에는 공백을 포함할 수 없습니다",
     "alert": "알림",
-    "ok": "확인"
+    "ok": "확인",
+    "sort_success": "정렬 성공",
+    "sort_failed": "정렬 실패"
   },
   "pt": {
     "app_name": "Assistente de Proxy",
@@ -1581,7 +1597,9 @@ const translations = {
     "status_current": "Atual",
     "alert_scenario_name_spaces": "O nome do cenário não pode conter espaços",
     "alert": "Alerta",
-    "ok": "OK"
+    "ok": "OK",
+    "sort_success": "Ordenação bem-sucedida",
+    "sort_failed": "Falha na ordenação"
   },
   "ru": {
     "app_name": "Прокси-ассистент",
@@ -1757,7 +1775,9 @@ const translations = {
     "status_current": "Текущий",
     "alert_scenario_name_spaces": "Имя сценария не может содержать пробелы",
     "alert": "Внимание",
-    "ok": "ОК"
+    "ok": "ОК",
+    "sort_success": "Сортировка успешна",
+    "sort_failed": "Сортировка не удалась"
   }
 };
 

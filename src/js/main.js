@@ -831,52 +831,165 @@ function renderScenarioManagementList() {
   scenarios.forEach(function (scenario, index) {
     const isCurrent = scenario.id === currentScenarioId;
     const proxyCount = (scenario.proxies || []).length;
-    const isFirst = index === 0;
-    const isLast = index === scenarios.length - 1;
 
     html += `
-      <div class="scenario-item" data-id="${scenario.id}" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--border-color);">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div class="sort-buttons" style="display: flex; flex-direction: column; gap: 0px;">
-            ${!isFirst ? `<button class="move-up-btn" data-id="${scenario.id}" style="border: none; background: none; color: var(--text-secondary); cursor: pointer; padding: 0px;">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="18 15 12 9 6 15"></polyline>
-              </svg>
-            </button>` : ''}
-            ${!isLast ? `<button class="move-down-btn" data-id="${scenario.id}" style="border: none; background: none; color: var(--text-secondary); cursor: pointer; padding: 0px;">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </button>` : ''}
-          </div>
-          <span style="font-weight: 500; color: var(--text-primary);">${escapeHtml(scenario.name)}</span>
-          <span style="font-size: 12px; color: var(--text-secondary); background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px;">${proxyCount}</span>
-          ${isCurrent ? '<span style="font-size: 12px; color: var(--accent-color);">(' + I18n.t('status_current') + ')</span>' : ''}
-        </div>
-        <div class="scenario-actions">
-          <button class="edit-scenario-btn" data-id="${scenario.id}" data-name="${escapeHtml(scenario.name)}" style="border: none; background: none; color: var(--text-secondary); cursor: pointer; padding: 4px; margin-right: 4px;" title="${I18n.t('scenario_edit')}">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-          </button>
-          <button class="delete-scenario-btn" data-id="${scenario.id}" style="border: none; background: none; color: #ef4444; cursor: pointer; padding: 4px;" title="${I18n.t('delete')}">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-          </button>
-        </div>
-      </div>
-    `;
+       <div class="scenario-item" data-id="${scenario.id}">
+         <div class="scenario-item-left">
+           <div class="drag-handle" title="${I18n.t('drag_sort')}">
+             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"></path></svg>
+           </div>
+           <span class="scenario-name">${escapeHtml(scenario.name)}</span>
+           <span class="scenario-proxy-count">${proxyCount}</span>
+           ${isCurrent ? '<span class="scenario-current-indicator">(' + I18n.t('status_current') + ')</span>' : ''}
+         </div>
+         <div class="scenario-actions">
+           <button class="edit-scenario-btn" data-id="${scenario.id}" data-name="${escapeHtml(scenario.name)}" title="${I18n.t('scenario_edit')}">
+             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+           </button>
+           <button class="delete-scenario-btn" data-id="${scenario.id}" title="${I18n.t('delete')}">
+             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+           </button>
+         </div>
+       </div>
+     `;
   });
   $("#scenario-manage-list").html(html);
 
-  // Bind move buttons
-  $("#scenario-manage-list").off("click", ".move-up-btn").on("click", ".move-up-btn", function () {
-    showProcessingTip(I18n.t('processing'));
-    const scenarioId = $(this).data("id");
-    moveScenarioUp(scenarioId);
-  });
+  initScenarioSortable();
+}
 
-  $("#scenario-manage-list").off("click", ".move-down-btn").on("click", ".move-down-btn", function () {
-    showProcessingTip(I18n.t('processing'));
-    const scenarioId = $(this).data("id");
-    moveScenarioDown(scenarioId);
+function initScenarioSortable() {
+  const $container = $("#scenario-manage-list");
+
+  $container.off("mousedown", ".drag-handle");
+
+  $container.on("mousedown", ".drag-handle", function (e) {
+    if (e.button !== 0) return;
+
+    e.preventDefault();
+    const $handle = $(this);
+    const $item = $handle.closest(".scenario-item");
+    if ($item.length === 0) return;
+
+    const itemEl = $item[0];
+    const rect = itemEl.getBoundingClientRect();
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startTop = rect.top;
+    const startLeft = rect.left;
+
+    const $placeholder = $('<div class="drag-placeholder"></div>').css({
+      height: rect.height,
+      marginBottom: 0,
+      borderRadius: '6px' // Match scenario item radius
+    });
+
+    const $clone = $item.clone();
+
+    $clone.addClass("scenario-item-clone").css({
+      position: "fixed",
+      top: startTop,
+      left: startLeft,
+      width: rect.width,
+      height: rect.height,
+      zIndex: 10000,
+      opacity: 0.95,
+      boxShadow: "0 10px 20px rgba(0,0,0,0.15)",
+      background: 'var(--bg-primary, #fff)',
+      pointerEvents: "none",
+      margin: 0,
+      transform: "scale(1.02)",
+      transition: "none",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "4px",
+      border: "1px solid var(--border-color)", // Full border for floating item
+      borderRadius: "6px" // Rounded corners for floating item
+    });
+
+    $("body").append($clone);
+    $item.before($placeholder).hide();
+
+    let isDragging = true;
+    let rafId = null;
+
+    const onMouseMove = function (e) {
+      if (!isDragging) return;
+      const clientX = e.clientX;
+      const clientY = e.clientY;
+
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        $clone.css({
+          top: startTop + (clientY - startY),
+          left: startLeft + (clientX - startX)
+        });
+
+        const $siblings = $container.find(".scenario-item:not(:hidden)");
+        let $target = null;
+
+        $siblings.each(function () {
+          const box = this.getBoundingClientRect();
+          const center = box.top + box.height / 2;
+          if (clientY < center) {
+            $target = $(this);
+            return false;
+          }
+        });
+
+        if ($target) {
+          if ($target[0] !== $placeholder.next()[0]) {
+            $target.before($placeholder);
+          }
+        } else {
+          $container.append($placeholder);
+        }
+      });
+    };
+
+    const onMouseUp = function () {
+      isDragging = false;
+      if (rafId) cancelAnimationFrame(rafId);
+
+      $(document).off("mousemove", onMouseMove);
+      $(document).off("mouseup", onMouseUp);
+
+      $clone.animate({
+        top: $placeholder[0].getBoundingClientRect().top,
+        left: $placeholder[0].getBoundingClientRect().left
+      }, 200, function () {
+        $clone.remove();
+        $placeholder.replaceWith($item);
+        $item.show();
+
+        const newItems = $container.find(".scenario-item").toArray();
+        const newScenarioList = newItems.map(node => {
+          const id = $(node).attr("data-id");
+          return scenarios.find(s => s.id === id);
+        });
+
+        let changed = false;
+        if (newScenarioList.length !== scenarios.length) changed = true;
+        else {
+          for (let i = 0; i < newScenarioList.length; i++) {
+            if (newScenarioList[i].id !== scenarios[i].id) {
+              changed = true;
+              break;
+            }
+          }
+        }
+
+        if (changed) {
+          scenarios = newScenarioList;
+          saveData({ successMsg: I18n.t('sort_success') });
+        }
+      });
+    };
+
+    $(document).on("mousemove", onMouseMove);
+    $(document).on("mouseup", onMouseUp);
   });
 }
 
@@ -1361,66 +1474,190 @@ function bindItemEvents() {
 }
 
 function initSortable() {
-  const container = document.getElementById('proxy-list');
-  let dragItem = null;
-  const items = container.querySelectorAll('.proxy-card');
+  const $container = $("#proxy-list");
 
-  items.forEach(item => {
-    const handle = item.querySelector('.drag-handle');
-    handle.setAttribute('draggable', true);
+  // Unbind to prevent duplicate listeners
+  $container.off("mousedown", ".drag-handle");
 
-    handle.addEventListener('dragstart', (e) => {
-      dragItem = item;
-      item.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
+  $container.on("mousedown", ".drag-handle", function (e) {
+    if (e.button !== 0) return; // Only allow left click
+
+    e.preventDefault(); // Prevent text selection
+    const $handle = $(this);
+    const $item = $handle.closest(".proxy-card");
+    if ($item.length === 0) return;
+
+    const itemEl = $item[0];
+    const rect = itemEl.getBoundingClientRect();
+    const itemHeight = rect.height;
+    const itemWidth = rect.width;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startTop = rect.top;
+    const startLeft = rect.left;
+
+    // Create Placeholder
+    const $placeholder = $('<div class="drag-placeholder"></div>').css({
+      height: itemHeight,
+      marginBottom: 0 // Flex gap handles spacing
     });
 
-    handle.addEventListener('dragend', () => {
-      item.classList.remove('dragging');
-      dragItem = null;
-      const newItems = Array.from(container.querySelectorAll('.proxy-card'));
-      const newList = newItems.map(node => {
-        const oldIdx = parseInt(node.getAttribute('data-id'));
-        return list[oldIdx];
-      });
-      list = newList;
-      save = false;
-      renderList();
-      saveData();
-    });
+    // Create Clone
+    const $clone = $item.clone();
 
-    handle.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      const target = e.target.closest('.proxy-card');
-      if (target && target !== dragItem) {
-        const rect = target.getBoundingClientRect();
-        const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > 0.5;
-        container.insertBefore(dragItem, next ? target.nextSibling : target);
+    // Sync input values to clone
+    const $originInputs = $item.find('input, textarea, select');
+    const $cloneInputs = $clone.find('input, textarea, select');
+    $originInputs.each(function (i) {
+      if ($(this).attr('type') === 'checkbox') {
+        $cloneInputs.eq(i).prop('checked', $(this).prop('checked'));
+      } else {
+        $cloneInputs.eq(i).val($(this).val());
       }
     });
+
+    // Style Clone
+    $clone.addClass("proxy-card-clone").css({
+      position: "fixed",
+      top: startTop,
+      left: startLeft,
+      width: itemWidth,
+      height: itemHeight,
+      zIndex: 10000,
+      opacity: 0.95,
+      boxShadow: "0 10px 20px rgba(0,0,0,0.15)",
+      pointerEvents: "none", // Allow events to pass through for hit testing
+      margin: 0,
+      transform: "scale(1.02)",
+      transition: "none" // Disable transition during drag
+    });
+
+    // Setup DOM
+    $("body").append($clone);
+    $item.before($placeholder).hide();
+
+    let isDragging = true;
+    let rafId = null;
+
+    // Scroll handling
+    const scrollThreshold = 50;
+    const scrollSpeed = 10;
+    let scrollInterval = null;
+
+    const autoScroll = (clientY) => {
+      if (scrollInterval) clearInterval(scrollInterval);
+      scrollInterval = null;
+
+      if (clientY < scrollThreshold) {
+        scrollInterval = setInterval(() => {
+          window.scrollBy(0, -scrollSpeed);
+          handleMove(null, clientY); // Update sort on scroll
+        }, 16);
+      } else if (window.innerHeight - clientY < scrollThreshold) {
+        scrollInterval = setInterval(() => {
+          window.scrollBy(0, scrollSpeed);
+          handleMove(null, clientY);
+        }, 16);
+      }
+    };
+
+    const handleMove = (clientX, clientY) => {
+      // If called from scroll, clientX might be null, use stored or ignore X update
+      if (clientX !== null) {
+        $clone.css({
+          top: startTop + (clientY - startY),
+          left: startLeft + (clientX - startX)
+        });
+      }
+
+      // Sort Logic
+      // Find the element to insert before
+      const $siblings = $container.find(".proxy-card:not(:hidden)");
+      let $target = null;
+
+      $siblings.each(function () {
+        const box = this.getBoundingClientRect();
+        const center = box.top + box.height / 2;
+        if (clientY < center) {
+          $target = $(this);
+          return false;
+        }
+      });
+
+      if ($target) {
+        // Only move if not already there (checking prev to avoid jitter)
+        if ($target[0] !== $placeholder.next()[0]) {
+          $target.before($placeholder);
+        }
+      } else {
+        $container.append($placeholder);
+      }
+    };
+
+    const onMouseMove = function (e) {
+      if (!isDragging) return;
+      const clientX = e.clientX;
+      const clientY = e.clientY;
+
+      autoScroll(clientY);
+
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => handleMove(clientX, clientY));
+    };
+
+    const onMouseUp = function () {
+      isDragging = false;
+      if (rafId) cancelAnimationFrame(rafId);
+      if (scrollInterval) clearInterval(scrollInterval);
+
+      $(document).off("mousemove", onMouseMove);
+      $(document).off("mouseup", onMouseUp);
+
+      $clone.animate({
+        top: $placeholder[0].getBoundingClientRect().top,
+        left: $placeholder[0].getBoundingClientRect().left
+      }, 200, function () {
+        $clone.remove();
+        $placeholder.replaceWith($item);
+        $item.show();
+
+        // Update Data Model
+        const newItems = $container.find(".proxy-card").toArray();
+        const newList = newItems.map(node => {
+          const oldIdx = parseInt($(node).attr("data-id"));
+          return list[oldIdx];
+        });
+
+        // Check for changes
+        let changed = false;
+        if (newList.length !== list.length) changed = true;
+        else {
+          for (let i = 0; i < newList.length; i++) {
+            if (newList[i] !== list[i]) {
+              changed = true;
+              break;
+            }
+          }
+        }
+
+        if (changed) {
+          list = newList;
+          save = false;
+          renderList();
+          saveData({ successMsg: I18n.t('sort_success') });
+        }
+      });
+    };
+
+    $(document).on("mousemove", onMouseMove);
+    $(document).on("mouseup", onMouseUp);
   });
 }
 
 
 
-function moveScenarioUp(scenarioId) {
-  const index = scenarios.findIndex(s => s.id === scenarioId);
-  if (index > 0) {
-    [scenarios[index], scenarios[index - 1]] = [scenarios[index - 1], scenarios[index]];
-    renderScenarioManagementList();
-    saveData();
-  }
-}
 
-function moveScenarioDown(scenarioId) {
-  const index = scenarios.findIndex(s => s.id === scenarioId);
-  if (index < scenarios.length - 1) {
-    [scenarios[index], scenarios[index + 1]] = [scenarios[index + 1], scenarios[index]];
-    renderScenarioManagementList();
-    saveData();
-  }
-}
 
 // ==========================================
 // Data Persistence & Validation
@@ -1443,7 +1680,8 @@ function input_blur(i, name, val) {
   }
 }
 
-function saveData() {
+function saveData(options) {
+  options = options || {};
   // Update the current scenario in the scenarios array with current list state
   const scenario = scenarios.find(s => s.id === currentScenarioId);
   if (scenario) {
@@ -1458,16 +1696,20 @@ function saveData() {
     if (chrome.runtime.lastError) {
       console.error("Local save failed:", chrome.runtime.lastError);
       showTip(I18n.t('save_failed'), true);
+      if (options.callback) options.callback(false);
       return;
     }
 
-    showTip(I18n.t('save_success'), false);
+    if (!options.silent) {
+      showTip(options.successMsg || I18n.t('save_success'), false);
+    }
     chrome.runtime.sendMessage({ action: "refreshProxy" });
 
     // Update quota info if sync config popup is open and native mode is selected
     if ($(".sync-config-tip").hasClass("show") && syncConfig.type === 'native') {
       updateNativeQuotaInfo();
     }
+    if (options.callback) options.callback(true);
   });
   save = true;
 }

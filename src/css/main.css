@@ -1146,6 +1146,11 @@ input:checked+.slider-modern:before {
   margin-bottom: 20px;
 }
 
+[data-theme="dark"] .drag-placeholder {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: #818cf8;
+}
+
 /* ========== System Config ========== */
 .system-config-list {
   display: flex;
@@ -2167,8 +2172,9 @@ input:checked+.slider-modern:before {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 7px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-primary, #fff);
 }
 
 [data-theme="dark"] .scenario-item {
@@ -2177,6 +2183,30 @@ input:checked+.slider-modern:before {
 
 .scenario-item:last-child {
   border-bottom: none;
+}
+
+.scenario-item-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.scenario-name {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.scenario-proxy-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.scenario-current-indicator {
+  font-size: 12px;
+  color: var(--accent-color);
 }
 
 .scenario-name-display {
