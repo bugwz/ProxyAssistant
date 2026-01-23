@@ -1642,22 +1642,7 @@ input:checked+.slider-modern:before {
   margin-right: 8px;
 }
 
-.proxy-detection-btn {
-  margin-top: 20px;
-  display: flex;
-  justify-content: center;
-}
 
-.proxy-detection-close-btn-secondary {
-  padding: 12px 40px;
-  border-radius: 8px;
-  background-color: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  font-weight: 600;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.2s;
-}
 
 [data-theme="dark"] .proxy-detection-close-btn-secondary {
   background-color: #334155;
