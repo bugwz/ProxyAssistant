@@ -1201,7 +1201,7 @@ input:checked+.slider-modern:before {
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 4px;
 }
 
 .config-row-title {
@@ -3299,18 +3299,64 @@ input:checked+.slider-modern:before {
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #22c55e;
-  color: white;
-  padding: 10px 30px;
-  border-radius: 30px;
+  background-color: #ffffff;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 8px;
   font-weight: 600;
-  box-shadow: 0 10px 25px rgba(34, 197, 94, 0.3);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.save-success-toast.error {
+[data-theme="dark"] .save-success-toast {
+  background-color: #1e293b;
+  color: #cbd5e1;
+  border-color: #334155;
+}
+
+.save-success-toast .icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: bold;
+  color: white;
+  background-color: #22c55e;
+}
+
+.save-success-toast .icon::before {
+  content: '✓';
+}
+
+.save-success-toast.processing .icon {
+  background-color: #ffffff;
+}
+
+.save-success-toast.processing .icon::before {
+  content: '';
+}
+
+.save-success-toast.processing .icon svg circle {
+  fill: #ffffff;
+}
+
+.save-success-toast.processing .icon svg path {
+  fill: #3b82f6;
+}
+
+.save-success-toast.error .icon {
   background-color: #ef4444;
-  box-shadow: 0 10px 25px rgba(239, 68, 68, 0.3);
+}
+
+.save-success-toast.error .icon::before {
+  content: '✗';
 }
 
 /* Eye Icon Toggle */
