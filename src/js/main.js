@@ -1012,6 +1012,17 @@ function checkNameGlobalUniqueness(name, excludeProxyIndex, excludeScenarioId) {
 // List Rendering
 // ==========================================
 function renderList() {
+  // Capture current expansion state from DOM to preserve it after re-render
+  const expansionState = {};
+  $(".proxy-card").each(function () {
+    const $item = $(this);
+    // Use name as the primary key since indices might shift
+    const name = $item.find('.name').val();
+    if (!$item.hasClass("collapsed") && name) {
+      expansionState[name] = true;
+    }
+  });
+
   let html = "";
   for (let i = 0; i < list.length; i++) {
     const info = list[i];
@@ -1028,7 +1039,14 @@ function renderList() {
     const rawPreviewText = `${info.name || I18n.t('unnamed_proxy')} · ${info.ip || "0.0.0.0"}:${info.port || "0"}`;
     const previewText = escapeHtml(rawPreviewText);
 
-    const collapsedClass = info.is_new ? "" : "collapsed";
+    let isExpanded = false;
+    if (info.is_new) {
+      isExpanded = true;
+    } else if (info.name && expansionState[info.name]) {
+      isExpanded = true;
+    }
+
+    const collapsedClass = isExpanded ? "" : "collapsed";
     delete info.is_new;
 
     html += `<div class="proxy-card ${collapsedClass} ${is_disabled ? "disabled" : ""}" data-id="${i}">
