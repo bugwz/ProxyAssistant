@@ -369,7 +369,7 @@ body {
 /* ========== Init Box ========== */
 .init-box {
   display: none;
-  padding: 50px 0;
+  padding: 10px 0;
   background-color: var(--bg-primary);
 }
 
@@ -379,7 +379,7 @@ body {
   line-height: 40px;
   background-color: var(--accent-color);
   border-radius: 8px;
-  margin: 24px auto 0;
+  margin: 14px auto 14px;
   font-size: 14px;
   font-weight: 600;
   color: #fff;
@@ -873,7 +873,8 @@ body {
   font-size: 14px;
   color: var(--text-secondary);
   text-align: center;
-  padding: 30px 20px;
+  padding-top: 15px;
+  padding-bottom: 10px;
 }
 
 /* Bottom Buttons Container */
