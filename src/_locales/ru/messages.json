@@ -1,0 +1,10 @@
+{
+  "app_name": {
+    "message": "Помощник прокси",
+    "description": "Extension name"
+  },
+  "app_description": {
+    "message": "Расширение для управления прокси с поддержкой конфигурации HTTP/HTTPS/SOCKS с переключением режимов вручную/автоматически.",
+    "description": "Extension description"
+  }
+}

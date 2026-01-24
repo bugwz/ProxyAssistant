@@ -1,8 +1,9 @@
 {
    "manifest_version": 3,
-   "name": "代理助手(ProxyAssistant)",
+   "name": "__MSG_app_name__",
    "version": "1.5.4",
-   "description": "一款代理管理插件, 支持 HTTP/HTTPS/SOCKS 代理配置, 支持手动/自动模式切换, 保护隐私, 畅享网络.",
+   "description": "__MSG_app_description__",
+   "default_locale": "zh_CN",
    "browser_specific_settings": {
       "gecko": {
          "id": "proxy-assistant@bugwz.com",
@@ -27,7 +28,7 @@
          "128": "images/icon-128.png"
       },
       "default_popup": "popup.html",
-      "default_title": "代理助手(ProxyAssistant)"
+      "default_title": "__MSG_app_name__"
    },
    "host_permissions": [
       "<all_urls>"

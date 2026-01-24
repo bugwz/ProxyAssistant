@@ -1,0 +1,10 @@
+{
+  "app_name": {
+    "message": "プロキシアシスタント",
+    "description": "Extension name"
+  },
+  "app_description": {
+    "message": "HTTP/HTTPS/SOCKS プロキシ設定、手動/自動モード切り替えに対応したプロキシ管理拡張機能。",
+    "description": "Extension description"
+  }
+}

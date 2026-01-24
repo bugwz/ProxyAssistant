@@ -1,0 +1,10 @@
+{
+  "app_name": {
+    "message": "Assistant Proxy",
+    "description": "Extension name"
+  },
+  "app_description": {
+    "message": "Une extension de gestion de proxy prenant en charge la configuration HTTP/HTTPS/SOCKS avec commutation manuel/automatique.",
+    "description": "Extension description"
+  }
+}

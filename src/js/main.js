@@ -102,13 +102,9 @@ function loadFromLocal(config) {
       saveThemeSettings();
       chrome.storage.local.set({ sync_config: syncConfig });
 
-      // Cleanup legacy keys
-      const keysToRemove = [];
-      if (items.appLanguage !== undefined) keysToRemove.push('appLanguage');
-      // Don't remove auto_sync as it might be used by worker.js independently
-      if (keysToRemove.length > 0) {
-        chrome.storage.local.remove(keysToRemove);
-      }
+      // Note: Don't remove appLanguage anymore as it's the standard way to store user language preference
+      // The old cleanup logic was deleting appLanguage on every load, causing language to reset
+      // Legacy keys cleanup is now handled differently
     }
 
     // Common UI Updates

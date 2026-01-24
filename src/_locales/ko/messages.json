@@ -1,0 +1,10 @@
+{
+  "app_name": {
+    "message": "프록시 도우미",
+    "description": "Extension name"
+  },
+  "app_description": {
+    "message": "HTTP/HTTPS/SOCKS 프록시 구성을 지원하는 프록시 관리 확장 프로그램.",
+    "description": "Extension description"
+  }
+}
