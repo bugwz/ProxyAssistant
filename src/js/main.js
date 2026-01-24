@@ -2135,37 +2135,56 @@ function importConfig(e) {
       if (rawData) {
         const data = migrateConfig(rawData);
 
-        // Apply Scenarios & List
-        scenarios = data.scenarios;
-        currentScenarioId = data.currentScenarioId;
-        updateCurrentListFromScenario();
+        chrome.storage.local.get(['sync_config'], function (localItems) {
+          const localSyncConfig = localItems.sync_config || {
+            type: 'native',
+            gist: { token: '', filename: 'proxy_assistant_config.json', gist_id: '' }
+          };
 
-        // Apply System Settings
-        const systemData = data.system;
-        if (systemData) {
-          if (systemData.appLanguage) {
-            I18n.setLanguage(systemData.appLanguage);
-            $('#current-language-display').text($(`#language-options li[data-value="${systemData.appLanguage}"]`).text());
-          }
-          if (systemData.themeMode) {
-            themeMode = systemData.themeMode;
-            nightModeStart = systemData.nightModeStart || '22:00';
-            nightModeEnd = systemData.nightModeEnd || '06:00';
-            saveThemeSettings();
-            updateThemeUI();
-          }
-          if (systemData.sync) {
-            syncConfig = systemData.sync;
+          scenarios = data.scenarios;
+          currentScenarioId = data.currentScenarioId;
+          updateCurrentListFromScenario();
+
+          const systemData = data.system;
+          if (systemData) {
+            if (systemData.appLanguage) {
+              I18n.setLanguage(systemData.appLanguage);
+              $('#current-language-display').text($(`#language-options li[data-value="${systemData.appLanguage}"]`).text());
+            }
+            if (systemData.themeMode) {
+              themeMode = systemData.themeMode;
+              nightModeStart = systemData.nightModeStart || '22:00';
+              nightModeEnd = systemData.nightModeEnd || '06:00';
+              saveThemeSettings();
+              updateThemeUI();
+            }
+            if (systemData.sync) {
+              const remoteSync = systemData.sync;
+              syncConfig = {
+                type: remoteSync.type || localSyncConfig.type,
+                gist: {
+                  token: remoteSync.gist?.token || localSyncConfig.gist?.token || '',
+                  filename: remoteSync.gist?.filename || localSyncConfig.gist?.filename || 'proxy_assistant_config.json',
+                  gist_id: remoteSync.gist?.gist_id || localSyncConfig.gist?.gist_id || ''
+                }
+              };
+            } else {
+              syncConfig = localSyncConfig;
+            }
+            chrome.storage.local.set({ sync_config: syncConfig });
+            updateSyncUI();
+          } else {
+            syncConfig = localSyncConfig;
             chrome.storage.local.set({ sync_config: syncConfig });
             updateSyncUI();
           }
-        }
 
-        save = false;
-        renderList();
-        renderScenarioSelector();
-        saveData();
-        showTip(I18n.t('save_success'), false);
+          save = false;
+          renderList();
+          renderScenarioSelector();
+          saveData();
+          showTip(I18n.t('save_success'), false);
+        });
       }
     } catch (err) {
       alert(I18n.t('alert_parse_error') + err.message);
@@ -2699,35 +2718,54 @@ async function manualPull() {
 
       const data = migrateConfig(remoteData);
 
-      // Save mapped data to storage
-      const toSave = {
-        scenarios: data.scenarios,
-        currentScenarioId: data.currentScenarioId,
-        list: data.scenarios.find(s => s.id === data.currentScenarioId)?.proxies || []
-      };
-
-      if (data.system) {
-        toSave.themeSettings = {
-          mode: data.system.themeMode,
-          startTime: data.system.nightModeStart,
-          endTime: data.system.nightModeEnd
+      chrome.storage.local.get(['sync_config'], function (localItems) {
+        const localSyncConfig = localItems.sync_config || {
+          type: 'native',
+          gist: { token: '', filename: 'proxy_assistant_config.json', gist_id: '' }
         };
-        if (data.system.sync) {
-          toSave.sync_config = data.system.sync;
-        }
-        if (data.system.auto_sync !== undefined) {
-          toSave.auto_sync = data.system.auto_sync;
-        }
-      }
 
-      chrome.storage.local.set(toSave, function () {
-        if (chrome.runtime.lastError) {
-          showTip(I18n.t('pull_failed') + chrome.runtime.lastError.message, true);
-          return;
+        const toSave = {
+          scenarios: data.scenarios,
+          currentScenarioId: data.currentScenarioId,
+          list: data.scenarios.find(s => s.id === data.currentScenarioId)?.proxies || []
+        };
+
+        if (data.system) {
+          toSave.themeSettings = {
+            mode: data.system.themeMode,
+            startTime: data.system.nightModeStart,
+            endTime: data.system.nightModeEnd
+          };
+          if (data.system.auto_sync !== undefined) {
+            toSave.auto_sync = data.system.auto_sync;
+          }
+
+          if (data.system.sync) {
+            const remoteSync = data.system.sync;
+            toSave.sync_config = {
+              type: remoteSync.type || localSyncConfig.type,
+              gist: {
+                token: remoteSync.gist?.token || localSyncConfig.gist?.token || '',
+                filename: remoteSync.gist?.filename || localSyncConfig.gist?.filename || 'proxy_assistant_config.json',
+                gist_id: remoteSync.gist?.gist_id || localSyncConfig.gist?.gist_id || ''
+              }
+            };
+          } else {
+            toSave.sync_config = localSyncConfig;
+          }
+        } else {
+          toSave.sync_config = localSyncConfig;
         }
-        // Reload UI using the migrated structure
-        loadFromLocal(data);
-        showTip(I18n.t('pull_success'), false);
+
+        chrome.storage.local.set(toSave, function () {
+          if (chrome.runtime.lastError) {
+            showTip(I18n.t('pull_failed') + chrome.runtime.lastError.message, true);
+            return;
+          }
+          syncConfig = toSave.sync_config;
+          loadFromLocal(data);
+          showTip(I18n.t('pull_success'), false);
+        });
       });
 
     } else {
