@@ -46,51 +46,74 @@ function loadSettingsAndList() {
   });
 }
 
-function loadFromLocal(remoteItems) {
-  chrome.storage.local.get({ list: [], scenarios: [], currentScenarioId: 'default', themeSettings: {} }, function (items) {
+function loadFromLocal(config) {
+  // Fetch all potential keys including legacy ones to ensure complete migration
+  const keys = ['list', 'scenarios', 'currentScenarioId', 'themeSettings', 'sync_config', 'appLanguage', 'auto_sync', 'system'];
+
+  chrome.storage.local.get(keys, function (items) {
     if (chrome.runtime.lastError) {
       console.warn("Local storage get error:", chrome.runtime.lastError);
       items = {};
     }
     items = items || {};
 
-    // Data Migration: If scenarios missing, create default from list
-    if (remoteItems) {
-      if (remoteItems.scenarios) {
-        scenarios = remoteItems.scenarios;
-        currentScenarioId = remoteItems.currentScenarioId || 'default';
-      } else if (remoteItems.proxies) {
-        const proxyList = remoteItems.proxies;
-        scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: proxyList }];
-        currentScenarioId = 'default';
-      }
-    } else {
-      if (!items.scenarios || items.scenarios.length === 0) {
-        // Migration from local list
-        scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: items.list || [] }];
-        currentScenarioId = 'default';
-        saveData(); // Persist migration
-      } else {
-        scenarios = items.scenarios;
-        currentScenarioId = items.currentScenarioId || 'default';
-      }
-    }
+    // Determine source: provided config (remote/import) OR local storage
+    // If config is null, we treat 'items' as the config source for migration
+    const sourceConfig = config || items;
 
+    // Run Migration (handles V1/V2/V3 and Local Storage formats)
+    const newConfig = migrateConfig(sourceConfig);
+
+    // Apply State
+    scenarios = newConfig.scenarios;
+    currentScenarioId = newConfig.currentScenarioId;
+    
     // Ensure current scenario exists
     if (!scenarios.find(s => s.id === currentScenarioId)) {
       currentScenarioId = scenarios[0]?.id || 'default';
     }
-
-    // Sync list with current scenario
+    
     updateCurrentListFromScenario();
 
-    // Load theme settings
-    const themeSettings = items.themeSettings || {};
-    themeMode = themeSettings.mode || 'light';
-    nightModeStart = themeSettings.startTime || '22:00';
-    nightModeEnd = themeSettings.endTime || '06:00';
+    // Apply System Settings
+    if (newConfig.system) {
+        if (newConfig.system.appLanguage) {
+           I18n.setLanguage(newConfig.system.appLanguage);
+           const langName = $(`#language-options li[data-value="${newConfig.system.appLanguage}"]`).text();
+           if (langName) $('#current-language-display').text(langName);
+        }
+        
+        themeMode = newConfig.system.themeMode || 'light';
+        nightModeStart = newConfig.system.nightModeStart || '22:00';
+        nightModeEnd = newConfig.system.nightModeEnd || '06:00';
+        
+        if (newConfig.system.sync) {
+          syncConfig = newConfig.system.sync;
+        }
+        // auto_sync handling if needed (though typically used by background worker)
+        if (newConfig.system.auto_sync !== undefined) {
+             chrome.storage.local.set({ auto_sync: newConfig.system.auto_sync });
+        }
+    }
 
+    // If loading from local storage (no config provided), perform auto-upgrade/cleanup
+    if (!config) {
+       saveData({ silent: true });
+       saveThemeSettings();
+       chrome.storage.local.set({ sync_config: syncConfig });
+
+       // Cleanup legacy keys
+       const keysToRemove = [];
+       if (items.appLanguage !== undefined) keysToRemove.push('appLanguage');
+       // Don't remove auto_sync as it might be used by worker.js independently
+       if (keysToRemove.length > 0) {
+        chrome.storage.local.remove(keysToRemove);
+      }
+    }
+
+    // Common UI Updates
     updateThemeUI();
+    updateSyncUI();
     renderList();
     renderScenarioSelector();
   });
@@ -462,10 +485,9 @@ function bindGlobalEvents() {
   // Add Proxy Button
   $("#add-proxy-btn").on("click", function () {
     list.push({
-      name: "", protocol: "http", fallback_policy: "direct",
-      ip: "", port: "", username: "", password: "",
-      is_show: 0, open: 0, include_urls: "", bypass_urls: "",
-      is_new: true,
+      enabled: true, name: "", protocol: "http", ip: "", port: "",
+      username: "", password: "", bypass_urls: "", include_urls: "",
+      fallback_policy: "direct", is_new: true, show_password: false,
     });
     renderList();
 
@@ -1165,7 +1187,13 @@ function renderList() {
   let html = "";
   for (let i = 0; i < list.length; i++) {
     const info = list[i];
-    const is_disabled = info.disabled === true;
+
+    // Migration: Ensure enabled is set
+    if (info.enabled === undefined) {
+      info.enabled = info.disabled !== true;
+    }
+    const is_enabled = info.enabled;
+
     const protocolClass = (info.protocol || "http").toLowerCase();
     const displayProtocol = (info.protocol || "http").toUpperCase();
 
@@ -1188,7 +1216,7 @@ function renderList() {
     const collapsedClass = isExpanded ? "" : "collapsed";
     delete info.is_new;
 
-    html += `<div class="proxy-card ${collapsedClass} ${is_disabled ? "disabled" : ""}" data-id="${i}">
+    html += `<div class="proxy-card ${collapsedClass} ${is_enabled ? "" : "disabled"}" data-id="${i}">
       <div class="proxy-header" data-index="${i}">
           <div class="header-left">
               <div class="drag-handle" title="${I18n.t('drag_sort')}">
@@ -1201,9 +1229,9 @@ function renderList() {
           <div class="header-right">
               <div class="proxy-header-test-result" data-index="${i}"></div>
               <div class="status-container">
-                  <span class="status-text">${is_disabled ? I18n.t('status_disabled') : I18n.t('status_enabled')}</span>
+                  <span class="status-text">${is_enabled ? I18n.t('status_enabled') : I18n.t('status_disabled')}</span>
                   <label class="switch-modern">
-                      <input type="checkbox" class="proxy-status-toggle" data-index="${i}" ${is_disabled ? "" : "checked"}>
+                      <input type="checkbox" class="proxy-status-toggle" data-index="${i}" ${is_enabled ? "checked" : ""}>
                       <span class="slider-modern"></span>
                   </label>
               </div>
@@ -1249,9 +1277,9 @@ function renderList() {
                               </span>
                           </label>
                           <div style="position: relative; display: flex; align-items: center; width: 100%;">
-                              <input data-index="${i}" class="password" type="${info.is_show == 1 ? "text" : "password"}" placeholder="${I18n.t('password_placeholder')}" value="${escapeHtml(info.password)}" style="padding-right: 35px; width: 100%;" tabindex="${i * 100 + 6}" ${disabledAttr}>
-                              <label class="container eye-toggle ${info.is_show == 1 ? 'show-password' : 'hide-password'}" data-index="${i}" style="position: absolute; right: 8px; margin: 0; cursor: pointer;">
-                                  <input type="checkbox" ${info.is_show == 1 ? "checked" : ""}>
+                              <input data-index="${i}" class="password" type="${info.show_password ? "text" : "password"}" placeholder="${I18n.t('password_placeholder')}" value="${escapeHtml(info.password)}" style="padding-right: 35px; width: 100%;" tabindex="${i * 100 + 6}" ${disabledAttr}>
+                              <label class="container eye-toggle ${info.show_password ? 'show-password' : 'hide-password'}" data-index="${i}" style="position: absolute; right: 8px; margin: 0; cursor: pointer;">
+                                  <input type="checkbox" ${info.show_password ? "checked" : ""}>
                                   <svg class="eye" xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 576 512"><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM144 256a144 144 0 1 1 288 0 144 144 0 1 1 -288 0zm144-64c0 35.3-28.7 64-64 64c-7.1 0-13.9-1.2-20.3-3.3c-5.5-1.8-11.9 1.6-11.7 7.4c.3 6.9 1.3 13.8 3.2 20.7c13.7 51.2 66.4 81.6 117.6 67.9s81.6-66.4 67.9-117.6c-11.1-41.5-47.8-69.4-88.6-71.1c-5.8-.2-9.2 6.1-7.4 11.7c2.1 6.4 3.3 13.2 3.3 20.3z"></path></svg>
                                   <svg class="eye-slash" xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 640 512"><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c8.4-19.3 10.6-41.4 4.8-63.3c-11.1-41.5-47.8-69.4-88.6-71.1c-5.8-.2-9.2 6.1-7.4 11.7c2.1 6.4 3.3 13.2 3.3 20.3c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zM373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5L373 389.9z"></path></svg>
                               </label>
@@ -1378,13 +1406,13 @@ function bindItemEvents() {
   $(".eye-toggle input").on("change", function () {
     const i = $(this).parent().data("index");
     if (i !== undefined && list[i]) {
-      list[i].is_show = $(this).prop("checked") ? 1 : 0;
+      list[i].show_password = $(this).prop("checked");
       save = false;
       const passwordInput = $(".password[data-index='" + i + "']");
-      passwordInput.attr("type", list[i].is_show == 1 ? "text" : "password");
+      passwordInput.attr("type", list[i].show_password ? "text" : "password");
 
       const $toggle = $(this).parent();
-      if (list[i].is_show == 1) $toggle.removeClass('hide-password').addClass('show-password');
+      if (list[i].show_password) $toggle.removeClass('hide-password').addClass('show-password');
       else $toggle.removeClass('show-password').addClass('hide-password');
     }
   });
@@ -1452,15 +1480,19 @@ function bindItemEvents() {
   $(document).off("change", ".proxy-status-toggle").on("change", ".proxy-status-toggle", function () {
     var i = $(this).data("index");
     if (i !== undefined && list[i]) {
-      list[i].disabled = !$(this).prop("checked");
+      // Clean up legacy field if present
+      delete list[i].disabled;
+
       const $item = $(this).closest('.proxy-card');
       const $statusText = $item.find('.status-text');
-      if (list[i].disabled) {
-        $item.addClass('disabled');
-        $statusText.text(I18n.t('status_disabled'));
-      } else {
+
+      list[i].enabled = $(this).prop("checked");
+      if (list[i].enabled) {
         $item.removeClass('disabled');
         $statusText.text(I18n.t('status_enabled'));
+      } else {
+        $item.addClass('disabled');
+        $statusText.text(I18n.t('status_disabled'));
       }
       saveSingleProxy(i);
     }
@@ -1858,6 +1890,143 @@ function cleanProtocol(protocol) {
 // Import / Export
 // ==========================================
 
+function migrateConfig(config) {
+  if (!config) return null;
+
+  // Create V3 Skeleton
+  const v3 = {
+    version: 3,
+    system: {
+      appLanguage: I18n.getCurrentLanguage(),
+      themeMode: 'light',
+      nightModeStart: '22:00',
+      nightModeEnd: '06:00',
+      sync: {
+        type: 'native',
+        gist: { token: '', filename: 'proxy_assistant_config.json', gist_id: '' }
+      }
+    },
+    currentScenarioId: 'default',
+    scenarios: []
+  };
+
+  // Helper: Migrate Proxy Item
+  const migrateProxy = (p) => {
+    let enabled = true;
+    if (p.enabled !== undefined) enabled = p.enabled;
+    else if (p.disabled !== undefined) enabled = p.disabled !== true;
+
+    // Map fields
+    return {
+      enabled: enabled,
+      name: p.name || "",
+      protocol: cleanProtocol(p.protocol || p.type),
+      ip: p.ip || "",
+      port: p.port || "",
+      username: p.username || "",
+      password: p.password || "",
+      bypass_urls: p.bypass_urls || "",
+      include_urls: p.include_urls || "",
+      fallback_policy: p.fallback_policy || "direct"
+    };
+  };
+
+  // 1. Detect and Migrate Proxies/Scenarios
+  if (config.scenarios && Array.isArray(config.scenarios)) {
+    // V2/V3
+    v3.scenarios = config.scenarios.map(s => ({
+      id: s.id || ('scenario_' + Date.now() + Math.random().toString(36).substr(2, 9)),
+      name: s.name || I18n.t('scenario_default'),
+      proxies: (s.proxies || []).map(migrateProxy)
+    }));
+    v3.currentScenarioId = config.currentScenarioId || v3.scenarios[0]?.id || 'default';
+  } else if (config.list && Array.isArray(config.list)) {
+      // Local Storage format
+      v3.scenarios = [{
+        id: 'default',
+        name: I18n.t('scenario_default'),
+        proxies: config.list.map(migrateProxy)
+      }];
+      v3.currentScenarioId = 'default';
+  } else if (config.proxies && Array.isArray(config.proxies)) {
+    // V1
+    v3.scenarios = [{
+      id: 'default',
+      name: I18n.t('scenario_default'),
+      proxies: config.proxies.map(migrateProxy)
+    }];
+    v3.currentScenarioId = 'default';
+  } else if (Array.isArray(config)) {
+    // Plain List
+    v3.scenarios = [{
+      id: 'default',
+      name: I18n.t('scenario_default'),
+      proxies: config.map(migrateProxy)
+    }];
+    v3.currentScenarioId = 'default';
+  } else {
+    // Fallback: Empty default
+    v3.scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: [] }];
+    v3.currentScenarioId = 'default';
+  }
+
+  // Ensure valid currentScenarioId
+  if (!v3.scenarios.find(s => s.id === v3.currentScenarioId)) {
+    v3.currentScenarioId = v3.scenarios[0]?.id || 'default';
+  }
+
+  // 2. Migrate Settings
+  const sourceSystem = config.system || {};
+  const sourceSettings = config.settings || {};
+  const sourceSync = config.sync || {};
+
+  const applyIf = (val, targetObj, targetKey) => {
+    if (val !== undefined) targetObj[targetKey] = val;
+  };
+
+  // Apply V1 Settings
+  applyIf(sourceSettings.appLanguage, v3.system, 'appLanguage');
+  applyIf(sourceSettings.themeMode, v3.system, 'themeMode');
+  applyIf(sourceSettings.nightModeStart, v3.system, 'nightModeStart');
+  applyIf(sourceSettings.nightModeEnd, v3.system, 'nightModeEnd');
+  
+  // Apply Local Storage Settings (Flattened)
+  applyIf(config.appLanguage, v3.system, 'appLanguage');
+  applyIf(config.auto_sync, v3.system, 'auto_sync'); 
+  
+  if (config.themeSettings) {
+    applyIf(config.themeSettings.mode, v3.system, 'themeMode');
+    applyIf(config.themeSettings.startTime, v3.system, 'nightModeStart');
+    applyIf(config.themeSettings.endTime, v3.system, 'nightModeEnd');
+  }
+  
+  if (config.sync_config) {
+     if (config.sync_config.type) v3.system.sync.type = config.sync_config.type;
+     if (config.sync_config.gist) v3.system.sync.gist = { ...v3.system.sync.gist, ...config.sync_config.gist };
+  }
+
+  // Apply V2/V3 System
+  applyIf(sourceSystem.appLanguage, v3.system, 'appLanguage');
+  applyIf(sourceSystem.themeMode, v3.system, 'themeMode');
+  applyIf(sourceSystem.nightModeStart, v3.system, 'nightModeStart');
+  applyIf(sourceSystem.nightModeEnd, v3.system, 'nightModeEnd');
+
+  if (sourceSystem.sync) {
+    if (sourceSystem.sync.type) v3.system.sync.type = sourceSystem.sync.type;
+    if (sourceSystem.sync.gist) v3.system.sync.gist = { ...v3.system.sync.gist, ...sourceSystem.sync.gist };
+  }
+
+  // Handle nested settings in system (V2 specific)
+  if (sourceSystem.settings) {
+    applyIf(sourceSystem.settings.appLanguage, v3.system, 'appLanguage');
+    applyIf(sourceSystem.settings.themeMode, v3.system, 'themeMode');
+    applyIf(sourceSystem.settings.nightModeStart, v3.system, 'nightModeStart');
+    applyIf(sourceSystem.settings.nightModeEnd, v3.system, 'nightModeEnd');
+  }
+
+  return v3;
+}
+
 // Unified function to build config data object
 function buildConfigData() {
   // Sync list back to current scenario before building
@@ -1876,8 +2045,53 @@ function buildConfigData() {
     }
   };
 
+  // Reorder proxy properties for consistent distribution
+  const orderedKeys = [
+    'enabled', 'name', 'protocol', 'ip', 'port', 'username', 'password',
+    'bypass_urls', 'include_urls', 'fallback_policy'
+  ];
+
+  // Keys to exclude from the exported config
+  const excludedKeys = ['show_password', 'open', 'disabled'];
+
+  const processProxies = (proxies) => {
+    return (proxies || []).map(p => {
+      const newP = {};
+
+      // Ensure enabled is set (default true if undefined and not disabled)
+      if (p.enabled === undefined) {
+        // This logic might be redundant if we migrate on load, but good for safety
+        newP.enabled = p.disabled !== true;
+      } else {
+        newP.enabled = p.enabled;
+      }
+
+      // Add ordered keys first
+      orderedKeys.forEach(k => {
+        if (Object.prototype.hasOwnProperty.call(p, k)) {
+          newP[k] = p[k];
+        } else if (k === 'enabled') {
+          // Ensure enabled is present in output even if not in source (from calculation above)
+          newP[k] = (newP.enabled !== undefined) ? newP.enabled : true;
+        }
+      });
+      // Add remaining keys (excluding specific UI state keys)
+      Object.keys(p).forEach(k => {
+        if (!orderedKeys.includes(k) && !excludedKeys.includes(k)) {
+          newP[k] = p[k];
+        }
+      });
+      return newP;
+    });
+  };
+
+  const formattedScenarios = scenarios.map(s => ({
+    ...s,
+    proxies: processProxies(s.proxies)
+  }));
+
   return {
-    version: 2,
+    version: 3,
     system: {
       appLanguage: I18n.getCurrentLanguage(),
       themeMode: themeMode,
@@ -1886,7 +2100,7 @@ function buildConfigData() {
       sync: syncForExport
     },
     currentScenarioId: currentScenarioId,
-    scenarios: scenarios
+    scenarios: formattedScenarios
   };
 }
 
@@ -1907,42 +2121,26 @@ function importConfig(e) {
   var reader = new FileReader();
   reader.onload = function (e) {
     try {
-      var data = JSON.parse(e.target.result);
-      if (data) {
-        // Handle V2 Import
-        if (data.scenarios) {
-          scenarios = data.scenarios;
-          currentScenarioId = data.currentScenarioId || 'default';
-          updateCurrentListFromScenario();
-        }
-        // Handle V1 Import (fallback)
-        else if (data.proxies && Array.isArray(data.proxies)) {
-          list = data.proxies.map(p => ({ ...p, protocol: cleanProtocol(p.protocol || p.type || 'http') }));
-          scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: list }];
-          currentScenarioId = 'default';
-        } else if (Array.isArray(data)) {
-          // Plain array import
-          list = data.map(p => ({ ...p, protocol: cleanProtocol(p.protocol || p.type || 'http') }));
-          scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: list }];
-          currentScenarioId = 'default';
-        } else {
-          alert(I18n.t('alert_invalid_format'));
-          return;
-        }
+      var rawData = JSON.parse(e.target.result);
+      if (rawData) {
+        const data = migrateConfig(rawData);
 
-        var systemData = data.system;
+        // Apply Scenarios & List
+        scenarios = data.scenarios;
+        currentScenarioId = data.currentScenarioId;
+        updateCurrentListFromScenario();
+
+        // Apply System Settings
+        const systemData = data.system;
         if (systemData) {
-          if (systemData.auto_sync !== undefined) {
-            chrome.storage.local.set({ auto_sync: systemData.auto_sync });
-          }
           if (systemData.appLanguage) {
             I18n.setLanguage(systemData.appLanguage);
             $('#current-language-display').text($(`#language-options li[data-value="${systemData.appLanguage}"]`).text());
           }
           if (systemData.themeMode) {
             themeMode = systemData.themeMode;
-            if (systemData.nightModeStart) nightModeStart = systemData.nightModeStart;
-            if (systemData.nightModeEnd) nightModeEnd = systemData.nightModeEnd;
+            nightModeStart = systemData.nightModeStart || '22:00';
+            nightModeEnd = systemData.nightModeEnd || '06:00';
             saveThemeSettings();
             updateThemeUI();
           }
@@ -1952,6 +2150,7 @@ function importConfig(e) {
             updateSyncUI();
           }
         }
+
         save = false;
         renderList();
         renderScenarioSelector();
@@ -2488,40 +2687,39 @@ async function manualPull() {
     if (remoteData) {
       console.log("Sync: Pulled data from " + type);
 
-      // Support both V1 (proxies at top) and V2 (scenarios)
-      let hasData = false;
-      let toSave = {};
+      const data = migrateConfig(remoteData);
 
-      if (remoteData.scenarios && Array.isArray(remoteData.scenarios)) {
-        toSave.scenarios = remoteData.scenarios;
-        toSave.currentScenarioId = remoteData.currentScenarioId || 'default';
-        const currentScenario = remoteData.scenarios.find(s => s.id === toSave.currentScenarioId) || remoteData.scenarios[0];
-        toSave.list = currentScenario ? currentScenario.proxies : [];
-        hasData = true;
-      } else if (remoteData.proxies && Array.isArray(remoteData.proxies)) {
-        toSave.list = remoteData.proxies;
-        toSave.scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: remoteData.proxies }];
-        toSave.currentScenarioId = 'default';
-        hasData = true;
-      }
+      // Save mapped data to storage
+      const toSave = {
+        scenarios: data.scenarios,
+        currentScenarioId: data.currentScenarioId,
+        list: data.scenarios.find(s => s.id === data.currentScenarioId)?.proxies || []
+      };
 
-      if (hasData) {
-        if (remoteData.settings) {
-          toSave.themeSettings = remoteData.settings;
+      if (data.system) {
+        toSave.themeSettings = {
+          mode: data.system.themeMode,
+          startTime: data.system.nightModeStart,
+          endTime: data.system.nightModeEnd
+        };
+        if (data.system.sync) {
+          toSave.sync_config = data.system.sync;
         }
-
-        chrome.storage.local.set(toSave, function () {
-          if (chrome.runtime.lastError) {
-            showTip(I18n.t('pull_failed') + chrome.runtime.lastError.message, true);
-            return;
-          }
-          // Reload UI using the remote structure
-          loadFromLocal(remoteData);
-          showTip(I18n.t('pull_success'), false);
-        });
-      } else {
-        showTip(I18n.t('pull_failed'), true);
+        if (data.system.auto_sync !== undefined) {
+          toSave.auto_sync = data.system.auto_sync;
+        }
       }
+
+      chrome.storage.local.set(toSave, function () {
+        if (chrome.runtime.lastError) {
+          showTip(I18n.t('pull_failed') + chrome.runtime.lastError.message, true);
+          return;
+        }
+        // Reload UI using the migrated structure
+        loadFromLocal(data);
+        showTip(I18n.t('pull_success'), false);
+      });
+
     } else {
       showTip(I18n.t('pull_failed'), true);
     }

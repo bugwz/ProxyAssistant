@@ -1,0 +1,134 @@
+{
+    "version": 3,
+    "system": {
+        "appLanguage": "zh-CN",
+        "themeMode": "light",
+        "nightModeStart": "22:00",
+        "nightModeEnd": "06:00",
+        "sync": {
+            "type": "native",
+            "gist": {
+                "token": "",
+                "filename": "proxy_assistant_config.json",
+                "gist_id": ""
+            }
+        }
+    },
+    "currentScenarioId": "default",
+    "scenarios": [
+        {
+            "id": "scenario_1768917373790",
+            "name": "家庭",
+            "proxies": [
+                {
+                    "enabled": true,
+                    "name": "上网代理",
+                    "protocol": "http",
+                    "ip": "44.22.123.10",
+                    "port": "8080",
+                    "username": "",
+                    "password": "",
+                    "bypass_urls": "",
+                    "include_urls": "",
+                    "fallback_policy": "direct"
+                },
+                {
+                    "enabled": true,
+                    "name": "谷歌代理",
+                    "protocol": "socks5",
+                    "ip": "127.0.0.1",
+                    "port": "6153",
+                    "username": "",
+                    "password": "",
+                    "bypass_urls": "",
+                    "include_urls": "",
+                    "fallback_policy": "direct"
+                }
+            ]
+        },
+        {
+            "id": "scenario_1768970029377",
+            "name": "学校",
+            "proxies": [
+                {
+                    "enabled": true,
+                    "name": "教学楼代理",
+                    "protocol": "http",
+                    "ip": "10.98.101.104",
+                    "port": "8888",
+                    "username": "",
+                    "password": "",
+                    "bypass_urls": "47.102.108.12\nmyip.ipip.net",
+                    "include_urls": "baidu.com\nmyip.ipip.net",
+                    "fallback_policy": "direct"
+                },
+                {
+                    "enabled": true,
+                    "name": "办公室代理",
+                    "protocol": "http",
+                    "ip": "192.168.56.22",
+                    "port": "7609",
+                    "username": "",
+                    "password": "",
+                    "bypass_urls": "",
+                    "include_urls": "",
+                    "fallback_policy": "direct"
+                }
+            ]
+        },
+        {
+            "id": "default",
+            "name": "公司",
+            "proxies": [
+                {
+                    "enabled": true,
+                    "name": "内网代理",
+                    "protocol": "http",
+                    "ip": "10.12.56.112",
+                    "port": "9090",
+                    "username": "",
+                    "password": "",
+                    "bypass_urls": "1212.com",
+                    "include_urls": "1212.com.com.cn",
+                    "fallback_policy": "direct"
+                },
+                {
+                    "enabled": true,
+                    "name": "业务A代理",
+                    "protocol": "http",
+                    "ip": "10.44.22.75",
+                    "port": "8888",
+                    "username": "",
+                    "password": "",
+                    "bypass_urls": "myip.ipip.net",
+                    "include_urls": "121.cn.com",
+                    "fallback_policy": "direct"
+                },
+                {
+                    "enabled": true,
+                    "name": "业务B代理",
+                    "protocol": "http",
+                    "ip": "10.15.33.167",
+                    "port": "9999",
+                    "username": "",
+                    "password": "",
+                    "bypass_urls": "",
+                    "include_urls": "",
+                    "fallback_policy": "direct"
+                },
+                {
+                    "enabled": true,
+                    "name": "测试专用",
+                    "protocol": "http",
+                    "ip": "10.55.98.121",
+                    "port": "9999",
+                    "username": "",
+                    "password": "",
+                    "bypass_urls": "myip.ipip.net",
+                    "include_urls": "1212.bai.cn",
+                    "fallback_policy": "direct"
+                }
+            ]
+        }
+    ]
+}

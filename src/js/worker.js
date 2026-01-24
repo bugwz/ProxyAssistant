@@ -538,7 +538,7 @@ function findProxyForRequestFirefox(url) {
 
   // 按代理列表顺序检查，使用第一个匹配的include_urls
   for (const proxy of firefoxProxyState.list) {
-    if (proxy.disabled) continue;
+    if (proxy.enabled === false || proxy.disabled === true) continue;
     if (!proxy.ip || !proxy.port) continue;
 
     // 只检查include_urls，忽略bypass_urls在自动模式下
