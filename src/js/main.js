@@ -2759,7 +2759,7 @@ async function manualPull() {
 
         chrome.storage.local.set(toSave, function () {
           if (chrome.runtime.lastError) {
-            showTip(I18n.t('pull_failed') + chrome.runtime.lastError.message, true);
+            showTip(I18n.t('pull_failed') + ': ' + chrome.runtime.lastError.message, true);
             return;
           }
           syncConfig = toSave.sync_config;
@@ -2767,13 +2767,12 @@ async function manualPull() {
           showTip(I18n.t('pull_success'), false);
         });
       });
-
     } else {
       showTip(I18n.t('pull_failed'), true);
     }
   } catch (e) {
     console.log("Sync Pull Error:", e);
-    showTip(I18n.t('pull_failed') + (e.message || e), true);
+    showTip(I18n.t('pull_failed') + ': ' + (e.message || e), true);
   } finally {
     $btn.prop('disabled', false);
   }
