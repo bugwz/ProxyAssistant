@@ -1148,7 +1148,7 @@ function moveProxy(proxyIndex, targetScenarioId) {
   }, function () {
     if (chrome.runtime.lastError) {
       console.log("Move proxy failed:", chrome.runtime.lastError);
-      showTip(I18n.t('move_failed') + chrome.runtime.lastError.message, true);
+      showTip(I18n.t('move_failed') + ': ' + chrome.runtime.lastError.message, true);
       return;
     }
 
@@ -2187,7 +2187,7 @@ function importConfig(e) {
         });
       }
     } catch (err) {
-      alert(I18n.t('alert_parse_error') + err.message);
+      alert(I18n.t('alert_parse_error') + ': ' + err.message);
     }
     $("#json-file-input").val("");
   };
@@ -2693,7 +2693,7 @@ async function manualPush() {
     showTip(I18n.t('push_success'), false);
   } catch (e) {
     console.log("Sync Push Error:", e);
-    showTip(I18n.t('push_failed') + (e.message || e), true);
+    showTip(I18n.t('push_failed') + ': ' + (e.message || e), true);
   } finally {
     $btn.prop('disabled', false);
   }
@@ -2796,7 +2796,7 @@ async function pushToGist(data) {
 
   if (!validateResponse.ok) {
     if (validateResponse.status === 401) throw new Error(I18n.t('sync_error_invalid_token'));
-    throw new Error(I18n.t('sync_error_connection') + validateResponse.status);
+    throw new Error(I18n.t('sync_error_connection') + ': ' + validateResponse.status);
   }
 
   const content = JSON.stringify(data, null, 2);
