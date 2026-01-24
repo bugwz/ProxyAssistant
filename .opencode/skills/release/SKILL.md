@@ -171,7 +171,7 @@ Do you confirm this tag creation? Please reply with "yes" to confirm or "no" to 
 - Commit message 必须翻译为中文描述
 - 所有变更内容必须为中文
 - 不要直接使用原始 commit message，需进行语义总结
-- 每次发版必须更新 `src/manifest_chrome.json`、`src/manifest_firefox.json` 和 `src/popup.html` 中的版本号
+- 每次发版必须更新 `src/manifest_chrome.json`、`src/manifest_firefox.json` 中的版本号
 - 如果某项没有匹配的变动，在 Release Notes 中设置一个为空的列表（如：`- 无`）
 
 ### 错误处理
