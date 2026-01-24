@@ -32,6 +32,9 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function initApp() {
+  const currentVersion = chrome.runtime.getManifest().version;
+  $('#version-display').text('v' + currentVersion);
+
   chrome.storage.local.get(['proxyMode', 'currentProxy', 'list', 'scenarios', 'currentScenarioId'], function (result) {
     if (chrome.runtime.lastError) {
       console.error('Error loading settings:', chrome.runtime.lastError);
