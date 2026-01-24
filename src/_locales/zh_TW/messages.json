@@ -1,0 +1,10 @@
+{
+  "app_name": {
+    "message": "代理助手",
+    "description": "Extension name"
+  },
+  "app_description": {
+    "message": "一款代理管理插件, 支持 HTTP/HTTPS/SOCKS 代理配置, 支持手動/自動模式切換, 保護隱私, 暢享網絡。",
+    "description": "Extension description"
+  }
+}

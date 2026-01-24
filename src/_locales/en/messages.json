@@ -1,0 +1,10 @@
+{
+  "app_name": {
+    "message": "Proxy Assistant",
+    "description": "Extension name"
+  },
+  "app_description": {
+    "message": "A proxy management extension supporting HTTP/HTTPS/SOCKS proxy configuration with manual/auto mode switching.",
+    "description": "Extension description"
+  }
+}

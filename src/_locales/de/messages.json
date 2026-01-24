@@ -1,0 +1,10 @@
+{
+  "app_name": {
+    "message": "Proxy-Assistent",
+    "description": "Extension name"
+  },
+  "app_description": {
+    "message": "Eine Proxy-Verwaltungserweiterung mit HTTP/HTTPS/SOCKS-Proxy-Konfiguration und manuellem/automatischem Moduswechsel.",
+    "description": "Extension description"
+  }
+}
