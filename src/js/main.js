@@ -67,46 +67,46 @@ function loadFromLocal(config) {
     // Apply State
     scenarios = newConfig.scenarios;
     currentScenarioId = newConfig.currentScenarioId;
-    
+
     // Ensure current scenario exists
     if (!scenarios.find(s => s.id === currentScenarioId)) {
       currentScenarioId = scenarios[0]?.id || 'default';
     }
-    
+
     updateCurrentListFromScenario();
 
     // Apply System Settings
     if (newConfig.system) {
-        if (newConfig.system.appLanguage) {
-           I18n.setLanguage(newConfig.system.appLanguage);
-           const langName = $(`#language-options li[data-value="${newConfig.system.appLanguage}"]`).text();
-           if (langName) $('#current-language-display').text(langName);
-        }
-        
-        themeMode = newConfig.system.themeMode || 'light';
-        nightModeStart = newConfig.system.nightModeStart || '22:00';
-        nightModeEnd = newConfig.system.nightModeEnd || '06:00';
-        
-        if (newConfig.system.sync) {
-          syncConfig = newConfig.system.sync;
-        }
-        // auto_sync handling if needed (though typically used by background worker)
-        if (newConfig.system.auto_sync !== undefined) {
-             chrome.storage.local.set({ auto_sync: newConfig.system.auto_sync });
-        }
+      if (newConfig.system.appLanguage) {
+        I18n.setLanguage(newConfig.system.appLanguage);
+        const langName = $(`#language-options li[data-value="${newConfig.system.appLanguage}"]`).text();
+        if (langName) $('#current-language-display').text(langName);
+      }
+
+      themeMode = newConfig.system.themeMode || 'light';
+      nightModeStart = newConfig.system.nightModeStart || '22:00';
+      nightModeEnd = newConfig.system.nightModeEnd || '06:00';
+
+      if (newConfig.system.sync) {
+        syncConfig = newConfig.system.sync;
+      }
+      // auto_sync handling if needed (though typically used by background worker)
+      if (newConfig.system.auto_sync !== undefined) {
+        chrome.storage.local.set({ auto_sync: newConfig.system.auto_sync });
+      }
     }
 
     // If loading from local storage (no config provided), perform auto-upgrade/cleanup
     if (!config) {
-       saveData({ silent: true });
-       saveThemeSettings();
-       chrome.storage.local.set({ sync_config: syncConfig });
+      saveData({ silent: true });
+      saveThemeSettings();
+      chrome.storage.local.set({ sync_config: syncConfig });
 
-       // Cleanup legacy keys
-       const keysToRemove = [];
-       if (items.appLanguage !== undefined) keysToRemove.push('appLanguage');
-       // Don't remove auto_sync as it might be used by worker.js independently
-       if (keysToRemove.length > 0) {
+      // Cleanup legacy keys
+      const keysToRemove = [];
+      if (items.appLanguage !== undefined) keysToRemove.push('appLanguage');
+      // Don't remove auto_sync as it might be used by worker.js independently
+      if (keysToRemove.length > 0) {
         chrome.storage.local.remove(keysToRemove);
       }
     }
@@ -661,6 +661,15 @@ function bindGlobalEvents() {
   $("#detect-proxy-btn").on("click", detectProxy);
   $("#pac-details-btn").on("click", showPacDetails);
 
+  // Version Check
+  $("#check-version-btn").on("click", showVersionCheck);
+  $(".version-check-close-btn, .version-check-tip").on("click", function (e) {
+    if (this === e.target || $(this).hasClass('version-check-close-btn')) {
+      $(".version-check-tip").removeClass("show");
+      setTimeout(function () { $(".version-check-tip").hide(); }, 300);
+    }
+  });
+
   // Scenario dropdown is handled by initDropdowns()
   // The button now shows a dropdown for scenario selection
   $(".scenario-manage-close-btn, .scenario-manage-tip").on("click", function (e) {
@@ -780,6 +789,7 @@ function bindGlobalEvents() {
         '.sync-config-tip',
         '.pac-details-tip',
         '.proxy-detection-tip',
+        '.version-check-tip',
         '.delete-tip'
       ];
 
@@ -1941,13 +1951,13 @@ function migrateConfig(config) {
     }));
     v3.currentScenarioId = config.currentScenarioId || v3.scenarios[0]?.id || 'default';
   } else if (config.list && Array.isArray(config.list)) {
-      // Local Storage format
-      v3.scenarios = [{
-        id: 'default',
-        name: I18n.t('scenario_default'),
-        proxies: config.list.map(migrateProxy)
-      }];
-      v3.currentScenarioId = 'default';
+    // Local Storage format
+    v3.scenarios = [{
+      id: 'default',
+      name: I18n.t('scenario_default'),
+      proxies: config.list.map(migrateProxy)
+    }];
+    v3.currentScenarioId = 'default';
   } else if (config.proxies && Array.isArray(config.proxies)) {
     // V1
     v3.scenarios = [{
@@ -1989,20 +1999,20 @@ function migrateConfig(config) {
   applyIf(sourceSettings.themeMode, v3.system, 'themeMode');
   applyIf(sourceSettings.nightModeStart, v3.system, 'nightModeStart');
   applyIf(sourceSettings.nightModeEnd, v3.system, 'nightModeEnd');
-  
+
   // Apply Local Storage Settings (Flattened)
   applyIf(config.appLanguage, v3.system, 'appLanguage');
-  applyIf(config.auto_sync, v3.system, 'auto_sync'); 
-  
+  applyIf(config.auto_sync, v3.system, 'auto_sync');
+
   if (config.themeSettings) {
     applyIf(config.themeSettings.mode, v3.system, 'themeMode');
     applyIf(config.themeSettings.startTime, v3.system, 'nightModeStart');
     applyIf(config.themeSettings.endTime, v3.system, 'nightModeEnd');
   }
-  
+
   if (config.sync_config) {
-     if (config.sync_config.type) v3.system.sync.type = config.sync_config.type;
-     if (config.sync_config.gist) v3.system.sync.gist = { ...v3.system.sync.gist, ...config.sync_config.gist };
+    if (config.sync_config.type) v3.system.sync.type = config.sync_config.type;
+    if (config.sync_config.gist) v3.system.sync.gist = { ...v3.system.sync.gist, ...config.sync_config.gist };
   }
 
   // Apply V2/V3 System
@@ -2985,3 +2995,157 @@ function escapeHtml(text) {
 var style = document.createElement('style');
 style.textContent = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } .spin { animation: spin 1s linear infinite; }';
 document.head.appendChild(style);
+
+
+// ==========================================
+// ==========================================
+const versionIcons = {
+  loading: '<svg class="spin" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>',
+  success: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+  update: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+  error: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+  link: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>'
+};
+
+// Version Check Logic
+// ==========================================
+async function showVersionCheck() {
+  $(".version-check-tip").show().addClass("show");
+
+  // 1. Local Version
+  const currentVersion = chrome.runtime.getManifest().version;
+  $("#current-version-value").text(currentVersion);
+
+  // Reset UI
+  $("#store-version-value").html(`<span data-i18n="version_checking">${I18n.t('version_checking')}</span>`);
+  $("#github-version-value").html(`<span data-i18n="version_checking">${I18n.t('version_checking')}</span>`);
+
+  // 2. Store Version
+  checkStoreVersion(currentVersion);
+
+  // 3. GitHub Version
+  checkGitHubVersion(currentVersion);
+}
+
+async function checkStoreVersion(currentVersion) {
+  const $el = $("#store-version-value");
+
+  try {
+    let version = null;
+    let storeUrl = '';
+
+    if (isFirefox) {
+      // Firefox Add-ons API
+      // Use the ID from manifest if available, or hardcoded if known. 
+      // The manifest says "proxy-assistant@bugwz.com"
+      const response = await fetch('https://addons.mozilla.org/api/v5/addons/addon/proxy-assistant@bugwz.com/');
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.current_version) {
+          version = data.current_version.version;
+          storeUrl = data.url;
+        }
+      }
+    } else {
+      // Chrome Web Store
+      const extId = chrome.runtime.id;
+      storeUrl = `https://chromewebstore.google.com/detail/${extId}`;
+
+      try {
+        const response = await fetch(storeUrl);
+        if (response.ok) {
+          const text = await response.text();
+          // Attempt to match version from meta tags or JSON blobs in the page
+          // 1. Meta tag (reliable in most OG/Schema compatible sites): <meta itemprop="version" content="...">
+          // 2. JSON-like structure: "version":"..."
+          const metaMatch = text.match(/itemprop="version" content="([\d\.]+)"/);
+          const jsonMatch = text.match(/"version":"([\d\.]+)"/);
+
+          if (metaMatch && metaMatch[1]) {
+            version = metaMatch[1];
+          } else if (jsonMatch && jsonMatch[1]) {
+            version = jsonMatch[1];
+          }
+        }
+      } catch (err) {
+        console.warn("Chrome Store fetch failed:", err);
+      }
+
+      if (!version) {
+        // Fallback to link if fetch/parse failed
+        $el.html(`<a href="${storeUrl}" target="_blank" class="version-link">
+          <span class="version-status-icon">${versionIcons.link}</span> ${I18n.t('check_store')}
+        </a>`);
+        return;
+      }
+    }
+
+    if (version) {
+      updateVersionUI($el, version, currentVersion, storeUrl);
+    } else {
+      // If we couldn't find version but have URL (or logic fell through)
+      throw new Error("Version not found");
+    }
+
+  } catch (e) {
+    console.warn("Store version check failed:", e);
+    const fallbackUrl = isFirefox
+      ? 'https://addons.mozilla.org/firefox/addon/proxy-assistant/'
+      : `https://chromewebstore.google.com/detail/${chrome.runtime.id}`;
+
+    $el.html(`<a href="${fallbackUrl}" target="_blank" class="version-link">
+       <span class="version-status-icon">${versionIcons.error}</span> ${I18n.t('version_error')}
+    </a>`);
+  }
+}
+
+async function checkGitHubVersion(currentVersion) {
+  const $el = $("#github-version-value");
+  try {
+    const response = await fetch('https://api.github.com/repos/bugwz/ProxyAssistant/releases/latest');
+    if (response.ok) {
+      const data = await response.json();
+      const version = data.tag_name.replace(/^v/, ''); // Remove 'v' prefix if present
+      updateVersionUI($el, version, currentVersion, data.html_url);
+    } else {
+      throw new Error("GitHub API error");
+    }
+  } catch (e) {
+    console.warn("GitHub version check failed:", e);
+    $el.html(`<span class="version-status-icon">${versionIcons.error}</span> <span style="color: #ef4444;">${I18n.t('version_error')}</span>`);
+  }
+}
+
+function updateVersionUI($el, remoteVersion, currentVersion, url) {
+  const comparison = compareVersions(remoteVersion, currentVersion);
+  let html = '';
+
+  if (comparison > 0) {
+    // New version available
+    html = `<a href="${url}" target="_blank" class="version-link" style="color: #f97316; font-weight: 700;">
+      <span class="version-status-icon">${versionIcons.update}</span> ${remoteVersion} (${I18n.t('version_mismatch')})
+    </a>`;
+  } else {
+    // Up to date
+    html = `<a href="${url}" target="_blank" class="version-link" style="color: #22c55e;">
+      <span class="version-status-icon">${versionIcons.success}</span> ${remoteVersion} (${I18n.t('version_match')})
+    </a>`;
+  }
+
+  $el.html(html);
+}
+
+function compareVersions(v1, v2) {
+  const p1 = v1.split('.').map(Number);
+  const p2 = v2.split('.').map(Number);
+  const len = Math.max(p1.length, p2.length);
+
+  for (let i = 0; i < len; i++) {
+    const n1 = p1[i] || 0;
+    const n2 = p2[i] || 0;
+    if (n1 > n2) return 1;
+    if (n1 < n2) return -1;
+  }
+  return 0;
+}
+

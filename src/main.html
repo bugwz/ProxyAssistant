@@ -187,6 +187,20 @@
                </button>
           </div>
       </div>
+
+      <!-- Version Check -->
+      <div class="config-row">
+          <div class="config-row-left">
+              <div class="config-row-title" data-i18n="version_check">版本检测</div>
+              <div class="config-row-desc" data-i18n="version_check_desc">检测当前版本及更新信息</div>
+          </div>
+          <div class="config-row-right">
+              <button id="check-version-btn" class="control-btn">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                  <span data-i18n="version_check_btn">检测</span>
+              </button>
+          </div>
+      </div>
     </div>
 
   </div>
@@ -234,6 +248,36 @@
                    <span data-i18n="proxy_suggestion">💡 建议</span>
                    <span id="detection-suggestion-text"></span>
                </div>
+          </div>
+      </div>
+  </div>
+
+  <!-- Version Check Result Popup -->
+  <div class="version-check-tip">
+      <div class="version-check-box">
+           <div class="version-check-header">
+               <span data-i18n="version_check_title">版本检测结果</span>
+               <div class="version-check-close-btn">
+                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+               </div>
+           </div>
+          <div class="version-check-content">
+              <div class="version-info-row">
+                  <div class="version-label" data-i18n="current_version">当前版本</div>
+                  <div class="version-value" id="current-version-value">-</div>
+              </div>
+              <div class="version-info-row">
+                  <div class="version-label" data-i18n="store_version">应用商店版本</div>
+                  <div class="version-value" id="store-version-value">
+                      <span data-i18n="version_checking">检测中...</span>
+                  </div>
+              </div>
+              <div class="version-info-row">
+                  <div class="version-label" data-i18n="github_version">GitHub 版本</div>
+                  <div class="version-value" id="github-version-value">
+                      <span data-i18n="version_checking">检测中...</span>
+                  </div>
+              </div>
           </div>
       </div>
   </div>
