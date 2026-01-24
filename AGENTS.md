@@ -93,7 +93,7 @@ async function loadSettings() {
     const settings = await getSettings();
     return settings;
   } catch (error) {
-    console.error('加载设置失败:', error);
+    console.log('加载设置失败:', error);
     return defaultSettings;
   }
 }

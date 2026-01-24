@@ -1147,7 +1147,7 @@ function moveProxy(proxyIndex, targetScenarioId) {
     list: list // Sync current list for background worker compatibility
   }, function () {
     if (chrome.runtime.lastError) {
-      console.error("Move proxy failed:", chrome.runtime.lastError);
+      console.log("Move proxy failed:", chrome.runtime.lastError);
       showTip(I18n.t('move_failed') + chrome.runtime.lastError.message, true);
       return;
     }
@@ -1736,7 +1736,7 @@ function saveData(options) {
     list: list // Sync current list for background worker compatibility
   }, function () {
     if (chrome.runtime.lastError) {
-      console.error("Local save failed:", chrome.runtime.lastError);
+      console.log("Local save failed:", chrome.runtime.lastError);
       showTip(I18n.t('save_failed'), true);
       if (options.callback) options.callback(false);
       return;
@@ -2221,7 +2221,7 @@ $(".delete-tip-confirm-btn").on("click", function () {
 
     chrome.storage.local.set({ scenarios: scenarios, list: list }, function () {
       if (chrome.runtime.lastError) {
-        console.error("Delete failed:", chrome.runtime.lastError);
+        console.log("Delete failed:", chrome.runtime.lastError);
         showTip(I18n.t('delete_failed'), true);
       } else {
         showTip(I18n.t('delete_success'), false);
@@ -2250,7 +2250,7 @@ async function detectProxy() {
     var result = analyzeProxyStatus(browserConfig, pluginConfig);
     displayDetectionResult(result);
   } catch (error) {
-    console.error("Proxy detection error:", error);
+    console.log("Proxy detection error:", error);
     displayErrorResult(error.message);
   }
   $btn.prop("disabled", false);
@@ -2466,7 +2466,7 @@ $("#pac-copy-btn").on("click", function () {
   navigator.clipboard.writeText(script).then(function () {
     $btn.html(checkIcon);
     setTimeout(function () { $btn.html(copyIcon); }, 2000);
-  }).catch(function (err) { console.error("Failed to copy:", err); });
+  }).catch(function (err) { console.log("Failed to copy:", err); });
 });
 
 // PAC Script Toggle (Expand/Collapse)
@@ -2692,7 +2692,7 @@ async function manualPush() {
     }
     showTip(I18n.t('push_success'), false);
   } catch (e) {
-    console.error("Sync Push Error:", e);
+    console.log("Sync Push Error:", e);
     showTip(I18n.t('push_failed') + (e.message || e), true);
   } finally {
     $btn.prop('disabled', false);
@@ -2772,7 +2772,7 @@ async function manualPull() {
       showTip(I18n.t('pull_failed'), true);
     }
   } catch (e) {
-    console.error("Sync Pull Error:", e);
+    console.log("Sync Pull Error:", e);
     showTip(I18n.t('pull_failed') + (e.message || e), true);
   } finally {
     $btn.prop('disabled', false);
@@ -2940,7 +2940,7 @@ async function updateGist(token, gistId, filename, content) {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Gist update error:", response.status, errorText);
+    console.log("Gist update error:", response.status, errorText);
     throw new Error(I18n.t('sync_error_update_gist') + ` (${response.status})`);
   }
 }
@@ -2960,7 +2960,7 @@ async function getGistContent(token, gistId, filename) {
     try {
       return JSON.parse(content);
     } catch (e) {
-      console.error("Parse Gist Content Error", e);
+      console.log("Parse Gist Content Error", e);
       return null;
     }
   }

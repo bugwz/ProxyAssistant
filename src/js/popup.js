@@ -37,7 +37,7 @@ function initApp() {
 
   chrome.storage.local.get(['proxyMode', 'currentProxy', 'list', 'scenarios', 'currentScenarioId'], function (result) {
     if (chrome.runtime.lastError) {
-      console.error('Error loading settings:', chrome.runtime.lastError);
+      console.log('Error loading settings:', chrome.runtime.lastError);
       return;
     }
 
@@ -48,7 +48,7 @@ function initApp() {
       // Save default status
       chrome.storage.local.set({ proxyMode: 'disabled' }, function () {
         if (chrome.runtime.lastError) {
-          console.error('Error saving default proxyMode:', chrome.runtime.lastError);
+          console.log('Error saving default proxyMode:', chrome.runtime.lastError);
         }
       });
     }
@@ -120,14 +120,14 @@ function bindGlobalEvents() {
 
     chrome.storage.local.set({ proxyMode: mode }, function () {
       if (chrome.runtime.lastError) {
-        console.error('Error setting proxy mode:', chrome.runtime.lastError);
+        console.log('Error setting proxy mode:', chrome.runtime.lastError);
         return;
       }
       if (mode === 'auto') {
         // Auto mode
         chrome.runtime.sendMessage({ action: "refreshProxy" }, function () {
           if (chrome.runtime.lastError) {
-            console.error('Error sending refreshProxy:', chrome.runtime.lastError);
+            console.log('Error sending refreshProxy:', chrome.runtime.lastError);
           }
         });
         updateStatusDisplay('auto');
@@ -139,7 +139,7 @@ function bindGlobalEvents() {
         // Disabled mode
         chrome.runtime.sendMessage({ action: "turnOffProxy" }, function () {
           if (chrome.runtime.lastError) {
-            console.error('Error sending turnOffProxy message:', chrome.runtime.lastError);
+            console.log('Error sending turnOffProxy message:', chrome.runtime.lastError);
           }
           list_init();
           updateStatusDisplay('disabled', null);
@@ -150,7 +150,7 @@ function bindGlobalEvents() {
         // Manual mode - restore previous selection or show disconnected
         chrome.storage.local.get(['currentProxy'], function (result) {
           if (chrome.runtime.lastError) {
-            console.error('Error getting currentProxy:', chrome.runtime.lastError);
+            console.log('Error getting currentProxy:', chrome.runtime.lastError);
             return;
           }
           const currentProxy = result.currentProxy;
@@ -165,7 +165,7 @@ function bindGlobalEvents() {
           // Apply the current proxy settings
           chrome.runtime.sendMessage({ action: "refreshProxy" }, function () {
             if (chrome.runtime.lastError) {
-              console.error('Error sending refreshProxy:', chrome.runtime.lastError);
+              console.log('Error sending refreshProxy:', chrome.runtime.lastError);
             }
           });
         });
@@ -225,7 +225,7 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
       // Refresh scenario selector if scenarios change
       chrome.storage.local.get(['scenarios', 'currentScenarioId'], function (res) {
         if (chrome.runtime.lastError) {
-          console.error('Error getting scenarios:', chrome.runtime.lastError);
+          console.log('Error getting scenarios:', chrome.runtime.lastError);
           return;
         }
         scenarios = res.scenarios || scenarios;
@@ -243,7 +243,7 @@ function initThemeMode() {
   // Always load from local storage (consistent with proxy config)
   chrome.storage.local.get({ themeSettings: {} }, function (items) {
     if (chrome.runtime.lastError) {
-      console.error('Error getting themeSettings:', chrome.runtime.lastError);
+      console.log('Error getting themeSettings:', chrome.runtime.lastError);
       return;
     }
     const settings = items.themeSettings || {};
@@ -304,7 +304,7 @@ function switchScenario(id) {
   if (scenario) {
     chrome.storage.local.get(['proxyMode'], function (result) {
       if (chrome.runtime.lastError) {
-        console.error('Error getting proxyMode:', chrome.runtime.lastError);
+        console.log('Error getting proxyMode:', chrome.runtime.lastError);
         return;
       }
       const mode = result.proxyMode || 'disabled';
@@ -321,14 +321,14 @@ function switchScenario(id) {
           currentProxy: null
         }, function () {
           if (chrome.runtime.lastError) {
-            console.error('Error switching scenario:', chrome.runtime.lastError);
+            console.log('Error switching scenario:', chrome.runtime.lastError);
             return;
           }
           list_init();
           updateStatusDisplay('manual', null);
           chrome.runtime.sendMessage({ action: "turnOffProxy" }, function () {
             if (chrome.runtime.lastError) {
-              console.error('Error sending turnOffProxy:', chrome.runtime.lastError);
+              console.log('Error sending turnOffProxy:', chrome.runtime.lastError);
             }
           });
         });
@@ -338,13 +338,13 @@ function switchScenario(id) {
           list: list
         }, function () {
           if (chrome.runtime.lastError) {
-            console.error('Error switching scenario:', chrome.runtime.lastError);
+            console.log('Error switching scenario:', chrome.runtime.lastError);
             return;
           }
           list_init();
           chrome.runtime.sendMessage({ action: "refreshProxy" }, function () {
             if (chrome.runtime.lastError) {
-              console.error('Error sending refreshProxy:', chrome.runtime.lastError);
+              console.log('Error sending refreshProxy:', chrome.runtime.lastError);
             }
           });
           updateCurrentSiteDisplay();
@@ -355,7 +355,7 @@ function switchScenario(id) {
           list: list
         }, function () {
           if (chrome.runtime.lastError) {
-            console.error('Error switching scenario:', chrome.runtime.lastError);
+            console.log('Error switching scenario:', chrome.runtime.lastError);
             return;
           }
           list_init();
@@ -422,7 +422,7 @@ function updateCurrentSiteDisplay() {
 
   chrome.storage.local.get(['proxyMode', 'list'], function (result) {
     if (chrome.runtime.lastError) {
-      console.error('Error getting proxyMode/list:', chrome.runtime.lastError);
+      console.log('Error getting proxyMode/list:', chrome.runtime.lastError);
       return;
     }
     const mode = result.proxyMode || 'disabled';
@@ -430,7 +430,7 @@ function updateCurrentSiteDisplay() {
     // Get current tab URL
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       if (chrome.runtime.lastError) {
-        console.error('Error querying tabs:', chrome.runtime.lastError);
+        console.log('Error querying tabs:', chrome.runtime.lastError);
         $siteBar.hide();
         return;
       }
@@ -500,7 +500,7 @@ function updateRefreshIndicator() {
 function list_init() {
   chrome.storage.local.get(['currentProxy', 'proxyMode'], function (result) {
     if (chrome.runtime.lastError) {
-      console.error('Error getting settings:', chrome.runtime.lastError);
+      console.log('Error getting settings:', chrome.runtime.lastError);
       return;
     }
     const currentProxy = result.currentProxy;
@@ -508,7 +508,7 @@ function list_init() {
 
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       if (chrome.runtime.lastError) {
-        console.error('Error querying tabs:', chrome.runtime.lastError);
+        console.log('Error querying tabs:', chrome.runtime.lastError);
         tabs = [];
       }
       let autoMatchProxy = null;
@@ -517,7 +517,7 @@ function list_init() {
           const hostname = new URL(tabs[0].url).hostname;
           autoMatchProxy = getAutoProxy(list, hostname);
         } catch (e) {
-          console.error("Error parsing URL for auto match", e);
+          console.log("Error parsing URL for auto match", e);
         }
       }
 
@@ -618,7 +618,7 @@ function bindListEvents() {
     // Save current proxy selection
     chrome.storage.local.set({ currentProxy: info }, function () {
       if (chrome.runtime.lastError) {
-        console.error('Error saving currentProxy:', chrome.runtime.lastError);
+        console.log('Error saving currentProxy:', chrome.runtime.lastError);
         return;
       }
       // Update bypass button status
@@ -630,7 +630,7 @@ function bindListEvents() {
       { action: "applyProxy", proxyInfo: info },
       function (response) {
         if (chrome.runtime.lastError) {
-          console.error('Error sending applyProxy message:', chrome.runtime.lastError);
+          console.log('Error sending applyProxy message:', chrome.runtime.lastError);
           list_init();
           return;
         }
@@ -650,7 +650,7 @@ function bindListEvents() {
 function refreshProxyStatus() {
   chrome.storage.local.get(['proxyMode', 'currentProxy', 'list'], function (result) {
     if (chrome.runtime.lastError) {
-      console.error('Error getting settings:', chrome.runtime.lastError);
+      console.log('Error getting settings:', chrome.runtime.lastError);
       return;
     }
     const mode = result.proxyMode || 'disabled';
@@ -660,7 +660,7 @@ function refreshProxyStatus() {
     if (typeof chrome !== 'undefined' && chrome.proxy && chrome.proxy.settings) {
       chrome.proxy.settings.get({ incognito: false }, function (browserConfig) {
         if (chrome.runtime.lastError) {
-          console.error('Error getting proxy settings:', chrome.runtime.lastError);
+          console.log('Error getting proxy settings:', chrome.runtime.lastError);
           updateStatusDisplay(mode, result.currentProxy);
           updateRefreshIndicator();
           return;
@@ -755,7 +755,7 @@ function initBypassButton() {
     // Get hostname from current URL
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       if (chrome.runtime.lastError) {
-        console.error('Error querying tabs:', chrome.runtime.lastError);
+        console.log('Error querying tabs:', chrome.runtime.lastError);
         $btn.prop('disabled', false).removeClass('btn-processing');
         return;
       }
@@ -792,7 +792,7 @@ function updateBypassButton() {
 
   chrome.storage.local.get(['proxyMode', 'currentProxy', 'list'], function (result) {
     if (chrome.runtime.lastError) {
-      console.error('Error getting settings:', chrome.runtime.lastError);
+      console.log('Error getting settings:', chrome.runtime.lastError);
       $bypassBtn.hide();
       return;
     }
@@ -807,7 +807,7 @@ function updateBypassButton() {
     // Get current tab hostname
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       if (chrome.runtime.lastError) {
-        console.error('Error querying tabs:', chrome.runtime.lastError);
+        console.log('Error querying tabs:', chrome.runtime.lastError);
         $bypassBtn.hide();
         return;
       }
@@ -889,7 +889,7 @@ function checkIfBypassed(bypassUrls, hostname) {
 function handleAddToBypass(hostname, $btn) {
   chrome.storage.local.get(['proxyMode', 'currentProxy', 'list'], function (result) {
     if (chrome.runtime.lastError) {
-      console.error('Error getting settings:', chrome.runtime.lastError);
+      console.log('Error getting settings:', chrome.runtime.lastError);
       $btn.prop('disabled', false).removeClass('btn-processing');
       return;
     }
@@ -939,13 +939,13 @@ function handleAddToBypass(hostname, $btn) {
     // Save to local storage
     chrome.storage.local.set({ currentProxy: proxy, scenarios: scenarios }, function () {
       if (chrome.runtime.lastError) {
-        console.error('Error saving settings:', chrome.runtime.lastError);
+        console.log('Error saving settings:', chrome.runtime.lastError);
         $btn.prop('disabled', false).removeClass('btn-processing');
         return;
       }
       chrome.runtime.sendMessage({ action: "refreshProxy" }, function () {
         if (chrome.runtime.lastError) {
-          console.error('Error sending refreshProxy:', chrome.runtime.lastError);
+          console.log('Error sending refreshProxy:', chrome.runtime.lastError);
         }
       });
 
@@ -961,7 +961,7 @@ function handleAddToBypass(hostname, $btn) {
 function handleRemoveFromBypass(hostname, $btn) {
   chrome.storage.local.get(['proxyMode', 'currentProxy', 'list'], function (result) {
     if (chrome.runtime.lastError) {
-      console.error('Error getting settings:', chrome.runtime.lastError);
+      console.log('Error getting settings:', chrome.runtime.lastError);
       $btn.prop('disabled', false).removeClass('btn-processing');
       return;
     }
@@ -1012,13 +1012,13 @@ function handleRemoveFromBypass(hostname, $btn) {
     // Save to local storage
     chrome.storage.local.set({ currentProxy: proxy, scenarios: scenarios }, function () {
       if (chrome.runtime.lastError) {
-        console.error('Error saving settings:', chrome.runtime.lastError);
+        console.log('Error saving settings:', chrome.runtime.lastError);
         $btn.prop('disabled', false).removeClass('btn-processing');
         return;
       }
       chrome.runtime.sendMessage({ action: "refreshProxy" }, function () {
         if (chrome.runtime.lastError) {
-          console.error('Error sending refreshProxy:', chrome.runtime.lastError);
+          console.log('Error sending refreshProxy:', chrome.runtime.lastError);
         }
       });
 

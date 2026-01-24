@@ -171,7 +171,7 @@ function getProxySettings() {
         // Chrome API
         chrome.proxy.settings.get({ incognito: false }, (config) => {
           if (chrome.runtime.lastError) {
-            console.error("Chrome proxy.settings.get error:", chrome.runtime.lastError);
+            console.log("Chrome proxy.settings.get error:", chrome.runtime.lastError);
             resolve({ value: null, levelOfControl: "unknown" });
           } else {
             resolve(config || { value: null, levelOfControl: "unknown" });
@@ -179,7 +179,7 @@ function getProxySettings() {
         });
       }
     } catch (error) {
-      console.error("Exception getting proxy settings:", error);
+      console.log("Exception getting proxy settings:", error);
       resolve({ value: null, levelOfControl: "unknown" });
     }
   });
@@ -303,7 +303,7 @@ function cleanProtocol(protocol) {
 // Manual mode: Apply fixed server configuration (Chrome only)
 async function applyManualProxySettings(proxyInfo) {
   if (!proxyInfo) {
-    console.error("No proxy info provided, turning off proxy");
+    console.log("No proxy info provided, turning off proxy");
     turnOffProxy();
     return { success: false, error: "No proxy information provided" };
   }
@@ -318,14 +318,14 @@ async function applyManualProxySettings(proxyInfo) {
   const bypassUrls = proxyInfo.bypass_urls || "";
 
   if (!type || !ip || !port) {
-    console.error("Missing required proxy information", proxyInfo);
+    console.log("Missing required proxy information", proxyInfo);
     return { success: false, error: "Missing proxy IP, port, or protocol" };
   }
 
   // Validate IP and port format before applying
   const validation = validateProxyConfig(ip, port);
   if (!validation.valid) {
-    console.error("Invalid proxy configuration:", validation.error);
+    console.log("Invalid proxy configuration:", validation.error);
     return { success: false, error: validation.error };
   }
 
@@ -374,7 +374,7 @@ async function applyManualProxySettings(proxyInfo) {
 
   chrome.proxy.settings.set({ value: config, scope: "regular" }, async () => {
     if (chrome.runtime.lastError) {
-      console.error("Error setting proxy:", chrome.runtime.lastError);
+      console.log("Error setting proxy:", chrome.runtime.lastError);
     } else {
       console.log("Manual proxy enabled:", proxyName);
       preconnectToTestUrls();
@@ -406,7 +406,7 @@ function applyAutoProxySettings() {
 
     chrome.proxy.settings.set({ value: config, scope: "regular" }, () => {
       if (chrome.runtime.lastError) {
-        console.error("Error setting auto proxy:", chrome.runtime.lastError);
+        console.log("Error setting auto proxy:", chrome.runtime.lastError);
       } else {
         console.log("Auto proxy (PAC) enabled");
         chrome.storage.local.set({ proxyEnabled: true }, () => {
@@ -770,7 +770,7 @@ async function turnOffProxy() {
           { value: config, scope: "regular" },
           async () => {
             if (chrome.runtime.lastError) {
-              console.error("Error turning off proxy:", chrome.runtime.lastError);
+              console.log("Error turning off proxy:", chrome.runtime.lastError);
             } else {
               console.log("Proxy turned off (mode: system)");
             }
@@ -778,7 +778,7 @@ async function turnOffProxy() {
           }
         );
       } catch (error) {
-        console.error("Error in turnOffProxy:", error);
+        console.log("Error in turnOffProxy:", error);
         resolve();
       }
     });
@@ -815,7 +815,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: false, error: "Unknown action" });
     }
   } catch (error) {
-    console.error("Error handling message:", error);
+    console.log("Error handling message:", error);
     sendResponse({ success: false, error: error.message });
   }
 
