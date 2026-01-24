@@ -526,7 +526,7 @@ function list_init() {
         const info = list[i];
 
         // Skip disabled proxies
-        if (info.disabled === true) continue;
+        if (info.enabled === false || info.disabled === true) continue;
 
         if (info.ip != "" && info.port != "") {
           // Determine selection status
@@ -698,7 +698,7 @@ function getAutoProxy(proxyList, hostname) {
 
   // Check include_urls in proxy list order, return first match
   for (const proxy of proxyList) {
-    if (proxy.disabled) continue;
+    if (proxy.enabled === false || proxy.disabled === true) continue;
     if (!proxy.ip || !proxy.port) continue;
 
     // Only check include_urls, match in order

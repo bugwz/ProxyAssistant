@@ -1,18 +1,11 @@
 {
     "version": 1,
     "settings": {
+        "auto_sync": true,
         "appLanguage": "zh-CN",
         "themeMode": "light",
         "nightModeStart": "22:00",
         "nightModeEnd": "06:00"
-    },
-    "sync": {
-        "type": "gist",
-        "gist": {
-            "token": "",
-            "filename": "proxy_assistant_config.json",
-            "gist_id": ""
-        }
     },
     "proxies": [
         {
@@ -39,19 +32,6 @@
             "is_show": 0,
             "open": 0,
             "include_urls": "baidu.com\nmyip.ipip.net",
-            "bypass_urls": "myip.ipip.net"
-        },
-        {
-            "name": "临时代理",
-            "protocol": "http",
-            "ip": "35.122.11.1",
-            "port": "9999",
-            "username": "",
-            "password": "",
-            "fallback_policy": "direct",
-            "is_show": 0,
-            "open": 0,
-            "include_urls": "",
             "bypass_urls": "myip.ipip.net"
         }
     ]
