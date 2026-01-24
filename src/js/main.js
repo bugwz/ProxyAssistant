@@ -3030,82 +3030,46 @@ async function showVersionCheck() {
 async function checkStoreVersion(currentVersion) {
   const $el = $("#store-version-value");
 
-  try {
-    let version = null;
-    let storeUrl = '';
-
-    if (isFirefox) {
-      // Firefox Add-ons API
-      // Use the ID from manifest if available, or hardcoded if known. 
-      // The manifest says "proxy-assistant@bugwz.com"
+  if (isFirefox) {
+    // Firefox Add-ons API
+    try {
       const response = await fetch('https://addons.mozilla.org/api/v5/addons/addon/proxy-assistant@bugwz.com/');
       if (response.ok) {
         const data = await response.json();
-        if (data && data.current_version) {
-          version = data.current_version.version;
-          storeUrl = data.url;
+        const version = data.current_version?.version;
+        if (version) {
+          updateVersionUI($el, version, currentVersion, data.url);
+          return;
         }
       }
-    } else {
-      // Chrome Web Store
-      const extId = chrome.runtime.id;
-      storeUrl = `https://chromewebstore.google.com/detail/${extId}`;
-
-      try {
-        const response = await fetch(storeUrl);
-        if (response.ok) {
-          const text = await response.text();
-          // Attempt to match version from meta tags or JSON blobs in the page
-          // 1. Meta tag (reliable in most OG/Schema compatible sites): <meta itemprop="version" content="...">
-          // 2. JSON-like structure: "version":"..."
-          const metaMatch = text.match(/itemprop="version" content="([\d\.]+)"/);
-          const jsonMatch = text.match(/"version":"([\d\.]+)"/);
-
-          if (metaMatch && metaMatch[1]) {
-            version = metaMatch[1];
-          } else if (jsonMatch && jsonMatch[1]) {
-            version = jsonMatch[1];
-          }
-        }
-      } catch (err) {
-        console.warn("Chrome Store fetch failed:", err);
-      }
-
-      if (!version) {
-        // Fallback to link if fetch/parse failed
-        $el.html(`<a href="${storeUrl}" target="_blank" class="version-link">
-          <span class="version-status-icon">${versionIcons.link}</span> ${I18n.t('check_store')}
-        </a>`);
-        return;
-      }
+    } catch (e) {
+      console.warn("Firefox Add-ons fetch failed:", e);
     }
-
-    if (version) {
-      updateVersionUI($el, version, currentVersion, storeUrl);
-    } else {
-      // If we couldn't find version but have URL (or logic fell through)
-      throw new Error("Version not found");
-    }
-
-  } catch (e) {
-    console.warn("Store version check failed:", e);
-    const fallbackUrl = isFirefox
-      ? 'https://addons.mozilla.org/firefox/addon/proxy-assistant/'
-      : `https://chromewebstore.google.com/detail/${chrome.runtime.id}`;
-
-    $el.html(`<a href="${fallbackUrl}" target="_blank" class="version-link">
-       <span class="version-status-icon">${versionIcons.error}</span> ${I18n.t('version_error')}
+  } else {
+    // Chrome Web Store
+    const storeUrl = `https://chromewebstore.google.com/detail/${chrome.runtime.id}`;
+    $el.html(`<a href="${storeUrl}" target="_blank" class="version-link">
+      <span class="version-status-icon">${versionIcons.link}</span> ${I18n.t('check_store')}
     </a>`);
+    return;
   }
+
+  // Firefox fallback
+  const fallbackUrl = 'https://addons.mozilla.org/firefox/addon/proxyassistant/';
+  $el.html(`<a href="${fallbackUrl}" target="_blank" class="version-link">
+    <span class="version-status-icon">${versionIcons.link}</span> ${I18n.t('check_store')}
+  </a>`);
 }
 
 async function checkGitHubVersion(currentVersion) {
   const $el = $("#github-version-value");
   try {
-    const response = await fetch('https://api.github.com/repos/bugwz/ProxyAssistant/releases/latest');
+    const response = await fetch('https://api.github.com/repos/bugwz/ProxyAssistant/releases/latest', {
+      headers: { 'User-Agent': 'ProxyAssistant' }
+    });
     if (response.ok) {
       const data = await response.json();
-      const version = data.tag_name.replace(/^v/, ''); // Remove 'v' prefix if present
+      const version = data.tag_name.replace(/^v/, '');
       updateVersionUI($el, version, currentVersion, data.html_url);
     } else {
       throw new Error("GitHub API error");
