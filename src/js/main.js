@@ -52,7 +52,7 @@ function loadFromLocal(config) {
 
   chrome.storage.local.get(keys, function (items) {
     if (chrome.runtime.lastError) {
-      console.warn("Local storage get error:", chrome.runtime.lastError);
+      console.info("Local storage get error:", chrome.runtime.lastError);
       items = {};
     }
     items = items || {};
@@ -667,6 +667,23 @@ function bindGlobalEvents() {
     if (this === e.target || $(this).hasClass('version-check-close-btn')) {
       $(".version-check-tip").removeClass("show");
       setTimeout(function () { $(".version-check-tip").hide(); }, 300);
+    }
+  });
+
+  // Inline retry buttons
+  $(document).on("click", ".version-row-retry-btn", function () {
+    const source = $(this).data("source");
+    const currentVersion = chrome.runtime.getManifest().version;
+    $(this).prop("disabled", true).text(I18n.t('version_checking'));
+
+    if (source === "github") {
+      checkGitHubVersion(currentVersion).finally(() => {
+        $(this).prop("disabled", false);
+      });
+    } else if (source === "store") {
+      checkStoreVersion(currentVersion, true).finally(() => {
+        $(this).prop("disabled", false);
+      });
     }
   });
 
@@ -2811,7 +2828,7 @@ async function pushToGist(data) {
         fileExists = true;
       }
     } catch (e) {
-      console.warn("Gist not found or inaccessible, will try to find or create:", e);
+      console.info("Gist not found or inaccessible, will try to find or create:", e);
       gistId = null; // Reset gist_id, search or create again
     }
   }
@@ -2874,7 +2891,7 @@ async function findGistByFilename(token, filename) {
       if (response.status === 401) throw new Error("Invalid Token");
       if (response.status === 403) {
         // Rate limited - if we already have partial results, try to use them
-        console.warn("GitHub API rate limited while searching for gist");
+        console.info("GitHub API rate limited while searching for gist");
         break;
       }
       throw new Error(`GitHub API Error: ${response.status}`);
@@ -3064,23 +3081,61 @@ async function showVersionCheck() {
   checkGitHubVersion(currentVersion);
 }
 
-async function checkStoreVersion(currentVersion) {
+async function checkStoreVersion(currentVersion, isRetry = false) {
   const $el = $("#store-version-value");
+  const FIREFOX_API_URL = 'https://addons.mozilla.org/api/v5/addons/addon/proxy-assistant@bugwz.com/';
+  const MAX_RETRIES = 3;
+  const RETRY_DELAYS = [1000, 2000, 3000];
+
+  if (isRetry) {
+    $el.html(`<span class="version-status-icon">${versionIcons.loading}</span> <span>${I18n.t('version_checking')}</span>`);
+  }
 
   if (isFirefox) {
-    // Firefox Add-ons API
-    try {
-      const response = await fetch('https://addons.mozilla.org/api/v5/addons/addon/proxy-assistant@bugwz.com/');
-      if (response.ok) {
-        const data = await response.json();
-        const version = data.current_version?.version;
-        if (version) {
-          updateVersionUI($el, version, currentVersion, data.url);
-          return;
+    async function fetchWithRetry(attempt = 0) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch(FIREFOX_API_URL, {
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const data = await response.json();
+          const version = data.current_version?.version;
+          if (version) {
+            updateVersionUI($el, version, currentVersion, data.url);
+            return true;
+          }
+        } else if (response.status === 403 || response.status === 429 || response.status >= 500) {
+          throw new Error(`Firefox Add-ons API error: ${response.status}`);
         }
+        return false;
+      } catch (e) {
+        clearTimeout(timeoutId);
+        return e;
       }
-    } catch (e) {
-      console.warn("Firefox Add-ons fetch failed:", e);
+    }
+
+    let result = await fetchWithRetry();
+
+    if (result === false || (result instanceof Error && !isRetry)) {
+      for (let attempt = 0; attempt < MAX_RETRIES && !(result instanceof Response); attempt++) {
+        const delay = RETRY_DELAYS[attempt];
+        console.info(`Firefox Add-ons fetch failed (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${delay}ms`);
+        $el.html(`<span class="version-status-icon">${versionIcons.loading}</span>
+          <span style="color: #64748b; font-size: 12px;">${I18n.t('version_checking')}</span>`);
+
+        await new Promise(resolve => setTimeout(resolve, delay));
+        result = await fetchWithRetry(attempt + 1);
+      }
+    }
+
+    if (result instanceof Error || !(result === true)) {
+      console.info("Firefox Add-ons fetch failed:", result);
     }
   } else {
     // Chrome Web Store
@@ -3091,7 +3146,7 @@ async function checkStoreVersion(currentVersion) {
     return;
   }
 
-  // Firefox fallback
+  // Firefox fallback or error state
   const fallbackUrl = 'https://addons.mozilla.org/firefox/addon/proxyassistant/';
   $el.html(`<a href="${fallbackUrl}" target="_blank" class="version-link">
     <span class="version-status-icon">${versionIcons.link}</span> ${I18n.t('check_store')}
@@ -3100,20 +3155,58 @@ async function checkStoreVersion(currentVersion) {
 
 async function checkGitHubVersion(currentVersion) {
   const $el = $("#github-version-value");
-  try {
-    const response = await fetch('https://api.github.com/repos/bugwz/ProxyAssistant/releases/latest', {
-      headers: { 'User-Agent': 'ProxyAssistant' }
-    });
-    if (response.ok) {
-      const data = await response.json();
-      const version = data.tag_name.replace(/^v/, '');
-      updateVersionUI($el, version, currentVersion, data.html_url);
-    } else {
-      throw new Error("GitHub API error");
+  const GITHUB_API_URL = 'https://api.github.com/repos/bugwz/ProxyAssistant/releases/latest';
+  const MAX_RETRIES = 3;
+  const RETRY_DELAYS = [1000, 2000, 3000];
+
+  $el.html(`<span class="version-status-icon">${versionIcons.loading}</span> <span>${I18n.t('version_checking')}</span>`);
+
+  async function fetchWithRetry(attempt = 0) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    try {
+      const response = await fetch(GITHUB_API_URL, {
+        headers: { 'User-Agent': 'ProxyAssistant' },
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const data = await response.json();
+        const version = data.tag_name.replace(/^v/, '');
+        updateVersionUI($el, version, currentVersion, data.html_url);
+        return true;
+      } else if (response.status === 403 || response.status === 429 || response.status >= 500) {
+        throw new Error(`GitHub API error: ${response.status}`);
+      } else {
+        throw new Error("GitHub API error");
+      }
+    } catch (e) {
+      clearTimeout(timeoutId);
+
+      if (attempt < MAX_RETRIES) {
+        const delay = RETRY_DELAYS[attempt];
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return fetchWithRetry(attempt + 1);
+      }
+      throw e;
     }
+  }
+
+  try {
+    await fetchWithRetry();
   } catch (e) {
-    console.warn("GitHub version check failed:", e);
-    $el.html(`<span class="version-status-icon">${versionIcons.error}</span> <span style="color: #ef4444;">${I18n.t('version_error')}</span>`);
+    console.info("GitHub version check failed after retries:", e);
+    const refreshBtn = `<button class="version-row-retry-btn github-refresh-btn" data-source="github">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+      </svg>
+    </button>`;
+    const errorHtml = `<span class="version-status-icon">${versionIcons.error}</span>
+      <span style="color: #ef4444; font-size: 12px;">${I18n.t('version_error') || 'Failed'}</span>`;
+    $el.html(errorHtml + refreshBtn);
   }
 }
 
@@ -3122,18 +3215,23 @@ function updateVersionUI($el, remoteVersion, currentVersion, url) {
   let html = '';
 
   if (comparison > 0) {
-    // New version available
     html = `<a href="${url}" target="_blank" class="version-link" style="color: #f97316; font-weight: 700;">
       <span class="version-status-icon">${versionIcons.update}</span> ${remoteVersion} (${I18n.t('version_mismatch')})
     </a>`;
   } else {
-    // Up to date
     html = `<a href="${url}" target="_blank" class="version-link" style="color: #22c55e;">
       <span class="version-status-icon">${versionIcons.success}</span> ${remoteVersion} (${I18n.t('version_match')})
     </a>`;
   }
 
   $el.html(html);
+
+  const refreshBtn = `<button class="version-row-retry-btn github-refresh-btn" data-source="github">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+    </svg>
+  </button>`;
+  $el.append(refreshBtn);
 }
 
 function compareVersions(v1, v2) {
