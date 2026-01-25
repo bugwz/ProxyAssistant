@@ -27,7 +27,7 @@
 
 </div>
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/promotional/marquee-1400x560.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/promotional/marquee-1400x560.png)
 
 ## 1. ✨ 功能特性
 
@@ -50,7 +50,7 @@
 | **手動** | 從代理列表中手動選擇要使用的代理 |
 | **自動** | 根據URL規則自動選擇匹配的代理（PAC模式） |
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/features/03.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/features/03.png)
 
 ### 1.4 🎬 場景模式
 
@@ -99,7 +99,7 @@
 - **深色模式**: 夜間使用
 - **自動切換**: 根據時間自動切換主題（可配置時段）
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/features/02.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/features/02.png)
 
 ### 1.11 ☁️ 數據存儲與同步
 
@@ -195,11 +195,11 @@
 | Русский | ru | ✅ 已支持 |
 | 한국어 | ko | ✅ 已支持 |
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/features/04.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/features/04.png)
 
 ## 2. 📷 設置界面
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/screenshots/main/settings.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/screenshots/main/settings.png)
 
 ## 3. 📁 項目結構
 

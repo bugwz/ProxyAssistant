@@ -27,7 +27,7 @@ A powerful browser proxy management extension, compatible with Chrome/Firefox/Ed
 
 </div>
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/promotional/marquee-1400x560.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/promotional/marquee-1400x560.png)
 
 ## 1. ✨ Features
 
@@ -50,7 +50,7 @@ A powerful browser proxy management extension, compatible with Chrome/Firefox/Ed
 | **Manual** | Manually select proxy from proxy list |
 | **Auto** | Automatically select matching proxy based on URL rules (PAC mode) |
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/features/03.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/features/03.png)
 
 ### 1.4 🎬 Scene Mode
 
@@ -99,7 +99,7 @@ A powerful browser proxy management extension, compatible with Chrome/Firefox/Ed
 - **Dark Mode**: For nighttime use
 - **Auto Switch**: Automatically switch themes based on time (configurable hours)
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/features/02.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/features/02.png)
 
 ### 1.11 ☁️ Data Storage & Sync
 
@@ -195,11 +195,11 @@ This extension supports the following languages:
 | Russian | ru | ✅ Supported |
 | Korean | ko | ✅ Supported |
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/features/04.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/features/04.png)
 
 ## 2. 📷 Settings Interface
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/screenshots/main/settings.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/screenshots/main/settings.png)
 
 ## 3. 📁 Project Structure
 

@@ -27,7 +27,7 @@ Une extension puissante de gestion de proxy pour navigateur, compatible avec Chr
 
 </div>
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/promotional/marquee-1400x560.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/promotional/marquee-1400x560.png)
 
 ## 1. ✨ Fonctionnalités
 
@@ -50,7 +50,7 @@ Une extension puissante de gestion de proxy pour navigateur, compatible avec Chr
 | **Manuel** | Sélectionner manuellement un proxy depuis la liste |
 | **Automatique** | Sélectionner automatiquement le proxy correspondant selon les règles d'URL (mode PAC) |
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/features/03.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/features/03.png)
 
 ### 1.4 🎬 Mode Scénario
 
@@ -99,7 +99,7 @@ Une extension puissante de gestion de proxy pour navigateur, compatible avec Chr
 - **Mode Sombre**: Pour une utilisation de nuit
 - **Basculement automatique**: Changer automatiquement de thème selon l'heure (configurable)
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/features/02.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/features/02.png)
 
 ### 1.11 ☁️ Stockage et synchronisation des données
 
@@ -195,11 +195,11 @@ Cette extension prend en charge les langues suivantes :
 | Русский | ru | ✅ Pris en charge |
 | 한국어 | ko | ✅ Pris en charge |
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/features/04.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/features/04.png)
 
 ## 2. 📷 Interface de configuration
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/screenshots/main/settings.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/screenshots/main/settings.png)
 
 ## 3. 📁 Structure du projet
 

@@ -27,7 +27,7 @@ Una potente extensión de gestión de proxy para navegador que soporta Chrome/Fi
 
 </div>
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/promotional/marquee-1400x560.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/promotional/marquee-1400x560.png)
 
 ## 1. ✨ Características
 
@@ -50,7 +50,7 @@ Una potente extensión de gestión de proxy para navegador que soporta Chrome/Fi
 | **Manual** | Seleccionar manualmente un proxy de la lista |
 | **Automático** | Seleccionar automáticamente el proxy correspondiente según reglas de URL (modo PAC) |
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/features/03.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/features/03.png)
 
 ### 1.4 🎬 Modo Escenario
 
@@ -99,7 +99,7 @@ Una potente extensión de gestión de proxy para navegador que soporta Chrome/Fi
 - **Modo Oscuro**: Para uso nocturno
 - **Cambio automático**: Cambiar tema automáticamente según la hora (horario configurable)
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/features/02.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/features/02.png)
 
 ### 1.11 ☁️ Almacenamiento y sincronización de datos
 
@@ -195,11 +195,11 @@ Esta extensión soporta los siguientes idiomas:
 | Русский | ru | ✅ Soportado |
 | 한국어 | ko | ✅ Soportado |
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/features/04.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/features/04.png)
 
 ## 2. 📷 Interfaz de configuración
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/screenshots/main/settings.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/screenshots/main/settings.png)
 
 ## 3. 📁 Estructura del proyecto
 

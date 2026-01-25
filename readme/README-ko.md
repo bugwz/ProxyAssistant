@@ -27,7 +27,7 @@ Chrome와 Firefox, Edge 등 여러 브라우저를 지원하는 강력한 브라
 
 </div>
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/promotional/marquee-1400x560.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/promotional/marquee-1400x560.png)
 
 ## 1. ✨ 기능 특징
 
@@ -50,7 +50,7 @@ Chrome와 Firefox, Edge 등 여러 브라우저를 지원하는 강력한 브라
 | **수동** | 목록에서 프록시를 수동으로 선택 |
 | **자동** | URL 규칙에 따라 자동으로 일치하는 프록시 선택 (PAC 모드) |
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/features/03.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/features/03.png)
 
 ### 1.4 🎬 시나리오 모드
 
@@ -99,7 +99,7 @@ Chrome와 Firefox, Edge 등 여러 브라우저를 지원하는 강력한 브라
 - **다크 모드**: 야간 사용
 - **자동 전환**: 시간에 따라 테마 자동 전환 (구성 가능 시간대)
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/features/02.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/features/02.png)
 
 ### 1.11 ☁️ 데이터 저장 및 동기화
 
@@ -195,11 +195,11 @@ Chrome와 Firefox, Edge 등 여러 브라우저를 지원하는 강력한 브라
 | Русский | ru | ✅ 지원됨 |
 | 한국어 | ko | ✅ 지원됨 |
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/store/features/04.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/features/04.png)
 
 ## 2. 📷 설정 인터페이스
 
-![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260123121903/assets/screenshots/main/settings.png)
+![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/screenshots/main/settings.png)
 
 ## 3. 📁 프로젝트 구조
 
