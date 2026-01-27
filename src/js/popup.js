@@ -1,27 +1,6 @@
 // ==========================================
 // State & Constants
 // ==========================================
-let themeMode = 'light';
-let list = [];
-let scenarios = [];
-let currentScenarioId = 'default';
-
-// ==========================================
-// Utils
-// ==========================================
-function escapeHtml(text) {
-  if (!text) return '';
-  return String(text)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-// ==========================================
-// Initialization
-// ==========================================
 document.addEventListener('DOMContentLoaded', function () {
   I18n.init(function () {
     // Initialize theme mode first
@@ -275,7 +254,7 @@ function renderScenarioSelector() {
     const cssClass = isCurrent ? 'current-scenario' : '';
     const proxyCount = scenario.proxies ? scenario.proxies.length : 0;
     html += `<li data-value="${scenario.id}" class="${cssClass}">
-      <span class="scenario-name">${escapeHtml(displayName)}</span>
+      <span class="scenario-name">${UtilsModule.escapeHtml(displayName)}</span>
       <span class="scenario-count">${proxyCount}</span>
     </li>`;
     if (isCurrent) {
@@ -552,10 +531,10 @@ function list_init() {
 
           html += `<div class="proxy-item-card ${selectedClass}" data-index="${i}">
               <div style="flex: 1; overflow: hidden; pointer-events: none;">
-                <div class="proxy-name">${escapeHtml(info.name || I18n.t('unnamed_proxy'))}</div>
+                <div class="proxy-name">${UtilsModule.escapeHtml(info.name || I18n.t('unnamed_proxy'))}</div>
                 <div class="proxy-details">
                   <span class="proxy-badge ${protocolClass}">${displayProtocol}</span>
-                  <span class="proxy-ip">${escapeHtml(info.ip)}:${escapeHtml(info.port)}</span>
+                  <span class="proxy-ip">${UtilsModule.escapeHtml(info.ip)}:${UtilsModule.escapeHtml(info.port)}</span>
                   ${hasAuth ? `<span class="auth-badge" title="${I18n.t('authentication')}" data-i18n-title="authentication"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> <span data-i18n="authentication">${I18n.t('authentication')}</span></span>` : ""}
                 </div>
               </div>
