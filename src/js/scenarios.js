@@ -534,6 +534,13 @@ const ScenariosModule = (function () {
       renderScenarioManagementList();
       $(".scenario-manage-tip").show().addClass("show");
     });
+
+    $(".scenario-manage-close-btn, .scenario-manage-tip").on("click", function (e) {
+      if (this === e.target || $(this).hasClass('scenario-manage-close-btn')) {
+        $(".scenario-manage-tip").removeClass("show");
+        setTimeout(function () { $(".scenario-manage-tip").hide(); }, 300);
+      }
+    });
   }
 
   return {
