@@ -6,20 +6,20 @@
 // ==========================================
 // Module Callbacks
 // ==========================================
-window.onScenarioSwitch = function(id, list) {
+window.onScenarioSwitch = function (id, list) {
   ProxyModule.setList(list);
   ProxyModule.renderList();
 };
 
-window.onScenarioAdd = function(id, name) {
+window.onScenarioAdd = function (id, name) {
   ProxyModule.saveData();
 };
 
-window.onScenarioRename = function(id, newName) {
+window.onScenarioRename = function (id, newName) {
   ProxyModule.saveData();
 };
 
-window.onScenarioDelete = function(id, isOnlyScenario) {
+window.onScenarioDelete = function (id, isOnlyScenario) {
   ProxyModule.setList(ScenariosModule.updateCurrentListFromScenario());
   ProxyModule.saveData();
   if (isOnlyScenario) {
@@ -27,12 +27,12 @@ window.onScenarioDelete = function(id, isOnlyScenario) {
   }
 };
 
-window.onScenariosReorder = function(scenarios) {
+window.onScenariosReorder = function (scenarios) {
   ScenariosModule.setScenarios(scenarios);
   ProxyModule.saveData();
 };
 
-window.onProxyMove = function(proxyIndex, targetScenarioId, proxy) {
+window.onProxyMove = function (proxyIndex, targetScenarioId, proxy) {
   ProxyModule.setList(ScenariosModule.updateCurrentListFromScenario());
   ProxyModule.renderList();
 };

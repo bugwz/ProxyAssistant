@@ -3,7 +3,7 @@
 // Scenario management, switching, and proxy grouping
 // ==========================================
 
-const ScenariosModule = (function() {
+const ScenariosModule = (function () {
   let scenarios = [];
   let currentScenarioId = 'default';
   let editingScenarioId = null;
@@ -50,7 +50,7 @@ const ScenariosModule = (function() {
     let html = "";
     let currentScenarioName = "";
 
-    scenarios.forEach(function(scenario) {
+    scenarios.forEach(function (scenario) {
       const isCurrent = scenario.id === currentScenarioId;
       const proxyCount = scenario.proxies ? scenario.proxies.length : 0;
       const cssClass = isCurrent ? 'current-scenario' : '';
@@ -96,7 +96,7 @@ const ScenariosModule = (function() {
 
   function renderScenarioManagementList() {
     let html = "";
-    scenarios.forEach(function(scenario, index) {
+    scenarios.forEach(function (scenario, index) {
       const isCurrent = scenario.id === currentScenarioId;
       const proxyCount = (scenario.proxies || []).length;
 
@@ -131,7 +131,7 @@ const ScenariosModule = (function() {
 
     $container.off("mousedown", ".drag-handle");
 
-    $container.on("mousedown", ".drag-handle", function(e) {
+    $container.on("mousedown", ".drag-handle", function (e) {
       if (e.button !== 0) return;
 
       e.preventDefault();
@@ -183,7 +183,7 @@ const ScenariosModule = (function() {
       let isDragging = true;
       let rafId = null;
 
-      const onMouseMove = function(e) {
+      const onMouseMove = function (e) {
         if (!isDragging) return;
         const clientX = e.clientX;
         const clientY = e.clientY;
@@ -198,7 +198,7 @@ const ScenariosModule = (function() {
           const $siblings = $container.find(".scenario-item:not(:hidden)");
           let $target = null;
 
-          $siblings.each(function() {
+          $siblings.each(function () {
             const box = this.getBoundingClientRect();
             const center = box.top + box.height / 2;
             if (clientY < center) {
@@ -217,7 +217,7 @@ const ScenariosModule = (function() {
         });
       };
 
-      const onMouseUp = function() {
+      const onMouseUp = function () {
         isDragging = false;
         if (rafId) cancelAnimationFrame(rafId);
 
@@ -227,7 +227,7 @@ const ScenariosModule = (function() {
         $clone.animate({
           top: $placeholder[0].getBoundingClientRect().top,
           left: $placeholder[0].getBoundingClientRect().left
-        }, 200, function() {
+        }, 200, function () {
           $clone.remove();
           $placeholder.replaceWith($item);
           $item.show();
@@ -385,7 +385,7 @@ const ScenariosModule = (function() {
       scenarios: scenarios,
       currentScenarioId: currentScenarioId,
       list: currentList
-    }, function() {
+    }, function () {
       if (chrome.runtime.lastError) {
         console.log("Move proxy failed:", chrome.runtime.lastError);
         UtilsModule.showTip(I18n.t('move_failed') + ': ' + chrome.runtime.lastError.message, true);
@@ -422,7 +422,7 @@ const ScenariosModule = (function() {
 
     let html = "";
     let hasOptions = false;
-    scenarios.forEach(function(scenario) {
+    scenarios.forEach(function (scenario) {
       if (scenario.id !== currentScenarioId) {
         html += `<li data-value="${scenario.id}">${UtilsModule.escapeHtml(scenario.name)}</li>`;
         hasOptions = true;
@@ -439,58 +439,58 @@ const ScenariosModule = (function() {
   }
 
   function bindEvents() {
-    $("#add-scenario-btn").on("click", function() {
+    $("#add-scenario-btn").on("click", function () {
       const name = $("#new-scenario-name").val().trim();
       if (addScenario(name)) {
         $("#new-scenario-name").val("");
       }
     });
 
-    $(".edit-scenario-close-btn, .edit-scenario-cancel-btn, .edit-scenario-tip").on("click", function(e) {
+    $(".edit-scenario-close-btn, .edit-scenario-cancel-btn, .edit-scenario-tip").on("click", function (e) {
       if (this === e.target || $(this).hasClass('edit-scenario-close-btn') || $(this).hasClass('edit-scenario-cancel-btn')) {
         $(".edit-scenario-tip").removeClass("show");
-        setTimeout(function() { $(".edit-scenario-tip").hide(); }, 300);
+        setTimeout(function () { $(".edit-scenario-tip").hide(); }, 300);
         editingScenarioId = null;
       }
     });
 
-    $("#confirm-edit-scenario-btn").on("click", function() {
+    $("#confirm-edit-scenario-btn").on("click", function () {
       const newName = $("#edit-scenario-name").val().trim();
       if (editingScenarioId) {
         UtilsModule.showProcessingTip(I18n.t('processing'));
         renameScenario(editingScenarioId, newName);
         $(".edit-scenario-tip").removeClass("show");
-        setTimeout(function() { $(".edit-scenario-tip").hide(); }, 300);
+        setTimeout(function () { $(".edit-scenario-tip").hide(); }, 300);
         editingScenarioId = null;
       }
     });
 
-    $(".delete-scenario-close-btn, .delete-scenario-cancel-btn, .delete-scenario-tip").on("click", function(e) {
+    $(".delete-scenario-close-btn, .delete-scenario-cancel-btn, .delete-scenario-tip").on("click", function (e) {
       if (this === e.target || $(this).hasClass('delete-scenario-close-btn') || $(this).hasClass('delete-scenario-cancel-btn')) {
         $(".delete-scenario-tip").removeClass("show");
-        setTimeout(function() { $(".delete-scenario-tip").hide(); }, 300);
+        setTimeout(function () { $(".delete-scenario-tip").hide(); }, 300);
         deletingScenarioId = null;
       }
     });
 
-    $("#confirm-delete-scenario-btn").on("click", function() {
+    $("#confirm-delete-scenario-btn").on("click", function () {
       if (deletingScenarioId) {
         UtilsModule.showProcessingTip(I18n.t('processing'));
         doDeleteScenario(deletingScenarioId);
         $(".delete-scenario-tip").removeClass("show");
-        setTimeout(function() { $(".delete-scenario-tip").hide(); }, 300);
+        setTimeout(function () { $(".delete-scenario-tip").hide(); }, 300);
         deletingScenarioId = null;
       }
     });
 
-    $(".alert-scenario-close-btn, .alert-scenario-tip, #alert-scenario-ok-btn").on("click", function(e) {
+    $(".alert-scenario-close-btn, .alert-scenario-tip, #alert-scenario-ok-btn").on("click", function (e) {
       if (this === e.target || $(this).hasClass('alert-scenario-close-btn') || $(this).is("#alert-scenario-ok-btn")) {
         $(".alert-scenario-tip").removeClass("show");
-        setTimeout(function() { $(".alert-scenario-tip").hide(); }, 300);
+        setTimeout(function () { $(".alert-scenario-tip").hide(); }, 300);
       }
     });
 
-    $("#scenario-manage-list").on("click", ".delete-scenario-btn", function() {
+    $("#scenario-manage-list").on("click", ".delete-scenario-btn", function () {
       const id = $(this).data("id");
       const scenario = scenarios.find(s => s.id === id);
       if (scenario && scenario.proxies && scenario.proxies.length > 0) {
@@ -502,7 +502,7 @@ const ScenariosModule = (function() {
       $(".delete-scenario-tip").show().addClass("show");
     });
 
-    $("#scenario-manage-list").on("click", ".edit-scenario-btn", function() {
+    $("#scenario-manage-list").on("click", ".edit-scenario-btn", function () {
       const id = $(this).data("id");
       const oldName = $(this).data("name");
       editingScenarioId = id;
@@ -513,24 +513,24 @@ const ScenariosModule = (function() {
       setTimeout(() => $("#edit-scenario-name").focus(), 100);
     });
 
-    $(".move-proxy-close-btn, .move-proxy-cancel-btn, .move-proxy-tip").on("click", function(e) {
+    $(".move-proxy-close-btn, .move-proxy-cancel-btn, .move-proxy-tip").on("click", function (e) {
       if (this === e.target || $(this).hasClass('move-proxy-close-btn') || $(this).hasClass('move-proxy-cancel-btn')) {
         $(".move-proxy-tip").removeClass("show");
-        setTimeout(function() { $(".move-proxy-tip").hide(); }, 300);
+        setTimeout(function () { $(".move-proxy-tip").hide(); }, 300);
       }
     });
 
-    $("#confirm-move-proxy-btn").on("click", function() {
+    $("#confirm-move-proxy-btn").on("click", function () {
       const targetScenarioId = $("#target-scenario-display").data("value");
       if (targetScenarioId && move_proxy_index !== -1) {
         UtilsModule.showProcessingTip(I18n.t('processing'));
         moveProxy(move_proxy_index, targetScenarioId);
         $(".move-proxy-tip").removeClass("show");
-        setTimeout(function() { $(".move-proxy-tip").hide(); }, 300);
+        setTimeout(function () { $(".move-proxy-tip").hide(); }, 300);
       }
     });
 
-    $("#scenario-manage-btn").on("click", function() {
+    $("#scenario-manage-btn").on("click", function () {
       renderScenarioManagementList();
       $(".scenario-manage-tip").show().addClass("show");
     });
