@@ -3,7 +3,7 @@
 // Proxy list management, rendering, and interactions
 // ==========================================
 
-const ProxyModule = (function() {
+const ProxyModule = (function () {
   let list = [];
   let del_index = -1;
   let save = true;
@@ -55,7 +55,7 @@ const ProxyModule = (function() {
       scenarios: ScenariosModule.getScenarios(),
       currentScenarioId: ScenariosModule.getCurrentScenarioId(),
       list: list
-    }, function() {
+    }, function () {
       if (chrome.runtime.lastError) {
         console.log("Local save failed:", chrome.runtime.lastError);
         UtilsModule.showTip(I18n.t('save_failed'), true);
@@ -132,7 +132,7 @@ const ProxyModule = (function() {
 
   function renderList() {
     const expansionState = {};
-    $(".proxy-card").each(function() {
+    $(".proxy-card").each(function () {
       const $item = $(this);
       const name = $item.find('.name').val();
       if (!$item.hasClass("collapsed") && name) {
@@ -302,7 +302,7 @@ const ProxyModule = (function() {
     initSortable();
     bindItemEvents();
 
-    $(".move-proxy-btn").on("click", function() {
+    $(".move-proxy-btn").on("click", function () {
       const index = $(this).data("index");
       const currentScenario = ScenariosModule.getCurrentScenario();
       ScenariosModule.showMoveProxyDialog(index, currentScenario ? currentScenario.name : I18n.t('scenario_default'));
@@ -310,11 +310,11 @@ const ProxyModule = (function() {
   }
 
   function bindGlobalEvents() {
-    $("#add-proxy-btn").on("click", function() {
+    $("#add-proxy-btn").on("click", function () {
       const newIndex = addProxy();
       renderList();
 
-      setTimeout(function() {
+      setTimeout(function () {
         const $newItem = $(".proxy-card").last();
         if ($newItem.length) {
           $("html, body").animate({ scrollTop: $newItem.offset().top - 100 }, 500);
@@ -322,7 +322,7 @@ const ProxyModule = (function() {
       }, 50);
     });
 
-    $("#test-all-btn").on("click", async function() {
+    $("#test-all-btn").on("click", async function () {
       const $btn = $(this);
       if ($btn.prop('disabled')) return;
       $btn.prop('disabled', true);
@@ -345,11 +345,11 @@ const ProxyModule = (function() {
         const $resultSpan = $(`.proxy-header-test-result[data-index="${index}"]`);
         $resultSpan.text(I18n.t('testing')).removeClass("text-green text-orange text-red").addClass("text-blue");
 
-        await new Promise(function(resolve) {
+        await new Promise(function (resolve) {
           chrome.runtime.sendMessage({
             action: "testProxyConnection",
             proxyInfo: proxy
-          }, function(response) {
+          }, function (response) {
             if (chrome.runtime.lastError) {
               $resultSpan.text(I18n.t('test_failed')).removeClass("text-blue").addClass("text-red");
             } else if (response && response.success) {
@@ -368,7 +368,7 @@ const ProxyModule = (function() {
       $btn.prop('disabled', false);
     });
 
-    $("#expand-collapse-btn").on("click", function() {
+    $("#expand-collapse-btn").on("click", function () {
       const $btn = $(this);
       const isExpanded = $btn.hasClass("expanded");
 
@@ -385,7 +385,7 @@ const ProxyModule = (function() {
   }
 
   function bindItemEvents() {
-    $("input, textarea").on("blur", function() {
+    $("input, textarea").on("blur", function () {
       const i = $(this).data("index");
       const val = $(this).val();
       let name = $(this).attr("class");
@@ -393,10 +393,10 @@ const ProxyModule = (function() {
       input_blur(i, name, val);
     });
 
-    $("input.ip").on("paste", function() {
+    $("input.ip").on("paste", function () {
       const i = $(this).data("index");
       const that = this;
-      setTimeout(function() {
+      setTimeout(function () {
         const val = $(that).val();
         if (val.indexOf(":") != -1) {
           const txt_arr = val.split(":");
@@ -408,7 +408,7 @@ const ProxyModule = (function() {
       }, 100);
     });
 
-    $(".eye-toggle input").on("change", function() {
+    $(".eye-toggle input").on("change", function () {
       const i = $(this).parent().data("index");
       if (i !== undefined && list[i]) {
         list[i].show_password = $(this).prop("checked");
@@ -422,7 +422,7 @@ const ProxyModule = (function() {
       }
     });
 
-    $(".del").on("click", function() {
+    $(".del").on("click", function () {
       const index = $(this).data("index");
       if (index !== undefined && list[index]) {
         const info = list[index];
@@ -433,12 +433,12 @@ const ProxyModule = (function() {
       }
     });
 
-    $(".item-save-btn").on("click", function() {
+    $(".item-save-btn").on("click", function () {
       UtilsModule.showProcessingTip(I18n.t('processing'));
       saveSingleProxy($(this).data("index"));
     });
 
-    $(".test-proxy-btn").on("click", function() {
+    $(".test-proxy-btn").on("click", function () {
       const i = $(this).data("index");
       const $btn = $(this);
       const $headerResultSpan = $(`.proxy-header-test-result[data-index="${i}"]`);
@@ -460,7 +460,7 @@ const ProxyModule = (function() {
         chrome.runtime.sendMessage({
           action: "testProxyConnection",
           proxyInfo: list[i]
-        }, function(response) {
+        }, function (response) {
           $btn.prop("disabled", false);
           if (chrome.runtime.lastError) {
             $headerResultSpan.text(I18n.t('test_failed')).removeClass("text-blue").addClass("text-red");
@@ -477,7 +477,7 @@ const ProxyModule = (function() {
       }
     });
 
-    $(document).off("change", ".proxy-status-toggle").on("change", ".proxy-status-toggle", function() {
+    $(document).off("change", ".proxy-status-toggle").on("change", ".proxy-status-toggle", function () {
       var i = $(this).data("index");
       if (i !== undefined && list[i]) {
         delete list[i].disabled;
@@ -497,7 +497,7 @@ const ProxyModule = (function() {
       }
     });
 
-    $(document).off("click", ".proxy-header").on("click", ".proxy-header", function(e) {
+    $(document).off("click", ".proxy-header").on("click", ".proxy-header", function (e) {
       if ($(e.target).closest('.switch-modern, .action-btn-delete, input').length) return;
       $(this).closest('.proxy-card').toggleClass("collapsed");
     });
@@ -526,7 +526,7 @@ const ProxyModule = (function() {
 
     $container.off("mousedown", ".drag-handle");
 
-    $container.on("mousedown", ".drag-handle", function(e) {
+    $container.on("mousedown", ".drag-handle", function (e) {
       if (e.button !== 0) return;
 
       e.preventDefault();
@@ -553,7 +553,7 @@ const ProxyModule = (function() {
 
       const $originInputs = $item.find('input, textarea, select');
       const $cloneInputs = $clone.find('input, textarea, select');
-      $originInputs.each(function(i) {
+      $originInputs.each(function (i) {
         if ($(this).attr('type') === 'checkbox') {
           $cloneInputs.eq(i).prop('checked', $(this).prop('checked'));
         } else {
@@ -614,7 +614,7 @@ const ProxyModule = (function() {
         const $siblings = $container.find(".proxy-card:not(:hidden)");
         let $target = null;
 
-        $siblings.each(function() {
+        $siblings.each(function () {
           const box = this.getBoundingClientRect();
           const center = box.top + box.height / 2;
           if (clientY < center) {
@@ -632,7 +632,7 @@ const ProxyModule = (function() {
         }
       };
 
-      const onMouseMove = function(e) {
+      const onMouseMove = function (e) {
         if (!isDragging) return;
         const clientX = e.clientX;
         const clientY = e.clientY;
@@ -643,7 +643,7 @@ const ProxyModule = (function() {
         rafId = requestAnimationFrame(() => handleMove(clientX, clientY));
       };
 
-      const onMouseUp = function() {
+      const onMouseUp = function () {
         isDragging = false;
         if (rafId) cancelAnimationFrame(rafId);
         if (scrollInterval) clearInterval(scrollInterval);
@@ -654,7 +654,7 @@ const ProxyModule = (function() {
         $clone.animate({
           top: $placeholder[0].getBoundingClientRect().top,
           left: $placeholder[0].getBoundingClientRect().left
-        }, 200, function() {
+        }, 200, function () {
           $clone.remove();
           $placeholder.replaceWith($item);
           $item.show();
@@ -693,7 +693,7 @@ const ProxyModule = (function() {
   function confirmDelete() {
     UtilsModule.showProcessingTip(I18n.t('processing'));
     $(".delete-tip").removeClass("show");
-    setTimeout(function() { $(".delete-tip").hide(); }, 300);
+    setTimeout(function () { $(".delete-tip").hide(); }, 300);
 
     if (del_index !== undefined && del_index >= 0 && list[del_index]) {
       deleteProxy(del_index);
@@ -703,7 +703,7 @@ const ProxyModule = (function() {
         currentScenario.proxies = list;
       }
 
-      chrome.storage.local.set({ scenarios: ScenariosModule.getScenarios(), list: list }, function() {
+      chrome.storage.local.set({ scenarios: ScenariosModule.getScenarios(), list: list }, function () {
         if (chrome.runtime.lastError) {
           console.log("Delete failed:", chrome.runtime.lastError);
           UtilsModule.showTip(I18n.t('delete_failed'), true);
