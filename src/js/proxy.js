@@ -102,7 +102,7 @@ const ProxyModule = (function () {
     var isPortValid = !isNaN(port) && port >= 1 && port <= 65535 && info.port.toString() === port.toString();
 
     var isIncludeUrlsValid = true, includeUrlsErrorMsg = '';
-    var includeUrlsCheck = ValidatorModule.checkIncludeUrlsConflict(i, info.include_urls);
+    var includeUrlsCheck = ValidatorModule.checkIncludeUrlsConflict(list, i, info.include_urls);
     if (includeUrlsCheck.hasConflict) { isIncludeUrlsValid = false; includeUrlsErrorMsg = includeUrlsCheck.error; }
 
     var $item = $(`.proxy-card[data-id="${i}"]`);
@@ -510,7 +510,7 @@ const ProxyModule = (function () {
         list[i][name] = val;
         save = false;
         if (["name", "ip", "port", "include_urls"].includes(name)) {
-          ValidatorModule.validateProxy(i, name, val);
+          ValidatorModule.validateProxy(list, i, name, val);
         }
         if (["name", "ip", "port"].includes(name)) {
           var info = list[i];

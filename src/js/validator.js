@@ -36,7 +36,7 @@ function isValidHost(val) {
 // Proxy Validation
 // ==========================================
 
-function validateProxy(i, name, val) {
+function validateProxy(list, i, name, val) {
   var isValid = true;
   var errorMessage = '';
   var $item = $(`.proxy-card[data-id="${i}"]`);
@@ -74,7 +74,7 @@ function validateProxy(i, name, val) {
 // Include URLs Conflict Check
 // ==========================================
 
-function checkIncludeUrlsConflict(i, includeUrls) {
+function checkIncludeUrlsConflict(list, i, includeUrls) {
   if (!includeUrls || !includeUrls.trim()) return { hasConflict: false, error: '' };
   var currentUrls = includeUrls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
 
