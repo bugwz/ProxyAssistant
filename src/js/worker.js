@@ -373,24 +373,38 @@ async function applyManualProxySettings(proxyInfo) {
         let addedCount = 0;
 
         for (const rule of directRules) {
-          // Chrome bypassList supports hosts and simple wildcards
           if (rule.type === 'domain') {
-            // Domain rule: remove || prefix, Chrome matches domain and subdomains automatically
-            // e.g., "google.com" matches "google.com", "www.google.com", "mail.google.com"
             let pattern = rule.pattern.replace(/^\|\|/, '');
             if (!pattern) continue;
 
-            // If pattern starts with *. (from subscription like *.example.com),
-            // remove the * and use the domain directly - Chrome bypass matches subdomains
             if (pattern.startsWith('*.')) {
               pattern = pattern.substring(2);
             }
 
-            // Skip patterns that look like URL paths (contain /)
-            if (pattern.includes('/')) continue;
+            if (pattern.includes('/')) {
+              const ipv4CidrPattern = /^(\d{1,3}\.){3}\d{1,3}\/(8|9|1\d|2\d|3[0-2])$/;
+              if (ipv4CidrPattern.test(pattern)) {
+                if (!bypassList.includes(pattern)) {
+                  bypassList.push(pattern);
+                  addedCount++;
+                }
+              }
+              continue;
+            }
 
-            // Skip pure IP addresses in bypass rules (they may cause issues)
-            const isIpPattern = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
+            if (pattern.includes(':')) {
+              const ipPortPattern = /^(\d{1,3}\.){3}\d{1,3}:[1-9]\d{0,4}$/;
+              const portPattern = /^([a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?:[1-9]\d{0,4}$/;
+              if (ipPortPattern.test(pattern) || portPattern.test(pattern)) {
+                if (!bypassList.includes(pattern)) {
+                  bypassList.push(pattern);
+                  addedCount++;
+                }
+              }
+              continue;
+            }
+
+            const isIpPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
             if (isIpPattern.test(pattern)) continue;
 
             if (pattern && !bypassList.includes(pattern)) {
@@ -398,18 +412,13 @@ async function applyManualProxySettings(proxyInfo) {
               addedCount++;
             }
           } else if (rule.type === 'wildcard') {
-            // Simple wildcard pattern (Chrome doesn't fully support wildcards in bypassList)
-            // Try to extract domain from patterns like *.example.com
             let pattern = rule.pattern;
             if (!pattern) continue;
 
-            // Handle *.example.com format
             if (pattern.startsWith('*.')) {
               const domain = pattern.substring(2);
-              // Skip if it looks like a path
               if (domain.includes('/')) continue;
-              // Skip if it looks like an IP
-              const isIpPattern = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
+              const isIpPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
               if (!isIpPattern.test(domain)) {
                 pattern = domain;
               }
@@ -420,9 +429,6 @@ async function applyManualProxySettings(proxyInfo) {
               addedCount++;
             }
           } else if (rule.type === 'start') {
-            // URL prefix rule (from | pattern)
-            // Chrome bypassList doesn't support URL prefix matching
-            // Skip these rules - they can't be properly represented
             console.log(`Skipping URL prefix bypass rule: ${rule.pattern} (not supported by Chrome bypassList)`);
           }
         }
@@ -718,18 +724,41 @@ function findProxyForRequestFirefox(url) {
   return { type: "direct" }; // 没有匹配，直接连接
 }
 
+function ipToNumber(ip) {
+  return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+}
+
+function isInCidrRange(ip, cidr) {
+  const [range, bits] = cidr.split('/');
+  const mask = ~(2 ** (32 - parseInt(bits)) - 1);
+  const ipNum = ipToNumber(ip);
+  const rangeNum = ipToNumber(range);
+  return (ipNum & mask) === (rangeNum & mask);
+}
+
 function matchesPattern(url, pattern) {
   const host = new URL(url).hostname;
+  const port = new URL(url).port;
+
+  if (pattern.includes('/') && !pattern.includes(':')) {
+    return isInCidrRange(host, pattern);
+  }
+
+  if (pattern.includes(':')) {
+    const [patternHost, patternPort] = pattern.split(':');
+    if (host === patternHost || host.endsWith('.' + patternHost)) {
+      return port === patternPort;
+    }
+    return false;
+  }
 
   if (pattern.includes('*')) {
-    // Wildcard match
     const regexStr = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
-    const regex = new RegExp(`^${regexStr}$`, 'i'); // exact match with wildcard
+    const regex = new RegExp(`^${regexStr}$`, 'i');
     return regex.test(host);
-  } else {
-    // Domain match (dnsDomainIs equivalent)
-    return host === pattern || host.endsWith('.' + pattern);
   }
+
+  return host === pattern || host.endsWith('.' + pattern);
 }
 
 function createFirefoxProxyObject(proxy) {
