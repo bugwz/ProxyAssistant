@@ -343,6 +343,7 @@ function importConfig(e) {
         ScenariosModule.setScenarios(data.scenarios);
         ScenariosModule.setCurrentScenarioId(data.currentScenarioId);
         const list = ScenariosModule.updateCurrentListFromScenario();
+        SubscriptionModule.parseProxyListSubscriptions(list);
         ProxyModule.setList(list);
 
         const systemData = data.system;
