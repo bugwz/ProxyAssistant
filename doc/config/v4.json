@@ -1,16 +1,16 @@
 {
     "version": 4,
     "system": {
-        "appLanguage": "zh-CN",
-        "themeMode": "light",
-        "nightModeStart": "22:00",
-        "nightModeEnd": "06:00",
+        "app_language": "zh-CN",
+        "theme_mode": "light",
+        "night_mode_start": "22:00",
+        "night_mode_end": "06:00",
         "sync": {
             "type": "native",
             "gist": {
                 "token": "",
                 "filename": "proxy_assistant_config.json",
-                "gistId": ""
+                "gist_id": ""
             }
         }
     },
@@ -29,9 +29,9 @@
                         "port": "9090",
                         "username": "",
                         "password": "",
-                        "bypassUrls": "1212.com",
-                        "includeUrls": "1212.com.com.cn",
-                        "fallbackPolicy": "direct",
+                        "bypass_urls": "1212.com",
+                        "include_urls": "1212.com.com.cn",
+                        "fallback_policy": "direct",
                         "subscription": {
                             "enabled": true,
                             "current": "autoproxy",
@@ -39,9 +39,9 @@
                                 "autoproxy": {
                                     "url": "https://example.com/rule.txt",
                                     "content": "||google.com\n@@local.com",
-                                    "refreshInterval": 0,
+                                    "refresh_interval": 0,
                                     "reverse": false,
-                                    "lastFetchTime": null
+                                    "last_fetch_time": null
                                 }
                             }
                         }

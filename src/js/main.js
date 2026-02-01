@@ -91,18 +91,18 @@ function loadFromLocal(config) {
     ProxyModule.setList(list);
 
     if (newConfig.system) {
-      if (newConfig.system.appLanguage) {
-        I18n.setLanguage(newConfig.system.appLanguage);
-        const langName = $(`#language-options li[data-value="${newConfig.system.appLanguage}"]`).text();
+      if (newConfig.system.app_language) {
+        I18n.setLanguage(newConfig.system.app_language);
+        const langName = $(`#language-options li[data-value="${newConfig.system.app_language}"]`).text();
         if (langName) $('#current-language-display').text(langName);
       }
 
-      if (newConfig.system.themeMode) {
-        ThemeModule.setThemeMode(newConfig.system.themeMode);
+      if (newConfig.system.theme_mode) {
+        ThemeModule.setThemeMode(newConfig.system.theme_mode);
       }
-      const nightTimes = newConfig.system.nightModeStart ? {
-        start: newConfig.system.nightModeStart,
-        end: newConfig.system.nightModeEnd || '06:00'
+      const nightTimes = newConfig.system.night_mode_start ? {
+        start: newConfig.system.night_mode_start,
+        end: newConfig.system.night_mode_end || '06:00'
       } : null;
       if (nightTimes) {
         ThemeModule.setNightModeTimes(nightTimes.start, nightTimes.end);
