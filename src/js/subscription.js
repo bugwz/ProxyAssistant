@@ -792,7 +792,7 @@ const SubscriptionModule = (function () {
             line = line.substring(2);
           }
 
-          const finalActionIsDirect = reverse ? !isException : isException;
+          const finalActionIsDirect = isException ? !reverse : reverse;
 
           if (finalActionIsDirect) {
             let pattern = line;
@@ -851,7 +851,8 @@ const SubscriptionModule = (function () {
               pattern = pattern.substring(2).trim();
             }
             if (pattern) {
-              if (isDirectRule) {
+              const shouldBeDirect = isDirectRule ? !reverse : reverse;
+              if (shouldBeDirect) {
                 if (isValidManualBypassPattern(pattern)) {
                   result.bypassRules.push(pattern);
                 }
@@ -891,7 +892,8 @@ const SubscriptionModule = (function () {
               pattern = pattern.substring(2).trim();
             }
             if (pattern) {
-              if (isDirectRule) {
+              const shouldBeDirect = isDirectRule ? !reverse : reverse;
+              if (shouldBeDirect) {
                 if (isValidManualBypassPattern(pattern)) {
                   result.bypassRules.push(pattern);
                 }
@@ -917,12 +919,6 @@ const SubscriptionModule = (function () {
       }
     } catch (e) {
       console.error('Parse error', e);
-    }
-
-    if (reverse) {
-      const temp = result.includeRules;
-      result.includeRules = result.bypassRules || '';
-      result.bypassRules = temp;
     }
 
     return {

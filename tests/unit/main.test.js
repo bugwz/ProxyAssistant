@@ -301,3 +301,73 @@ describe('Main.js - Validation Functions', () => {
     });
   });
 });
+
+describe('Subscription.js - Reverse Rule Function', () => {
+  function isValidManualBypassPattern(pattern) {
+    if (!pattern || typeof pattern !== 'string') return false;
+    const trimmed = pattern.trim();
+    if (!trimmed) return false;
+    if (trimmed.startsWith('/') && trimmed.endsWith('/')) return false;
+    if (trimmed.startsWith('|') && !trimmed.startsWith('||')) return false;
+    const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (ipv4Pattern.test(trimmed)) return true;
+    if (trimmed.includes('/')) {
+      const ipv4CidrPattern = /^(\d{1,3}\.){3}\d{1,3}\/(8|9|1\d|2\d|3[0-2])$/;
+      if (ipv4CidrPattern.test(trimmed)) return true;
+      return false;
+    }
+    const portPattern = /^([a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?:[1-9]\d{0,4}$/;
+    if (portPattern.test(trimmed)) return true;
+    const ipPortPattern = /^(\d{1,3}\.){3}\d{1,3}:[1-9]\d{0,4}$/;
+    if (ipPortPattern.test(trimmed)) return true;
+    return true;
+  }
+
+  function parseAutoProxyLine(line, reverse) {
+    let isException = false;
+    if (line.startsWith('@@')) {
+      isException = true;
+      line = line.substring(2);
+    }
+    const finalActionIsDirect = isException ? !reverse : reverse;
+    return finalActionIsDirect ? 'bypass' : 'include';
+  }
+
+  describe('parseAutoProxyLine - Reverse Rule Logic', () => {
+    test('should parse normal rules without reverse', () => {
+      expect(parseAutoProxyLine('example.com', false)).toBe('include');
+      expect(parseAutoProxyLine('@@example.com', false)).toBe('bypass');
+      expect(parseAutoProxyLine('||example.com', false)).toBe('include');
+      expect(parseAutoProxyLine('@@||example.com', false)).toBe('bypass');
+    });
+
+    test('should parse reversed rules correctly', () => {
+      expect(parseAutoProxyLine('example.com', true)).toBe('bypass');
+      expect(parseAutoProxyLine('@@example.com', true)).toBe('include');
+      expect(parseAutoProxyLine('||example.com', true)).toBe('bypass');
+      expect(parseAutoProxyLine('@@||example.com', true)).toBe('include');
+    });
+
+    test('should handle complex patterns with reverse', () => {
+      expect(parseAutoProxyLine('|https://example.com/path', true)).toBe('bypass');
+      expect(parseAutoProxyLine('@@|https://example.com/path', true)).toBe('include');
+    });
+  });
+
+  describe('isValidManualBypassPattern', () => {
+    test('should accept valid bypass patterns', () => {
+      expect(isValidManualBypassPattern('example.com')).toBe(true);
+      expect(isValidManualBypassPattern('192.168.1.1')).toBe(true);
+      expect(isValidManualBypassPattern('192.168.1.0/24')).toBe(true);
+      expect(isValidManualBypassPattern('example.com:8080')).toBe(true);
+      expect(isValidManualBypassPattern('192.168.1.1:8080')).toBe(true);
+    });
+
+    test('should reject invalid bypass patterns', () => {
+      expect(isValidManualBypassPattern('/regex/')).toBe(false);
+      expect(isValidManualBypassPattern('|prefix')).toBe(false);
+      expect(isValidManualBypassPattern('')).toBe(false);
+      expect(isValidManualBypassPattern(null)).toBe(false);
+    });
+  });
+});
