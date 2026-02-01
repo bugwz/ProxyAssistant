@@ -204,8 +204,8 @@ function generatePacScript(proxyList) {
     const fallback = proxy.fallback_policy === "reject" ? "" : "; DIRECT";
     const returnVal = '"' + proxyStr + fallback + '"';
 
-    if (proxy.include_urls) {
-      const includeUrls = proxy.include_urls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+    if (proxy.include_rules) {
+      const includeUrls = proxy.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
       includeUrls.forEach(function (pattern) {
         if (usedPatterns.has(pattern)) return;
         usedPatterns.add(pattern);

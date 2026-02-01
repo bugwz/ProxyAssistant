@@ -28,7 +28,7 @@ describe('Popup.js - Proxy Matching Functions', () => {
       if (proxy.disabled) continue;
       if (!proxy.ip || !proxy.port) continue;
 
-      if (checkMatch(proxy.include_urls, hostname)) {
+      if (checkMatch(proxy.include_rules, hostname)) {
         return proxy;
       }
     }
@@ -115,36 +115,36 @@ describe('Popup.js - Proxy Matching Functions', () => {
     });
 
     test('should return null for empty hostname', () => {
-      const list = [{ ip: '192.168.1.1', port: '8080', include_urls: 'example.com' }];
+      const list = [{ ip: '192.168.1.1', port: '8080', include_rules: 'example.com' }];
       expect(getAutoProxy(list, '')).toBe(null);
     });
 
     test('should return null for null hostname', () => {
-      const list = [{ ip: '192.168.1.1', port: '8080', include_urls: 'example.com' }];
+      const list = [{ ip: '192.168.1.1', port: '8080', include_rules: 'example.com' }];
       expect(getAutoProxy(list, null)).toBe(null);
     });
 
     test('should skip disabled proxies', () => {
       const list = [
-        { ip: '192.168.1.1', port: '8080', include_urls: 'example.com', disabled: true },
-        { ip: '10.0.0.1', port: '3128', include_urls: 'test.com', disabled: false }
+        { ip: '192.168.1.1', port: '8080', include_rules: 'example.com', disabled: true },
+        { ip: '10.0.0.1', port: '3128', include_rules: 'test.com', disabled: false }
       ];
       expect(getAutoProxy(list, 'test.com')).toEqual(list[1]);
     });
 
     test('should skip proxies without ip or port', () => {
       const list = [
-        { ip: '', port: '8080', include_urls: 'example.com' },
-        { ip: '10.0.0.1', port: '', include_urls: 'test.com' },
-        { ip: '192.168.1.1', port: '8080', include_urls: 'example.com' }
+        { ip: '', port: '8080', include_rules: 'example.com' },
+        { ip: '10.0.0.1', port: '', include_rules: 'test.com' },
+        { ip: '192.168.1.1', port: '8080', include_rules: 'example.com' }
       ];
       expect(getAutoProxy(list, 'example.com')).toEqual(list[2]);
     });
 
     test('should return first matching proxy', () => {
       const list = [
-        { name: 'Proxy1', ip: '192.168.1.1', port: '8080', include_urls: 'example.com' },
-        { name: 'Proxy2', ip: '10.0.0.1', port: '3128', include_urls: 'test.com' }
+        { name: 'Proxy1', ip: '192.168.1.1', port: '8080', include_rules: 'example.com' },
+        { name: 'Proxy2', ip: '10.0.0.1', port: '3128', include_rules: 'test.com' }
       ];
       expect(getAutoProxy(list, 'example.com')).toEqual(list[0]);
       expect(getAutoProxy(list, 'test.com')).toEqual(list[1]);
@@ -152,17 +152,17 @@ describe('Popup.js - Proxy Matching Functions', () => {
 
     test('should return null when no match found', () => {
       const list = [
-        { ip: '192.168.1.1', port: '8080', include_urls: 'example.com' }
+        { ip: '192.168.1.1', port: '8080', include_rules: 'example.com' }
       ];
       expect(getAutoProxy(list, 'nonexistent.com')).toBe(null);
     });
 
-    test('should handle multiple include_urls', () => {
+    test('should handle multiple include_rules', () => {
       const list = [
         {
           ip: '192.168.1.1',
           port: '8080',
-          include_urls: 'example.com\ntest.com'
+          include_rules: 'example.com\ntest.com'
         }
       ];
       expect(getAutoProxy(list, 'example.com')).toEqual(list[0]);
@@ -175,21 +175,21 @@ describe('Popup.js - Proxy Matching Functions', () => {
         {
           ip: '192.168.1.1',
           port: '8080',
-          include_urls: '*.example.com'
+          include_rules: '*.example.com'
         }
       ];
       expect(getAutoProxy(list, 'www.example.com')).toEqual(list[0]);
       expect(getAutoProxy(list, 'api.example.com')).toEqual(list[0]);
     });
 
-    test('should return null for proxy with empty include_urls', () => {
+    test('should return null for proxy with empty include_rules', () => {
       const list = [
-        { ip: '192.168.1.1', port: '8080', include_urls: '' }
+        { ip: '192.168.1.1', port: '8080', include_rules: '' }
       ];
       expect(getAutoProxy(list, 'example.com')).toBe(null);
     });
 
-    test('should return null for proxy with undefined include_urls', () => {
+    test('should return null for proxy with undefined include_rules', () => {
       const list = [
         { ip: '192.168.1.1', port: '8080' }
       ];
@@ -201,7 +201,7 @@ describe('Popup.js - Proxy Matching Functions', () => {
         {
           ip: '192.168.1.1',
           port: '8080',
-          include_urls: '.example.com'
+          include_rules: '.example.com'
         }
       ];
       expect(getAutoProxy(list, 'www.example.com')).toEqual(list[0]);

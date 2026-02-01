@@ -61,8 +61,8 @@
 
 ### 1.5 📋 灵活的 URL 规则配置
 
-- **不走代理的地址** (`bypass_urls`): 手动模式下直接连接的域名/IP
-- **走代理的地址** (`include_urls`): 自动模式下需要代理访问的域名
+- **不走代理的地址** (`bypass_rules`): 手动模式下直接连接的域名/IP
+- **走代理的地址** (`include_rules`): 自动模式下需要代理访问的域名
 - **备用策略**: 自动模式下连接失败时选择直接连接或拒绝连接
 - 支持通配符 `*` 和域名匹配
 - 适用于不同网站使用不同代理的场景
@@ -171,8 +171,8 @@
       "username": "",
       "password": "",
       "fallback_policy": "direct",
-      "include_urls": "",
-      "bypass_urls": ""
+      "include_rules": "",
+      "bypass_rules": ""
     }
   ]
 }

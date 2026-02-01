@@ -87,7 +87,7 @@ describe('Main.js - Chunked Storage Functions', () => {
     test('should handle large data with 7KB chunk size', () => {
       const SYNC_CHUNK_SIZE = 7 * 1024;
       // Create larger data that will exceed 7KB
-      const largeData = JSON.stringify({ proxies: Array(200).fill({ name: 'TestProxyServerNumber123456789', ip: '1.1.1.1', port: 8080, username: 'user', password: 'pass', fallback_policy: 'direct', include_urls: 'example.com,test.org,foo.bar,baz.qux,hello.world', bypass_urls: 'localhost,127.0.0.1' }) });
+      const largeData = JSON.stringify({ proxies: Array(200).fill({ name: 'TestProxyServerNumber123456789', ip: '1.1.1.1', port: 8080, username: 'user', password: 'pass', fallback_policy: 'direct', include_rules: 'example.com,test.org,foo.bar,baz.qux,hello.world', bypass_rules: 'localhost,127.0.0.1' }) });
       const chunks = chunkString(largeData, SYNC_CHUNK_SIZE);
 
       // Should create multiple chunks for large data (data is ~15KB+)
