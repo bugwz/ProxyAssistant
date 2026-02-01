@@ -14,68 +14,45 @@ function initApp() {
   const currentVersion = chrome.runtime.getManifest().version;
   $('#version-display').text('v' + currentVersion);
 
-  chrome.storage.local.get(['proxyMode', 'currentProxy', 'list', 'scenarios', 'currentScenarioId'], function (result) {
+  chrome.storage.local.get(['config'], function (result) {
     if (chrome.runtime.lastError) {
       console.log('Error loading settings:', chrome.runtime.lastError);
       return;
     }
 
-    // If no stored mode, default to 'disabled'
-    let mode = result.proxyMode;
-    if (!mode) {
-      mode = 'disabled';
-      // Save default status
-      chrome.storage.local.set({ proxyMode: 'disabled' }, function () {
-        if (chrome.runtime.lastError) {
-          console.log('Error saving default proxyMode:', chrome.runtime.lastError);
-        }
-      });
+    const config = result.config;
+    if (!config) {
+      scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: [] }];
+      currentScenarioId = 'default';
+      list = [];
+    } else {
+      scenarios = config.scenarios?.lists || [];
+      currentScenarioId = config.scenarios?.current || 'default';
+      const currentScenario = scenarios.find(s => s.id === currentScenarioId);
+      list = currentScenario?.proxies || [];
     }
 
-    // If stored mode is invalid, default to disabled
+    if (scenarios.length === 0) {
+      scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: [] }];
+      currentScenarioId = 'default';
+      list = [];
+    }
+
+    const proxyMode = config?.proxyMode || 'disabled';
+    let mode = proxyMode;
     if (!['disabled', 'manual', 'auto'].includes(mode)) {
       mode = 'disabled';
     }
 
-    // Load scenarios and list
-    scenarios = result.scenarios || [];
-    currentScenarioId = result.currentScenarioId || 'default';
-    list = result.list || [];
-
-    // If scenarios empty but list exists (migration case not handled by main page yet), use default
-    // Note: main.js handles migration on load, popup assumes valid state or graceful fallback
-    if (scenarios.length === 0 && list.length > 0) {
-      scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: list }];
-      currentScenarioId = 'default';
-    } else if (scenarios.length === 0) {
-      scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: [] }];
-      currentScenarioId = 'default';
-    }
-
-    const currentProxy = result.currentProxy;
-
     updateModeUI(mode);
-    updateStatusDisplay(mode, currentProxy);
+    updateStatusDisplay(mode, null);
 
-    // For manual mode, restore previous selection if available
-    if (mode === 'manual') {
-      if (currentProxy) {
-        updateStatusDisplay('manual', currentProxy);
-      } else {
-        updateStatusDisplay('manual', null);
-      }
-    }
-
-    // Render Scenario Selector
     renderScenarioSelector();
     updateScenarioVisibility();
 
-    // Initial list render
     list_init();
-    // Initialize bypass button
     initBypassButton();
     updateBypassButton();
-    // Update current site display
     updateCurrentSiteDisplay();
   });
 
@@ -190,39 +167,15 @@ function bindGlobalEvents() {
 
 // Storage change listener for real-time updates
 chrome.storage.onChanged.addListener(function (changes, namespace) {
-  if (namespace === 'local') {
-    if (changes.proxyMode) {
-      refreshProxyStatus();
-    }
-    if (changes.currentProxy) {
-      refreshProxyStatus();
-      updateBypassButton();
-      updateCurrentSiteDisplay();
-    }
-    if (changes.list) {
-      // Reload list if it changes (e.g. sync or scenario switch from main page)
-      list = changes.list.newValue || [];
-      list_init();
-    }
-    if (changes.scenarios || changes.currentScenarioId) {
-      // Refresh scenario selector if scenarios change
-      chrome.storage.local.get(['scenarios', 'currentScenarioId'], function (res) {
-        if (chrome.runtime.lastError) {
-          console.log('Error getting scenarios:', chrome.runtime.lastError);
-          return;
-        }
-        scenarios = res.scenarios || scenarios;
-        currentScenarioId = res.currentScenarioId || currentScenarioId;
-        renderScenarioSelector();
-      });
-    }
-    if (changes.appLanguage) {
-      // Language changed from main page, refresh the entire UI
-      I18n.setLanguage(changes.appLanguage.newValue);
-      list_init();
+  if (namespace === 'local' && changes.config) {
+    const newConfig = changes.config.newValue;
+    if (newConfig) {
+      scenarios = newConfig.scenarios?.lists || [];
+      currentScenarioId = newConfig.scenarios?.current || 'default';
+      const currentScenario = scenarios.find(s => s.id === currentScenarioId);
+      list = currentScenario?.proxies || [];
       renderScenarioSelector();
-      updateBypassButton();
-      updateCurrentSiteDisplay();
+      list_init();
     }
   }
 });
@@ -293,65 +246,29 @@ function switchScenario(id) {
 
   const scenario = scenarios.find(s => s.id === id);
   if (scenario) {
-    chrome.storage.local.get(['proxyMode'], function (result) {
+    chrome.storage.local.get(['config'], function (result) {
       if (chrome.runtime.lastError) {
-        console.log('Error getting proxyMode:', chrome.runtime.lastError);
+        console.log('Error getting config:', chrome.runtime.lastError);
         return;
       }
-      const mode = result.proxyMode || 'disabled';
+      const config = result.config || { scenarios: { current: 'default', lists: [] } };
+      const proxyMode = config.proxyMode || 'disabled';
 
       currentScenarioId = id;
       list = scenario.proxies || [];
       const displayName = scenario.name || I18n.t("scenario_default");
       $(".scenario-btn").attr("title", `${I18n.t("switch_scenario_tooltip")} (${displayName})`);
 
-      if (mode === 'manual') {
-        chrome.storage.local.set({
-          currentScenarioId: currentScenarioId,
-          list: list,
-          currentProxy: null
-        }, function () {
-          if (chrome.runtime.lastError) {
-            console.log('Error switching scenario:', chrome.runtime.lastError);
-            return;
-          }
-          list_init();
-          updateStatusDisplay('manual', null);
-          chrome.runtime.sendMessage({ action: "turnOffProxy" }, function () {
-            if (chrome.runtime.lastError) {
-              console.log('Error sending turnOffProxy:', chrome.runtime.lastError);
-            }
-          });
-        });
-      } else if (mode === 'auto') {
-        chrome.storage.local.set({
-          currentScenarioId: currentScenarioId,
-          list: list
-        }, function () {
-          if (chrome.runtime.lastError) {
-            console.log('Error switching scenario:', chrome.runtime.lastError);
-            return;
-          }
-          list_init();
-          chrome.runtime.sendMessage({ action: "refreshProxy" }, function () {
-            if (chrome.runtime.lastError) {
-              console.log('Error sending refreshProxy:', chrome.runtime.lastError);
-            }
-          });
-          updateCurrentSiteDisplay();
-        });
-      } else {
-        chrome.storage.local.set({
-          currentScenarioId: currentScenarioId,
-          list: list
-        }, function () {
-          if (chrome.runtime.lastError) {
-            console.log('Error switching scenario:', chrome.runtime.lastError);
-            return;
-          }
-          list_init();
-        });
-      }
+      config.scenarios = config.scenarios || { current: 'default', lists: [] };
+      config.scenarios.current = id;
+
+      chrome.storage.local.set({ config: config }, function () {
+        if (chrome.runtime.lastError) {
+          console.log('Error switching scenario:', chrome.runtime.lastError);
+          return;
+        }
+        list_init();
+      });
     });
   }
 }
@@ -629,8 +546,8 @@ function bindListEvents() {
       const format = info.subscription.current;
       const subConfig = info.subscription.lists ? info.subscription.lists[format] : null;
 
-      if (subConfig && subConfig.bypassRules) {
-        const subBypass = subConfig.bypassRules.trim();
+      if (subConfig && subConfig.bypass_urls) {
+        const subBypass = subConfig.bypass_urls.trim();
         if (subBypass) {
           if (bypassOutput) {
             bypassOutput += '\n--- 订阅规则 ---\n';
@@ -888,7 +805,7 @@ function updateBypassButton() {
         const subscription = currentProxy.subscription || {};
         const format = subscription.current || 'autoproxy';
         const subConfig = subscription.lists ? subscription.lists[format] : null;
-        const subBypassRules = subConfig ? subConfig.bypassRules || '' : '';
+        const subBypassRules = subConfig ? subConfig.bypass_urls || '' : '';
 
         // Check if already in bypass list (using exact match for toggle)
         const bypassUrls = currentProxy.bypass_urls || '';

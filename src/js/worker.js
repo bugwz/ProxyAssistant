@@ -364,9 +364,9 @@ async function applyManualProxySettings(proxyInfo) {
       const format = proxyInfo.subscription.current;
       const subConfig = proxyInfo.subscription.lists ? proxyInfo.subscription.lists[format] : null;
 
-      if (subConfig && subConfig.bypassRules) {
+      if (subConfig && subConfig.bypass_urls) {
         const reverse = subConfig.reverse || false;
-        const rules = parseSubscriptionRules(subConfig.bypassRules, 'pac', 'PROXY', '0.0.0.0:0', reverse);
+        const rules = parseSubscriptionRules(subConfig.bypass_urls, 'pac', 'PROXY', '0.0.0.0:0', reverse);
 
         // Filter for DIRECT rules (exceptions/bypass)
         const directRules = rules.filter(r => r.action === 'DIRECT');
@@ -587,10 +587,10 @@ function generatePacScript(list) {
         const format = proxy.subscription.current;
         const subConfig = proxy.subscription.lists ? proxy.subscription.lists[format] : null;
 
-        if (subConfig && subConfig.includeRules) {
+        if (subConfig && subConfig.include_urls) {
           const proxyTypeFull = `${proxyStr}${fallback}`;
           const reverse = subConfig.reverse || false;
-          const rules = parseSubscriptionRules(subConfig.includeRules, 'pac', proxyTypeFull, "", reverse);
+          const rules = parseSubscriptionRules(subConfig.include_urls, 'pac', proxyTypeFull, "", reverse);
 
           // Filter for "need to proxy" rules (ignore exceptions/DIRECT)
           // Requirement 2 implies we only care about adding proxy rules
@@ -660,12 +660,12 @@ async function handleFirefoxRequest(details) {
       const proxy = firefoxProxyState.currentProxy;
       let bypassAll = proxy.bypass_urls || '';
 
-      // Merge subscription bypassRules
+      // Merge subscription bypass_urls
       if (proxy.subscription && proxy.subscription.enabled !== false && proxy.subscription.current) {
         const format = proxy.subscription.current;
         const subConfig = proxy.subscription.lists ? proxy.subscription.lists[format] : null;
-      if (subConfig && subConfig.bypassRules) {
-        bypassAll = bypassAll + '\n' + subConfig.bypassRules;
+        if (subConfig && subConfig.bypass_urls) {
+          bypassAll = bypassAll + '\n' + subConfig.bypass_urls;
         }
       }
 
@@ -705,12 +705,12 @@ function checkBypass(bypassUrls, url) {
 function findProxyForRequestFirefox(url) {
   const host = new URL(url).hostname;
 
-  // 按代理列表顺序检查，使用第一个匹配的include_urls
+  // Check proxy list in order, use first matching include_urls
   for (const proxy of firefoxProxyState.list) {
     if (proxy.enabled === false || proxy.disabled === true) continue;
     if (!proxy.ip || !proxy.port) continue;
 
-    // 只检查include_urls，忽略bypass_urls在自动模式下
+    // Only check include_urls, ignore bypass_urls in auto mode
     if (proxy.include_urls) {
       const includeUrls = proxy.include_urls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
       for (const pattern of includeUrls) {
@@ -721,7 +721,7 @@ function findProxyForRequestFirefox(url) {
     }
   }
 
-  return { type: "direct" }; // 没有匹配，直接连接
+  return { type: "direct" }; // No match, direct connection
 }
 
 function ipToNumber(ip) {

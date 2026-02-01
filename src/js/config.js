@@ -3,28 +3,31 @@
 // ==========================================
 
 // ==========================================
+// Constants
+// ==========================================
+
+const PROXY_STATE_KEYS = ['show_password', 'is_new', 'open', 'disabled'];
+const PROXY_EXPORT_KEYS = [
+  'enabled', 'name', 'protocol', 'ip', 'port', 'username', 'password',
+  'bypass_urls', 'include_urls', 'fallback_policy', 'subscription'
+];
+
+// ==========================================
 // Config Migration
 // ==========================================
 
 function migrateConfig(config) {
-  if (!config) return null;
+  if (!config) return getDefaultConfig();
 
-  const v4 = {
-    version: 4,
-    system: {
-      appLanguage: I18n.getCurrentLanguage(),
-      themeMode: 'light',
-      nightModeStart: '22:00',
-      nightModeEnd: '06:00',
-      sync: {
-        type: 'native',
-        gist: { token: '', filename: 'proxy_assistant_config.json', gist_id: '' }
-      }
-    },
-    currentScenarioId: 'default',
-    scenarios: []
-  };
+  // If already in new format (with version and system), return directly
+  if (config.version === 4 && config.system && config.scenarios) {
+    return normalizeConfig(config);
+  }
 
+  // Migrate from old format
+  const v4 = getDefaultConfig();
+
+  // Migrate proxy data
   const migrateProxy = (p) => {
     let enabled = true;
     if (p.enabled !== undefined) enabled = p.enabled;
@@ -43,16 +46,16 @@ function migrateConfig(config) {
         if (sourceLists[f]) {
           const item = sourceLists[f];
           lists[f] = {
-            url: item.url || '',
-            content: item.content || '',
-            decoded_content: item.decoded_content || '',
-            include_rules: item.include_rules || '',
-            bypass_rules: item.bypass_rules || '',
-            include_lines: item.include_lines || 0,
-            bypass_lines: item.bypass_lines || 0,
-            refresh_interval: item.refresh_interval || 0,
-            reverse: item.reverse || false,
-            last_fetch_time: item.last_fetch_time || null
+            url: Object.prototype.hasOwnProperty.call(item, 'url') ? item.url : '',
+            content: Object.prototype.hasOwnProperty.call(item, 'content') ? item.content : '',
+            decoded_content: Object.prototype.hasOwnProperty.call(item, 'decoded_content') ? item.decoded_content : '',
+            include_rules: Object.prototype.hasOwnProperty.call(item, 'include_rules') ? item.include_rules : '',
+            bypass_rules: Object.prototype.hasOwnProperty.call(item, 'bypass_rules') ? item.bypass_rules : '',
+            include_lines: Object.prototype.hasOwnProperty.call(item, 'include_lines') ? item.include_lines : 0,
+            bypass_lines: Object.prototype.hasOwnProperty.call(item, 'bypass_lines') ? item.bypass_lines : 0,
+            refresh_interval: Object.prototype.hasOwnProperty.call(item, 'refresh_interval') ? item.refresh_interval : 0,
+            reverse: Object.prototype.hasOwnProperty.call(item, 'reverse') ? item.reverse : false,
+            last_fetch_time: Object.prototype.hasOwnProperty.call(item, 'last_fetch_time') ? item.last_fetch_time : null
           };
         }
       });
@@ -79,69 +82,63 @@ function migrateConfig(config) {
     };
   };
 
-  if (config.version === 4) {
-    if (config.scenarios && typeof config.scenarios === 'object' && !Array.isArray(config.scenarios)) {
-      const newScenarios = config.scenarios;
-      const currentId = newScenarios.current || 'default';
-      v4.scenarios = (newScenarios.lists || []).map(s => ({
-        id: s.id || ('scenario_' + Date.now() + Math.random().toString(36).substr(2, 9)),
-        name: s.name || I18n.t('scenario_default'),
-        proxies: (s.proxies || []).map(migrateProxy)
-      }));
-      v4.currentScenarioId = currentId;
-    } else {
-      v4.scenarios = (config.scenarios || []).map(s => ({
-        id: s.id || ('scenario_' + Date.now() + Math.random().toString(36).substr(2, 9)),
-        name: s.name || I18n.t('scenario_default'),
-        proxies: (s.proxies || []).map(migrateProxy)
-      }));
-      v4.currentScenarioId = config.currentScenarioId || v4.scenarios[0]?.id || 'default';
-    }
-  } else if (config.scenarios && Array.isArray(config.scenarios)) {
-    v4.scenarios = config.scenarios.map(s => ({
+  // Migrate scenarios
+  if (config.scenarios && typeof config.scenarios === 'object' && !Array.isArray(config.scenarios)) {
+    // New format: scenarios is { current, lists } object
+    const newScenarios = config.scenarios;
+    const currentId = newScenarios.current || 'default';
+    v4.scenarios.lists = (newScenarios.lists || []).map(s => ({
       id: s.id || ('scenario_' + Date.now() + Math.random().toString(36).substr(2, 9)),
       name: s.name || I18n.t('scenario_default'),
       proxies: (s.proxies || []).map(migrateProxy)
     }));
-    v4.currentScenarioId = config.currentScenarioId || v4.scenarios[0]?.id || 'default';
+    v4.scenarios.current = currentId;
+  } else if (config.scenarios && Array.isArray(config.scenarios)) {
+    // Old format: scenarios is array
+    v4.scenarios.lists = config.scenarios.map(s => ({
+      id: s.id || ('scenario_' + Date.now() + Math.random().toString(36).substr(2, 9)),
+      name: s.name || I18n.t('scenario_default'),
+      proxies: (s.proxies || []).map(migrateProxy)
+    }));
+    v4.scenarios.current = config.currentScenarioId || v4.scenarios.lists[0]?.id || 'default';
   } else if (config.list && Array.isArray(config.list)) {
-    v4.scenarios = [{
+    // Legacy format: only list array
+    v4.scenarios.lists = [{
       id: 'default',
       name: I18n.t('scenario_default'),
       proxies: config.list.map(migrateProxy)
     }];
-    v4.currentScenarioId = 'default';
+    v4.scenarios.current = 'default';
   } else if (config.proxies && Array.isArray(config.proxies)) {
-    v4.scenarios = [{
+    v4.scenarios.lists = [{
       id: 'default',
       name: I18n.t('scenario_default'),
       proxies: config.proxies.map(migrateProxy)
     }];
-    v4.currentScenarioId = 'default';
+    v4.scenarios.current = 'default';
   } else if (Array.isArray(config)) {
-    v4.scenarios = [{
+    v4.scenarios.lists = [{
       id: 'default',
       name: I18n.t('scenario_default'),
       proxies: config.map(migrateProxy)
     }];
-    v4.currentScenarioId = 'default';
-  } else {
-    v4.scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: [] }];
-    v4.currentScenarioId = 'default';
+    v4.scenarios.current = 'default';
   }
 
-  if (!v4.scenarios.find(s => s.id === v4.currentScenarioId)) {
-    v4.currentScenarioId = v4.scenarios[0]?.id || 'default';
+  // Ensure currentScenarioId is valid
+  if (!v4.scenarios.lists.find(s => s.id === v4.scenarios.current)) {
+    v4.scenarios.current = v4.scenarios.lists[0]?.id || 'default';
   }
 
+  // Migrate system settings
   const sourceSystem = config.system || {};
   const sourceSettings = config.settings || {};
-  const sourceSync = config.sync || {};
 
   const applyIf = (val, targetObj, targetKey) => {
     if (val !== undefined) targetObj[targetKey] = val;
   };
 
+  // Migrate settings from various possible sources
   applyIf(sourceSettings.appLanguage || sourceSettings.app_language, v4.system, 'app_language');
   applyIf(sourceSettings.themeMode || sourceSettings.theme_mode, v4.system, 'theme_mode');
   applyIf(sourceSettings.nightModeStart || sourceSettings.night_mode_start, v4.system, 'night_mode_start');
@@ -181,47 +178,82 @@ function migrateConfig(config) {
   return v4;
 }
 
+function getDefaultConfig() {
+  return {
+    version: 4,
+    system: {
+      app_language: I18n.getCurrentLanguage ? I18n.getCurrentLanguage() : 'zh-CN',
+      theme_mode: 'light',
+      night_mode_start: '22:00',
+      night_mode_end: '06:00',
+      sync: {
+        type: 'native',
+        gist: { token: '', filename: 'proxy_assistant_config.json', gist_id: '' }
+      }
+    },
+    scenarios: {
+      current: 'default',
+      lists: [{
+        id: 'default',
+        name: typeof I18n !== 'undefined' && I18n.t ? I18n.t('scenario_default') : 'Default Scenario',
+        proxies: []
+      }]
+    }
+  };
+}
+
+function normalizeConfig(config) {
+  // Ensure config format is correct
+  if (!config.scenarios) {
+    config.scenarios = { current: 'default', lists: [] };
+  }
+  if (!config.scenarios.lists) {
+    config.scenarios.lists = [];
+  }
+  if (!config.system) {
+    config.system = getDefaultConfig().system;
+  }
+  return config;
+}
+
 // ==========================================
-// Build Config Data
+// Build Config Data (for export/sync)
 // ==========================================
 
-function buildConfigData() {
-  const scenarios = ScenariosModule.getScenarios();
-  const currentScenarioId = ScenariosModule.getCurrentScenarioId();
-  const list = ProxyModule.getList();
+function buildConfigData(includeInternalState = false) {
+  const config = StorageModule ? StorageModule.getConfig() : getDefaultConfig();
 
-  const syncConfig = window.SyncModule ? window.SyncModule.getSyncConfig() : window.syncConfig;
+  const syncConfig = window.SyncModule ? window.SyncModule.getSyncConfig() : null;
   var syncForExport = {
-    type: syncConfig.type,
+    type: syncConfig?.type || 'native',
     gist: {
       token: '',
-      filename: syncConfig.gist.filename || 'proxy_assistant_config.json',
+      filename: syncConfig?.gist?.filename || 'proxy_assistant_config.json',
       gist_id: ''
     }
   };
 
   const themeModule = window.ThemeModule || {};
-  const currentThemeMode = themeModule.getThemeMode ? themeModule.getThemeMode() : window.themeMode;
-  const nightTimes = themeModule.getNightModeTimes ? themeModule.getNightModeTimes() : { start: window.nightModeStart, end: window.nightModeEnd };
+  const currentThemeMode = themeModule.getThemeMode ? themeModule.getThemeMode() : (config.system?.theme_mode || 'light');
+  const nightTimes = themeModule.getNightModeTimes ? themeModule.getNightModeTimes() : {
+    start: config.system?.night_mode_start || '22:00',
+    end: config.system?.night_mode_end || '06:00'
+  };
 
-  const orderedKeys = [
-    'enabled', 'name', 'protocol', 'ip', 'port', 'username', 'password',
-    'bypass_urls', 'include_urls', 'fallback_policy', 'subscription'
-  ];
-
-  const excludedKeys = ['show_password', 'open', 'disabled'];
-
+  // Process proxy list - filter out internal state variables
   const processProxies = (proxies) => {
     return (proxies || []).map(p => {
       const newP = {};
 
+      // Process enabled field
       if (p.enabled === undefined) {
         newP.enabled = p.disabled !== true;
       } else {
         newP.enabled = p.enabled;
       }
 
-      orderedKeys.forEach(k => {
+      // Add export fields in order
+      PROXY_EXPORT_KEYS.forEach(k => {
         if (Object.prototype.hasOwnProperty.call(p, k)) {
           newP[k] = p[k];
         } else if (k === 'enabled') {
@@ -229,12 +261,16 @@ function buildConfigData() {
         }
       });
 
-      Object.keys(p).forEach(k => {
-        if (!orderedKeys.includes(k) && !excludedKeys.includes(k)) {
-          newP[k] = p[k];
-        }
-      });
+      // Include internal state if requested
+      if (includeInternalState) {
+        PROXY_STATE_KEYS.forEach(k => {
+          if (Object.prototype.hasOwnProperty.call(p, k)) {
+            newP[k] = p[k];
+          }
+        });
+      }
 
+      // Process subscription
       if (newP.subscription) {
         const lists = {};
         Object.keys(newP.subscription.lists || {}).forEach(key => {
@@ -244,7 +280,7 @@ function buildConfigData() {
             content: item.content || '',
             refresh_interval: item.refresh_interval || 0,
             reverse: item.reverse || false,
-            last_fetch_time: item.last_fetch_time || null
+            last_fetch_time: item.last_fetch_time !== undefined ? item.last_fetch_time : null
           };
         });
 
@@ -263,22 +299,23 @@ function buildConfigData() {
     });
   };
 
-  const formattedScenarios = scenarios.map(s => ({
-    ...s,
+  const formattedScenarios = config.scenarios.lists.map(s => ({
+    id: s.id,
+    name: s.name,
     proxies: processProxies(s.proxies)
   }));
 
   return {
     version: 4,
     system: {
-      app_language: I18n.getCurrentLanguage(),
+      app_language: I18n.getCurrentLanguage ? I18n.getCurrentLanguage() : (config.system?.app_language || 'zh-CN'),
       theme_mode: currentThemeMode,
       night_mode_start: nightTimes.start,
       night_mode_end: nightTimes.end,
       sync: syncForExport
     },
     scenarios: {
-      current: currentScenarioId,
+      current: config.scenarios.current,
       lists: formattedScenarios
     }
   };
@@ -289,7 +326,7 @@ function buildConfigData() {
 // ==========================================
 
 function exportConfig() {
-  var configBundle = buildConfigData();
+  var configBundle = buildConfigData(false); // Do not include internal state
   var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(configBundle, null, 4));
   var downloadAnchorNode = document.createElement('a');
   downloadAnchorNode.setAttribute("href", dataStr);
@@ -313,68 +350,44 @@ function importConfig(e) {
       if (rawData) {
         const data = migrateConfig(rawData);
 
-        const syncConfig = window.SyncModule ? window.SyncModule.getSyncConfig() : window.syncConfig;
+        // Preserve local sync config
+        const syncConfig = window.SyncModule ? window.SyncModule.getSyncConfig() : null;
         const localSyncConfig = syncConfig || {
           type: 'native',
           gist: { token: '', filename: 'proxy_assistant_config.json', gist_id: '' }
         };
 
-        ScenariosModule.setScenarios(data.scenarios);
-        ScenariosModule.setCurrentScenarioId(data.currentScenarioId);
-        const list = ScenariosModule.updateCurrentListFromScenario();
-        SubscriptionModule.parseProxyListSubscriptions(list);
-        ProxyModule.setList(list);
-
-        const systemData = data.system;
-        if (systemData) {
-          if (systemData.app_language) {
-            I18n.setLanguage(systemData.app_language);
-            $('#current-language-display').text($(`#language-options li[data-value="${systemData.app_language}"]`).text());
-          }
-          if (systemData.theme_mode) {
-            const themeModule = window.ThemeModule;
-            if (themeModule) {
-              themeModule.setThemeMode(systemData.theme_mode);
-              themeModule.setNightModeTimes(
-                systemData.night_mode_start || '22:00',
-                systemData.night_mode_end || '06:00'
-              );
+        // Merge sync config
+        if (data.system && data.system.sync) {
+          const remoteSync = data.system.sync;
+          data.system.sync = {
+            type: remoteSync.type || localSyncConfig.type,
+            gist: {
+              token: remoteSync.gist?.token || localSyncConfig.gist?.token || '',
+              filename: remoteSync.gist?.filename || localSyncConfig.gist?.filename || 'proxy_assistant_config.json',
+              gist_id: remoteSync.gist?.gist_id || localSyncConfig.gist?.gist_id || ''
             }
-            if (typeof saveThemeSettings === 'function') saveThemeSettings();
-            if (themeModule && themeModule.updateThemeUI) themeModule.updateThemeUI();
-          }
-          if (systemData.sync) {
-            const remoteSync = systemData.sync;
-            const newSyncConfig = {
-              type: remoteSync.type || localSyncConfig.type,
-              gist: {
-                token: remoteSync.gist?.token || localSyncConfig.gist?.token || '',
-                filename: remoteSync.gist?.filename || localSyncConfig.gist?.filename || 'proxy_assistant_config.json',
-                gist_id: remoteSync.gist?.gist_id || localSyncConfig.gist?.gist_id || ''
-              }
-            };
-            if (window.SyncModule) {
-              window.SyncModule.setSyncConfig(newSyncConfig);
-            }
-          } else {
-            if (window.SyncModule) {
-              window.SyncModule.setSyncConfig(localSyncConfig);
-            }
-          }
-          chrome.storage.local.set({ sync_config: window.SyncModule ? window.SyncModule.getSyncConfig() : localSyncConfig });
-          if (typeof updateSyncUI === 'function') updateSyncUI();
+          };
         } else {
-          if (window.SyncModule) {
-            window.SyncModule.setSyncConfig(localSyncConfig);
-          }
-          chrome.storage.local.set({ sync_config: window.SyncModule ? window.SyncModule.getSyncConfig() : localSyncConfig });
-          if (typeof updateSyncUI === 'function') updateSyncUI();
+          data.system = data.system || {};
+          data.system.sync = localSyncConfig;
         }
 
-        ProxyModule.saveData();
-        ProxyModule.renderList();
-        ScenariosModule.renderScenarioSelector();
-        if (typeof showTip === 'function') showTip(I18n.t('save_success'), false);
+        // Save to storage
+        if (window.StorageModule) {
+          StorageModule.setConfig(data);
+          StorageModule.save().then(() => {
+            // Apply settings
+            applyImportedSettings(data);
+            UtilsModule.showTip(I18n.t('save_success'), false);
+          });
+        } else {
+          // Fallback
+          chrome.storage.local.set({ config: data }, function () {
+            applyImportedSettings(data);
+            UtilsModule.showTip(I18n.t('save_success'), false);
+          });
+        }
       }
     } catch (err) {
       alert(I18n.t('alert_parse_error') + ': ' + err.message);
@@ -384,10 +397,53 @@ function importConfig(e) {
   reader.readAsText(file);
 }
 
-// Export for use
+function applyImportedSettings(data) {
+  const systemData = data.system;
+  if (systemData) {
+    if (systemData.app_language && typeof I18n !== 'undefined' && I18n.setLanguage) {
+      I18n.setLanguage(systemData.app_language);
+      $('#current-language-display').text($(`#language-options li[data-value="${systemData.app_language}"]`).text());
+    }
+    if (systemData.theme_mode && window.ThemeModule) {
+      window.ThemeModule.setThemeMode(systemData.theme_mode);
+      window.ThemeModule.setNightModeTimes(
+        systemData.night_mode_start || '22:00',
+        systemData.night_mode_end || '06:00'
+      );
+      window.ThemeModule.updateThemeUI();
+    }
+    if (systemData.sync && window.SyncModule) {
+      window.SyncModule.setSyncConfig(systemData.sync);
+    }
+  }
+
+  // Refresh UI
+  if (window.ScenariosModule) {
+    window.ScenariosModule.renderScenarioSelector();
+  }
+  if (window.ProxyModule) {
+    window.ProxyModule.renderList();
+  }
+  if (window.SyncModule) {
+    window.SyncModule.updateSyncUI();
+  }
+}
+
+// Helper function (ensure it's available)
+function cleanProtocol(protocol) {
+  if (!protocol) return 'http';
+  const clean = protocol.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (clean === 'socks5') return 'socks5';
+  if (clean === 'https') return 'https';
+  return 'http';
+}
+
 window.ConfigModule = {
   migrateConfig,
   buildConfigData,
   exportConfig,
-  importConfig
+  importConfig,
+  getDefaultConfig,
+  PROXY_STATE_KEYS,
+  PROXY_EXPORT_KEYS
 };
