@@ -51,6 +51,7 @@ function initApp() {
   ThemeModule.initTheme();
   ScenariosModule.init();
   ProxyModule.init();
+  SubscriptionModule.init();
   initDropdowns();
   loadSettingsAndList();
   bindGlobalEvents();
@@ -387,6 +388,7 @@ function bindGlobalEvents() {
         '.alert-scenario-tip',
         '.scenario-manage-tip',
         '.sync-config-tip',
+        '.subscription-config-tip',
         '.pac-details-tip',
         '.proxy-detection-tip',
         '.version-check-tip',

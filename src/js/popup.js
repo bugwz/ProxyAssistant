@@ -604,6 +604,32 @@ function bindListEvents() {
       updateBypassButton();
     });
 
+    // Log bypass URLs (不使用代理的地址) for manual mode
+    let bypassOutput = '';
+    const proxyBypassUrls = info.bypass_urls || '';
+
+    if (proxyBypassUrls) {
+      bypassOutput += proxyBypassUrls;
+    }
+
+    // Also include subscription bypass rules
+    if (info.subscription && info.subscription.enabled !== false && info.subscription.current) {
+      const format = info.subscription.current;
+      const subConfig = info.subscription.lists ? info.subscription.lists[format] : null;
+
+      if (subConfig && subConfig.unusedContent) {
+        const subBypass = subConfig.unusedContent.trim();
+        if (subBypass) {
+          if (bypassOutput) {
+            bypassOutput += '\n--- 订阅规则 ---\n';
+          }
+          bypassOutput += subBypass;
+        }
+      }
+    }
+
+    console.log('不使用代理的地址 (手动模式):', bypassOutput || '(无)');
+
     // Execute persistence and background communication
     chrome.runtime.sendMessage(
       { action: "applyProxy", proxyInfo: info },
@@ -696,13 +722,47 @@ function checkMatch(patternsStr, hostname) {
   if (!patternsStr) return false;
   const patterns = patternsStr.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
 
+  function isIpPattern(pattern) {
+    const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
+    return ipv4Pattern.test(pattern);
+  }
+
+  function isInCidrRange(ip, cidr) {
+    const [range, bits] = cidr.split('/');
+    const mask = ~(2 ** (32 - parseInt(bits)) - 1);
+    const ipNum = ipToNumber(ip);
+    const rangeNum = ipToNumber(range);
+    return (ipNum & mask) === (rangeNum & mask);
+  }
+
+  function ipToNumber(ip) {
+    return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+  }
+
   for (const pattern of patterns) {
-    if (pattern.includes('*')) {
+    // Support regex pattern: /pattern/flags
+    if (pattern.startsWith('/') && pattern.endsWith('/') && pattern.length > 2) {
+      const regexContent = pattern.slice(1, -1);
+      const regexFlags = pattern.split('/').pop();
+      const flags = regexFlags && !regexFlags.includes('/') ? regexFlags : '';
+      try {
+        if (new RegExp(regexContent, flags).test(hostname)) return true;
+      } catch (e) { }
+    } else if (pattern.includes('*')) {
       // Regex match for wildcards
       try {
         const regexStr = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
         if (new RegExp(regexStr).test(hostname)) return true;
       } catch (e) { }
+    } else if (isIpPattern(pattern)) {
+      // IP address or CIDR range
+      if (pattern.includes('/')) {
+        // CIDR format: 192.168.1.0/24
+        if (isInCidrRange(hostname, pattern)) return true;
+      } else {
+        // Single IP address
+        if (hostname === pattern) return true;
+      }
     } else {
       // Handle leading dot if present (e.g. .google.com -> google.com)
       let normalizedPattern = pattern;

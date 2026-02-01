@@ -3,7 +3,7 @@
 
 // Browser detection
 const isFirefox = typeof browser !== 'undefined' && browser.runtime && browser.runtime.getBrowserInfo !== undefined;
-const isChrome = !isFirefox && typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getBrowserInfo !== undefined;
+const isChrome = !isFirefox && typeof chrome !== 'undefined';
 
 // Global variable to store current proxy authentication credentials
 let currentProxyAuth = {
@@ -296,6 +296,23 @@ function cleanProtocol(protocol) {
   return cleaned;
 }
 
+// Helper function to validate proxy configuration
+function validateProxyConfig(ip, port) {
+  const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+  const hostnameRegex = /^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/;
+
+  if (!ipv4Regex.test(ip) && !hostnameRegex.test(ip)) {
+    return { valid: false, error: "Invalid IP address or hostname format" };
+  }
+
+  const portNum = parseInt(port);
+  if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
+    return { valid: false, error: "Invalid port number (must be 1-65535)" };
+  }
+
+  return { valid: true };
+}
+
 // -----------------------------------------------------------------------------
 // Chrome Implementation Section
 // -----------------------------------------------------------------------------
@@ -339,6 +356,81 @@ async function applyManualProxySettings(proxyInfo) {
   if (bypassUrls) {
     const customBypass = bypassUrls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
     bypassList = [...new Set([...bypassList, ...customBypass])];
+  }
+
+  // Merge subscription bypass rules (DIRECT) for Manual Mode
+  if (proxyInfo.subscription && proxyInfo.subscription.enabled !== false && proxyInfo.subscription.current) {
+    try {
+      const format = proxyInfo.subscription.current;
+      const subConfig = proxyInfo.subscription.lists ? proxyInfo.subscription.lists[format] : null;
+
+      if (subConfig && subConfig.unusedContent) {
+        const reverse = subConfig.reverse || false;
+        const rules = parseSubscriptionRules(subConfig.unusedContent, 'pac', 'PROXY', '0.0.0.0:0', reverse);
+
+        // Filter for DIRECT rules (exceptions/bypass)
+        const directRules = rules.filter(r => r.action === 'DIRECT');
+        let addedCount = 0;
+
+        for (const rule of directRules) {
+          // Chrome bypassList supports hosts and simple wildcards
+          if (rule.type === 'domain') {
+            // Domain rule: remove || prefix, Chrome matches domain and subdomains automatically
+            // e.g., "google.com" matches "google.com", "www.google.com", "mail.google.com"
+            let pattern = rule.pattern.replace(/^\|\|/, '');
+            if (!pattern) continue;
+
+            // If pattern starts with *. (from subscription like *.example.com),
+            // remove the * and use the domain directly - Chrome bypass matches subdomains
+            if (pattern.startsWith('*.')) {
+              pattern = pattern.substring(2);
+            }
+
+            // Skip patterns that look like URL paths (contain /)
+            if (pattern.includes('/')) continue;
+
+            // Skip pure IP addresses in bypass rules (they may cause issues)
+            const isIpPattern = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
+            if (isIpPattern.test(pattern)) continue;
+
+            if (pattern && !bypassList.includes(pattern)) {
+              bypassList.push(pattern);
+              addedCount++;
+            }
+          } else if (rule.type === 'wildcard') {
+            // Simple wildcard pattern (Chrome doesn't fully support wildcards in bypassList)
+            // Try to extract domain from patterns like *.example.com
+            let pattern = rule.pattern;
+            if (!pattern) continue;
+
+            // Handle *.example.com format
+            if (pattern.startsWith('*.')) {
+              const domain = pattern.substring(2);
+              // Skip if it looks like a path
+              if (domain.includes('/')) continue;
+              // Skip if it looks like an IP
+              const isIpPattern = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
+              if (!isIpPattern.test(domain)) {
+                pattern = domain;
+              }
+            }
+
+            if (pattern && !bypassList.includes(pattern)) {
+              bypassList.push(pattern);
+              addedCount++;
+            }
+          } else if (rule.type === 'start') {
+            // URL prefix rule (from | pattern)
+            // Chrome bypassList doesn't support URL prefix matching
+            // Skip these rules - they can't be properly represented
+            console.log(`Skipping URL prefix bypass rule: ${rule.pattern} (not supported by Chrome bypassList)`);
+          }
+        }
+        console.log(`Merged ${addedCount} bypass rules from subscription (Manual Mode)`);
+      }
+    } catch (e) {
+      console.error("Error merging subscription bypass rules:", e);
+    }
   }
 
   currentProxyAuth = { username: username || '', password: password || '' };
@@ -417,9 +509,28 @@ function applyAutoProxySettings() {
   });
 }
 
+// Helper function to check if pattern is an IP address
+function isIpPattern(pattern) {
+  const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
+  return ipv4Pattern.test(pattern);
+}
+
 // Generate PAC script logic (Chrome only)
 function generatePacScript(list) {
-  let script = "function FindProxyForURL(url, host) {\n";
+  let script = `function FindProxyForURL(url, host) {
+  function ipToNumber(ip) {
+    return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+  }
+
+  function isInCidrRange(ip, cidr) {
+    const [range, bits] = cidr.split('/');
+    const mask = ~(2 ** (32 - parseInt(bits)) - 1);
+    const ipNum = ipToNumber(ip);
+    const rangeNum = ipToNumber(range);
+    return (ipNum & mask) === (rangeNum & mask);
+  }
+
+`;
 
   // Check include_urls in proxy list order, use first match
   for (const proxy of list) {
@@ -440,12 +551,52 @@ function generatePacScript(list) {
     if (proxy.include_urls) {
       const includeUrls = proxy.include_urls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
       for (const pattern of includeUrls) {
-        if (pattern.includes('*')) {
+        // Support regex pattern: /pattern/flags
+        if (pattern.startsWith('/') && pattern.endsWith('/') && pattern.length > 2) {
+          const regexContent = pattern.slice(1, -1);
+          const regexFlags = pattern.includes('/') ? pattern.split('/').pop() : '';
+          const flags = regexFlags && !regexFlags.includes('/') ? regexFlags : '';
+          script += `  if (/${regexContent}/${flags}.test(host)) return ${returnVal};\n`;
+        } else if (pattern.includes('*')) {
           const regexPattern = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
           script += `  if (/${regexPattern}/.test(host)) return ${returnVal};\n`;
+        } else if (isIpPattern(pattern)) {
+          // IP address or CIDR range
+          if (pattern.includes('/')) {
+            // CIDR format: 192.168.1.0/24
+            script += `  if (isInCidrRange(host, "${pattern}")) return ${returnVal};\n`;
+          } else {
+            // Single IP address
+            script += `  if (host === "${pattern}") return ${returnVal};\n`;
+          }
         } else {
           script += `  if (dnsDomainIs(host, "${pattern}") || host === "${pattern}") return ${returnVal};\n`;
         }
+      }
+    }
+
+    // Process subscription rules for Auto Mode
+    if (proxy.subscription && proxy.subscription.enabled !== false && proxy.subscription.current) {
+      try {
+        const format = proxy.subscription.current;
+        const subConfig = proxy.subscription.lists ? proxy.subscription.lists[format] : null;
+
+        if (subConfig && subConfig.usedContent) {
+          const proxyTypeFull = `${proxyStr}${fallback}`;
+          const reverse = subConfig.reverse || false;
+          const rules = parseSubscriptionRules(subConfig.usedContent, 'pac', proxyTypeFull, "", reverse);
+
+          // Filter for "need to proxy" rules (ignore exceptions/DIRECT)
+          // Requirement 2 implies we only care about adding proxy rules
+          const activeRules = rules.filter(r => r.action !== 'DIRECT');
+
+          for (const rule of activeRules) {
+            script += "  " + rule.js + "\n";
+          }
+          console.log(`Merged ${activeRules.length} rules from subscription for proxy ${proxy.name || 'unnamed'}`);
+        }
+      } catch (e) {
+        console.error("Error merging subscription rules in Auto Mode:", e);
       }
     }
   }
@@ -459,25 +610,25 @@ function generatePacScript(list) {
 // -----------------------------------------------------------------------------
 
 function setupFirefoxProxy() {
-  // Clear existing settings to avoid conflicts with onRequest
-  // This is important because if settings are present, they might override or conflict
+  if (typeof browser === 'undefined' || !browser.proxy) {
+    console.warn("Firefox proxy API not available");
+    return;
+  }
+
   browser.proxy.settings.clear({});
 
-  // Note: We register the listener globally at the top level for Firefox
-  // to ensure it persists through Service Worker/Event Page lifecycles.
-  // However, we can ensure it's registered here just in case.
-  if (!browser.proxy.onRequest.hasListener(handleFirefoxRequest)) {
-    browser.proxy.onRequest.addListener(handleFirefoxRequest, { urls: ["<all_urls>"] });
-    console.log("Firefox proxy.onRequest listener registered");
-  }
+  registerFirefoxListener();
 
   setupAuthListener();
 }
 
-// Ensure listener is registered immediately for Firefox
-if (isFirefox) {
-  if (!browser.proxy.onRequest.hasListener(handleFirefoxRequest)) {
-    browser.proxy.onRequest.addListener(handleFirefoxRequest, { urls: ["<all_urls>"] });
+// Firefox proxy listener registration - will be called after handleFirefoxRequest is defined
+function registerFirefoxListener() {
+  if (isFirefox && typeof browser !== 'undefined' && browser.proxy && browser.proxy.onRequest) {
+    if (!browser.proxy.onRequest.hasListener(handleFirefoxRequest)) {
+      browser.proxy.onRequest.addListener(handleFirefoxRequest, { urls: ["<all_urls>"] });
+      console.log("Firefox proxy.onRequest listener registered");
+    }
   }
 }
 
@@ -500,11 +651,23 @@ async function handleFirefoxRequest(details) {
   // Manual Mode
   if (firefoxProxyState.mode === 'manual') {
     if (firefoxProxyState.currentProxy) {
+      const proxy = firefoxProxyState.currentProxy;
+      let bypassAll = proxy.bypass_urls || '';
+
+      // Merge subscription unusedContent (bypass rules)
+      if (proxy.subscription && proxy.subscription.enabled !== false && proxy.subscription.current) {
+        const format = proxy.subscription.current;
+        const subConfig = proxy.subscription.lists ? proxy.subscription.lists[format] : null;
+        if (subConfig && subConfig.unusedContent) {
+          bypassAll = bypassAll + '\n' + subConfig.unusedContent;
+        }
+      }
+
       // Check bypass list for manual mode
-      if (checkBypass(firefoxProxyState.currentProxy.bypass_urls, details.url)) {
+      if (checkBypass(bypassAll, details.url)) {
         return { type: "direct" };
       }
-      return createFirefoxProxyObject(firefoxProxyState.currentProxy);
+      return createFirefoxProxyObject(proxy);
     }
     return null; // No config -> System
   }
@@ -810,6 +973,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else if (message.action === "testProxyConnection") {
       testProxyConnection(message.proxyInfo, sendResponse);
       return true;
+    } else if (message.action === "getPacScript") {
+      chrome.storage.local.get({ list: [] }, (items) => {
+        const list = items.list || [];
+        try {
+          const script = generatePacScript(list);
+          sendResponse({ success: true, script: script });
+        } catch (e) {
+          console.error("Error generating PAC script:", e);
+          sendResponse({ success: false, error: e.message });
+        }
+      });
+      return true;
     } else {
       console.warn("Unknown action:", message.action);
       sendResponse({ success: false, error: "Unknown action" });
@@ -986,25 +1161,6 @@ async function runConnectivityTest(proxyInfo) {
   }
 }
 
-// Helper function to validate proxy configuration
-function validateProxyConfig(ip, port) {
-  // Validate IP format
-  const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-  const hostnameRegex = /^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/;
-
-  if (!ipv4Regex.test(ip) && !hostnameRegex.test(ip)) {
-    return { valid: false, error: "Invalid IP address or hostname format" };
-  }
-
-  // Validate port
-  const portNum = parseInt(port);
-  if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
-    return { valid: false, error: "Invalid port number (must be 1-65535)" };
-  }
-
-  return { valid: true };
-}
-
 // Helper function to test if proxy is actually being used
 async function testProxyConnectivity(proxyInfo) {
   const testHost = "invalid-test-host-12345.com";
@@ -1042,3 +1198,132 @@ async function testProxyConnectivity(proxyInfo) {
     return { success: false, error: `Proxy connectivity test failed: ${error.message}` };
   }
 }
+
+// Subscription rules parser for worker context
+function parseSubscriptionRuleLine(line, format, defaultType, defaultAddress, reverse) {
+  let isException = false;
+  let actionType = defaultType;
+  let isDirect = false;
+
+  if (format === 'autoproxy') {
+    if (line.startsWith('[') && line.endsWith(']')) return null;
+    if (line.startsWith('!')) return null;
+    if (line.startsWith('@@')) {
+      isException = true;
+      line = line.substring(2);
+    }
+    const finalActionIsDirect = reverse ? !isException : isException;
+    isDirect = finalActionIsDirect;
+  } else if (format === 'switchy_omega') {
+    if (line.startsWith('[SwitchyOmega Conditions]')) return null;
+    if (line.startsWith(';')) return null;
+    if (line.startsWith('@')) return null;
+    if (line.includes(' +')) {
+      const parts = line.split(' +');
+      line = parts[0].trim();
+      const res = parts[1].trim().toLowerCase();
+      if (res === 'direct') isDirect = true;
+    }
+    if (line.startsWith('!')) {
+      isException = true;
+      line = line.substring(1).trim();
+    }
+    if (isException) isDirect = true;
+    if (reverse) isDirect = !isDirect;
+  } else if (format === 'switchy_legacy') {
+    if (line.startsWith(';')) return null;
+    if (line === '#BEGIN' || line === '#END') return null;
+    if (line.startsWith('[') && line.endsWith(']')) return null;
+    if (line.startsWith('!')) {
+      isException = true;
+      line = line.substring(1);
+    }
+    const finalActionIsDirect = reverse ? !isException : isException;
+    isDirect = finalActionIsDirect;
+  }
+
+  const result = isDirect ? 'DIRECT' : defaultType;
+  const addressPart = defaultAddress ? ` ${defaultAddress}` : '';
+  const returnVal = isDirect ? '"DIRECT"' : `"${defaultType}${addressPart}"`;
+
+  if (format === 'switchy_omega' && line === '*') {
+    return { type: 'all', pattern: '*', action: result, js: `return ${returnVal};` };
+  }
+
+  let js = '';
+  let pattern = line;
+  let ruleType = 'keyword';
+
+  const wildcardToRegex = (wildcard) => {
+    let escaped = wildcard.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+    let regex = '^' + escaped.replace(/\*/g, '.*');
+    return regex;
+  };
+
+  if (line.startsWith('||')) {
+    pattern = line.substring(2);
+    js = `if (host.endsWith('.${pattern}') || host === '${pattern}') return ${returnVal};`;
+    ruleType = 'domain';
+  } else if (line.startsWith('|')) {
+    pattern = line.substring(1);
+    js = `if (url.startsWith('${pattern}')) return ${returnVal};`;
+    ruleType = 'start';
+  } else if (line.startsWith('/') && line.endsWith('/')) {
+    pattern = line.substring(1, line.length - 1);
+    js = `if (/${pattern}/.test(url)) return ${returnVal};`;
+    ruleType = 'regex';
+  } else if (line.indexOf('*') !== -1) {
+    const regex = wildcardToRegex(line);
+    js = `if (/${regex}/.test(url)) return ${returnVal};`;
+    ruleType = 'wildcard';
+  } else if (format === 'switchy_omega' && line.startsWith(':')) {
+    pattern = line.substring(1).trim();
+    js = `if (host.endsWith('.${pattern}') || host === '${pattern}') return ${returnVal};`;
+    ruleType = 'domain';
+  } else if (format === 'switchy_omega') {
+    js = `if (host.endsWith('.${line}') || host === '${line}') return ${returnVal};`;
+    ruleType = 'domain';
+  } else {
+    js = `if (url.indexOf('${line}') >= 0) return ${returnVal};`;
+  }
+
+  return { type: ruleType, pattern, action: result, js };
+}
+
+function parseSubscriptionRules(content, format, proxyType, proxyAddress, reverse = false) {
+  if (!content) return [];
+
+  let decoded = content;
+  let actualFormat = format;
+
+  if (format === 'autoproxy' && (content.startsWith('W0F1dG9Qcm94') || content.trim().startsWith('[AutoProxy'))) {
+    if (content.startsWith('W0F1dG9Qcm94')) {
+      try {
+        decoded = atob(content);
+      } catch (e) {
+        console.error("Base64 decode failed", e);
+      }
+    }
+  }
+
+  if (format === 'pac') {
+    actualFormat = 'autoproxy';
+  }
+
+  const lines = decoded.split(/[\r\n]+/);
+  const rules = [];
+
+  for (let line of lines) {
+    line = line.trim();
+    if (!line) continue;
+    const rule = parseSubscriptionRuleLine(line, actualFormat, proxyType, proxyAddress, reverse);
+    if (rule) {
+      rules.push(rule);
+    }
+  }
+
+  return rules;
+}
+
+// Register Firefox proxy listener after all functions are defined
+registerFirefoxListener();

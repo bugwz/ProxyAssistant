@@ -167,26 +167,32 @@ function updatePacDetails() {
   chrome.storage.local.get(['proxyMode', 'list'], function (result) {
     const mode = result.proxyMode || 'disabled';
     const proxyList = result.list || [];
-    const pacData = generatePacDetailsData(proxyList);
 
     $("#pac-mode-value").text(mode === 'auto' ? I18n.t('mode_auto') : I18n.t('mode_disabled'));
     $("#pac-generated-time").text(new Date().toLocaleString());
-    $("#pac-rules-count").text(pacData.rules.length);
 
-    var rulesHtml = '';
-    if (pacData.rules.length === 0) rulesHtml = '<div class="pac-rule-item empty">' + I18n.t('pac_no_rules') + '</div>';
-    else {
-      pacData.rules.forEach(function (rule) {
-        rulesHtml += `<div class="pac-rule-item"><span class="pac-rule-pattern">${escapeHtml(rule.pattern)}</span><span class="pac-rule-arrow">→</span><span class="pac-rule-proxy">${escapeHtml(rule.proxy)}</span></div>`;
-      });
-    }
-    $("#pac-rules-list").html(rulesHtml);
-    $("#pac-script-content").text(pacData.script);
+    // Fetch the actual PAC script from the background worker to ensure it includes subscription logic
+    chrome.runtime.sendMessage({ action: "getPacScript" }, function (response) {
+      if (chrome.runtime.lastError) {
+        console.error("Error fetching PAC script:", chrome.runtime.lastError);
+        $("#pac-script-content").text("// Error fetching PAC script: " + chrome.runtime.lastError.message);
+        $("#pac-rules-count-text").text(I18n.t('pac_rules_count') + ": ");
+        $("#pac-rules-count-value").text("0");
+      } else if (response && response.success) {
+        $("#pac-script-content").text(response.script);
+        const ifCount = (response.script.match(/if\s*\(/g) || []).length;
+        $("#pac-rules-count-text").text(I18n.t('pac_rules_count') + ": ");
+        $("#pac-rules-count-value").text(ifCount);
+      } else {
+        $("#pac-script-content").text("// Failed to generate PAC script");
+        $("#pac-rules-count-text").text(I18n.t('pac_rules_count') + ": ");
+        $("#pac-rules-count-value").text("0");
+      }
+    });
   });
 }
 
-function generatePacDetailsData(proxyList) {
-  var rules = [];
+function generatePacScript(proxyList) {
   var script = "function FindProxyForURL(url, host) {\n";
   var usedPatterns = new Set();
 
@@ -203,7 +209,6 @@ function generatePacDetailsData(proxyList) {
       includeUrls.forEach(function (pattern) {
         if (usedPatterns.has(pattern)) return;
         usedPatterns.add(pattern);
-        rules.push({ pattern: pattern, proxy: proxy.name || (proxy.ip + ":" + proxy.port) });
 
         if (pattern.includes('*')) {
           const regexPattern = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
@@ -215,7 +220,7 @@ function generatePacDetailsData(proxyList) {
     }
   });
   script += '  return "DIRECT";\n}';
-  return { rules: rules, script: script };
+  return script;
 }
 
 // Export for use
