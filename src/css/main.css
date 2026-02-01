@@ -4254,9 +4254,83 @@ input:checked+.slider-modern:before {
   display: none;
 }
 
-.subscription-lines-badge[style*="display: block"],
-.subscription-lines-badge:not([style*="display: none"]) {
-  display: inline-flex !important;
+.subscription-lines-badge.visible {
+  display: inline-flex;
+}
+
+.subscription-badge {
+  display: inline-flex;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+  vertical-align: middle;
+  background-color: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+[data-theme="dark"] .subscription-badge {
+  color: #94a3b8;
+  background-color: #334155;
+}
+
+.subscription-badge:hover {
+  background-color: #e2e8f0;
+}
+
+[data-theme="dark"] .subscription-badge:hover {
+  background-color: #475569;
+}
+
+.subscription-badge.active {
+  background-color: #94a3b8;
+  color: white;
+}
+
+[data-theme="dark"] .subscription-badge.active {
+  background-color: #475569;
+  color: white;
+}
+
+.subscription-badge.active:hover {
+  background-color: #64748b;
+}
+
+[data-theme="dark"] .subscription-badge.active:hover {
+  background-color: #334155;
+}
+
+/* 订阅内容textarea只读样式 */
+textarea.subscription-content:read-only {
+  background-color: #f8fafc;
+  color: #64748b;
+  cursor: default;
+}
+
+[data-theme="dark"] textarea.subscription-content:read-only {
+  background-color: rgba(0, 0, 0, 0.2);
+  color: #64748b;
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.textarea-fade-out {
+  animation: fadeOut 0.15s ease forwards;
+}
+
+.textarea-fade-in {
+  animation: fadeIn 0.15s ease forwards;
 }
 
 /* Subscription Config Modal */
@@ -4421,44 +4495,4 @@ input:checked+.slider-modern:before {
 [data-theme="dark"] .subscription-format-selector .lh-select-op li.selected-option {
   background-color: rgba(129, 140, 248, 0.15);
   color: #818cf8;
-}
-
-.subscription-badge {
-  display: inline-flex;
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 500;
-  vertical-align: middle;
-  background-color: #f1f5f9;
-  padding: 2px 6px;
-  border-radius: 4px;
-  cursor: default;
-}
-
-[data-theme="dark"] .subscription-badge {
-  color: #94a3b8;
-  background-color: #334155;
-}
-
-.subscription-badge:hover {
-  background-color: #e2e8f0;
-}
-
-[data-theme="dark"] .subscription-badge:hover {
-  background-color: #475569;
-}
-
-[data-theme="dark"] .subscription-badge {
-  color: #94a3b8;
-  background-color: #334155;
-}
-
-.subscription-badge:hover {
-  background-color: #e2e8f0;
-  color: #475569;
-}
-
-[data-theme="dark"] .subscription-badge:hover {
-  background-color: #475569;
-  color: #cbd5e1;
 }
