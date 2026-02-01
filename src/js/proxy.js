@@ -226,19 +226,17 @@ const ProxyModule = (function () {
       const collapsedClass = isExpanded ? "" : "collapsed";
       delete info.is_new;
 
-      let subscriptionBadgeBypass = '';
-      let subscriptionBadgeInclude = '';
       const bypassLines = info.bypass_urls ? info.bypass_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
       const includeLines = info.include_urls ? info.include_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
 
-      subscriptionBadgeBypass = `<span class="subscription-badge" title="${I18n.t('current_rules_count')}">${bypassLines}</span>`;
-      subscriptionBadgeInclude = `<span class="subscription-badge" title="${I18n.t('current_rules_count')}">${includeLines}</span>`;
+      let subscriptionBadgeBypass = `<span class="subscription-badge active" data-type="bypass" data-mode="local" title="${I18n.t('current_rules_count')}">${bypassLines}</span>`;
+      let subscriptionBadgeInclude = `<span class="subscription-badge active" data-type="include" data-mode="local" title="${I18n.t('current_rules_count')}">${includeLines}</span>`;
 
       if (info.subscription && info.subscription.enabled !== false) {
         const counts = SubscriptionModule.getSubscriptionLineCounts(info.subscription);
 
-        subscriptionBadgeBypass += `<span class="subscription-badge subscription-lines-badge" data-index="${i}" data-type="bypass" title="${I18n.t('subscription_rules_count')}">${counts.bypass_lines >= 0 ? '+' : ''}${counts.bypass_lines}</span>`;
-        subscriptionBadgeInclude += `<span class="subscription-badge subscription-lines-badge" data-index="${i}" data-type="include" title="${I18n.t('subscription_rules_count')}">${counts.include_lines >= 0 ? '+' : ''}${counts.include_lines}</span>`;
+        subscriptionBadgeBypass += `<span class="subscription-badge subscription-lines-badge visible" data-type="bypass" data-mode="subscription" title="${I18n.t('subscription_rules_count')}">${counts.bypass_lines >= 0 ? '+' : ''}${counts.bypass_lines}</span>`;
+        subscriptionBadgeInclude += `<span class="subscription-badge subscription-lines-badge visible" data-type="include" data-mode="subscription" title="${I18n.t('subscription_rules_count')}">${counts.include_lines >= 0 ? '+' : ''}${counts.include_lines}</span>`;
       }
 
       html += `<div class="proxy-card ${collapsedClass} ${is_enabled ? "" : "disabled"}" data-id="${i}">
@@ -337,28 +335,30 @@ const ProxyModule = (function () {
                     </div>
 
                      <div class="url-config-section">
-                         <div class="form-item">
-                             <div class="url-config-header">
-                                 <label>${I18n.t('bypass_urls')}<span class="info-icon" data-i18n-tooltip="bypass_urls_tooltip" data-tooltip="${I18n.t('bypass_urls_tooltip')}"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></span></label>
-                                 <div class="url-config-actions">
-                                     ${subscriptionBadgeBypass}
-                                 </div>
-                             </div>
-                              <textarea data-index="${i}" class="bypass_urls" placeholder="${I18n.t('bypass_urls_placeholder')}" tabindex="${i * 100 + 8}">${UtilsModule.escapeHtml(info.bypass_urls || "")}</textarea>
-                         </div>
-                         <div class="form-item">
-                             <div class="url-config-header">
-                                 <label>${I18n.t('include_urls')}<span class="info-icon" data-i18n-tooltip="include_urls_tooltip" data-tooltip="${I18n.t('include_urls_tooltip')}"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></span></label>
-                                 <div class="url-config-actions">
-                                     ${subscriptionBadgeInclude}
-                                 </div>
-                             </div>
-                              <textarea data-index="${i}" class="include_urls" placeholder="${I18n.t('include_urls_placeholder')}" tabindex="${i * 100 + 9}">${UtilsModule.escapeHtml(info.include_urls || "")}</textarea>
-                         </div>
-                     </div>
-                </div>
+                          <div class="form-item">
+                              <div class="url-config-header">
+                                  <label>${I18n.t('bypass_urls')}<span class="info-icon" data-i18n-tooltip="bypass_urls_tooltip" data-tooltip="${I18n.t('bypass_urls_tooltip')}"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></span></label>
+                                  <div class="url-config-actions">
+                                      ${subscriptionBadgeBypass}
+                                  </div>
+                              </div>
+                              <textarea data-index="${i}" class="bypass_urls url-config-textarea subscription-content" data-type="bypass" data-mode="local" placeholder="${I18n.t('bypass_urls_placeholder')}" tabindex="${i * 100 + 8}">${UtilsModule.escapeHtml(info.bypass_urls || "")}</textarea>
+                              <textarea class="bypass_urls url-config-textarea subscription-content" data-type="bypass" data-mode="subscription" readonly style="display: none;" placeholder=""></textarea>
+                          </div>
+                          <div class="form-item">
+                              <div class="url-config-header">
+                                  <label>${I18n.t('include_urls')}<span class="info-icon" data-i18n-tooltip="include_urls_tooltip" data-tooltip="${I18n.t('include_urls_tooltip')}"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></span></label>
+                                  <div class="url-config-actions">
+                                      ${subscriptionBadgeInclude}
+                                  </div>
+                              </div>
+                              <textarea data-index="${i}" class="include_urls url-config-textarea subscription-content" data-type="include" data-mode="local" placeholder="${I18n.t('include_urls_placeholder')}" tabindex="${i * 100 + 9}">${UtilsModule.escapeHtml(info.include_urls || "")}</textarea>
+                              <textarea class="include_urls url-config-textarea subscription-content" data-type="include" data-mode="subscription" readonly style="display: none;" placeholder=""></textarea>
+                          </div>
+                       </div>
+                 </div>
 
-                 <div class="proxy-content-right">
+                  <div class="proxy-content-right">
                      <button class="right-panel-btn btn-test test-proxy-btn" data-index="${i}" tabindex="-1">
                           ${I18n.t('link_test')}
                      </button>
@@ -395,10 +395,11 @@ const ProxyModule = (function () {
   }
 
   function updateSubscriptionLinesDisplay() {
-    $(".subscription-lines-badge").each(function () {
+    $(".subscription-badge[data-type]").each(function () {
       const $badge = $(this);
-      const index = $badge.data("index");
-      const type = $badge.data("type");
+      const index = $badge.closest('.proxy-card').data('id');
+      const type = $badge.data('type');
+      const mode = $badge.data('mode');
 
       if (index === undefined || index === null) return;
 
@@ -407,27 +408,15 @@ const ProxyModule = (function () {
 
       const bypassLines = info.bypass_urls ? info.bypass_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
       const includeLines = info.include_urls ? info.include_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
-      const $parent = $badge.parent();
 
-      let existingPlainBadge = $parent.find(".subscription-badge:not(.subscription-lines-badge)");
-      if (existingPlainBadge.length === 0) {
-        existingPlainBadge = $(`<span class="subscription-badge" title="${I18n.t('current_rules_count')}">${type === "bypass" ? bypassLines : includeLines}</span>`);
-        $badge.before(existingPlainBadge);
-      } else {
-        existingPlainBadge.text(type === "bypass" ? bypassLines : includeLines);
-        existingPlainBadge.attr('title', I18n.t('current_rules_count'));
-      }
-
-      if (info.subscription && info.subscription.enabled !== false) {
-        const lineCounts = SubscriptionModule.getSubscriptionLineCounts(info.subscription);
-
-        if (type === "bypass") {
-          $badge.text(`${lineCounts.bypass_lines >= 0 ? '+' : ''}${lineCounts.bypass_lines}`).attr('title', I18n.t('subscription_rules_count')).show();
-        } else if (type === "include") {
-          $badge.text(`${lineCounts.include_lines >= 0 ? '+' : ''}${lineCounts.include_lines}`).attr('title', I18n.t('subscription_rules_count')).show();
+      if (mode === 'local') {
+        $badge.text(type === 'bypass' ? bypassLines : includeLines);
+      } else if (mode === 'subscription') {
+        if (info.subscription && info.subscription.enabled !== false) {
+          const lineCounts = SubscriptionModule.getSubscriptionLineCounts(info.subscription);
+          const count = type === 'bypass' ? lineCounts.bypass_lines : lineCounts.include_lines;
+          $badge.text(`${count >= 0 ? '+' : ''}${count}`);
         }
-      } else {
-        $badge.hide();
       }
     });
   }
@@ -565,6 +554,45 @@ const ProxyModule = (function () {
       }
     });
 
+    $(document).on('click', '.subscription-badge[data-type][data-mode]', function (e) {
+      const $badge = $(this);
+      const type = $badge.data('type');
+      const mode = $badge.data('mode');
+
+      if ($badge.hasClass('active')) return;
+
+      const $actions = $badge.closest('.url-config-actions');
+      const $card = $badge.closest('.proxy-card');
+      const index = $card.data('id');
+
+      $actions.find('.subscription-badge').removeClass('active');
+      $badge.addClass('active');
+
+      const $localTextarea = $card.find(`.${type}_urls[data-mode="local"]`);
+      const $subTextarea = $card.find(`.${type}_urls[data-mode="subscription"]`);
+
+      if (mode === 'subscription') {
+        const info = list[index];
+        if (info.subscription && info.subscription.lists) {
+          const currentFormat = info.subscription.current || 'autoproxy';
+          const subConfig = info.subscription.lists[currentFormat];
+          const content = type === 'bypass' ? subConfig.bypass_rules : subConfig.include_rules;
+
+          $localTextarea.removeClass('textarea-fade-in').addClass('textarea-fade-out');
+          setTimeout(() => {
+            $localTextarea.hide().removeClass('textarea-fade-out');
+            $subTextarea.val(content || '').show().addClass('textarea-fade-in');
+          }, 150);
+        }
+      } else {
+        $subTextarea.removeClass('textarea-fade-in').addClass('textarea-fade-out');
+        setTimeout(() => {
+          $subTextarea.hide().removeClass('textarea-fade-out');
+          $localTextarea.show().addClass('textarea-fade-in');
+        }, 150);
+      }
+    });
+
     $(".item-save-btn").on("click", function () {
       UtilsModule.showProcessingTip(I18n.t('processing'));
       saveSingleProxy($(this).data("index"));
@@ -650,9 +678,6 @@ const ProxyModule = (function () {
           var info = list[i];
           var previewText = `${info.name || I18n.t('unnamed_proxy')} · ${info.ip || "0.0.0.0"}:${info.port || "0"}`;
           $(`.proxy-card[data-id="${i}"] .proxy-title-preview`).text(previewText).attr('title', previewText);
-        }
-        if (["include_urls", "bypass_urls"].includes(name)) {
-          updateSubscriptionLinesDisplay();
         }
       }
     }
