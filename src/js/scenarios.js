@@ -4,8 +4,6 @@
 // ==========================================
 
 const ScenariosModule = (function () {
-  let scenarios = [];
-  let currentScenarioId = 'default';
   let editingScenarioId = null;
   let deletingScenarioId = null;
   let move_proxy_index = -1;
@@ -15,38 +13,33 @@ const ScenariosModule = (function () {
   }
 
   function getScenarios() {
-    return scenarios;
+    return StorageModule ? StorageModule.getScenarios() : [];
   }
 
   function getCurrentScenarioId() {
-    return currentScenarioId;
+    return StorageModule ? StorageModule.getCurrentScenarioId() : 'default';
   }
 
   function setScenarios(newScenarios) {
-    scenarios = newScenarios;
-  }
-
-  function setCurrentScenarioId(id) {
-    currentScenarioId = id;
-  }
-
-  function getCurrentScenario() {
-    return scenarios.find(s => s.id === currentScenarioId);
-  }
-
-  function updateCurrentListFromScenario() {
-    const scenario = scenarios.find(s => s.id === currentScenarioId);
-    return scenario ? scenario.proxies : [];
-  }
-
-  function saveCurrentListToScenario(list) {
-    const scenario = scenarios.find(s => s.id === currentScenarioId);
-    if (scenario) {
-      scenario.proxies = list;
+    if (StorageModule) {
+      StorageModule.setScenarios(newScenarios);
     }
   }
 
+  function setCurrentScenarioId(id) {
+    if (StorageModule) {
+      StorageModule.setCurrentScenarioId(id);
+    }
+  }
+
+  function getCurrentScenario() {
+    return StorageModule ? StorageModule.getCurrentScenario() : null;
+  }
+
   function renderScenarioSelector() {
+    const scenarios = getScenarios();
+    const currentScenarioId = getCurrentScenarioId();
+
     let html = "";
     let currentScenarioName = "";
 
@@ -69,22 +62,22 @@ const ScenariosModule = (function () {
   }
 
   function switchScenario(id) {
-    if (currentScenarioId === id) return;
+    const currentId = getCurrentScenarioId();
+    if (currentId === id) return;
 
+    const scenarios = getScenarios();
     const scenario = scenarios.find(s => s.id === id);
     if (scenario) {
-      currentScenarioId = id;
-      const list = scenario.proxies || [];
+      setCurrentScenarioId(id);
 
-      chrome.storage.local.set({
-        currentScenarioId: currentScenarioId,
-        list: list
-      });
+      if (StorageModule) {
+        StorageModule.save();
+      }
 
       if (typeof onScenarioSwitch === 'function') {
-        onScenarioSwitch(id, list);
+        onScenarioSwitch(id, scenario.proxies || []);
       } else if (typeof ProxyModule !== 'undefined' && ProxyModule.setList) {
-        ProxyModule.setList(list);
+        ProxyModule.setList(scenario.proxies || []);
         if (typeof ProxyModule.renderList === 'function') {
           ProxyModule.renderList();
         }
@@ -95,6 +88,9 @@ const ScenariosModule = (function () {
   }
 
   function renderScenarioManagementList() {
+    const scenarios = getScenarios();
+    const currentScenarioId = getCurrentScenarioId();
+
     let html = "";
     scenarios.forEach(function (scenario, index) {
       const isCurrent = scenario.id === currentScenarioId;
@@ -232,6 +228,7 @@ const ScenariosModule = (function () {
           $placeholder.replaceWith($item);
           $item.show();
 
+          const scenarios = getScenarios();
           const newItems = $container.find(".scenario-item").toArray();
           const newScenarioList = newItems.map(node => {
             const id = $(node).attr("data-id");
@@ -250,9 +247,9 @@ const ScenariosModule = (function () {
           }
 
           if (changed) {
-            scenarios = newScenarioList;
+            setScenarios(newScenarioList);
             if (typeof onScenariosReorder === 'function') {
-              onScenariosReorder(scenarios);
+              onScenariosReorder(newScenarioList);
             }
           }
         });
@@ -274,17 +271,24 @@ const ScenariosModule = (function () {
       return false;
     }
 
+    const scenarios = getScenarios();
     if (scenarios.some(s => s.name === name)) {
       showAlertScenario(I18n.t('scenario_name_duplicate'));
       return false;
     }
 
     const newId = 'scenario_' + Date.now();
-    scenarios.push({
+    const newScenario = {
       id: newId,
       name: name,
       proxies: []
-    });
+    };
+
+    if (StorageModule) {
+      StorageModule.addScenario(newScenario);
+    } else {
+      scenarios.push(newScenario);
+    }
 
     if (typeof onScenarioAdd === 'function') {
       onScenarioAdd(newId, name);
@@ -307,32 +311,39 @@ const ScenariosModule = (function () {
       return;
     }
 
+    const scenarios = getScenarios();
     if (scenarios.some(s => s.name === newName && s.id !== id)) {
       showAlertScenario(I18n.t('scenario_name_duplicate'));
       return;
     }
 
-    const scenario = scenarios.find(s => s.id === id);
-    if (scenario) {
-      scenario.name = newName;
-      if (typeof onScenarioRename === 'function') {
-        onScenarioRename(id, newName);
-      }
-      renderScenarioManagementList();
-      renderScenarioSelector();
+    if (StorageModule) {
+      StorageModule.updateScenario(id, { name: newName });
     }
+
+    if (typeof onScenarioRename === 'function') {
+      onScenarioRename(id, newName);
+    }
+
+    renderScenarioManagementList();
+    renderScenarioSelector();
   }
 
   function doDeleteScenario(id) {
+    const scenarios = getScenarios();
     const scenarioIndex = scenarios.findIndex(s => s.id === id);
     if (scenarioIndex === -1) return;
 
-    if (id === currentScenarioId) {
+    const currentId = getCurrentScenarioId();
+
+    if (id === currentId) {
       let nextScenario = scenarios.find(s => s.id !== id);
       if (!nextScenario) {
         if (scenarios.length === 1) {
-          scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: [] }];
-          currentScenarioId = 'default';
+          // Create default scenario
+          const defaultScenario = { id: 'default', name: I18n.t('scenario_default'), proxies: [] };
+          setScenarios([defaultScenario]);
+          setCurrentScenarioId('default');
           if (typeof onScenarioDelete === 'function') {
             onScenarioDelete(id, true);
           }
@@ -347,10 +358,14 @@ const ScenariosModule = (function () {
       }
     }
 
-    scenarios.splice(scenarioIndex, 1);
+    if (StorageModule) {
+      StorageModule.deleteScenario(id);
+    }
+
     if (typeof onScenarioDelete === 'function') {
       onScenarioDelete(id, false);
     }
+
     renderScenarioManagementList();
     renderScenarioSelector();
   }
@@ -362,42 +377,61 @@ const ScenariosModule = (function () {
 
   function moveProxy(proxyIndex, targetScenarioId) {
     if (proxyIndex === -1) return;
-    if (targetScenarioId === currentScenarioId) return;
 
+    const currentId = getCurrentScenarioId();
+    if (targetScenarioId === currentId) return;
+
+    const scenarios = getScenarios();
     const targetScenario = scenarios.find(s => s.id === targetScenarioId);
     if (!targetScenario) return;
 
-    const currentList = updateCurrentListFromScenario();
-    if (!currentList[proxyIndex]) return;
+    const currentScenario = scenarios.find(s => s.id === currentId);
+    if (!currentScenario || !currentScenario.proxies || !currentScenario.proxies[proxyIndex]) return;
 
-    const proxy = currentList[proxyIndex];
+    const proxy = currentScenario.proxies[proxyIndex];
 
-    currentList.splice(proxyIndex, 1);
+    if (StorageModule) {
+      const success = StorageModule.moveProxy(proxyIndex, currentId, targetScenarioId);
+      if (success) {
+        StorageModule.save().then(() => {
+          if (typeof onProxyMove === 'function') {
+            onProxyMove(proxyIndex, targetScenarioId, proxy);
+          }
+          UtilsModule.showTip(I18n.t('move_success'), false);
+          chrome.runtime.sendMessage({ action: "refreshProxy" });
+        }).catch(err => {
+          console.error("Move proxy failed:", err);
+          UtilsModule.showTip(I18n.t('move_failed') + ': ' + err.message, true);
+        });
+      }
+    } else {
+      // Fallback
+      currentScenario.proxies.splice(proxyIndex, 1);
+      if (!targetScenario.proxies) targetScenario.proxies = [];
+      targetScenario.proxies.push(proxy);
 
-    if (!targetScenario.proxies) targetScenario.proxies = [];
-    targetScenario.proxies.push(proxy);
-
-    if (typeof onProxyMove === 'function') {
-      onProxyMove(proxyIndex, targetScenarioId, proxy);
-    }
-
-    chrome.storage.local.set({
-      scenarios: scenarios,
-      currentScenarioId: currentScenarioId,
-      list: currentList
-    }, function () {
-      if (chrome.runtime.lastError) {
-        console.log("Move proxy failed:", chrome.runtime.lastError);
-        UtilsModule.showTip(I18n.t('move_failed') + ': ' + chrome.runtime.lastError.message, true);
-        return;
+      if (typeof onProxyMove === 'function') {
+        onProxyMove(proxyIndex, targetScenarioId, proxy);
       }
 
-      UtilsModule.showTip(I18n.t('move_success'), false);
-      chrome.runtime.sendMessage({ action: "refreshProxy" });
-    });
+      chrome.storage.local.set({
+        scenarios: scenarios,
+        currentScenarioId: currentId
+      }, function () {
+        if (chrome.runtime.lastError) {
+          console.log("Move proxy failed:", chrome.runtime.lastError);
+          UtilsModule.showTip(I18n.t('move_failed') + ': ' + chrome.runtime.lastError.message, true);
+          return;
+        }
+        UtilsModule.showTip(I18n.t('move_success'), false);
+        chrome.runtime.sendMessage({ action: "refreshProxy" });
+      });
+    }
   }
 
   function checkNameGlobalUniqueness(name, excludeProxyIndex, excludeScenarioId) {
+    const scenarios = getScenarios();
+
     for (const scenario of scenarios) {
       if (!scenario.proxies) continue;
 
@@ -420,10 +454,13 @@ const ScenariosModule = (function () {
     move_proxy_index = proxyIndex;
     $("#current-scenario-display").text(currentScenarioName || I18n.t('scenario_default'));
 
+    const scenarios = getScenarios();
+    const currentId = getCurrentScenarioId();
+
     let html = "";
     let hasOptions = false;
     scenarios.forEach(function (scenario) {
-      if (scenario.id !== currentScenarioId) {
+      if (scenario.id !== currentId) {
         html += `<li data-value="${scenario.id}">${UtilsModule.escapeHtml(scenario.name)}</li>`;
         hasOptions = true;
       }
@@ -492,6 +529,7 @@ const ScenariosModule = (function () {
 
     $("#scenario-manage-list").on("click", ".delete-scenario-btn", function () {
       const id = $(this).data("id");
+      const scenarios = getScenarios();
       const scenario = scenarios.find(s => s.id === id);
       if (scenario && scenario.proxies && scenario.proxies.length > 0) {
         showAlertScenario(I18n.t('scenario_delete_not_empty'));
@@ -550,8 +588,6 @@ const ScenariosModule = (function () {
     setScenarios: setScenarios,
     setCurrentScenarioId: setCurrentScenarioId,
     getCurrentScenario: getCurrentScenario,
-    updateCurrentListFromScenario: updateCurrentListFromScenario,
-    saveCurrentListToScenario: saveCurrentListToScenario,
     renderScenarioSelector: renderScenarioSelector,
     switchScenario: switchScenario,
     renderScenarioManagementList: renderScenarioManagementList,

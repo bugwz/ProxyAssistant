@@ -4,15 +4,21 @@
 // ==========================================
 
 const ProxyModule = (function () {
+  // Local cache reference to proxy list (direct reference to data in storage)
   let list = [];
   let del_index = -1;
-  let save = true;
 
   function init() {
+    // Load data from storage
+    list = StorageModule ? StorageModule.getProxies() : [];
     bindGlobalEvents();
   }
 
   function getList() {
+    // Always get latest data from storage
+    if (StorageModule) {
+      list = StorageModule.getProxies();
+    }
     return list;
   }
 
@@ -21,17 +27,39 @@ const ProxyModule = (function () {
   }
 
   function addProxy() {
-    list.push({
-      enabled: true, name: "", protocol: "http", ip: "", port: "",
-      username: "", password: "", bypass_urls: "", include_urls: "",
-      fallbackPolicy: "direct", is_new: true, show_password: false,
-    });
-    return list.length - 1;
+    const newProxy = {
+      enabled: true,
+      name: "",
+      protocol: "http",
+      ip: "",
+      port: "",
+      username: "",
+      password: "",
+      bypass_urls: "",
+      include_urls: "",
+      fallback_policy: "direct",
+      is_new: true,
+      show_password: false
+    };
+
+    if (StorageModule) {
+      const index = StorageModule.addProxy(newProxy);
+      list = StorageModule.getProxies();
+      return index;
+    } else {
+      list.push(newProxy);
+      return list.length - 1;
+    }
   }
 
   function deleteProxy(index) {
     if (index !== undefined && index >= 0 && list[index]) {
-      list.splice(index, 1);
+      if (StorageModule) {
+        StorageModule.deleteProxy(index);
+        list = StorageModule.getProxies();
+      } else {
+        list.splice(index, 1);
+      }
       return true;
     }
     return false;
@@ -43,38 +71,59 @@ const ProxyModule = (function () {
 
   function updateProxy(index, data) {
     if (list[index]) {
-      list[index] = Object.assign(list[index], data);
+      Object.assign(list[index], data);
+      // Sync to storage
+      if (StorageModule) {
+        StorageModule.updateProxy(index, data);
+      }
     }
   }
 
   function saveData(options) {
     options = options || {};
-    ScenariosModule.saveCurrentListToScenario(list);
 
-    chrome.storage.local.set({
-      scenarios: ScenariosModule.getScenarios(),
-      currentScenarioId: ScenariosModule.getCurrentScenarioId(),
-      list: list
-    }, function () {
-      if (chrome.runtime.lastError) {
-        console.log("Local save failed:", chrome.runtime.lastError);
-        UtilsModule.showTip(I18n.t('save_failed'), true);
+    if (StorageModule) {
+      StorageModule.save().then(() => {
+        if (!options.silent) {
+          UtilsModule.showTip(options.successMsg || I18n.t('save_success'), false);
+          renderList();
+        }
+
+        if ($(".sync-config-tip").hasClass("show") && SyncModule.getSyncConfig().type === 'native') {
+          SyncModule.updateNativeQuotaInfo();
+        }
+
+        if (options.callback) options.callback(true);
+      }).catch(err => {
+        console.error("Save failed:", err);
+        if (!options.silent) {
+          UtilsModule.showTip(I18n.t('save_failed'), true);
+        }
         if (options.callback) options.callback(false);
-        return;
-      }
+      });
+    } else {
+      // Fallback
+      chrome.storage.local.set({
+        scenarios: ScenariosModule.getScenarios(),
+        currentScenarioId: ScenariosModule.getCurrentScenarioId(),
+        list: list
+      }, function () {
+        if (chrome.runtime.lastError) {
+          console.log("Local save failed:", chrome.runtime.lastError);
+          UtilsModule.showTip(I18n.t('save_failed'), true);
+          if (options.callback) options.callback(false);
+          return;
+        }
 
-      if (!options.silent) {
-        UtilsModule.showTip(options.successMsg || I18n.t('save_success'), false);
-        renderList();
-      }
-      chrome.runtime.sendMessage({ action: "refreshProxy" });
+        if (!options.silent) {
+          UtilsModule.showTip(options.successMsg || I18n.t('save_success'), false);
+          renderList();
+        }
+        chrome.runtime.sendMessage({ action: "refreshProxy" });
 
-      if ($(".sync-config-tip").hasClass("show") && SyncModule.getSyncConfig().type === 'native') {
-        SyncModule.updateNativeQuotaInfo();
-      }
-      if (options.callback) options.callback(true);
-    });
-    save = true;
+        if (options.callback) options.callback(true);
+      });
+    }
   }
 
   function saveSingleProxy(i) {
@@ -141,6 +190,11 @@ const ProxyModule = (function () {
       }
     });
 
+    // Get latest data from storage
+    if (StorageModule) {
+      list = StorageModule.getProxies();
+    }
+
     let html = "";
     for (let i = 0; i < list.length; i++) {
       const info = list[i];
@@ -183,8 +237,8 @@ const ProxyModule = (function () {
       if (info.subscription && info.subscription.enabled !== false) {
         const counts = SubscriptionModule.getSubscriptionLineCounts(info.subscription);
 
-        subscriptionBadgeBypass += `<span class="subscription-badge subscription-lines-badge" data-index="${i}" data-type="bypass" title="${I18n.t('subscription_rules_count')}">${counts.bypassLines >= 0 ? '+' : ''}${counts.bypassLines}</span>`;
-        subscriptionBadgeInclude += `<span class="subscription-badge subscription-lines-badge" data-index="${i}" data-type="include" title="${I18n.t('subscription_rules_count')}">${counts.includeLines >= 0 ? '+' : ''}${counts.includeLines}</span>`;
+        subscriptionBadgeBypass += `<span class="subscription-badge subscription-lines-badge" data-index="${i}" data-type="bypass" title="${I18n.t('subscription_rules_count')}">${counts.bypass_lines >= 0 ? '+' : ''}${counts.bypass_lines}</span>`;
+        subscriptionBadgeInclude += `<span class="subscription-badge subscription-lines-badge" data-index="${i}" data-type="include" title="${I18n.t('subscription_rules_count')}">${counts.include_lines >= 0 ? '+' : ''}${counts.include_lines}</span>`;
       }
 
       html += `<div class="proxy-card ${collapsedClass} ${is_enabled ? "" : "disabled"}" data-id="${i}">
@@ -368,9 +422,9 @@ const ProxyModule = (function () {
         const lineCounts = SubscriptionModule.getSubscriptionLineCounts(info.subscription);
 
         if (type === "bypass") {
-          $badge.text(`${lineCounts.bypassLines >= 0 ? '+' : ''}${lineCounts.bypassLines}`).attr('title', I18n.t('subscription_rules_count')).show();
+          $badge.text(`${lineCounts.bypass_lines >= 0 ? '+' : ''}${lineCounts.bypass_lines}`).attr('title', I18n.t('subscription_rules_count')).show();
         } else if (type === "include") {
-          $badge.text(`${lineCounts.includeLines >= 0 ? '+' : ''}${lineCounts.includeLines}`).attr('title', I18n.t('subscription_rules_count')).show();
+          $badge.text(`${lineCounts.include_lines >= 0 ? '+' : ''}${lineCounts.include_lines}`).attr('title', I18n.t('subscription_rules_count')).show();
         }
       } else {
         $badge.hide();
@@ -397,6 +451,9 @@ const ProxyModule = (function () {
       $btn.prop('disabled', true);
 
       $(".proxy-header-test-result").text("").removeClass("text-green text-orange text-red text-blue");
+
+      // Refresh list reference
+      list = StorageModule ? StorageModule.getProxies() : list;
 
       for (let index = 0; index < list.length; index++) {
         const proxy = list[index];
@@ -481,7 +538,6 @@ const ProxyModule = (function () {
       const i = $(this).parent().data("index");
       if (i !== undefined && list[i]) {
         list[i].show_password = $(this).prop("checked");
-        save = false;
         const passwordInput = $(".password[data-index='" + i + "']");
         passwordInput.attr("type", list[i].show_password ? "text" : "password");
 
@@ -584,7 +640,6 @@ const ProxyModule = (function () {
       var validProperties = ["name", "ip", "port", "username", "password", "include_urls", "bypass_urls"];
       if (validProperties.includes(name)) {
         list[i][name] = val;
-        save = false;
         if (["name", "ip", "port", "include_urls"].includes(name)) {
           ValidatorModule.validateProxy(list, i, name, val);
         }
@@ -760,7 +815,9 @@ const ProxyModule = (function () {
 
           if (changed) {
             list = newList;
-            save = false;
+            if (StorageModule) {
+              StorageModule.reorderProxies(newList);
+            }
             renderList();
             saveData({ successMsg: I18n.t('sort_success') });
           }
@@ -780,21 +837,14 @@ const ProxyModule = (function () {
     if (del_index !== undefined && del_index >= 0 && list[del_index]) {
       deleteProxy(del_index);
 
-      var currentScenario = ScenariosModule.getCurrentScenario();
-      if (currentScenario) {
-        currentScenario.proxies = list;
-      }
-
-      chrome.storage.local.set({ scenarios: ScenariosModule.getScenarios(), list: list }, function () {
-        if (chrome.runtime.lastError) {
-          console.log("Delete failed:", chrome.runtime.lastError);
-          UtilsModule.showTip(I18n.t('delete_failed'), true);
-        } else {
-          UtilsModule.showTip(I18n.t('delete_success'), false);
-          chrome.runtime.sendMessage({ action: "refreshProxy" });
-        }
+      StorageModule.save().then(() => {
+        UtilsModule.showTip(I18n.t('delete_success'), false);
+        chrome.runtime.sendMessage({ action: "refreshProxy" });
+        renderList();
+      }).catch(err => {
+        console.error("Delete failed:", err);
+        UtilsModule.showTip(I18n.t('delete_failed'), true);
       });
-      renderList();
     }
   }
 

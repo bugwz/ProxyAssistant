@@ -12,28 +12,28 @@ window.onScenarioSwitch = function (id, list) {
 };
 
 window.onScenarioAdd = function (id, name) {
-  ProxyModule.saveData();
+  saveConfig();
 };
 
 window.onScenarioRename = function (id, newName) {
-  ProxyModule.saveData();
+  saveConfig();
 };
 
 window.onScenarioDelete = function (id, isOnlyScenario) {
-  ProxyModule.setList(ScenariosModule.updateCurrentListFromScenario());
-  ProxyModule.saveData();
-  if (isOnlyScenario) {
-    ProxyModule.renderList();
-  }
+  const list = StorageModule.getProxies();
+  ProxyModule.setList(list);
+  ProxyModule.renderList();
+  saveConfig();
 };
 
 window.onScenariosReorder = function (scenarios) {
-  ScenariosModule.setScenarios(scenarios);
-  ProxyModule.saveData();
+  StorageModule.setScenarios(scenarios);
+  saveConfig();
 };
 
 window.onProxyMove = function (proxyIndex, targetScenarioId, proxy) {
-  ProxyModule.setList(ScenariosModule.updateCurrentListFromScenario());
+  const list = StorageModule.getProxies();
+  ProxyModule.setList(list);
   ProxyModule.renderList();
 };
 
@@ -47,88 +47,83 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function initApp() {
-  LanguageModule.initLanguage();
-  ThemeModule.initTheme();
-  ScenariosModule.init();
-  ProxyModule.init();
-  SubscriptionModule.init();
-  initDropdowns();
-  loadSettingsAndList();
-  bindGlobalEvents();
-}
-
-function loadSettingsAndList() {
-  chrome.storage.local.get({ sync_config: null }, async function (settings) {
-    if (settings.sync_config) {
-      SyncModule.setSyncConfig(settings.sync_config);
-    }
-    SyncModule.updateSyncUI();
-    loadFromLocal();
+  // Initialize storage module
+  StorageModule.init().then(() => {
+    LanguageModule.initLanguage();
+    ThemeModule.initTheme();
+    ScenariosModule.init();
+    ProxyModule.init();
+    SubscriptionModule.init();
+    initDropdowns();
+    loadSettings();
+    bindGlobalEvents();
+  }).catch(err => {
+    console.error('Failed to initialize storage:', err);
   });
 }
 
-function loadFromLocal(config) {
-  const keys = ['list', 'scenarios', 'currentScenarioId', 'themeSettings', 'sync_config', 'appLanguage', 'auto_sync', 'system'];
+function loadSettings() {
+  const config = StorageModule.getConfig();
 
-  chrome.storage.local.get(keys, function (items) {
-    if (chrome.runtime.lastError) {
-      console.info("Local storage get error:", chrome.runtime.lastError);
-      items = {};
-    }
-    items = items || {};
-
-    const sourceConfig = config || items;
-    const newConfig = ConfigModule.migrateConfig(sourceConfig);
-
-    ScenariosModule.setScenarios(newConfig.scenarios);
-    ScenariosModule.setCurrentScenarioId(newConfig.currentScenarioId);
-
-    if (!ScenariosModule.getScenarios().find(s => s.id === ScenariosModule.getCurrentScenarioId())) {
-      ScenariosModule.setCurrentScenarioId(ScenariosModule.getScenarios()[0]?.id || 'default');
+  // Apply system settings
+  if (config.system) {
+    // Language settings
+    if (config.system.app_language) {
+      I18n.setLanguage(config.system.app_language);
+      const langName = $(`#language-options li[data-value="${config.system.app_language}"]`).text();
+      if (langName) $('#current-language-display').text(langName);
     }
 
-    const list = ScenariosModule.updateCurrentListFromScenario();
-    SubscriptionModule.parseProxyListSubscriptions(list);
-    ProxyModule.setList(list);
-
-    if (newConfig.system) {
-      if (newConfig.system.app_language) {
-        I18n.setLanguage(newConfig.system.app_language);
-        const langName = $(`#language-options li[data-value="${newConfig.system.app_language}"]`).text();
-        if (langName) $('#current-language-display').text(langName);
-      }
-
-      if (newConfig.system.theme_mode) {
-        ThemeModule.setThemeMode(newConfig.system.theme_mode);
-      }
-      const nightTimes = newConfig.system.night_mode_start ? {
-        start: newConfig.system.night_mode_start,
-        end: newConfig.system.night_mode_end || '06:00'
-      } : null;
-      if (nightTimes) {
-        ThemeModule.setNightModeTimes(nightTimes.start, nightTimes.end);
-      }
-
-      if (newConfig.system.sync) {
-        SyncModule.setSyncConfig(newConfig.system.sync);
-      }
-      if (newConfig.system.auto_sync !== undefined) {
-        chrome.storage.local.set({ auto_sync: newConfig.system.auto_sync });
-      }
+    // Theme settings
+    if (config.system.theme_mode) {
+      ThemeModule.setThemeMode(config.system.theme_mode);
     }
 
-    if (!config) {
-      ProxyModule.saveData({ silent: true });
-      ThemeModule.updateThemeUI();
-      SyncModule.updateSyncUI();
-      ProxyModule.renderList();
-      ScenariosModule.renderScenarioSelector();
-    } else {
-      ThemeModule.updateThemeUI();
-      SyncModule.updateSyncUI();
-      ProxyModule.renderList();
-      ScenariosModule.renderScenarioSelector();
+    const nightTimes = config.system.night_mode_start ? {
+      start: config.system.night_mode_start,
+      end: config.system.night_mode_end || '06:00'
+    } : null;
+    if (nightTimes) {
+      ThemeModule.setNightModeTimes(nightTimes.start, nightTimes.end);
     }
+
+    // Sync settings
+    if (config.system.sync) {
+      SyncModule.setSyncConfig(config.system.sync);
+    }
+  }
+
+  // Load proxy list
+  const list = StorageModule.getProxies();
+  SubscriptionModule.parseProxyListSubscriptions(list);
+  ProxyModule.setList(list);
+
+  // Update UI
+  ThemeModule.updateThemeUI();
+  SyncModule.updateSyncUI();
+  ProxyModule.renderList();
+  ScenariosModule.renderScenarioSelector();
+}
+
+function saveConfig(options) {
+  options = options || {};
+
+  StorageModule.save().then(() => {
+    if (!options.silent) {
+      UtilsModule.showTip(options.successMsg || I18n.t('save_success'), false);
+    }
+
+    if ($(".sync-config-tip").hasClass("show") && SyncModule.getSyncConfig().type === 'native') {
+      SyncModule.updateNativeQuotaInfo();
+    }
+
+    if (options.callback) options.callback(true);
+  }).catch(err => {
+    console.error('Save failed:', err);
+    if (!options.silent) {
+      UtilsModule.showTip(I18n.t('save_failed'), true);
+    }
+    if (options.callback) options.callback(false);
   });
 }
 
@@ -214,58 +209,39 @@ function initDropdowns() {
 
     const i = $selectVal.data("index");
 
-    if (typeof i !== 'undefined' && ProxyModule.getList() && ProxyModule.getList()[i]) {
-      const list = ProxyModule.getList();
-      if (type === 'protocol') {
-        const cleanVal = UtilsModule.cleanProtocol(val);
-        list[i].protocol = cleanVal;
-        const $badge = $li.closest('.proxy-card').find('.proxy-type-badge');
-        $badge.text(cleanVal.toUpperCase()).removeClass('http https socks5').addClass(cleanVal);
+    if (typeof i !== 'undefined') {
+      const list = StorageModule.getProxies();
+      if (list[i]) {
+        if (type === 'protocol') {
+          const cleanVal = UtilsModule.cleanProtocol(val);
+          list[i].protocol = cleanVal;
+          const $badge = $li.closest('.proxy-card').find('.proxy-type-badge');
+          $badge.text(cleanVal.toUpperCase()).removeClass('http https socks5').addClass(cleanVal);
 
-        const isSocks5 = cleanVal === 'socks5';
-        const disableAuth = !isFirefox && isSocks5;
-        const $formGrid = $li.closest('.proxy-body-container');
-        const $authInputs = $formGrid.find('.username, .password');
+          const isSocks5 = cleanVal === 'socks5';
+          const disableAuth = !isFirefox && isSocks5;
+          const $formGrid = $li.closest('.proxy-body-container');
+          const $authInputs = $formGrid.find('.username, .password');
 
-        $authInputs.prop('disabled', disableAuth);
-        if (!disableAuth) {
-          $authInputs.removeAttr('title');
+          $authInputs.prop('disabled', disableAuth);
+          if (!disableAuth) {
+            $authInputs.removeAttr('title');
+          }
+        } else if (type === 'fallback') {
+          list[i].fallback_policy = val;
         }
-      } else if (type === 'fallback') {
-        list[i].fallback_policy = val;
       }
     }
   });
 
+  // Listen for storage changes
   chrome.storage.onChanged.addListener(function (changes, namespace) {
-    if (namespace === 'local') {
-      if (changes.scenarios || changes.currentScenarioId) {
-        chrome.storage.local.get(['scenarios', 'currentScenarioId'], function (res) {
-          if (res.scenarios) {
-            ScenariosModule.setScenarios(res.scenarios);
-          }
-          if (res.currentScenarioId) {
-            ScenariosModule.setCurrentScenarioId(res.currentScenarioId);
-          }
-          ScenariosModule.renderScenarioSelector();
-        });
-      }
-      if (changes.list) {
-        chrome.storage.local.get(['currentScenarioId'], function (res) {
-          const scenario = ScenariosModule.getScenarios().find(s => s.id === (res.currentScenarioId || ScenariosModule.getCurrentScenarioId()));
-          if (scenario) {
-            ProxyModule.setList(scenario.proxies || []);
-            ProxyModule.renderList();
-          }
-        });
-      }
-      if (changes.currentProxy) {
-        const currentScenario = ScenariosModule.getCurrentScenario();
-        if (currentScenario && currentScenario.proxies) {
-          ProxyModule.setList(currentScenario.proxies);
-          ProxyModule.renderList();
-        }
-      }
+    if (namespace === 'local' && changes.config) {
+      StorageModule.reload().then(() => {
+        ProxyModule.setList(StorageModule.getProxies());
+        ProxyModule.renderList();
+        ScenariosModule.renderScenarioSelector();
+      });
     }
   });
 }
@@ -302,15 +278,14 @@ function bindGlobalEvents() {
       config.gist.filename = $("#gist-filename").val() || 'proxy_assistant_config.json';
     }
 
-    chrome.storage.local.set({ sync_config: config }, function () {
-      if (chrome.runtime.lastError) {
-        UtilsModule.showTip(I18n.t('save_failed'), true);
-      } else {
-        UtilsModule.showTip(I18n.t('save_success'), false);
-      }
+    StorageModule.setSyncConfig(config);
+    StorageModule.save().then(() => {
+      UtilsModule.showTip(I18n.t('save_success'), false);
       $(".sync-config-tip").removeClass("show");
       setTimeout(function () { $(".sync-config-tip").hide(); }, 300);
       SyncModule.updateSyncUI();
+    }).catch(() => {
+      UtilsModule.showTip(I18n.t('save_failed'), true);
     });
   });
 
@@ -478,3 +453,8 @@ $("#pac-toggle-btn").on("click", function () {
 });
 
 $(".pac-details-tip").hide();
+
+// ==========================================
+// Export for use in other modules
+// ==========================================
+window.saveConfig = saveConfig;

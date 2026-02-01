@@ -30,14 +30,14 @@ const SubscriptionModule = (function () {
       config.lists[f] = {
         url: '',
         content: '',
-        decodedContent: '',
-        includeRules: '',
-        bypassRules: '',
-        includeLines: 0,
-        bypassLines: 0,
-        refreshInterval: 0,
+        decoded_content: '',
+        include_rules: '',
+        bypass_rules: '',
+        include_lines: 0,
+        bypass_lines: 0,
+        refresh_interval: 0,
         reverse: false,
-        lastFetchTime: null
+        last_fetch_time: null
       };
     });
     return config;
@@ -90,7 +90,7 @@ const SubscriptionModule = (function () {
     $('.subscription-refresh-selector .lh-select-op li').on('click', function () {
       if (!subscriptionConfig) return;
       const interval = parseInt($(this).data('value'), 10) || 0;
-      subscriptionConfig.lists[subscriptionConfig.current].refreshInterval = interval;
+      subscriptionConfig.lists[subscriptionConfig.current].refresh_interval = interval;
       updateRefreshTimer();
       $(this).closest('.lh-select-op').hide();
     });
@@ -169,7 +169,6 @@ const SubscriptionModule = (function () {
 
     if (proxy) {
       if (proxy.subscription) {
-        // Load new structure
         subscriptionConfig.enabled = proxy.subscription.enabled !== false;
         subscriptionConfig.current = proxy.subscription.current || proxy.subscription.activeFormat || 'autoproxy';
 
@@ -178,49 +177,44 @@ const SubscriptionModule = (function () {
           if (sourceLists[f]) {
             subscriptionConfig.lists[f] = {
               ...sourceLists[f],
-              decodedContent: sourceLists[f].decodedContent || '',
-              includeRules: sourceLists[f].includeRules || '',
-              bypassRules: sourceLists[f].bypassRules || '',
-              includeLines: sourceLists[f].includeLines || 0,
-              bypassLines: sourceLists[f].bypassLines || 0
+              decoded_content: sourceLists[f].decoded_content || '',
+              include_rules: sourceLists[f].include_rules || '',
+              bypass_rules: sourceLists[f].bypass_rules || '',
+              include_lines: sourceLists[f].include_lines || 0,
+              bypass_lines: sourceLists[f].bypass_lines || 0
             };
 
-            if (sourceLists[f].content && !sourceLists[f].includeLines && !sourceLists[f].bypassLines) {
+            if (sourceLists[f].content && !subscriptionConfig.lists[f].include_lines && !subscriptionConfig.lists[f].bypass_lines) {
               const parsed = parseSubscriptionContent(sourceLists[f].content, f, sourceLists[f].reverse || false);
-              subscriptionConfig.lists[f].decodedContent = parsed.decoded || '';
-              subscriptionConfig.lists[f].includeRules = parsed.includeRules || '';
-              subscriptionConfig.lists[f].bypassRules = parsed.bypassRules || '';
-              subscriptionConfig.lists[f].includeLines = parsed.includeRules ? parsed.includeRules.split(/\r\n|\r|\n/).length : 0;
-              subscriptionConfig.lists[f].bypassLines = parsed.bypassRules ? parsed.bypassRules.split(/\r\n|\r|\n/).length : 0;
+              subscriptionConfig.lists[f].decoded_content = parsed.decoded || '';
+              subscriptionConfig.lists[f].include_rules = parsed.include_rules || '';
+              subscriptionConfig.lists[f].bypass_rules = parsed.bypass_rules || '';
+              subscriptionConfig.lists[f].include_lines = parsed.include_rules ? parsed.include_rules.split(/\r\n|\r|\n/).length : 0;
+              subscriptionConfig.lists[f].bypass_lines = parsed.bypass_rules ? parsed.bypass_rules.split(/\r\n|\r|\n/).length : 0;
             }
           }
         });
       } else if (proxy.subscription_config) {
-        // Migrate old structure
         const old = proxy.subscription_config;
         const fmt = old.format || 'autoproxy';
         subscriptionConfig.current = fmt;
 
         if (subscriptionConfig.lists[fmt]) {
           subscriptionConfig.lists[fmt].url = old.url || '';
-          subscriptionConfig.lists[fmt].refreshInterval = old.refreshInterval || 0;
+          subscriptionConfig.lists[fmt].refresh_interval = old.refresh_interval || 0;
           subscriptionConfig.lists[fmt].reverse = old.reverse || false;
-          subscriptionConfig.lists[fmt].lastFetchTime = old.lastFetchTime || null;
+          subscriptionConfig.lists[fmt].last_fetch_time = old.last_fetch_time || null;
 
           let content = old.lastContent || '';
-          // Remove auto-decoding during migration to preserve raw-like state if possible
-          // if (fmt === 'autoproxy' && content) {
-          //   content = decodeAutoProxyContent(content);
-          // }
           subscriptionConfig.lists[fmt].content = content;
 
           if (content) {
             const parsed = parseSubscriptionContent(content, fmt, old.reverse || false);
-            subscriptionConfig.lists[fmt].decodedContent = parsed.decoded || '';
-            subscriptionConfig.lists[fmt].includeRules = parsed.includeRules || '';
-            subscriptionConfig.lists[fmt].bypassRules = parsed.bypassRules || '';
-            subscriptionConfig.lists[fmt].includeLines = parsed.includeRules ? parsed.includeRules.split(/\r\n|\r|\n/).length : 0;
-            subscriptionConfig.lists[fmt].bypassLines = parsed.bypassRules ? parsed.bypassRules.split(/\r\n|\r|\n/).length : 0;
+            subscriptionConfig.lists[fmt].decoded_content = parsed.decoded || '';
+            subscriptionConfig.lists[fmt].include_rules = parsed.include_rules || '';
+            subscriptionConfig.lists[fmt].bypass_rules = parsed.bypass_rules || '';
+            subscriptionConfig.lists[fmt].include_lines = parsed.include_rules ? parsed.include_rules.split(/\r\n|\r|\n/).length : 0;
+            subscriptionConfig.lists[fmt].bypass_lines = parsed.bypass_rules ? parsed.bypass_rules.split(/\r\n|\r|\n/).length : 0;
           }
         }
       }
@@ -263,7 +257,7 @@ const SubscriptionModule = (function () {
     $('#subscription-raw-content').val(config.content || '');
 
     // Update Refresh Selector
-    const refreshInterval = config.refreshInterval || 0;
+    const refreshInterval = config.refresh_interval || 0;
     const $refreshSelector = $('.subscription-refresh-selector');
     const $refreshOption = $refreshSelector.find(`.lh-select-op li[data-value="${refreshInterval}"]`);
     $refreshSelector.find('.lh-select-op li').removeClass('selected-option');
@@ -315,11 +309,11 @@ const SubscriptionModule = (function () {
     const parsed = parseSubscriptionContent(content, format, reverse);
 
     if (subscriptionConfig && subscriptionConfig.lists[format]) {
-      subscriptionConfig.lists[format].decodedContent = parsed.decoded || '';
-      subscriptionConfig.lists[format].includeRules = parsed.includeRules || '';
-      subscriptionConfig.lists[format].bypassRules = parsed.bypassRules || '';
-      subscriptionConfig.lists[format].includeLines = parsed.includeRules ? parsed.includeRules.split(/\r\n|\r|\n/).length : 0;
-      subscriptionConfig.lists[format].bypassLines = parsed.bypassRules ? parsed.bypassRules.split(/\r\n|\r|\n/).length : 0;
+      subscriptionConfig.lists[format].decoded_content = parsed.decoded || '';
+      subscriptionConfig.lists[format].include_rules = parsed.include_rules || '';
+      subscriptionConfig.lists[format].bypass_rules = parsed.bypass_rules || '';
+      subscriptionConfig.lists[format].include_lines = parsed.include_rules ? parsed.include_rules.split(/\r\n|\r|\n/).length : 0;
+      subscriptionConfig.lists[format].bypass_lines = parsed.bypass_rules ? parsed.bypass_rules.split(/\r\n|\r|\n/).length : 0;
     }
 
     // Decoded Tab
@@ -351,8 +345,8 @@ const SubscriptionModule = (function () {
       }
     }
 
-    $('#subscription-include-content').val(parsed.includeRules || '');
-    $('#subscription-bypass-content').val(parsed.bypassRules || '');
+    $('#subscription-include-content').val(parsed.include_rules || '');
+    $('#subscription-bypass-content').val(parsed.bypass_rules || '');
 
     const activeTab = $('.subscription-tab.active').data('tab') || 'original';
     const activeContent = $('#tab-pane-' + activeTab + ' textarea').val();
@@ -379,7 +373,7 @@ const SubscriptionModule = (function () {
     if (!subscriptionConfig) return;
     const format = subscriptionConfig.current;
     const config = subscriptionConfig.lists[format];
-    const lastFetchTime = config.lastFetchTime;
+    const lastFetchTime = config.last_fetch_time;
 
     if (lastFetchTime) {
       const date = new Date(lastFetchTime);
@@ -402,35 +396,35 @@ const SubscriptionModule = (function () {
     subscriptionConfig.lists[format] = {
       url: '',
       content: '',
-      decodedContent: '',
-      includeRules: '',
-      bypassRules: '',
-      includeLines: 0,
-      bypassLines: 0,
-      refreshInterval: 0,
+      decoded_content: '',
+      include_rules: '',
+      bypass_rules: '',
+      include_lines: 0,
+      bypass_lines: 0,
+      refresh_interval: 0,
       reverse: false,
-      lastFetchTime: null
+      last_fetch_time: null
     };
     updateModalUI();
   }
 
   function updateSubscriptionParsedData(format, config) {
     if (!config || !config.content) {
-      config.includeRules = '';
-      config.bypassRules = '';
-      config.includeLines = 0;
-      config.bypassLines = 0;
+      config.include_rules = '';
+      config.bypass_rules = '';
+      config.include_lines = 0;
+      config.bypass_lines = 0;
       return;
     }
 
     const reverse = config.reverse || false;
     const parsed = parseSubscriptionContent(config.content, format, reverse);
 
-    config.decodedContent = parsed.decoded || '';
-    config.includeRules = parsed.includeRules || '';
-    config.bypassRules = parsed.bypassRules || '';
-    config.includeLines = parsed.includeRules ? parsed.includeRules.split(/\r\n|\r|\n/).length : 0;
-    config.bypassLines = parsed.bypassRules ? parsed.bypassRules.split(/\r\n|\r|\n/).length : 0;
+    config.decoded_content = parsed.decoded || '';
+    config.include_rules = parsed.include_rules || '';
+    config.bypass_rules = parsed.bypass_rules || '';
+    config.include_lines = parsed.include_rules ? parsed.include_rules.split(/\r\n|\r|\n/).length : 0;
+    config.bypass_lines = parsed.bypass_rules ? parsed.bypass_rules.split(/\r\n|\r|\n/).length : 0;
   }
 
   async function fetchSubscription() {
@@ -458,7 +452,7 @@ const SubscriptionModule = (function () {
 
       subscriptionConfig.lists[format].url = url;
       subscriptionConfig.lists[format].content = content;
-      subscriptionConfig.lists[format].lastFetchTime = Date.now();
+      subscriptionConfig.lists[format].last_fetch_time = Date.now();
 
       updateSubscriptionParsedData(format, subscriptionConfig.lists[format]);
 
@@ -479,9 +473,9 @@ const SubscriptionModule = (function () {
     // Sync current inputs to state
     const format = subscriptionConfig.current;
     subscriptionConfig.lists[format].url = $('#subscription-url').val().trim();
-    // refreshInterval is already updated via click handler
+    // refresh_interval is already updated via click handler
 
-    const currentInterval = subscriptionConfig.lists[format].refreshInterval || 0;
+    const currentInterval = subscriptionConfig.lists[format].refresh_interval || 0;
     if (currentInterval < 0 || currentInterval > 10080) {
       UtilsModule.showTip(I18n.t('subscription_invalid_interval'), true);
       return;
@@ -491,31 +485,28 @@ const SubscriptionModule = (function () {
     if (currentProxyIndex >= 0 && proxyList && proxyList[currentProxyIndex]) {
       const proxy = proxyList[currentProxyIndex];
 
-      // Save to new field
       proxy.subscription = {
         enabled: subscriptionConfig.enabled !== false,
         current: subscriptionConfig.current,
         lists: {}
       };
 
-      // Ensure key order: url, content, refreshInterval, lastFetchTime
       Object.keys(subscriptionConfig.lists).forEach(key => {
         const item = subscriptionConfig.lists[key];
         proxy.subscription.lists[key] = {
           url: item.url,
           content: item.content,
-          decodedContent: item.decodedContent || '',
-          includeRules: item.includeRules || '',
-          bypassRules: item.bypassRules || '',
-          includeLines: item.includeLines || 0,
-          bypassLines: item.bypassLines || 0,
-          refreshInterval: item.refreshInterval,
+          decoded_content: item.decoded_content || '',
+          include_rules: item.include_rules || '',
+          bypass_rules: item.bypass_rules || '',
+          include_lines: item.include_lines || 0,
+          bypass_lines: item.bypass_lines || 0,
+          refresh_interval: item.refresh_interval,
           reverse: item.reverse,
-          lastFetchTime: item.lastFetchTime
+          last_fetch_time: item.last_fetch_time
         };
       });
 
-      // Remove old field to clean up
       delete proxy.subscription_config;
 
       ProxyModule.saveData({
@@ -533,8 +524,8 @@ const SubscriptionModule = (function () {
 
     const config = subscriptionConfig.lists[subscriptionConfig.current];
 
-    if (config.refreshInterval > 0 && config.url) {
-      const intervalMs = config.refreshInterval * 60 * 1000;
+    if (config.refresh_interval > 0 && config.url) {
+      const intervalMs = config.refresh_interval * 60 * 1000;
       refreshTimerId = setInterval(function () {
         fetchSubscription();
       }, intervalMs);
@@ -748,14 +739,14 @@ const SubscriptionModule = (function () {
 
   function parseSubscriptionContent(content, format, reverse) {
     const result = {
-      includeRules: [],
-      bypassRules: [],
+      include_rules: [],
+      bypass_rules: [],
       decoded: null
     };
 
     if (!content) return {
-      includeRules: '',
-      bypassRules: '',
+      include_rules: '',
+      bypass_rules: '',
       decoded: null
     };
 
@@ -802,7 +793,7 @@ const SubscriptionModule = (function () {
               pattern = line.substring(1) + '*';
             }
             if (pattern && isValidManualBypassPattern(pattern)) {
-              result.bypassRules.push(pattern);
+              result.bypass_rules.push(pattern);
             }
           } else {
             let pattern = line;
@@ -813,7 +804,7 @@ const SubscriptionModule = (function () {
             } else if (line.startsWith('/') && line.endsWith('/')) {
               pattern = line;
             }
-            if (pattern) result.includeRules.push(pattern);
+            if (pattern) result.include_rules.push(pattern);
           }
         } else {
           if (format === 'switchy_omega') {
@@ -854,10 +845,10 @@ const SubscriptionModule = (function () {
               const shouldBeDirect = isDirectRule ? !reverse : reverse;
               if (shouldBeDirect) {
                 if (isValidManualBypassPattern(pattern)) {
-                  result.bypassRules.push(pattern);
+                  result.bypass_rules.push(pattern);
                 }
               } else {
-                result.includeRules.push(pattern);
+                result.include_rules.push(pattern);
               }
             }
           } else if (format === 'switchy_legacy') {
@@ -895,10 +886,10 @@ const SubscriptionModule = (function () {
               const shouldBeDirect = isDirectRule ? !reverse : reverse;
               if (shouldBeDirect) {
                 if (isValidManualBypassPattern(pattern)) {
-                  result.bypassRules.push(pattern);
+                  result.bypass_rules.push(pattern);
                 }
               } else {
-                result.includeRules.push(pattern);
+                result.include_rules.push(pattern);
               }
             }
           } else if (format === 'pac') {
@@ -913,7 +904,7 @@ const SubscriptionModule = (function () {
                 }
               }
             }
-            result.includeRules = [...new Set(domains)];
+            result.include_rules = [...new Set(domains)];
           }
         }
       }
@@ -922,50 +913,50 @@ const SubscriptionModule = (function () {
     }
 
     return {
-      includeRules: result.includeRules.join('\n'),
-      bypassRules: result.bypassRules.join('\n'),
+      include_rules: result.include_rules.join('\n'),
+      bypass_rules: result.bypass_rules.join('\n'),
       decoded: result.decoded
     };
   }
 
   function convertContent(content, format) {
     const parsed = parseSubscriptionContent(content, format, false);
-    return parsed.includeRules;
+    return parsed.include_rules;
   }
 
   function getSubscriptionLineCounts(subscription) {
     if (!subscription || !subscription.current || !subscription.lists || !subscription.lists[subscription.current]) {
-      return { includeLines: 0, bypassLines: 0 };
+      return { include_lines: 0, bypass_lines: 0 };
     }
     const currentFormat = subscription.current;
     const config = subscription.lists[currentFormat];
-    if (!config) return { includeLines: 0, bypassLines: 0 };
+    if (!config) return { include_lines: 0, bypass_lines: 0 };
 
     return {
-      includeLines: config.includeLines || 0,
-      bypassLines: config.bypassLines || 0
+      include_lines: config.include_lines || 0,
+      bypass_lines: config.bypass_lines || 0
     };
   }
 
   function generateSubscriptionStats(content, format, reverse) {
     if (!content) {
       return {
-        decodedContent: '',
-        includeRules: '',
-        bypassRules: '',
-        includeLines: 0,
-        bypassLines: 0
+        decoded_content: '',
+        include_rules: '',
+        bypass_rules: '',
+        include_lines: 0,
+        bypass_lines: 0
       };
     }
 
     const parsed = parseSubscriptionContent(content, format, reverse || false);
 
     return {
-      decodedContent: parsed.decoded || '',
-      includeRules: parsed.includeRules || '',
-      bypassRules: parsed.bypassRules || '',
-      includeLines: parsed.includeRules ? parsed.includeRules.split(/\r\n|\r|\n/).length : 0,
-      bypassLines: parsed.bypassRules ? parsed.bypassRules.split(/\r\n|\r|\n/).length : 0
+      decoded_content: parsed.decoded || '',
+      include_rules: parsed.include_rules || '',
+      bypass_rules: parsed.bypass_rules || '',
+      include_lines: parsed.include_rules ? parsed.include_rules.split(/\r\n|\r|\n/).length : 0,
+      bypass_lines: parsed.bypass_rules ? parsed.bypass_rules.split(/\r\n|\r|\n/).length : 0
     };
   }
 
@@ -983,11 +974,11 @@ const SubscriptionModule = (function () {
             format,
             listConfig.reverse || false
           );
-          listConfig.decodedContent = stats.decodedContent;
-          listConfig.includeRules = stats.includeRules;
-          listConfig.bypassRules = stats.bypassRules;
-          listConfig.includeLines = stats.includeLines;
-          listConfig.bypassLines = stats.bypassLines;
+          listConfig.decoded_content = stats.decoded_content;
+          listConfig.include_rules = stats.include_rules;
+          listConfig.bypass_rules = stats.bypass_rules;
+          listConfig.include_lines = stats.include_lines;
+          listConfig.bypass_lines = stats.bypass_lines;
         }
       });
     });

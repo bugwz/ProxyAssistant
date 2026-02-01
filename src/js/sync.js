@@ -245,7 +245,8 @@ async function manualPush() {
   var $btn = $("#sync-push-btn");
   $btn.prop('disabled', true);
 
-  const data = buildConfigData();
+  // Use buildConfigData to get data in export format
+  const data = buildConfigData ? buildConfigData() : (StorageModule ? StorageModule.getConfig() : {});
 
   try {
     if (type === 'native') {
@@ -280,61 +281,76 @@ async function manualPull() {
     if (remoteData) {
       console.log("Sync: Pulled data from " + type);
 
-      const data = migrateConfig(remoteData);
+      // Use migrateConfig to ensure correct format
+      const data = ConfigModule && ConfigModule.migrateConfig
+        ? ConfigModule.migrateConfig(remoteData)
+        : remoteData;
 
-      const currentScenario = data.scenarios.find(s => s.id === data.currentScenarioId);
-      const proxyList = currentScenario?.proxies || [];
-      SubscriptionModule.parseProxyListSubscriptions(proxyList);
+      // Preserve local sync config
+      const localSyncConfig = syncConfig;
 
-      chrome.storage.local.get(['sync_config'], function (localItems) {
-        const localSyncConfig = localItems.sync_config || {
-          type: 'native',
-          gist: { token: '', filename: 'proxy_assistant_config.json', gist_id: '' }
-        };
-
-        const toSave = {
-          scenarios: data.scenarios,
-          currentScenarioId: data.currentScenarioId,
-          list: proxyList
-        };
-
-        if (data.system) {
-          toSave.themeSettings = {
-            mode: data.system.themeMode,
-            startTime: data.system.nightModeStart,
-            endTime: data.system.nightModeEnd
-          };
-          if (data.system.auto_sync !== undefined) {
-            toSave.auto_sync = data.system.auto_sync;
+      // Merge sync config
+      if (data.system && data.system.sync) {
+        const remoteSync = data.system.sync;
+        data.system.sync = {
+          type: remoteSync.type || localSyncConfig.type,
+          gist: {
+            token: localSyncConfig.gist?.token || '',
+            filename: remoteSync.gist?.filename || localSyncConfig.gist?.filename || 'proxy_assistant_config.json',
+            gist_id: remoteSync.gist?.gist_id || localSyncConfig.gist?.gist_id || ''
           }
+        };
+      } else {
+        data.system = data.system || {};
+        data.system.sync = localSyncConfig;
+      }
 
-          if (data.system.sync) {
-            const remoteSync = data.system.sync;
-            toSave.sync_config = {
-              type: remoteSync.type || localSyncConfig.type,
-              gist: {
-                token: remoteSync.gist?.token || localSyncConfig.gist?.token || '',
-                filename: remoteSync.gist?.filename || localSyncConfig.gist?.filename || 'proxy_assistant_config.json',
-                gist_id: remoteSync.gist?.gist_id || localSyncConfig.gist?.gist_id || ''
-              }
-            };
-          } else {
-            toSave.sync_config = localSyncConfig;
+      // Parse subscription rules
+      if (data.scenarios && data.scenarios.lists) {
+        data.scenarios.lists.forEach(scenario => {
+          if (scenario.proxies && SubscriptionModule && SubscriptionModule.parseProxyListSubscriptions) {
+            SubscriptionModule.parseProxyListSubscriptions(scenario.proxies);
           }
+        });
+      }
+
+      // Save to new format
+      if (StorageModule) {
+        StorageModule.setConfig(data);
+        await StorageModule.save();
+
+        // Update syncConfig
+        syncConfig = data.system.sync;
+
+        // Refresh UI
+        if (typeof loadSettings === 'function') {
+          loadSettings();
         } else {
-          toSave.sync_config = localSyncConfig;
+          // Fallback
+          ProxyModule.setList(StorageModule.getProxies());
+          ProxyModule.renderList();
+          ScenariosModule.renderScenarioSelector();
         }
+
+        showTip(I18n.t('pull_success'), false);
+      } else {
+        // Fallback: save to legacy format
+        const toSave = {
+          config: data
+        };
 
         chrome.storage.local.set(toSave, function () {
           if (chrome.runtime.lastError) {
             showTip(I18n.t('pull_failed') + ': ' + chrome.runtime.lastError.message, true);
             return;
           }
-          syncConfig = toSave.sync_config;
-          loadFromLocal(data);
+          syncConfig = data.system.sync;
+          if (typeof loadSettings === 'function') {
+            loadSettings();
+          }
           showTip(I18n.t('pull_success'), false);
         });
-      });
+      }
     } else {
       showTip(I18n.t('pull_failed'), true);
     }
@@ -389,7 +405,12 @@ async function pushToGist(data) {
     if (gistId) {
       fileExists = true;
       syncConfig.gist.gist_id = gistId;
-      chrome.storage.local.set({ sync_config: syncConfig });
+      if (StorageModule) {
+        StorageModule.setSyncConfig(syncConfig);
+        StorageModule.save();
+      } else {
+        chrome.storage.local.set({ sync_config: syncConfig });
+      }
     }
   }
 
@@ -398,7 +419,12 @@ async function pushToGist(data) {
   } else {
     const newId = await createGist(token, filename, content);
     syncConfig.gist.gist_id = newId;
-    chrome.storage.local.set({ sync_config: syncConfig });
+    if (StorageModule) {
+      StorageModule.setSyncConfig(syncConfig);
+      StorageModule.save();
+    } else {
+      chrome.storage.local.set({ sync_config: syncConfig });
+    }
   }
 }
 
@@ -413,7 +439,12 @@ async function pullFromGist() {
     gistId = await findGistByFilename(token, filename);
     if (gistId) {
       syncConfig.gist.gist_id = gistId;
-      chrome.storage.local.set({ sync_config: syncConfig });
+      if (StorageModule) {
+        StorageModule.setSyncConfig(syncConfig);
+        StorageModule.save();
+      } else {
+        chrome.storage.local.set({ sync_config: syncConfig });
+      }
     } else {
       return null;
     }
@@ -550,7 +581,12 @@ async function testGistConnection() {
 
   if (gistId) {
     syncConfig.gist.gist_id = gistId;
-    chrome.storage.local.set({ sync_config: syncConfig });
+    if (StorageModule) {
+      StorageModule.setSyncConfig(syncConfig);
+      StorageModule.save();
+    } else {
+      chrome.storage.local.set({ sync_config: syncConfig });
+    }
     return I18n.t('sync_success_found') + filename;
   } else {
     return I18n.t('sync_success_new');
