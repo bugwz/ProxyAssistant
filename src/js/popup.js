@@ -617,8 +617,8 @@ function bindListEvents() {
       const format = info.subscription.current;
       const subConfig = info.subscription.lists ? info.subscription.lists[format] : null;
 
-      if (subConfig && subConfig.unusedContent) {
-        const subBypass = subConfig.unusedContent.trim();
+      if (subConfig && subConfig.bypassRules) {
+        const subBypass = subConfig.bypassRules.trim();
         if (subBypass) {
           if (bypassOutput) {
             bypassOutput += '\n--- 订阅规则 ---\n';

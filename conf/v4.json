@@ -1,0 +1,53 @@
+{
+    "version": 4,
+    "system": {
+        "appLanguage": "zh-CN",
+        "themeMode": "light",
+        "nightModeStart": "22:00",
+        "nightModeEnd": "06:00",
+        "sync": {
+            "type": "native",
+            "gist": {
+                "token": "",
+                "filename": "proxy_assistant_config.json",
+                "gistId": ""
+            }
+        }
+    },
+    "scenarios": {
+        "current": "default",
+        "lists": [
+            {
+                "id": "default",
+                "name": "公司",
+                "proxies": [
+                    {
+                        "enabled": true,
+                        "name": "内网代理",
+                        "protocol": "http",
+                        "ip": "10.12.56.112",
+                        "port": "9090",
+                        "username": "",
+                        "password": "",
+                        "bypassUrls": "1212.com",
+                        "includeUrls": "1212.com.com.cn",
+                        "fallbackPolicy": "direct",
+                        "subscription": {
+                            "enabled": true,
+                            "current": "autoproxy",
+                            "lists": {
+                                "autoproxy": {
+                                    "url": "https://example.com/rule.txt",
+                                    "content": "||google.com\n@@local.com",
+                                    "refreshInterval": 0,
+                                    "reverse": false,
+                                    "lastFetchTime": null
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+}

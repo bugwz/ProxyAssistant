@@ -364,9 +364,9 @@ async function applyManualProxySettings(proxyInfo) {
       const format = proxyInfo.subscription.current;
       const subConfig = proxyInfo.subscription.lists ? proxyInfo.subscription.lists[format] : null;
 
-      if (subConfig && subConfig.unusedContent) {
+      if (subConfig && subConfig.bypassRules) {
         const reverse = subConfig.reverse || false;
-        const rules = parseSubscriptionRules(subConfig.unusedContent, 'pac', 'PROXY', '0.0.0.0:0', reverse);
+        const rules = parseSubscriptionRules(subConfig.bypassRules, 'pac', 'PROXY', '0.0.0.0:0', reverse);
 
         // Filter for DIRECT rules (exceptions/bypass)
         const directRules = rules.filter(r => r.action === 'DIRECT');
@@ -587,10 +587,10 @@ function generatePacScript(list) {
         const format = proxy.subscription.current;
         const subConfig = proxy.subscription.lists ? proxy.subscription.lists[format] : null;
 
-        if (subConfig && subConfig.usedContent) {
+        if (subConfig && subConfig.includeRules) {
           const proxyTypeFull = `${proxyStr}${fallback}`;
           const reverse = subConfig.reverse || false;
-          const rules = parseSubscriptionRules(subConfig.usedContent, 'pac', proxyTypeFull, "", reverse);
+          const rules = parseSubscriptionRules(subConfig.includeRules, 'pac', proxyTypeFull, "", reverse);
 
           // Filter for "need to proxy" rules (ignore exceptions/DIRECT)
           // Requirement 2 implies we only care about adding proxy rules
@@ -660,12 +660,12 @@ async function handleFirefoxRequest(details) {
       const proxy = firefoxProxyState.currentProxy;
       let bypassAll = proxy.bypass_urls || '';
 
-      // Merge subscription unusedContent (bypass rules)
+      // Merge subscription bypassRules
       if (proxy.subscription && proxy.subscription.enabled !== false && proxy.subscription.current) {
         const format = proxy.subscription.current;
         const subConfig = proxy.subscription.lists ? proxy.subscription.lists[format] : null;
-        if (subConfig && subConfig.unusedContent) {
-          bypassAll = bypassAll + '\n' + subConfig.unusedContent;
+      if (subConfig && subConfig.bypassRules) {
+        bypassAll = bypassAll + '\n' + subConfig.bypassRules;
         }
       }
 
