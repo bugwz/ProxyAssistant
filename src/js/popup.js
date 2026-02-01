@@ -535,7 +535,7 @@ function bindListEvents() {
 
     // Log bypass URLs (不使用代理的地址) for manual mode
     let bypassOutput = '';
-    const proxyBypassUrls = info.bypass_urls || '';
+    const proxyBypassUrls = info.bypass_rules || '';
 
     if (proxyBypassUrls) {
       bypassOutput += proxyBypassUrls;
@@ -546,8 +546,8 @@ function bindListEvents() {
       const format = info.subscription.current;
       const subConfig = info.subscription.lists ? info.subscription.lists[format] : null;
 
-      if (subConfig && subConfig.bypass_urls) {
-        const subBypass = subConfig.bypass_urls.trim();
+      if (subConfig && subConfig.bypass_rules) {
+        const subBypass = subConfig.bypass_rules.trim();
         if (subBypass) {
           if (bypassOutput) {
             bypassOutput += '\n--- 订阅规则 ---\n';
@@ -633,13 +633,13 @@ function refreshProxyStatus() {
 function getAutoProxy(proxyList, hostname) {
   if (!proxyList || !hostname) return null;
 
-  // Check include_urls in proxy list order, return first match
+  // Check include_rules in proxy list order, return first match
   for (const proxy of proxyList) {
     if (proxy.enabled === false || proxy.disabled === true) continue;
     if (!proxy.ip || !proxy.port) continue;
 
-    // Only check include_urls, match in order
-    if (checkMatch(proxy.include_urls, hostname)) {
+    // Only check include_rules, match in order
+    if (checkMatch(proxy.include_rules, hostname)) {
       return proxy; // Return first matched proxy
     }
   }
@@ -805,10 +805,10 @@ function updateBypassButton() {
         const subscription = currentProxy.subscription || {};
         const format = subscription.current || 'autoproxy';
         const subConfig = subscription.lists ? subscription.lists[format] : null;
-        const subBypassRules = subConfig ? subConfig.bypass_urls || '' : '';
+        const subBypassRules = subConfig ? subConfig.bypass_rules || '' : '';
 
         // Check if already in bypass list (using exact match for toggle)
-        const bypassUrls = currentProxy.bypass_urls || '';
+        const bypassUrls = currentProxy.bypass_rules || '';
         const isExactBypassed = isExactMatchBypassed(bypassUrls, hostname);
 
         // Check subscription rule match (using fuzzy match logic)
@@ -944,19 +944,19 @@ function handleAddToBypass(hostname, $btn) {
       return;
     }
 
-    // Add hostname to bypass_urls
-    let bypassUrls = proxy.bypass_urls || '';
+    // Add hostname to bypass_rules
+    let bypassUrls = proxy.bypass_rules || '';
     if (bypassUrls) {
       bypassUrls += '\n' + hostname;
     } else {
       bypassUrls = hostname;
     }
-    proxy.bypass_urls = bypassUrls;
+    proxy.bypass_rules = bypassUrls;
 
     // Update corresponding proxy in list
     const proxyIndex = list.findIndex(p => p.ip === proxy.ip && p.port === proxy.port);
     if (proxyIndex !== -1) {
-      list[proxyIndex].bypass_urls = bypassUrls;
+      list[proxyIndex].bypass_rules = bypassUrls;
     }
 
     // Update scenarios with modified list
@@ -1015,12 +1015,12 @@ function handleRemoveFromBypass(hostname, $btn) {
       return;
     }
 
-    if (!proxy || !proxy.bypass_urls) {
+    if (!proxy || !proxy.bypass_rules) {
       $btn.prop('disabled', false).removeClass('btn-processing');
       return;
     }
 
-    const bypassUrls = proxy.bypass_urls;
+    const bypassUrls = proxy.bypass_rules;
     const patterns = bypassUrls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
 
     function isIpPattern(pattern) {
@@ -1044,12 +1044,12 @@ function handleRemoveFromBypass(hostname, $btn) {
       return true;
     });
 
-    proxy.bypass_urls = filteredPatterns.join('\n');
+    proxy.bypass_rules = filteredPatterns.join('\n');
 
     // Update corresponding proxy in list
     const proxyIndex = list.findIndex(p => p.ip === proxy.ip && p.port === proxy.port);
     if (proxyIndex !== -1) {
-      list[proxyIndex].bypass_urls = proxy.bypass_urls;
+      list[proxyIndex].bypass_rules = proxy.bypass_rules;
     }
 
     // Update scenarios with modified list

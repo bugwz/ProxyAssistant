@@ -46,7 +46,7 @@ function validateProxy(list, i, name, val) {
     var isDuplicate = list.some((item, index) => index !== i && item.name === val);
     if (val.trim() === '') { isValid = false; errorMessage = I18n.t('alert_name_required') || '代理名称不能为空'; }
     else if (isDuplicate) { isValid = false; errorMessage = I18n.t('alert_name_duplicate') || '代理名称不能重复'; }
-  } else if (name === 'include_urls') {
+  } else if (name === 'include_rules') {
     var includeUrlsCheck = checkIncludeUrlsConflict(i, val);
     if (includeUrlsCheck.hasConflict) { isValid = false; errorMessage = includeUrlsCheck.error; }
   } else if (name === 'ip') {
@@ -63,7 +63,7 @@ function validateProxy(list, i, name, val) {
     if (isNaN(port) || port < 1 || port > 65535 || val.toString() !== port.toString()) {
       isValid = false; errorMessage = I18n.t('alert_port_invalid') || '端口号必须在1-65535范围内';
     }
-  } else if (name === 'bypass_urls') {
+  } else if (name === 'bypass_rules') {
     var bypassCheck = validateBypassUrls(val);
     if (!bypassCheck.isValid) { isValid = false; errorMessage = bypassCheck.error; }
   }
@@ -85,12 +85,12 @@ function checkIncludeUrlsConflict(list, i, includeUrls) {
     if (j === i) continue;
     var otherProxy = list[j];
     if (!otherProxy || !otherProxy.ip || !otherProxy.port) continue;
-    var otherUrls = (otherProxy.include_urls || '').split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+    var otherUrls = (otherProxy.include_rules || '').split(/[\n,]+/).map(s => s.trim()).filter(s => s);
     var commonPatterns = currentUrls.filter(pattern => otherUrls.indexOf(pattern) !== -1);
 
     if (commonPatterns.length > 0) {
       var otherProxyName = otherProxy.name || (otherProxy.ip + ':' + otherProxy.port);
-      var errorMsg = I18n.t('alert_include_urls_conflict').replace('{pattern}', commonPatterns[0]).replace('{proxy}', otherProxyName);
+      var errorMsg = I18n.t('alert_include_rules_conflict').replace('{pattern}', commonPatterns[0]).replace('{proxy}', otherProxyName);
       return { hasConflict: true, error: errorMsg };
     }
   }

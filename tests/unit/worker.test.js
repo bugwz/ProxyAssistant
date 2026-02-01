@@ -38,8 +38,8 @@ describe('Worker.js - Utility Functions', () => {
       const fallback = proxy.fallback_policy === "reject" ? "" : "; DIRECT";
       const returnVal = `"${proxyStr}${fallback}"`;
 
-      if (proxy.include_urls) {
-        const includeUrls = proxy.include_urls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+      if (proxy.include_rules) {
+        const includeUrls = proxy.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
         for (const pattern of includeUrls) {
           if (pattern.includes('*')) {
             const regexPattern = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
@@ -205,7 +205,7 @@ describe('Worker.js - Utility Functions', () => {
         protocol: 'http',
         ip: '192.168.1.1',
         port: '8080',
-        include_urls: 'example.com',
+        include_rules: 'example.com',
         fallback_policy: 'direct'
       }];
 
@@ -223,7 +223,7 @@ describe('Worker.js - Utility Functions', () => {
           protocol: 'http',
           ip: '192.168.1.1',
           port: '8080',
-          include_urls: 'example.com',
+          include_rules: 'example.com',
           disabled: true
         },
         {
@@ -231,7 +231,7 @@ describe('Worker.js - Utility Functions', () => {
           protocol: 'http',
           ip: '10.0.0.1',
           port: '3128',
-          include_urls: 'test.com',
+          include_rules: 'test.com',
           fallback_policy: 'direct'
         }
       ];
@@ -248,7 +248,7 @@ describe('Worker.js - Utility Functions', () => {
           protocol: 'http',
           ip: '',
           port: '8080',
-          include_urls: 'example.com'
+          include_rules: 'example.com'
         }
       ];
 
@@ -263,7 +263,7 @@ describe('Worker.js - Utility Functions', () => {
         protocol: 'http',
         ip: '192.168.1.1',
         port: '8080',
-        include_urls: '*.example.com',
+        include_rules: '*.example.com',
         fallback_policy: 'direct'
       }];
 
@@ -277,7 +277,7 @@ describe('Worker.js - Utility Functions', () => {
         protocol: 'socks5',
         ip: '192.168.1.1',
         port: '1080',
-        include_urls: 'example.com',
+        include_rules: 'example.com',
         fallback_policy: 'direct'
       }];
 
@@ -291,7 +291,7 @@ describe('Worker.js - Utility Functions', () => {
         protocol: 'http',
         ip: '192.168.1.1',
         port: '8080',
-        include_urls: 'example.com',
+        include_rules: 'example.com',
         fallback_policy: 'reject'
       }];
 
@@ -306,14 +306,14 @@ describe('Worker.js - Utility Functions', () => {
           protocol: 'http',
           ip: '192.168.1.1',
           port: '8080',
-          include_urls: 'site1.com'
+          include_rules: 'site1.com'
         },
         {
           name: 'Proxy 2',
           protocol: 'socks5',
           ip: '10.0.0.1',
           port: '1080',
-          include_urls: 'site2.com'
+          include_rules: 'site2.com'
         }
       ];
 
@@ -333,7 +333,7 @@ describe('Worker.js - Utility Functions', () => {
         protocol: 'http',
         ip: '192.168.1.1',
         port: '8080',
-        include_urls: 'site1.com\nsite2.com,site3.com',
+        include_rules: 'site1.com\nsite2.com,site3.com',
         fallback_policy: 'direct'
       }];
 

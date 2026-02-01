@@ -332,7 +332,7 @@ async function applyManualProxySettings(proxyInfo) {
   const username = proxyInfo.username;
   const password = proxyInfo.password;
   const proxyName = proxyInfo.name || "";
-  const bypassUrls = proxyInfo.bypass_urls || "";
+  const bypassUrls = proxyInfo.bypass_rules || "";
 
   if (!type || !ip || !port) {
     console.log("Missing required proxy information", proxyInfo);
@@ -364,9 +364,9 @@ async function applyManualProxySettings(proxyInfo) {
       const format = proxyInfo.subscription.current;
       const subConfig = proxyInfo.subscription.lists ? proxyInfo.subscription.lists[format] : null;
 
-      if (subConfig && subConfig.bypass_urls) {
+      if (subConfig && subConfig.bypass_rules) {
         const reverse = subConfig.reverse || false;
-        const rules = parseSubscriptionRules(subConfig.bypass_urls, 'pac', 'PROXY', '0.0.0.0:0', reverse);
+        const rules = parseSubscriptionRules(subConfig.bypass_rules, 'pac', 'PROXY', '0.0.0.0:0', reverse);
 
         // Filter for DIRECT rules (exceptions/bypass)
         const directRules = rules.filter(r => r.action === 'DIRECT');
@@ -570,7 +570,7 @@ function generatePacScript(list) {
 
 `;
 
-  // Check include_urls in proxy list order, use first match
+  // Check include_rules in proxy list order, use first match
   for (const proxy of list) {
     // Skip disabled proxies
     if (proxy.disabled === true) continue;
@@ -585,9 +585,9 @@ function generatePacScript(list) {
     const fallback = proxy.fallback_policy === "reject" ? "" : "; DIRECT";
     const returnVal = `"${proxyStr}${fallback}"`;
 
-    // Only process include_urls, ignore bypass_urls in auto mode
-    if (proxy.include_urls) {
-      const includeUrls = proxy.include_urls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+    // Only process include_rules, ignore bypass_rules in auto mode
+    if (proxy.include_rules) {
+      const includeUrls = proxy.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
       for (const pattern of includeUrls) {
         // Support regex pattern: /pattern/flags
         if (pattern.startsWith('/') && pattern.endsWith('/') && pattern.length > 2) {
@@ -699,14 +699,14 @@ async function handleFirefoxRequest(details) {
   if (firefoxProxyState.mode === 'manual') {
     if (firefoxProxyState.currentProxy) {
       const proxy = firefoxProxyState.currentProxy;
-      let bypassAll = proxy.bypass_urls || '';
+      let bypassAll = proxy.bypass_rules || '';
 
-      // Merge subscription bypass_urls
+      // Merge subscription bypass_rules
       if (proxy.subscription && proxy.subscription.enabled !== false && proxy.subscription.current) {
         const format = proxy.subscription.current;
         const subConfig = proxy.subscription.lists ? proxy.subscription.lists[format] : null;
-        if (subConfig && subConfig.bypass_urls) {
-          bypassAll = bypassAll + '\n' + subConfig.bypass_urls;
+        if (subConfig && subConfig.bypass_rules) {
+          bypassAll = bypassAll + '\n' + subConfig.bypass_rules;
         }
       }
 
@@ -746,14 +746,14 @@ function checkBypass(bypassUrls, url) {
 function findProxyForRequestFirefox(url) {
   const host = new URL(url).hostname;
 
-  // Check proxy list in order, use first matching include_urls
+  // Check proxy list in order, use first matching include_rules
   for (const proxy of firefoxProxyState.list) {
     if (proxy.enabled === false || proxy.disabled === true) continue;
     if (!proxy.ip || !proxy.port) continue;
 
-    // Only check include_urls, ignore bypass_urls in auto mode
-    if (proxy.include_urls) {
-      const includeUrls = proxy.include_urls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+    // Only check include_rules, ignore bypass_rules in auto mode
+    if (proxy.include_rules) {
+      const includeUrls = proxy.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
       for (const pattern of includeUrls) {
         if (matchesPattern(url, pattern)) {
           return createFirefoxProxyObject(proxy);

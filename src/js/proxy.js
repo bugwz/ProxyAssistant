@@ -35,8 +35,8 @@ const ProxyModule = (function () {
       port: "",
       username: "",
       password: "",
-      bypass_urls: "",
-      include_urls: "",
+      bypass_rules: "",
+      include_rules: "",
       fallback_policy: "direct",
       is_new: true,
       show_password: false
@@ -152,7 +152,7 @@ const ProxyModule = (function () {
     var isPortValid = !isNaN(port) && port >= 1 && port <= 65535 && info.port.toString() === port.toString();
 
     var isIncludeUrlsValid = true, includeUrlsErrorMsg = '';
-    var includeUrlsCheck = ValidatorModule.checkIncludeUrlsConflict(list, i, info.include_urls);
+    var includeUrlsCheck = ValidatorModule.checkIncludeUrlsConflict(list, i, info.include_rules);
     if (includeUrlsCheck.hasConflict) { isIncludeUrlsValid = false; includeUrlsErrorMsg = includeUrlsCheck.error; }
 
     var $item = $(`.proxy-card[data-id="${i}"]`);
@@ -160,7 +160,7 @@ const ProxyModule = (function () {
     if (isNameValid) $item.find('.name').removeClass('input-error'); else $item.find('.name').addClass('input-error');
     if (isIpValid) $item.find('.ip').removeClass('input-error'); else $item.find('.ip').addClass('input-error');
     if (isPortValid) $item.find('.port').removeClass('input-error'); else $item.find('.port').addClass('input-error');
-    if (isIncludeUrlsValid) $item.find('.include_urls').removeClass('input-error'); else $item.find('.include_urls').addClass('input-error');
+    if (isIncludeUrlsValid) $item.find('.include_rules').removeClass('input-error'); else $item.find('.include_rules').addClass('input-error');
 
     if (!isNameValid || !isIpValid || !isPortValid || !isIncludeUrlsValid) {
       var failMsg = I18n.t('save_failed');
@@ -226,8 +226,8 @@ const ProxyModule = (function () {
       const collapsedClass = isExpanded ? "" : "collapsed";
       delete info.is_new;
 
-      const bypassLines = info.bypass_urls ? info.bypass_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
-      const includeLines = info.include_urls ? info.include_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
+      const bypassLines = info.bypass_rules ? info.bypass_rules.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
+      const includeLines = info.include_rules ? info.include_rules.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
 
       let subscriptionBadgeBypass = `<span class="subscription-badge active" data-type="bypass" data-mode="local" title="${I18n.t('current_rules_count')}">${bypassLines}</span>`;
       let subscriptionBadgeInclude = `<span class="subscription-badge active" data-type="include" data-mode="local" title="${I18n.t('current_rules_count')}">${includeLines}</span>`;
@@ -337,23 +337,23 @@ const ProxyModule = (function () {
                      <div class="url-config-section">
                           <div class="form-item">
                               <div class="url-config-header">
-                                  <label>${I18n.t('bypass_urls')}<span class="info-icon" data-i18n-tooltip="bypass_urls_tooltip" data-tooltip="${I18n.t('bypass_urls_tooltip')}"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></span></label>
+                                   <label>${I18n.t('bypass_rules')}<span class="info-icon" data-i18n-tooltip="bypass_rules_tooltip" data-tooltip="${I18n.t('bypass_rules_tooltip')}"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></span></label>
                                   <div class="url-config-actions">
                                       ${subscriptionBadgeBypass}
                                   </div>
                               </div>
-                              <textarea data-index="${i}" class="bypass_urls url-config-textarea subscription-content" data-type="bypass" data-mode="local" placeholder="${I18n.t('bypass_urls_placeholder')}" tabindex="${i * 100 + 8}">${UtilsModule.escapeHtml(info.bypass_urls || "")}</textarea>
-                              <textarea class="bypass_urls url-config-textarea subscription-content" data-type="bypass" data-mode="subscription" readonly style="display: none;" placeholder=""></textarea>
+                               <textarea data-index="${i}" class="bypass_rules url-config-textarea subscription-content" data-type="bypass" data-mode="local" placeholder="${I18n.t('bypass_rules_placeholder')}" tabindex="${i * 100 + 8}">${UtilsModule.escapeHtml(info.bypass_rules || "")}</textarea>
+                              <textarea class="bypass_rules url-config-textarea subscription-content" data-type="bypass" data-mode="subscription" readonly style="display: none;" placeholder=""></textarea>
                           </div>
                           <div class="form-item">
                               <div class="url-config-header">
-                                  <label>${I18n.t('include_urls')}<span class="info-icon" data-i18n-tooltip="include_urls_tooltip" data-tooltip="${I18n.t('include_urls_tooltip')}"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></span></label>
+                                   <label>${I18n.t('include_rules')}<span class="info-icon" data-i18n-tooltip="include_rules_tooltip" data-tooltip="${I18n.t('include_rules_tooltip')}"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></span></label>
                                   <div class="url-config-actions">
                                       ${subscriptionBadgeInclude}
                                   </div>
                               </div>
-                              <textarea data-index="${i}" class="include_urls url-config-textarea subscription-content" data-type="include" data-mode="local" placeholder="${I18n.t('include_urls_placeholder')}" tabindex="${i * 100 + 9}">${UtilsModule.escapeHtml(info.include_urls || "")}</textarea>
-                              <textarea class="include_urls url-config-textarea subscription-content" data-type="include" data-mode="subscription" readonly style="display: none;" placeholder=""></textarea>
+                               <textarea data-index="${i}" class="include_rules url-config-textarea subscription-content" data-type="include" data-mode="local" placeholder="${I18n.t('include_rules_placeholder')}" tabindex="${i * 100 + 9}">${UtilsModule.escapeHtml(info.include_rules || "")}</textarea>
+                              <textarea class="include_rules url-config-textarea subscription-content" data-type="include" data-mode="subscription" readonly style="display: none;" placeholder=""></textarea>
                           </div>
                        </div>
                  </div>
@@ -406,8 +406,8 @@ const ProxyModule = (function () {
       const info = list[index];
       if (!info) return;
 
-      const bypassLines = info.bypass_urls ? info.bypass_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
-      const includeLines = info.include_urls ? info.include_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
+      const bypassLines = info.bypass_rules ? info.bypass_rules.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
+      const includeLines = info.include_rules ? info.include_rules.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
 
       if (mode === 'local') {
         $badge.text(type === 'bypass' ? bypassLines : includeLines);
@@ -665,13 +665,13 @@ const ProxyModule = (function () {
 
   function input_blur(i, name, val) {
     if (i !== undefined && name && list[i]) {
-      var validProperties = ["name", "ip", "port", "username", "password", "include_urls", "bypass_urls"];
+      var validProperties = ["name", "ip", "port", "username", "password", "include_rules", "bypass_rules"];
       if (validProperties.includes(name)) {
         list[i][name] = val;
-        if (["name", "ip", "port", "include_urls"].includes(name)) {
+        if (["name", "ip", "port", "include_rules"].includes(name)) {
           ValidatorModule.validateProxy(list, i, name, val);
         }
-        if (name === "bypass_urls") {
+        if (name === "bypass_rules") {
           ValidatorModule.validateProxy(list, i, name, val);
         }
         if (["name", "ip", "port"].includes(name)) {

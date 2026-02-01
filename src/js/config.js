@@ -9,7 +9,7 @@
 const PROXY_STATE_KEYS = ['show_password', 'is_new', 'open', 'disabled'];
 const PROXY_EXPORT_KEYS = [
   'enabled', 'name', 'protocol', 'ip', 'port', 'username', 'password',
-  'bypass_urls', 'include_urls', 'fallback_policy', 'subscription'
+  'bypass_rules', 'include_rules', 'fallback_policy', 'subscription'
 ];
 
 // ==========================================
@@ -75,8 +75,8 @@ function migrateConfig(config) {
       port: p.port || "",
       username: p.username || "",
       password: p.password || "",
-      bypass_urls: p.bypass_urls || "",
-      include_urls: p.include_urls || "",
+      bypass_rules: p.bypass_rules || p.bypass_urls || "",
+      include_rules: p.include_rules || p.include_urls || "",
       fallback_policy: p.fallback_policy || "direct",
       subscription: subscription
     };
