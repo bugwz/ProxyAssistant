@@ -282,6 +282,10 @@ async function manualPull() {
 
       const data = migrateConfig(remoteData);
 
+      const currentScenario = data.scenarios.find(s => s.id === data.currentScenarioId);
+      const proxyList = currentScenario?.proxies || [];
+      SubscriptionModule.parseProxyListSubscriptions(proxyList);
+
       chrome.storage.local.get(['sync_config'], function (localItems) {
         const localSyncConfig = localItems.sync_config || {
           type: 'native',
@@ -291,7 +295,7 @@ async function manualPull() {
         const toSave = {
           scenarios: data.scenarios,
           currentScenarioId: data.currentScenarioId,
-          list: data.scenarios.find(s => s.id === data.currentScenarioId)?.proxies || []
+          list: proxyList
         };
 
         if (data.system) {

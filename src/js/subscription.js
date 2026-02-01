@@ -973,6 +973,30 @@ const SubscriptionModule = (function () {
     };
   }
 
+  function parseProxyListSubscriptions(proxyList) {
+    if (!proxyList || !Array.isArray(proxyList)) return;
+
+    proxyList.forEach(proxy => {
+      if (!proxy.subscription || !proxy.subscription.lists) return;
+
+      Object.keys(proxy.subscription.lists).forEach(format => {
+        const listConfig = proxy.subscription.lists[format];
+        if (listConfig.content) {
+          const stats = generateSubscriptionStats(
+            listConfig.content,
+            format,
+            listConfig.reverse || false
+          );
+          listConfig.decodedContent = stats.decodedContent;
+          listConfig.includeRules = stats.includeRules;
+          listConfig.bypassRules = stats.bypassRules;
+          listConfig.includeLines = stats.includeLines;
+          listConfig.bypassLines = stats.bypassLines;
+        }
+      });
+    });
+  }
+
   return {
     init: init,
     openModal: openModal,
@@ -981,6 +1005,7 @@ const SubscriptionModule = (function () {
     convertContent: convertContent,
     getSubscriptionLineCounts: getSubscriptionLineCounts,
     generateSubscriptionStats: generateSubscriptionStats,
-    parseRules: parseRules
+    parseRules: parseRules,
+    parseProxyListSubscriptions: parseProxyListSubscriptions
   };
 })();
