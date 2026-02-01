@@ -212,6 +212,14 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
         renderScenarioSelector();
       });
     }
+    if (changes.appLanguage) {
+      // Language changed from main page, refresh the entire UI
+      I18n.setLanguage(changes.appLanguage.newValue);
+      list_init();
+      renderScenarioSelector();
+      updateBypassButton();
+      updateCurrentSiteDisplay();
+    }
   }
 });
 
@@ -880,11 +888,13 @@ function updateBypassButton() {
           // Show as bypassed, clickable to remove - display "use proxy" text
           $bypassBtn
             .text(I18n.t('use_proxy'))
+            .attr('data-i18n', 'use_proxy')
             .removeClass('btn-bypass-proxy btn-use-proxy')
             .addClass('btn-use-proxy');
         } else {
           $bypassBtn
             .text(I18n.t('bypass_proxy'))
+            .attr('data-i18n', 'bypass_proxy')
             .removeClass('btn-bypass-proxy btn-use-proxy')
             .addClass('btn-bypass-proxy');
         }

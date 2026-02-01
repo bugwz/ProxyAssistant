@@ -20,8 +20,8 @@ function initLanguage() {
     $(this).closest('.lh-select').find('.lh-select-op').hide();
 
     I18n.setLanguage(lang);
-    if (typeof renderList === 'function') renderList();
-    if (typeof renderScenarioSelector === 'function') renderScenarioSelector();
+    if (typeof ProxyModule !== 'undefined' && typeof ProxyModule.renderList === 'function') ProxyModule.renderList();
+    if (typeof ScenariosModule !== 'undefined' && typeof ScenariosModule.renderScenarioSelector === 'function') ScenariosModule.renderScenarioSelector();
     if (typeof updateSyncUI === 'function') updateSyncUI();
   });
 }
