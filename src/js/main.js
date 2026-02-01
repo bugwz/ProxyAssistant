@@ -259,6 +259,13 @@ function initDropdowns() {
           }
         });
       }
+      if (changes.currentProxy) {
+        const currentScenario = ScenariosModule.getCurrentScenario();
+        if (currentScenario && currentScenario.proxies) {
+          ProxyModule.setList(currentScenario.proxies);
+          ProxyModule.renderList();
+        }
+      }
     }
   });
 }
