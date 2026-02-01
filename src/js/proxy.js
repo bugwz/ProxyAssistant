@@ -177,18 +177,14 @@ const ProxyModule = (function () {
       const bypassLines = info.bypass_urls ? info.bypass_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
       const includeLines = info.include_urls ? info.include_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
 
-      subscriptionBadgeBypass = `<span class="subscription-badge">${bypassLines}</span>`;
-      subscriptionBadgeInclude = `<span class="subscription-badge">${includeLines}</span>`;
+      subscriptionBadgeBypass = `<span class="subscription-badge" title="${I18n.t('current_rules_count')}">${bypassLines}</span>`;
+      subscriptionBadgeInclude = `<span class="subscription-badge" title="${I18n.t('current_rules_count')}">${includeLines}</span>`;
 
       if (info.subscription && info.subscription.enabled !== false) {
         const counts = SubscriptionModule.getSubscriptionLineCounts(info.subscription);
 
-        if (counts.bypassLines > 0) {
-          subscriptionBadgeBypass += `<span class="subscription-badge subscription-lines-badge" data-index="${i}" data-type="bypass" title="额外增加的订阅规则数量">+${counts.bypassLines}</span>`;
-        }
-        if (counts.includeLines > 0) {
-          subscriptionBadgeInclude += `<span class="subscription-badge subscription-lines-badge" data-index="${i}" data-type="include" title="额外增加的订阅规则数量">+${counts.includeLines}</span>`;
-        }
+        subscriptionBadgeBypass += `<span class="subscription-badge subscription-lines-badge" data-index="${i}" data-type="bypass" title="${I18n.t('subscription_rules_count')}">${counts.bypassLines >= 0 ? '+' : ''}${counts.bypassLines}</span>`;
+        subscriptionBadgeInclude += `<span class="subscription-badge subscription-lines-badge" data-index="${i}" data-type="include" title="${I18n.t('subscription_rules_count')}">${counts.includeLines >= 0 ? '+' : ''}${counts.includeLines}</span>`;
       }
 
       html += `<div class="proxy-card ${collapsedClass} ${is_enabled ? "" : "disabled"}" data-id="${i}">
@@ -361,27 +357,20 @@ const ProxyModule = (function () {
 
       let existingPlainBadge = $parent.find(".subscription-badge:not(.subscription-lines-badge)");
       if (existingPlainBadge.length === 0) {
-        existingPlainBadge = $(`<span class="subscription-badge">${type === "bypass" ? bypassLines : includeLines}</span>`);
+        existingPlainBadge = $(`<span class="subscription-badge" title="${I18n.t('current_rules_count')}">${type === "bypass" ? bypassLines : includeLines}</span>`);
         $badge.before(existingPlainBadge);
       } else {
         existingPlainBadge.text(type === "bypass" ? bypassLines : includeLines);
+        existingPlainBadge.attr('title', I18n.t('current_rules_count'));
       }
 
       if (info.subscription && info.subscription.enabled !== false) {
         const lineCounts = SubscriptionModule.getSubscriptionLineCounts(info.subscription);
 
         if (type === "bypass") {
-          if (lineCounts.bypassLines > 0) {
-            $badge.text(`+${lineCounts.bypassLines}`).show();
-          } else {
-            $badge.hide();
-          }
+          $badge.text(`${lineCounts.bypassLines >= 0 ? '+' : ''}${lineCounts.bypassLines}`).attr('title', I18n.t('subscription_rules_count')).show();
         } else if (type === "include") {
-          if (lineCounts.includeLines > 0) {
-            $badge.text(`+${lineCounts.includeLines}`).show();
-          } else {
-            $badge.hide();
-          }
+          $badge.text(`${lineCounts.includeLines >= 0 ? '+' : ''}${lineCounts.includeLines}`).attr('title', I18n.t('subscription_rules_count')).show();
         }
       } else {
         $badge.hide();
