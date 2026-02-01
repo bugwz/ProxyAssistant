@@ -482,42 +482,74 @@ async function applyManualProxySettings(proxyInfo) {
   return { success: true };
 }
 
+// Flag to track if legacy fields have been cleaned up
+let legacyFieldsCleaned = false;
+
+// Clean up legacy storage fields after migration
+function cleanupLegacyFields() {
+  if (legacyFieldsCleaned) return;
+
+  chrome.storage.local.get(['list', 'currentProxy', 'proxyEnabled', 'proxyMode'], (result) => {
+    const hasLegacyData = result.list || result.currentProxy || result.proxyEnabled !== undefined || result.proxyMode;
+
+    if (hasLegacyData) {
+      console.log('Cleaning up legacy storage fields');
+      chrome.storage.local.remove(['list', 'currentProxy', 'proxyEnabled', 'proxyMode'], () => {
+        if (chrome.runtime.lastError) {
+          console.log('Error cleaning legacy fields:', chrome.runtime.lastError);
+        } else {
+          console.log('Legacy fields cleaned successfully');
+          legacyFieldsCleaned = true;
+        }
+      });
+    } else {
+      legacyFieldsCleaned = true;
+    }
+  });
+}
+
 // Auto mode: Generate and apply PAC script (Chrome only)
-function applyAutoProxySettings() {
-  // Always read from local storage for auto mode consistency
-  chrome.storage.local.get({ list: [] }, (items) => {
-    const list = items.list || [];
-    const pacScript = generatePacScript(list);
+async function applyAutoProxySettings() {
+  // Read from new config format (unified storage)
+  const result = await new Promise(resolve => {
+    chrome.storage.local.get(['config'], resolve);
+  });
 
-    console.log("Generated PAC Script:", pacScript);
+  const config = result.config || {};
+  const scenarios = config.scenarios?.lists || [];
+  const currentScenarioId = config.scenarios?.current || 'default';
+  const currentScenario = scenarios.find(s => s.id === currentScenarioId);
+  const list = currentScenario?.proxies || [];
 
-    const config = {
-      mode: "pac_script",
-      pacScript: {
-        data: pacScript
-      }
-    };
+  const pacScript = generatePacScript(list);
 
-    // In auto mode, we need to handle auth for all matched proxies
-    // Here we simply set up a global listener, handleAuthRequest will query storage as needed
-    setupAuthListener();
+  console.log("Generated PAC Script:", pacScript);
 
-    chrome.proxy.settings.set({ value: config, scope: "regular" }, () => {
-      if (chrome.runtime.lastError) {
-        console.log("Error setting auto proxy:", chrome.runtime.lastError);
-      } else {
-        console.log("Auto proxy (PAC) enabled");
-        chrome.storage.local.set({ proxyEnabled: true }, () => {
-          updateBadge();
-        });
-      }
-    });
+  const pacConfig = {
+    mode: "pac_script",
+    pacScript: {
+      data: pacScript
+    }
+  };
+
+  setupAuthListener();
+
+  chrome.proxy.settings.set({ value: pacConfig, scope: "regular" }, () => {
+    if (chrome.runtime.lastError) {
+      console.log("Error setting auto proxy:", chrome.runtime.lastError);
+    } else {
+      console.log("Auto proxy (PAC) enabled");
+      chrome.storage.local.set({ proxyEnabled: true }, () => {
+        updateBadge();
+        cleanupLegacyFields();
+      });
+    }
   });
 }
 
 // Helper function to check if pattern is an IP address
 function isIpPattern(pattern) {
-  const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
+  const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}(\/([0-9]|[12][0-9]|3[0-2]))?$/;
   return ipv4Pattern.test(pattern);
 }
 
@@ -587,19 +619,28 @@ function generatePacScript(list) {
         const format = proxy.subscription.current;
         const subConfig = proxy.subscription.lists ? proxy.subscription.lists[format] : null;
 
-        if (subConfig && subConfig.include_urls) {
-          const proxyTypeFull = `${proxyStr}${fallback}`;
-          const reverse = subConfig.reverse || false;
-          const rules = parseSubscriptionRules(subConfig.include_urls, 'pac', proxyTypeFull, "", reverse);
+        if (subConfig && subConfig.include_rules) {
+          const includeUrls = subConfig.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
 
-          // Filter for "need to proxy" rules (ignore exceptions/DIRECT)
-          // Requirement 2 implies we only care about adding proxy rules
-          const activeRules = rules.filter(r => r.action !== 'DIRECT');
-
-          for (const rule of activeRules) {
-            script += "  " + rule.js + "\n";
+          for (const pattern of includeUrls) {
+            if (pattern.startsWith('/') && pattern.endsWith('/') && pattern.length > 2) {
+              const regexContent = pattern.slice(1, -1);
+              const regexFlags = pattern.includes('/') ? pattern.split('/').pop() : '';
+              const flags = regexFlags && !regexFlags.includes('/') ? regexFlags : '';
+              script += `  if (/${regexContent}/${flags}.test(host)) return ${returnVal};\n`;
+            } else if (pattern.includes('*')) {
+              const regexPattern = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
+              script += `  if (/${regexPattern}/.test(host)) return ${returnVal};\n`;
+            } else if (isIpPattern(pattern)) {
+              if (pattern.includes('/')) {
+                script += `  if (isInCidrRange(host, "${pattern}")) return ${returnVal};\n`;
+              } else {
+                script += `  if (host === "${pattern}") return ${returnVal};\n`;
+              }
+            } else {
+              script += `  if (dnsDomainIs(host, "${pattern}") || host === "${pattern}") return ${returnVal};\n`;
+            }
           }
-          console.log(`Merged ${activeRules.length} rules from subscription for proxy ${proxy.name || 'unnamed'}`);
         }
       } catch (e) {
         console.error("Error merging subscription rules in Auto Mode:", e);
@@ -607,7 +648,7 @@ function generatePacScript(list) {
     }
   }
 
-  script += "  return \"DIRECT\";\n}"; // Direct connection when no match
+  script += "  return \"DIRECT\";\n}";
   return script;
 }
 
@@ -1003,16 +1044,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       testProxyConnection(message.proxyInfo, sendResponse);
       return true;
     } else if (message.action === "getPacScript") {
-      chrome.storage.local.get({ list: [] }, (items) => {
-        const list = items.list || [];
+      (async () => {
         try {
+          const result = await new Promise(resolve => {
+            chrome.storage.local.get(['config'], resolve);
+          });
+
+          const config = result.config || {};
+          const scenarios = config.scenarios?.lists || [];
+          const currentScenarioId = config.scenarios?.current || 'default';
+          const currentScenario = scenarios.find(s => s.id === currentScenarioId);
+          const list = currentScenario?.proxies || [];
+
           const script = generatePacScript(list);
           sendResponse({ success: true, script: script });
         } catch (e) {
           console.error("Error generating PAC script:", e);
           sendResponse({ success: false, error: e.message });
         }
-      });
+      })();
       return true;
     } else {
       console.warn("Unknown action:", message.action);
@@ -1305,6 +1355,14 @@ function parseSubscriptionRuleLine(line, format, defaultType, defaultAddress, re
     const regex = wildcardToRegex(line);
     js = `if (/${regex}/.test(url)) return ${returnVal};`;
     ruleType = 'wildcard';
+  } else if (isIpPattern(line)) {
+    if (line.includes('/')) {
+      js = `if (isInCidrRange(host, "${line}")) return ${returnVal};`;
+      ruleType = 'cidr';
+    } else {
+      js = `if (host === "${line}") return ${returnVal};`;
+      ruleType = 'ip';
+    }
   } else if (format === 'switchy_omega' && line.startsWith(':')) {
     pattern = line.substring(1).trim();
     js = `if (host.endsWith('.${pattern}') || host === '${pattern}') return ${returnVal};`;
