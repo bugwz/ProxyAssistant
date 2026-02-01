@@ -88,6 +88,7 @@ function loadFromLocal(config) {
     }
 
     const list = ScenariosModule.updateCurrentListFromScenario();
+    SubscriptionModule.parseProxyListSubscriptions(list);
     ProxyModule.setList(list);
 
     if (newConfig.system) {
