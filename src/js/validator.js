@@ -63,6 +63,9 @@ function validateProxy(list, i, name, val) {
     if (isNaN(port) || port < 1 || port > 65535 || val.toString() !== port.toString()) {
       isValid = false; errorMessage = I18n.t('alert_port_invalid') || '端口号必须在1-65535范围内';
     }
+  } else if (name === 'bypass_urls') {
+    var bypassCheck = validateBypassUrls(val);
+    if (!bypassCheck.isValid) { isValid = false; errorMessage = bypassCheck.error; }
   }
 
   if (isValid) { $input.removeClass('input-error').removeAttr('title'); }
@@ -94,10 +97,70 @@ function checkIncludeUrlsConflict(list, i, includeUrls) {
   return { hasConflict: false, error: '' };
 }
 
+// ==========================================
+// Bypass URLs Validation
+// ==========================================
+
+function validateBypassUrls(bypassUrls) {
+  if (!bypassUrls || !bypassUrls.trim()) return { isValid: true, error: '' };
+
+  var lines = bypassUrls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+  var invalidLines = [];
+
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    if (!isValidBypassPattern(line)) {
+      invalidLines.push(line);
+    }
+  }
+
+  if (invalidLines.length > 0) {
+    return {
+      isValid: false,
+      error: '无效的 bypass 规则: ' + invalidLines.slice(0, 3).join(', ') + (invalidLines.length > 3 ? '...' : '')
+    };
+  }
+
+  return { isValid: true, error: '' };
+}
+
+function isValidBypassPattern(pattern) {
+  if (!pattern || typeof pattern !== 'string') return false;
+
+  var trimmed = pattern.trim();
+  if (!trimmed) return false;
+
+  if (trimmed.startsWith('/') && trimmed.endsWith('/')) return false;
+  if (trimmed.startsWith('|') && !trimmed.startsWith('||')) return false;
+
+  var ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+  if (ipv4Pattern.test(trimmed)) return true;
+
+  var ipv4CidrPattern = /^(\d{1,3}\.){3}\d{1,3}\/(8|9|1\d|2\d|3[0-2])$/;
+  if (ipv4CidrPattern.test(trimmed)) return true;
+
+  var portPattern = /^([a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?:[1-9]\d{0,4}$/;
+  if (portPattern.test(trimmed)) return true;
+
+  var ipPortPattern = /^(\d{1,3}\.){3}\d{1,3}:[1-9]\d{0,4}$/;
+  if (ipPortPattern.test(trimmed)) return true;
+
+  var hostnamePattern = /^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/;
+  if (hostnamePattern.test(trimmed)) return true;
+
+  if (trimmed.includes('*')) {
+    var wildcardPattern = /^(\*\.)?[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?)*$/;
+    if (wildcardPattern.test(trimmed.replace(/\*/g, 'a'))) return true;
+  }
+
+  return true;
+}
+
 // Export for use
 window.ValidatorModule = {
   validateIPAddress,
   isValidHost,
   validateProxy,
-  checkIncludeUrlsConflict
+  checkIncludeUrlsConflict,
+  validateBypassUrls
 };

@@ -598,6 +598,9 @@ const ProxyModule = (function () {
         if (["name", "ip", "port", "include_urls"].includes(name)) {
           ValidatorModule.validateProxy(list, i, name, val);
         }
+        if (name === "bypass_urls") {
+          ValidatorModule.validateProxy(list, i, name, val);
+        }
         if (["name", "ip", "port"].includes(name)) {
           var info = list[i];
           var previewText = `${info.name || I18n.t('unnamed_proxy')} · ${info.ip || "0.0.0.0"}:${info.port || "0"}`;

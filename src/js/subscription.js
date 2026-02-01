@@ -601,13 +601,27 @@ const SubscriptionModule = (function () {
       return false;
     }
 
-    const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
+    const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}$/;
     if (ipv4Pattern.test(trimmed)) {
       return true;
     }
 
     if (trimmed.includes('/')) {
+      const ipv4CidrPattern = /^(\d{1,3}\.){3}\d{1,3}\/(8|9|1\d|2\d|3[0-2])$/;
+      if (ipv4CidrPattern.test(trimmed)) {
+        return true;
+      }
       return false;
+    }
+
+    const portPattern = /^([a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?:[1-9]\d{0,4}$/;
+    if (portPattern.test(trimmed)) {
+      return true;
+    }
+
+    const ipPortPattern = /^(\d{1,3}\.){3}\d{1,3}:[1-9]\d{0,4}$/;
+    if (ipPortPattern.test(trimmed)) {
+      return true;
     }
 
     return true;
