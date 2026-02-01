@@ -568,8 +568,8 @@ const ProxyModule = (function () {
       $actions.find('.subscription-badge').removeClass('active');
       $badge.addClass('active');
 
-      const $localTextarea = $card.find(`.${type}_urls[data-mode="local"]`);
-      const $subTextarea = $card.find(`.${type}_urls[data-mode="subscription"]`);
+      const $localTextarea = $card.find(`.${type}_rules[data-mode="local"]`);
+      const $subTextarea = $card.find(`.${type}_rules[data-mode="subscription"]`);
 
       if (mode === 'subscription') {
         const info = list[index];
