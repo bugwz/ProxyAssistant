@@ -37,7 +37,7 @@ function buildSyncMeta(chunks) {
   const totalSize = chunks.reduce((sum, chunk) => sum + new Blob([chunk]).size, 0);
   const fullData = chunks.join('');
   return {
-    version: 1,
+    version: 4,
     chunks: {
       start: 0,
       end: chunks.length - 1

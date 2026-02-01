@@ -171,6 +171,25 @@ const ProxyModule = (function () {
       const collapsedClass = isExpanded ? "" : "collapsed";
       delete info.is_new;
 
+      let subscriptionBadgeBypass = '';
+      let subscriptionBadgeInclude = '';
+      const bypassLines = info.bypass_urls ? info.bypass_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
+      const includeLines = info.include_urls ? info.include_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
+
+      subscriptionBadgeBypass = `<span class="subscription-badge">${bypassLines}</span>`;
+      subscriptionBadgeInclude = `<span class="subscription-badge">${includeLines}</span>`;
+
+      if (info.subscription && info.subscription.enabled !== false) {
+        const counts = SubscriptionModule.getSubscriptionLineCounts(info.subscription);
+
+        if (counts.unusedLines > 0) {
+          subscriptionBadgeBypass += `<span class="subscription-badge subscription-lines-badge" data-index="${i}" data-type="bypass" title="额外增加的订阅规则数量">+${counts.unusedLines}</span>`;
+        }
+        if (counts.usedLines > 0) {
+          subscriptionBadgeInclude += `<span class="subscription-badge subscription-lines-badge" data-index="${i}" data-type="include" title="额外增加的订阅规则数量">+${counts.usedLines}</span>`;
+        }
+      }
+
       html += `<div class="proxy-card ${collapsedClass} ${is_enabled ? "" : "disabled"}" data-id="${i}">
         <div class="proxy-header" data-index="${i}">
             <div class="header-left">
@@ -266,33 +285,46 @@ const ProxyModule = (function () {
                         </div>
                     </div>
 
-                    <div class="url-config-section">
-                        <div class="form-item">
-                            <label>${I18n.t('bypass_urls')}</label>
-                            <textarea data-index="${i}" class="bypass_urls" placeholder="${I18n.t('bypass_urls_placeholder')}" tabindex="${i * 100 + 8}">${UtilsModule.escapeHtml(info.bypass_urls || "")}</textarea>
-                        </div>
-                        <div class="form-item">
-                            <label>${I18n.t('include_urls')}</label>
-                            <textarea data-index="${i}" class="include_urls" placeholder="${I18n.t('include_urls_placeholder')}" tabindex="${i * 100 + 9}">${UtilsModule.escapeHtml(info.include_urls || "")}</textarea>
-                        </div>
-                    </div>
+                     <div class="url-config-section">
+                         <div class="form-item">
+                             <div class="url-config-header">
+                                 <label>${I18n.t('bypass_urls')}<span class="info-icon" data-i18n-tooltip="bypass_urls_tooltip" data-tooltip="${I18n.t('bypass_urls_tooltip')}"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></span></label>
+                                 <div class="url-config-actions">
+                                     ${subscriptionBadgeBypass}
+                                 </div>
+                             </div>
+                             <textarea data-index="${i}" class="bypass_urls" placeholder="${I18n.t('bypass_urls_placeholder')}" tabindex="${i * 100 + 8}">${UtilsModule.escapeHtml(info.bypass_urls || "")}</textarea>
+                         </div>
+                         <div class="form-item">
+                             <div class="url-config-header">
+                                 <label>${I18n.t('include_urls')}<span class="info-icon" data-i18n-tooltip="include_urls_tooltip" data-tooltip="${I18n.t('include_urls_tooltip')}"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></span></label>
+                                 <div class="url-config-actions">
+                                     ${subscriptionBadgeInclude}
+                                 </div>
+                             </div>
+                             <textarea data-index="${i}" class="include_urls" placeholder="${I18n.t('include_urls_placeholder')}" tabindex="${i * 100 + 9}">${UtilsModule.escapeHtml(info.include_urls || "")}</textarea>
+                         </div>
+                     </div>
                 </div>
 
                  <div class="proxy-content-right">
-                    <button class="right-panel-btn btn-test test-proxy-btn" data-index="${i}" tabindex="-1">
-                         ${I18n.t('link_test')}
-                    </button>
-                    <button class="right-panel-btn btn-move move-proxy-btn" data-index="${i}" title="${I18n.t('move_proxy_title')}" tabindex="-1">
-                         ${I18n.t('move_proxy')}
-                    </button>
-                    <div class="test-result-display test-result" data-index="${i}"></div>
-                    <button class="right-panel-btn btn-save item-save-btn" data-index="${i}" tabindex="${i * 100 + 10}">
-                         ${I18n.t('save')}
-                    </button>
-                    <button class="right-panel-btn btn-delete del" data-index="${i}" title="${I18n.t('delete_proxy_title')}" tabindex="${i * 100 + 11}">
-                         ${I18n.t('delete')}
-                    </button>
-                </div>
+                     <button class="right-panel-btn btn-test test-proxy-btn" data-index="${i}" tabindex="-1">
+                          ${I18n.t('link_test')}
+                     </button>
+                     <button class="right-panel-btn btn-move move-proxy-btn" data-index="${i}" title="${I18n.t('move_proxy_title')}" tabindex="-1">
+                          ${I18n.t('move_proxy')}
+                     </button>
+                     <button class="right-panel-btn btn-subscription subscription-btn" data-index="${i}" title="${I18n.t('subscription_config_title')}" tabindex="-1">
+                          <span data-i18n="subscription_config_title">订阅</span>
+                     </button>
+                     <div class="test-result-display test-result" data-index="${i}"></div>
+                     <button class="right-panel-btn btn-save item-save-btn" data-index="${i}" tabindex="${i * 100 + 10}">
+                          ${I18n.t('save')}
+                     </button>
+                     <button class="right-panel-btn btn-delete del" data-index="${i}" title="${I18n.t('delete_proxy_title')}" tabindex="${i * 100 + 11}">
+                          ${I18n.t('delete')}
+                     </button>
+                 </div>
             </div>
         </div>
       </div>`;
@@ -302,10 +334,57 @@ const ProxyModule = (function () {
     initSortable();
     bindItemEvents();
 
+    updateSubscriptionLinesDisplay();
+
     $(".move-proxy-btn").on("click", function () {
       const index = $(this).data("index");
       const currentScenario = ScenariosModule.getCurrentScenario();
       ScenariosModule.showMoveProxyDialog(index, currentScenario ? currentScenario.name : I18n.t('scenario_default'));
+    });
+  }
+
+  function updateSubscriptionLinesDisplay() {
+    $(".subscription-lines-badge").each(function () {
+      const $badge = $(this);
+      const index = $badge.data("index");
+      const type = $badge.data("type");
+
+      if (index === undefined || index === null) return;
+
+      const info = list[index];
+      if (!info) return;
+
+      const bypassLines = info.bypass_urls ? info.bypass_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
+      const includeLines = info.include_urls ? info.include_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
+      const $parent = $badge.parent();
+
+      let existingPlainBadge = $parent.find(".subscription-badge:not(.subscription-lines-badge)");
+      if (existingPlainBadge.length === 0) {
+        existingPlainBadge = $(`<span class="subscription-badge">${type === "bypass" ? bypassLines : includeLines}</span>`);
+        $badge.before(existingPlainBadge);
+      } else {
+        existingPlainBadge.text(type === "bypass" ? bypassLines : includeLines);
+      }
+
+      if (info.subscription && info.subscription.enabled !== false) {
+        const lineCounts = SubscriptionModule.getSubscriptionLineCounts(info.subscription);
+
+        if (type === "bypass") {
+          if (lineCounts.unusedLines > 0) {
+            $badge.text(`+${lineCounts.unusedLines}`).show();
+          } else {
+            $badge.hide();
+          }
+        } else if (type === "include") {
+          if (lineCounts.usedLines > 0) {
+            $badge.text(`+${lineCounts.usedLines}`).show();
+          } else {
+            $badge.hide();
+          }
+        }
+      } else {
+        $badge.hide();
+      }
     });
   }
 
@@ -433,6 +512,13 @@ const ProxyModule = (function () {
       }
     });
 
+    $(".subscription-btn").on("click", function () {
+      const index = $(this).data("index");
+      if (index !== undefined) {
+        SubscriptionModule.openModal(index);
+      }
+    });
+
     $(".item-save-btn").on("click", function () {
       UtilsModule.showProcessingTip(I18n.t('processing'));
       saveSingleProxy($(this).data("index"));
@@ -516,6 +602,9 @@ const ProxyModule = (function () {
           var info = list[i];
           var previewText = `${info.name || I18n.t('unnamed_proxy')} · ${info.ip || "0.0.0.0"}:${info.port || "0"}`;
           $(`.proxy-card[data-id="${i}"] .proxy-title-preview`).text(previewText).attr('title', previewText);
+        }
+        if (["include_urls", "bypass_urls"].includes(name)) {
+          updateSubscriptionLinesDisplay();
         }
       }
     }
@@ -727,6 +816,7 @@ const ProxyModule = (function () {
     saveData: saveData,
     saveSingleProxy: saveSingleProxy,
     renderList: renderList,
-    confirmDelete: confirmDelete
+    confirmDelete: confirmDelete,
+    updateSubscriptionLinesDisplay: updateSubscriptionLinesDisplay
   };
 })();

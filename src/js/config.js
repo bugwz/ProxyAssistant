@@ -9,8 +9,8 @@
 function migrateConfig(config) {
   if (!config) return null;
 
-  const v3 = {
-    version: 3,
+  const v4 = {
+    version: 4,
     system: {
       appLanguage: I18n.getCurrentLanguage(),
       themeMode: 'light',
@@ -30,6 +30,75 @@ function migrateConfig(config) {
     if (p.enabled !== undefined) enabled = p.enabled;
     else if (p.disabled !== undefined) enabled = p.disabled !== true;
 
+    let subscription = null;
+
+    if (p.subscription) {
+      const current = p.subscription.current || p.subscription.activeFormat || 'pac';
+      const enabled = p.subscription.enabled !== false;
+      const lists = {};
+      const sourceLists = p.subscription.lists || p.subscription.formats || {};
+      const FORMATS = ['pac', 'autoproxy', 'switchy_legacy', 'switchy_omega'];
+
+      FORMATS.forEach(f => {
+        if (sourceLists[f]) {
+          const item = sourceLists[f];
+          const listItem = {
+            url: item.url || '',
+            content: item.content || '',
+            reverse: item.reverse || false,
+            refreshInterval: item.refreshInterval || 0,
+            lastFetchTime: item.lastFetchTime || null
+          };
+
+          if (item.decodedContent !== undefined || item.usedContent !== undefined ||
+            item.unusedContent !== undefined || item.usedLines !== undefined ||
+            item.unusedLines !== undefined) {
+            listItem.decodedContent = item.decodedContent || '';
+            listItem.usedContent = item.usedContent || '';
+            listItem.unusedContent = item.unusedContent || '';
+            listItem.usedLines = item.usedLines || 0;
+            listItem.unusedLines = item.unusedLines || 0;
+          } else if (item.content) {
+            const stats = SubscriptionModule.generateSubscriptionStats(item.content, f, item.reverse || false);
+            listItem.decodedContent = stats.decodedContent;
+            listItem.usedContent = stats.usedContent;
+            listItem.unusedContent = stats.unusedContent;
+            listItem.usedLines = stats.usedLines;
+            listItem.unusedLines = stats.unusedLines;
+          }
+
+          lists[f] = listItem;
+        }
+      });
+
+      subscription = {
+        enabled: enabled,
+        current: current,
+        lists: lists
+      };
+    } else if (p.subscription_config) {
+      const old = p.subscription_config;
+      const fmt = old.format || 'pac';
+      let content = old.lastContent || '';
+
+      if (fmt === 'autoproxy' && content && content.trim().startsWith('W0F1dG9Qcm94')) {
+        try { content = atob(content.trim()); } catch (e) { }
+      }
+
+      subscription = {
+        current: fmt,
+        lists: {
+          [fmt]: {
+            url: old.url || '',
+            content: content,
+            reverse: old.reverse || false,
+            refreshInterval: old.refreshInterval || 0,
+            lastFetchTime: old.lastFetchTime || null
+          }
+        }
+      };
+    }
+
     return {
       enabled: enabled,
       name: p.name || "",
@@ -40,45 +109,53 @@ function migrateConfig(config) {
       password: p.password || "",
       bypass_urls: p.bypass_urls || "",
       include_urls: p.include_urls || "",
-      fallback_policy: p.fallback_policy || "direct"
+      fallback_policy: p.fallback_policy || "direct",
+      subscription: subscription
     };
   };
 
-  if (config.scenarios && Array.isArray(config.scenarios)) {
-    v3.scenarios = config.scenarios.map(s => ({
+  if (config.version === 4) {
+    v4.scenarios = (config.scenarios || []).map(s => ({
       id: s.id || ('scenario_' + Date.now() + Math.random().toString(36).substr(2, 9)),
       name: s.name || I18n.t('scenario_default'),
       proxies: (s.proxies || []).map(migrateProxy)
     }));
-    v3.currentScenarioId = config.currentScenarioId || v3.scenarios[0]?.id || 'default';
+    v4.currentScenarioId = config.currentScenarioId || v4.scenarios[0]?.id || 'default';
+  } else if (config.scenarios && Array.isArray(config.scenarios)) {
+    v4.scenarios = config.scenarios.map(s => ({
+      id: s.id || ('scenario_' + Date.now() + Math.random().toString(36).substr(2, 9)),
+      name: s.name || I18n.t('scenario_default'),
+      proxies: (s.proxies || []).map(migrateProxy)
+    }));
+    v4.currentScenarioId = config.currentScenarioId || v4.scenarios[0]?.id || 'default';
   } else if (config.list && Array.isArray(config.list)) {
-    v3.scenarios = [{
+    v4.scenarios = [{
       id: 'default',
       name: I18n.t('scenario_default'),
       proxies: config.list.map(migrateProxy)
     }];
-    v3.currentScenarioId = 'default';
+    v4.currentScenarioId = 'default';
   } else if (config.proxies && Array.isArray(config.proxies)) {
-    v3.scenarios = [{
+    v4.scenarios = [{
       id: 'default',
       name: I18n.t('scenario_default'),
       proxies: config.proxies.map(migrateProxy)
     }];
-    v3.currentScenarioId = 'default';
+    v4.currentScenarioId = 'default';
   } else if (Array.isArray(config)) {
-    v3.scenarios = [{
+    v4.scenarios = [{
       id: 'default',
       name: I18n.t('scenario_default'),
       proxies: config.map(migrateProxy)
     }];
-    v3.currentScenarioId = 'default';
+    v4.currentScenarioId = 'default';
   } else {
-    v3.scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: [] }];
-    v3.currentScenarioId = 'default';
+    v4.scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: [] }];
+    v4.currentScenarioId = 'default';
   }
 
-  if (!v3.scenarios.find(s => s.id === v3.currentScenarioId)) {
-    v3.currentScenarioId = v3.scenarios[0]?.id || 'default';
+  if (!v4.scenarios.find(s => s.id === v4.currentScenarioId)) {
+    v4.currentScenarioId = v4.scenarios[0]?.id || 'default';
   }
 
   const sourceSystem = config.system || {};
@@ -89,43 +166,43 @@ function migrateConfig(config) {
     if (val !== undefined) targetObj[targetKey] = val;
   };
 
-  applyIf(sourceSettings.appLanguage, v3.system, 'appLanguage');
-  applyIf(sourceSettings.themeMode, v3.system, 'themeMode');
-  applyIf(sourceSettings.nightModeStart, v3.system, 'nightModeStart');
-  applyIf(sourceSettings.nightModeEnd, v3.system, 'nightModeEnd');
+  applyIf(sourceSettings.appLanguage, v4.system, 'appLanguage');
+  applyIf(sourceSettings.themeMode, v4.system, 'themeMode');
+  applyIf(sourceSettings.nightModeStart, v4.system, 'nightModeStart');
+  applyIf(sourceSettings.nightModeEnd, v4.system, 'nightModeEnd');
 
-  applyIf(config.appLanguage, v3.system, 'appLanguage');
-  applyIf(config.auto_sync, v3.system, 'auto_sync');
+  applyIf(config.appLanguage, v4.system, 'appLanguage');
+  applyIf(config.auto_sync, v4.system, 'auto_sync');
 
   if (config.themeSettings) {
-    applyIf(config.themeSettings.mode, v3.system, 'themeMode');
-    applyIf(config.themeSettings.startTime, v3.system, 'nightModeStart');
-    applyIf(config.themeSettings.endTime, v3.system, 'nightModeEnd');
+    applyIf(config.themeSettings.mode, v4.system, 'themeMode');
+    applyIf(config.themeSettings.startTime, v4.system, 'nightModeStart');
+    applyIf(config.themeSettings.endTime, v4.system, 'nightModeEnd');
   }
 
   if (config.sync_config) {
-    if (config.sync_config.type) v3.system.sync.type = config.sync_config.type;
-    if (config.sync_config.gist) v3.system.sync.gist = { ...v3.system.sync.gist, ...config.sync_config.gist };
+    if (config.sync_config.type) v4.system.sync.type = config.sync_config.type;
+    if (config.sync_config.gist) v4.system.sync.gist = { ...v4.system.sync.gist, ...config.sync_config.gist };
   }
 
-  applyIf(sourceSystem.appLanguage, v3.system, 'appLanguage');
-  applyIf(sourceSystem.themeMode, v3.system, 'themeMode');
-  applyIf(sourceSystem.nightModeStart, v3.system, 'nightModeStart');
-  applyIf(sourceSystem.nightModeEnd, v3.system, 'nightModeEnd');
+  applyIf(sourceSystem.appLanguage, v4.system, 'appLanguage');
+  applyIf(sourceSystem.themeMode, v4.system, 'themeMode');
+  applyIf(sourceSystem.nightModeStart, v4.system, 'nightModeStart');
+  applyIf(sourceSystem.nightModeEnd, v4.system, 'nightModeEnd');
 
   if (sourceSystem.sync) {
-    if (sourceSystem.sync.type) v3.system.sync.type = sourceSystem.sync.type;
-    if (sourceSystem.sync.gist) v3.system.sync.gist = { ...v3.system.sync.gist, ...sourceSystem.sync.gist };
+    if (sourceSystem.sync.type) v4.system.sync.type = sourceSystem.sync.type;
+    if (sourceSystem.sync.gist) v4.system.sync.gist = { ...v4.system.sync.gist, ...sourceSystem.sync.gist };
   }
 
   if (sourceSystem.settings) {
-    applyIf(sourceSystem.settings.appLanguage, v3.system, 'appLanguage');
-    applyIf(sourceSystem.settings.themeMode, v3.system, 'themeMode');
-    applyIf(sourceSystem.settings.nightModeStart, v3.system, 'nightModeStart');
-    applyIf(sourceSystem.settings.nightModeEnd, v3.system, 'nightModeEnd');
+    applyIf(sourceSystem.settings.appLanguage, v4.system, 'appLanguage');
+    applyIf(sourceSystem.settings.themeMode, v4.system, 'themeMode');
+    applyIf(sourceSystem.settings.nightModeStart, v4.system, 'nightModeStart');
+    applyIf(sourceSystem.settings.nightModeEnd, v4.system, 'nightModeEnd');
   }
 
-  return v3;
+  return v4;
 }
 
 // ==========================================
@@ -181,6 +258,31 @@ function buildConfigData() {
           newP[k] = p[k];
         }
       });
+
+      if (newP.subscription) {
+        const lists = {};
+        Object.keys(newP.subscription.lists || {}).forEach(key => {
+          const item = newP.subscription.lists[key];
+          lists[key] = {
+            url: item.url || '',
+            content: item.content || '',
+            reverse: item.reverse || false,
+            refreshInterval: item.refreshInterval || 0,
+            lastFetchTime: item.lastFetchTime || null
+          };
+        });
+
+        if (Object.keys(lists).length > 0) {
+          newP.subscription = {
+            enabled: newP.subscription.enabled !== false,
+            current: newP.subscription.current,
+            lists: lists
+          };
+        } else {
+          delete newP.subscription;
+        }
+      }
+
       return newP;
     });
   };
@@ -191,7 +293,7 @@ function buildConfigData() {
   }));
 
   return {
-    version: 3,
+    version: 4,
     system: {
       appLanguage: I18n.getCurrentLanguage(),
       themeMode: currentThemeMode,

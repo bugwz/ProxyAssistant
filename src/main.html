@@ -8,6 +8,7 @@
   <link rel="shortcut icon" type="image/png" href="./images/icon-128.png">
   <link href="./css/eye-button.css" rel="stylesheet">
   <link href="./css/main.css" rel="stylesheet">
+  <link href="./css/tabs.css" rel="stylesheet">
   <link href="./css/theme.css" rel="stylesheet">
 </head>
 
@@ -498,10 +499,155 @@
                     </button>
                 </div>
             </div>
-        </div>
-     </div>
+    </div>
+  </div>
 
-    <!-- PAC Details -->
+  <!-- Subscription Config Modal -->
+  <div class="subscription-config-tip">
+    <div class="subscription-config-box">
+      <div class="subscription-config-header">
+        <span data-i18n="subscription_config_title">订阅设置</span>
+        <div class="subscription-config-header-actions">
+          <div class="subscription-enabled-toggle">
+            <label class="switch-modern">
+              <input type="checkbox" id="subscription-enabled" checked>
+              <span class="slider-modern"></span>
+            </label>
+          </div>
+          <div class="header-divider"></div>
+          <div class="subscription-config-close-btn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+          </div>
+        </div>
+      </div>
+      <div class="subscription-config-content">
+        <div class="subscription-form-wrapper" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px;">
+          <!-- Row 1: URL -->
+          <div class="form-item full-width">
+            <label data-i18n="subscription_url">订阅地址</label>
+            <input type="text" id="subscription-url" placeholder="https://example.com/subscription.ini" style="width: 100%; box-sizing: border-box; height: 38px;">
+          </div>
+
+          <!-- Row 2 -->
+          <div style="display: flex; gap: 15px; align-items: flex-end;">
+            <!-- 30% -->
+            <div class="form-item" style="flex: 3;">
+              <label data-i18n="subscription_format">订阅格式</label>
+              <div class="lh-select subscription-format-selector" data-type="subscription_format" style="width: 100%;">
+                <div class="lh-select-k">
+                  <span class="lh-select-value">PAC</span>
+                  <span class="iconfont"></span>
+                </div>
+                <ul class="lh-select-op">
+                  <li data-value="pac">PAC</li>
+                  <li data-value="autoproxy">AutoProxy</li>
+                  <li data-value="switchy_legacy">Switchy Legacy</li>
+                  <li data-value="switchy_omega">Switchy Omega</li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- 30% Reverse Rule -->
+            <div class="form-item" style="flex: 3;">
+              <label>
+                <span data-i18n="reverse_rule">反转规则</span>
+                <span class="info-icon" data-i18n-tooltip="reverse_rule_tooltip" data-tooltip="应用订阅文件时，反转其匹配和绕过的规则。">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                </span>
+              </label>
+              <div class="lh-select subscription-reverse-selector" data-type="reverse_rule" style="width: 100%;">
+                <div class="lh-select-k">
+                  <span class="lh-select-value" data-value="false" data-i18n="no">否</span>
+                  <span class="iconfont"></span>
+                </div>
+                <ul class="lh-select-op">
+                  <li data-value="false" data-i18n="no">否</li>
+                  <li data-value="true" data-i18n="yes">是</li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- 30% -->
+            <div class="form-item" style="flex: 3;">
+              <label data-i18n="subscription_refresh_method">更新间隔</label>
+              <div class="lh-select subscription-refresh-selector" data-type="refresh_interval" style="width: 100%;">
+                <div class="lh-select-k">
+                  <span class="lh-select-value" data-value="0">不自动更新</span>
+                  <span class="iconfont"></span>
+                </div>
+                <ul class="lh-select-op">
+                  <li data-value="0">不自动更新</li>
+                  <li data-value="360">6小时</li>
+                  <li data-value="720">12小时</li>
+                  <li data-value="1440">1天</li>
+                  <li data-value="7200">5天</li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- 10% -->
+            <div style="flex: 1;">
+               <button class="control-btn" id="fetch-subscription-btn" style="width: 100%; justify-content: center; height: 38px;">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="subscription-content-section">
+          <div class="subscription-content-box full-width">
+            <div class="subscription-tabs-container">
+              <div class="subscription-tabs">
+                <div class="subscription-tab active" data-tab="original" data-i18n="subscription_content_original">原始内容</div>
+                <div class="subscription-tab" data-tab="decoded" data-i18n="subscription_content_decoded" style="display:none">解码后内容</div>
+                <div class="subscription-tab" data-tab="unused" data-i18n="subscription_content_unused">不使用代理的地址</div>
+                <div class="subscription-tab" data-tab="used" data-i18n="subscription_content_used">使用代理的地址</div>
+              </div>
+              <div class="subscription-tab-contents">
+                <div class="subscription-tab-pane active" id="tab-pane-original">
+                  <textarea id="subscription-raw-content" readonly placeholder="" spellcheck="false"></textarea>
+                  <div class="subscription-empty-state" id="subscription-raw-empty" style="display: none;">
+                    <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor">
+                      <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/>
+                    </svg>
+                    <span data-i18n="subscription_empty_content">暂无内容</span>
+                  </div>
+                </div>
+                <div class="subscription-tab-pane" id="tab-pane-decoded">
+                  <textarea id="subscription-decoded-content" readonly placeholder="" spellcheck="false"></textarea>
+                </div>
+                <div class="subscription-tab-pane" id="tab-pane-used">
+                  <textarea id="subscription-used-content" readonly placeholder="" spellcheck="false"></textarea>
+                </div>
+                <div class="subscription-tab-pane" id="tab-pane-unused">
+                  <textarea id="subscription-unused-content" readonly placeholder="" spellcheck="false"></textarea>
+                </div>
+              </div>
+              <div class="subscription-footer-bar" id="subscription-footer-bar">
+                <span id="subscription-last-updated">-</span>
+                <span class="subscription-footer-right">
+                  <span id="subscription-lines">0</span> <span data-i18n="lines">行</span>
+                  <span class="subscription-footer-separator">|</span>
+                  <span id="subscription-size">0 B</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="subscription-config-footer">
+        <button class="btn-test" id="test-subscription-btn">
+          <span data-i18n="reset">重置</span>
+        </button>
+        <button class="btn-save" id="save-subscription-btn">
+          <span data-i18n="save_config">保存</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+   <!-- PAC Details -->
    <div class="pac-details-tip">
        <div class="pac-details-box">
             <div class="pac-details-header">
@@ -518,34 +664,17 @@
                            <span class="pac-info-label" data-i18n="pac_mode">模式</span>
                            <span class="pac-info-value" id="pac-mode-value">自动</span>
                        </div>
-                       <div class="pac-info-row">
-                           <span class="pac-info-label" data-i18n="pac_generated">生成时间</span>
-                           <span class="pac-info-value" id="pac-generated-time">-</span>
-                       </div>
-                       <div class="pac-info-row">
-                           <span class="pac-info-label" data-i18n="pac_rules_count">规则数量</span>
-                           <span class="pac-info-value" id="pac-rules-count">0</span>
-                       </div>
-                   </div>
-                   <!-- Rules List -->
-                   <div class="pac-rules-section">
-                       <div class="pac-rules-title" data-i18n="pac_rules_title">代理规则</div>
-                       <div class="pac-rules-table">
-                           <div class="pac-rules-header">
-                               <span class="pac-rules-header-pattern" data-i18n="pac_rule_pattern">匹配规则</span>
-                               <span class="pac-rules-header-proxy" data-i18n="pac_rule_proxy">代理服务器</span>
-                           </div>
-                           <div class="pac-rules-list" id="pac-rules-list">
-                               <!-- Dynamically inserted rules -->
-                           </div>
-                       </div>
-                   </div>
-                   <!-- Full Script -->
+                        <div class="pac-info-row">
+                            <span class="pac-info-label" data-i18n="pac_generated">生成时间</span>
+                            <span class="pac-info-value" id="pac-generated-time">-</span>
+                        </div>
+                    </div>
+                    <!-- Full Script -->
                    <div class="pac-script-section">
                        <div class="pac-script-header">
                            <span data-i18n="pac_full_script">完整脚本</span>
                            <div class="pac-script-actions">
-                               <button class="pac-script-toggle-btn" id="pac-toggle-btn">
+                                <button class="pac-script-toggle-btn expanded" id="pac-toggle-btn">
                                    <svg class="pac-toggle-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
                                </button>
                                <button class="pac-script-copy-btn" id="pac-copy-btn">
@@ -553,9 +682,12 @@
                                </button>
                            </div>
                        </div>
-                   <div class="pac-script-wrapper collapsed" id="pac-script-wrapper">
-                       <pre class="pac-script-content" id="pac-script-content"></pre>
-                   </div>
+                     <div class="pac-script-wrapper" id="pac-script-wrapper">
+                        <pre class="pac-script-content" id="pac-script-content"></pre>
+                        <div class="pac-rules-count-info" id="pac-rules-count-info">
+                            <span id="pac-rules-count-text"></span><span id="pac-rules-count-value">0</span>
+                        </div>
+                    </div>
                 </div>
             </div>
        </div>
@@ -574,6 +706,7 @@
   <script src="./js/version.js"></script>
   <script src="./js/scenarios.js"></script>
   <script src="./js/proxy.js"></script>
+  <script src="./js/subscription.js"></script>
   <script src="./js/main.js"></script>
 
 </html>
