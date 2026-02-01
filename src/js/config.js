@@ -93,8 +93,8 @@ function migrateConfig(config) {
       port: p.port || "",
       username: p.username || "",
       password: p.password || "",
-      bypassUrls: p.bypass_urls || p.bypassUrls || "",
-      includeUrls: p.include_urls || p.includeUrls || "",
+      bypass_urls: p.bypass_urls || "",
+      include_urls: p.include_urls || "",
       fallback_policy: p.fallback_policy || "direct",
       subscription: subscription
     };
@@ -227,7 +227,7 @@ function buildConfigData() {
 
   const orderedKeys = [
     'enabled', 'name', 'protocol', 'ip', 'port', 'username', 'password',
-    'bypassUrls', 'includeUrls', 'fallbackPolicy'
+    'bypass_urls', 'include_urls', 'fallback_policy'
   ];
 
   const excludedKeys = ['show_password', 'open', 'disabled'];
