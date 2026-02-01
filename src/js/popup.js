@@ -191,9 +191,13 @@ function bindGlobalEvents() {
 // Storage change listener for real-time updates
 chrome.storage.onChanged.addListener(function (changes, namespace) {
   if (namespace === 'local') {
-    if (changes.proxyMode || changes.currentProxy) {
-      // Update status display when storage changes
+    if (changes.proxyMode) {
       refreshProxyStatus();
+    }
+    if (changes.currentProxy) {
+      refreshProxyStatus();
+      updateBypassButton();
+      updateCurrentSiteDisplay();
     }
     if (changes.list) {
       // Reload list if it changes (e.g. sync or scenario switch from main page)
@@ -880,23 +884,65 @@ function updateBypassButton() {
           return;
         }
 
+        // Check subscription bypass rules
+        const subscription = currentProxy.subscription || {};
+        const format = subscription.current || 'autoproxy';
+        const subConfig = subscription.lists ? subscription.lists[format] : null;
+        const subBypassRules = subConfig ? subConfig.bypassRules || '' : '';
+
         // Check if already in bypass list (using exact match for toggle)
         const bypassUrls = currentProxy.bypass_urls || '';
         const isExactBypassed = isExactMatchBypassed(bypassUrls, hostname);
 
+        // Check subscription rule match (using fuzzy match logic)
+        let isSubBypassed = false;
+        if (subBypassRules) {
+          isSubBypassed = checkIfBypassed(subBypassRules, hostname);
+        }
+
+        // Check custom fuzzy match (non-exact, non-subscription)
+        let isCustomFypassed = false;
+        if (bypassUrls && !isExactBypassed) {
+          isCustomFypassed = checkIfBypassed(bypassUrls, hostname) && !isSubBypassed;
+        }
+
+        // Update button state based on match result
         if (isExactBypassed) {
-          // Show as bypassed, clickable to remove - display "use proxy" text
+          // Exact match: clickable to remove bypass - show "use proxy" text
           $bypassBtn
             .text(I18n.t('use_proxy'))
             .attr('data-i18n', 'use_proxy')
-            .removeClass('btn-bypass-proxy btn-use-proxy')
-            .addClass('btn-use-proxy');
+            .removeClass('btn-bypass-proxy btn-use-proxy btn-disabled')
+            .addClass('btn-use-proxy')
+            .prop('disabled', false)
+            .prop('title', '');
+        } else if (isSubBypassed) {
+          // Subscription rule match: not clickable, show "bypass" text with tooltip
+          $bypassBtn
+            .text(I18n.t('use_proxy'))
+            .attr('data-i18n', 'use_proxy')
+            .removeClass('btn-bypass-proxy btn-use-proxy btn-disabled')
+            .addClass('btn-use-proxy btn-disabled')
+            .prop('disabled', true)
+            .prop('title', I18n.t('subscription_match_tooltip') || '命中订阅规则，无法变更');
+        } else if (isCustomFypassed) {
+          // Custom fuzzy match: not clickable, show "bypass" text with tooltip
+          $bypassBtn
+            .text(I18n.t('use_proxy'))
+            .attr('data-i18n', 'use_proxy')
+            .removeClass('btn-bypass-proxy btn-use-proxy btn-disabled')
+            .addClass('btn-use-proxy btn-disabled')
+            .prop('disabled', true)
+            .prop('title', I18n.t('fuzzy_match_tooltip') || '命中模糊匹配，无法变更');
         } else {
+          // No match: clickable to add bypass - show "bypass" text
           $bypassBtn
             .text(I18n.t('bypass_proxy'))
             .attr('data-i18n', 'bypass_proxy')
-            .removeClass('btn-bypass-proxy btn-use-proxy')
-            .addClass('btn-bypass-proxy');
+            .removeClass('btn-bypass-proxy btn-use-proxy btn-disabled')
+            .addClass('btn-bypass-proxy')
+            .prop('disabled', false)
+            .prop('title', '');
         }
 
         $bypassBtn.show();
@@ -919,17 +965,34 @@ function isExactMatchBypassed(bypassUrls, hostname) {
 function checkIfBypassed(bypassUrls, hostname) {
   if (!bypassUrls) return false;
   const patterns = bypassUrls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+
+  function isIpPattern(pattern) {
+    const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
+    return ipv4Pattern.test(pattern);
+  }
+
+  function isInCidrRange(ip, cidr) {
+    const [range, bits] = cidr.split('/');
+    const mask = ~(2 ** (32 - parseInt(bits)) - 1);
+    const ipNum = ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+    const rangeNum = range.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+    return (ipNum & mask) === (rangeNum & mask);
+  }
+
   for (const pattern of patterns) {
-    // Exact match or subdomain match
-    if (pattern === hostname || hostname.endsWith('.' + pattern)) {
-      return true;
-    }
-    // Wildcard match
     if (pattern.includes('*')) {
       const regexStr = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
       if (new RegExp(`^${regexStr}$`).test(hostname)) {
         return true;
       }
+    } else if (isIpPattern(pattern)) {
+      if (pattern.includes('/')) {
+        if (isInCidrRange(hostname, pattern)) return true;
+      } else {
+        if (hostname === pattern) return true;
+      }
+    } else if (pattern === hostname || hostname.endsWith('.' + pattern)) {
+      return true;
     }
   }
   return false;
@@ -998,6 +1061,10 @@ function handleAddToBypass(hostname, $btn) {
         }
       });
 
+      // Update button status immediately
+      updateBypassButton();
+      updateCurrentSiteDisplay();
+
       // Update button status - show as bypassed (use proxy)
       $btn.text(I18n.t('use_proxy'))
         .removeClass('btn-processing btn-bypass-proxy')
@@ -1036,14 +1103,30 @@ function handleRemoveFromBypass(hostname, $btn) {
       return;
     }
 
-    // Remove hostname from bypass_urls using exact match
     const bypassUrls = proxy.bypass_urls;
     const patterns = bypassUrls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
 
-    // Filter out the exact hostname match
-    const filteredPatterns = patterns.filter(pattern => pattern !== hostname);
+    function isIpPattern(pattern) {
+      const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
+      return ipv4Pattern.test(pattern);
+    }
 
-    // Reconstruct bypass_urls string
+    function isInCidrRange(ip, cidr) {
+      const [range, bits] = cidr.split('/');
+      const mask = ~(2 ** (32 - parseInt(bits)) - 1);
+      const ipNum = ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+      const rangeNum = range.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+      return (ipNum & mask) === (rangeNum & mask);
+    }
+
+    const filteredPatterns = patterns.filter(pattern => {
+      if (pattern === hostname) return false;
+      if (isIpPattern(pattern) && pattern.includes('/')) {
+        if (isInCidrRange(hostname, pattern)) return false;
+      }
+      return true;
+    });
+
     proxy.bypass_urls = filteredPatterns.join('\n');
 
     // Update corresponding proxy in list
@@ -1070,6 +1153,10 @@ function handleRemoveFromBypass(hostname, $btn) {
           console.log('Error sending refreshProxy:', chrome.runtime.lastError);
         }
       });
+
+      // Update button status immediately
+      updateBypassButton();
+      updateCurrentSiteDisplay();
 
       // Update button status - show as not bypassed (bypass site)
       $btn.text(I18n.t('bypass_proxy'))
