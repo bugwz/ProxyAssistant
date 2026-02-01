@@ -315,9 +315,9 @@ const ProxyModule = (function () {
                      <button class="right-panel-btn btn-move move-proxy-btn" data-index="${i}" title="${I18n.t('move_proxy_title')}" tabindex="-1">
                           ${I18n.t('move_proxy')}
                      </button>
-                     <button class="right-panel-btn btn-subscription subscription-btn" data-index="${i}" title="${I18n.t('subscription_config_title')}" tabindex="-1">
-                          <span data-i18n="subscription_config_title">订阅</span>
-                     </button>
+                      <button class="right-panel-btn btn-subscription subscription-btn" data-index="${i}" title="${I18n.t('subscription_config_title')}" tabindex="-1">
+                           ${I18n.t('subscription_btn')}
+                      </button>
                      <div class="test-result-display test-result" data-index="${i}"></div>
                      <button class="right-panel-btn btn-save item-save-btn" data-index="${i}" tabindex="${i * 100 + 10}">
                           ${I18n.t('save')}
