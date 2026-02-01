@@ -7,7 +7,42 @@ let nightModeStart = '22:00';
 let nightModeEnd = '06:00';
 let themeInterval = null;
 
+function loadThemeSettings() {
+  chrome.storage.local.get(['themeSettings', 'config'], function (result) {
+    const themeSettings = result.themeSettings;
+    const config = result.config;
+
+    if (themeSettings) {
+      if (themeSettings.mode) {
+        themeMode = themeSettings.mode;
+      }
+      if (themeSettings.startTime) {
+        nightModeStart = themeSettings.startTime;
+      }
+      if (themeSettings.endTime) {
+        nightModeEnd = themeSettings.endTime;
+      }
+    }
+
+    if (config && config.system) {
+      if (config.system.theme_mode && !themeSettings?.mode) {
+        themeMode = config.system.theme_mode;
+      }
+      if (config.system.night_mode_start && !themeSettings?.startTime) {
+        nightModeStart = config.system.night_mode_start;
+      }
+      if (config.system.night_mode_end && !themeSettings?.endTime) {
+        nightModeEnd = config.system.night_mode_end;
+      }
+    }
+
+    updateThemeUI();
+  });
+}
+
 function initTheme() {
+  loadThemeSettings();
+
   $('.theme-btn').on('click', function () {
     const mode = $(this).data('theme');
     $('.theme-btn').removeClass('active');
@@ -106,6 +141,17 @@ function saveThemeSettings() {
   };
 
   chrome.storage.local.set({ themeSettings: themeSettings });
+
+  chrome.storage.local.get(['config'], function (result) {
+    const config = result.config || {};
+    if (!config.system) {
+      config.system = {};
+    }
+    config.system.theme_mode = themeMode;
+    config.system.night_mode_start = nightModeStart;
+    config.system.night_mode_end = nightModeEnd;
+    chrome.storage.local.set({ config: config });
+  });
 }
 
 // Export for use

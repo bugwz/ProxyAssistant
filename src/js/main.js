@@ -65,20 +65,17 @@ function initApp() {
 function loadSettings() {
   const config = StorageModule.getConfig();
 
-  // Apply system settings
+  // Apply system settings (only if not already loaded by modules)
   if (config.system) {
-    // Language settings
-    if (config.system.app_language) {
+    // Language settings - only apply if I18n current language matches storage
+    if (config.system.app_language && I18n.getCurrentLanguage() !== config.system.app_language) {
       I18n.setLanguage(config.system.app_language);
-      const langName = $(`#language-options li[data-value="${config.system.app_language}"]`).text();
-      if (langName) $('#current-language-display').text(langName);
     }
+    const langName = $(`#language-options li[data-value="${config.system.app_language || I18n.getCurrentLanguage()}"]`).text();
+    if (langName) $('#current-language-display').text(langName);
 
-    // Theme settings
-    if (config.system.theme_mode) {
-      ThemeModule.setThemeMode(config.system.theme_mode);
-    }
-
+    // Theme settings - ThemeModule.loadThemeSettings() handles this in initTheme()
+    // We only set night mode times here if not already set
     const nightTimes = config.system.night_mode_start ? {
       start: config.system.night_mode_start,
       end: config.system.night_mode_end || '06:00'
@@ -98,8 +95,7 @@ function loadSettings() {
   SubscriptionModule.parseProxyListSubscriptions(list);
   ProxyModule.setList(list);
 
-  // Update UI
-  ThemeModule.updateThemeUI();
+  // Update UI (but don't re-init theme UI since ThemeModule.initTheme() already did it)
   SyncModule.updateSyncUI();
   ProxyModule.renderList();
   ScenariosModule.renderScenarioSelector();
