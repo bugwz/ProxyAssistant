@@ -23,7 +23,7 @@ const ProxyModule = (function () {
   function addProxy() {
     list.push({
       enabled: true, name: "", protocol: "http", ip: "", port: "",
-      username: "", password: "", bypassUrls: "", includeUrls: "",
+      username: "", password: "", bypass_urls: "", include_urls: "",
       fallbackPolicy: "direct", is_new: true, show_password: false,
     });
     return list.length - 1;
@@ -65,6 +65,7 @@ const ProxyModule = (function () {
 
       if (!options.silent) {
         UtilsModule.showTip(options.successMsg || I18n.t('save_success'), false);
+        renderList();
       }
       chrome.runtime.sendMessage({ action: "refreshProxy" });
 
@@ -173,8 +174,8 @@ const ProxyModule = (function () {
 
       let subscriptionBadgeBypass = '';
       let subscriptionBadgeInclude = '';
-      const bypassLines = info.bypassUrls ? info.bypassUrls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
-      const includeLines = info.includeUrls ? info.includeUrls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
+      const bypassLines = info.bypass_urls ? info.bypass_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
+      const includeLines = info.include_urls ? info.include_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
 
       subscriptionBadgeBypass = `<span class="subscription-badge">${bypassLines}</span>`;
       subscriptionBadgeInclude = `<span class="subscription-badge">${includeLines}</span>`;
@@ -293,7 +294,7 @@ const ProxyModule = (function () {
                                      ${subscriptionBadgeBypass}
                                  </div>
                              </div>
-                              <textarea data-index="${i}" class="bypassUrls" placeholder="${I18n.t('bypass_urls_placeholder')}" tabindex="${i * 100 + 8}">${UtilsModule.escapeHtml(info.bypassUrls || info.bypass_urls || "")}</textarea>
+                              <textarea data-index="${i}" class="bypass_urls" placeholder="${I18n.t('bypass_urls_placeholder')}" tabindex="${i * 100 + 8}">${UtilsModule.escapeHtml(info.bypass_urls || "")}</textarea>
                          </div>
                          <div class="form-item">
                              <div class="url-config-header">
@@ -302,7 +303,7 @@ const ProxyModule = (function () {
                                      ${subscriptionBadgeInclude}
                                  </div>
                              </div>
-                              <textarea data-index="${i}" class="includeUrls" placeholder="${I18n.t('include_urls_placeholder')}" tabindex="${i * 100 + 9}">${UtilsModule.escapeHtml(info.includeUrls || info.include_urls || "")}</textarea>
+                              <textarea data-index="${i}" class="include_urls" placeholder="${I18n.t('include_urls_placeholder')}" tabindex="${i * 100 + 9}">${UtilsModule.escapeHtml(info.include_urls || "")}</textarea>
                          </div>
                      </div>
                 </div>
@@ -354,8 +355,8 @@ const ProxyModule = (function () {
       const info = list[index];
       if (!info) return;
 
-      const bypassLines = info.bypassUrls ? info.bypassUrls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
-      const includeLines = info.includeUrls ? info.includeUrls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
+      const bypassLines = info.bypass_urls ? info.bypass_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
+      const includeLines = info.include_urls ? info.include_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
       const $parent = $badge.parent();
 
       let existingPlainBadge = $parent.find(".subscription-badge:not(.subscription-lines-badge)");
