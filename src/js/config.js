@@ -42,32 +42,18 @@ function migrateConfig(config) {
       FORMATS.forEach(f => {
         if (sourceLists[f]) {
           const item = sourceLists[f];
-          const listItem = {
+          lists[f] = {
             url: item.url || '',
             content: item.content || '',
-            reverse: item.reverse || false,
+            decodedContent: item.decodedContent || item.decodedContent || '',
+            includeRules: item.includeRules || '',
+            bypassRules: item.bypassRules || '',
+            includeLines: item.includeLines || 0,
+            bypassLines: item.bypassLines || 0,
             refreshInterval: item.refreshInterval || 0,
+            reverse: item.reverse || false,
             lastFetchTime: item.lastFetchTime || null
           };
-
-          if (item.decodedContent !== undefined || item.usedContent !== undefined ||
-            item.unusedContent !== undefined || item.usedLines !== undefined ||
-            item.unusedLines !== undefined) {
-            listItem.decodedContent = item.decodedContent || '';
-            listItem.usedContent = item.usedContent || '';
-            listItem.unusedContent = item.unusedContent || '';
-            listItem.usedLines = item.usedLines || 0;
-            listItem.unusedLines = item.unusedLines || 0;
-          } else if (item.content) {
-            const stats = SubscriptionModule.generateSubscriptionStats(item.content, f, item.reverse || false);
-            listItem.decodedContent = stats.decodedContent;
-            listItem.usedContent = stats.usedContent;
-            listItem.unusedContent = stats.unusedContent;
-            listItem.usedLines = stats.usedLines;
-            listItem.unusedLines = stats.unusedLines;
-          }
-
-          lists[f] = listItem;
         }
       });
 
@@ -107,20 +93,31 @@ function migrateConfig(config) {
       port: p.port || "",
       username: p.username || "",
       password: p.password || "",
-      bypass_urls: p.bypass_urls || "",
-      include_urls: p.include_urls || "",
+      bypassUrls: p.bypass_urls || p.bypassUrls || "",
+      includeUrls: p.include_urls || p.includeUrls || "",
       fallback_policy: p.fallback_policy || "direct",
       subscription: subscription
     };
   };
 
   if (config.version === 4) {
-    v4.scenarios = (config.scenarios || []).map(s => ({
-      id: s.id || ('scenario_' + Date.now() + Math.random().toString(36).substr(2, 9)),
-      name: s.name || I18n.t('scenario_default'),
-      proxies: (s.proxies || []).map(migrateProxy)
-    }));
-    v4.currentScenarioId = config.currentScenarioId || v4.scenarios[0]?.id || 'default';
+    if (config.scenarios && typeof config.scenarios === 'object' && !Array.isArray(config.scenarios)) {
+      const newScenarios = config.scenarios;
+      const currentId = newScenarios.current || 'default';
+      v4.scenarios = (newScenarios.lists || []).map(s => ({
+        id: s.id || ('scenario_' + Date.now() + Math.random().toString(36).substr(2, 9)),
+        name: s.name || I18n.t('scenario_default'),
+        proxies: (s.proxies || []).map(migrateProxy)
+      }));
+      v4.currentScenarioId = currentId;
+    } else {
+      v4.scenarios = (config.scenarios || []).map(s => ({
+        id: s.id || ('scenario_' + Date.now() + Math.random().toString(36).substr(2, 9)),
+        name: s.name || I18n.t('scenario_default'),
+        proxies: (s.proxies || []).map(migrateProxy)
+      }));
+      v4.currentScenarioId = config.currentScenarioId || v4.scenarios[0]?.id || 'default';
+    }
   } else if (config.scenarios && Array.isArray(config.scenarios)) {
     v4.scenarios = config.scenarios.map(s => ({
       id: s.id || ('scenario_' + Date.now() + Math.random().toString(36).substr(2, 9)),
@@ -230,7 +227,7 @@ function buildConfigData() {
 
   const orderedKeys = [
     'enabled', 'name', 'protocol', 'ip', 'port', 'username', 'password',
-    'bypass_urls', 'include_urls', 'fallback_policy'
+    'bypassUrls', 'includeUrls', 'fallbackPolicy'
   ];
 
   const excludedKeys = ['show_password', 'open', 'disabled'];
@@ -266,8 +263,8 @@ function buildConfigData() {
           lists[key] = {
             url: item.url || '',
             content: item.content || '',
-            reverse: item.reverse || false,
             refreshInterval: item.refreshInterval || 0,
+            reverse: item.reverse || false,
             lastFetchTime: item.lastFetchTime || null
           };
         });
@@ -301,8 +298,10 @@ function buildConfigData() {
       nightModeEnd: nightTimes.end,
       sync: syncForExport
     },
-    currentScenarioId: currentScenarioId,
-    scenarios: formattedScenarios
+    scenarios: {
+      current: currentScenarioId,
+      lists: formattedScenarios
+    }
   };
 }
 

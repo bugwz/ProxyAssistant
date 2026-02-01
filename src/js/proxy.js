@@ -23,8 +23,8 @@ const ProxyModule = (function () {
   function addProxy() {
     list.push({
       enabled: true, name: "", protocol: "http", ip: "", port: "",
-      username: "", password: "", bypass_urls: "", include_urls: "",
-      fallback_policy: "direct", is_new: true, show_password: false,
+      username: "", password: "", bypassUrls: "", includeUrls: "",
+      fallbackPolicy: "direct", is_new: true, show_password: false,
     });
     return list.length - 1;
   }
@@ -173,8 +173,8 @@ const ProxyModule = (function () {
 
       let subscriptionBadgeBypass = '';
       let subscriptionBadgeInclude = '';
-      const bypassLines = info.bypass_urls ? info.bypass_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
-      const includeLines = info.include_urls ? info.include_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
+      const bypassLines = info.bypassUrls ? info.bypassUrls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
+      const includeLines = info.includeUrls ? info.includeUrls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
 
       subscriptionBadgeBypass = `<span class="subscription-badge">${bypassLines}</span>`;
       subscriptionBadgeInclude = `<span class="subscription-badge">${includeLines}</span>`;
@@ -182,11 +182,11 @@ const ProxyModule = (function () {
       if (info.subscription && info.subscription.enabled !== false) {
         const counts = SubscriptionModule.getSubscriptionLineCounts(info.subscription);
 
-        if (counts.unusedLines > 0) {
-          subscriptionBadgeBypass += `<span class="subscription-badge subscription-lines-badge" data-index="${i}" data-type="bypass" title="额外增加的订阅规则数量">+${counts.unusedLines}</span>`;
+        if (counts.bypassLines > 0) {
+          subscriptionBadgeBypass += `<span class="subscription-badge subscription-lines-badge" data-index="${i}" data-type="bypass" title="额外增加的订阅规则数量">+${counts.bypassLines}</span>`;
         }
-        if (counts.usedLines > 0) {
-          subscriptionBadgeInclude += `<span class="subscription-badge subscription-lines-badge" data-index="${i}" data-type="include" title="额外增加的订阅规则数量">+${counts.usedLines}</span>`;
+        if (counts.includeLines > 0) {
+          subscriptionBadgeInclude += `<span class="subscription-badge subscription-lines-badge" data-index="${i}" data-type="include" title="额外增加的订阅规则数量">+${counts.includeLines}</span>`;
         }
       }
 
@@ -293,7 +293,7 @@ const ProxyModule = (function () {
                                      ${subscriptionBadgeBypass}
                                  </div>
                              </div>
-                             <textarea data-index="${i}" class="bypass_urls" placeholder="${I18n.t('bypass_urls_placeholder')}" tabindex="${i * 100 + 8}">${UtilsModule.escapeHtml(info.bypass_urls || "")}</textarea>
+                              <textarea data-index="${i}" class="bypassUrls" placeholder="${I18n.t('bypass_urls_placeholder')}" tabindex="${i * 100 + 8}">${UtilsModule.escapeHtml(info.bypassUrls || info.bypass_urls || "")}</textarea>
                          </div>
                          <div class="form-item">
                              <div class="url-config-header">
@@ -302,7 +302,7 @@ const ProxyModule = (function () {
                                      ${subscriptionBadgeInclude}
                                  </div>
                              </div>
-                             <textarea data-index="${i}" class="include_urls" placeholder="${I18n.t('include_urls_placeholder')}" tabindex="${i * 100 + 9}">${UtilsModule.escapeHtml(info.include_urls || "")}</textarea>
+                              <textarea data-index="${i}" class="includeUrls" placeholder="${I18n.t('include_urls_placeholder')}" tabindex="${i * 100 + 9}">${UtilsModule.escapeHtml(info.includeUrls || info.include_urls || "")}</textarea>
                          </div>
                      </div>
                 </div>
@@ -354,8 +354,8 @@ const ProxyModule = (function () {
       const info = list[index];
       if (!info) return;
 
-      const bypassLines = info.bypass_urls ? info.bypass_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
-      const includeLines = info.include_urls ? info.include_urls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
+      const bypassLines = info.bypassUrls ? info.bypassUrls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
+      const includeLines = info.includeUrls ? info.includeUrls.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
       const $parent = $badge.parent();
 
       let existingPlainBadge = $parent.find(".subscription-badge:not(.subscription-lines-badge)");
@@ -370,14 +370,14 @@ const ProxyModule = (function () {
         const lineCounts = SubscriptionModule.getSubscriptionLineCounts(info.subscription);
 
         if (type === "bypass") {
-          if (lineCounts.unusedLines > 0) {
-            $badge.text(`+${lineCounts.unusedLines}`).show();
+          if (lineCounts.bypassLines > 0) {
+            $badge.text(`+${lineCounts.bypassLines}`).show();
           } else {
             $badge.hide();
           }
         } else if (type === "include") {
-          if (lineCounts.usedLines > 0) {
-            $badge.text(`+${lineCounts.usedLines}`).show();
+          if (lineCounts.includeLines > 0) {
+            $badge.text(`+${lineCounts.includeLines}`).show();
           } else {
             $badge.hide();
           }

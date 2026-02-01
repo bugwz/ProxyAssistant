@@ -31,10 +31,10 @@ const SubscriptionModule = (function () {
         url: '',
         content: '',
         decodedContent: '',
-        usedContent: '',
-        unusedContent: '',
-        usedLines: 0,
-        unusedLines: 0,
+        includeRules: '',
+        bypassRules: '',
+        includeLines: 0,
+        bypassLines: 0,
         refreshInterval: 0,
         reverse: false,
         lastFetchTime: null
@@ -179,19 +179,19 @@ const SubscriptionModule = (function () {
             subscriptionConfig.lists[f] = {
               ...sourceLists[f],
               decodedContent: sourceLists[f].decodedContent || '',
-              usedContent: sourceLists[f].usedContent || '',
-              unusedContent: sourceLists[f].unusedContent || '',
-              usedLines: sourceLists[f].usedLines || 0,
-              unusedLines: sourceLists[f].unusedLines || 0
+              includeRules: sourceLists[f].includeRules || '',
+              bypassRules: sourceLists[f].bypassRules || '',
+              includeLines: sourceLists[f].includeLines || 0,
+              bypassLines: sourceLists[f].bypassLines || 0
             };
 
-            if (sourceLists[f].content && !sourceLists[f].usedLines && !sourceLists[f].unusedLines) {
+            if (sourceLists[f].content && !sourceLists[f].includeLines && !sourceLists[f].bypassLines) {
               const parsed = parseSubscriptionContent(sourceLists[f].content, f, sourceLists[f].reverse || false);
               subscriptionConfig.lists[f].decodedContent = parsed.decoded || '';
-              subscriptionConfig.lists[f].usedContent = parsed.used || '';
-              subscriptionConfig.lists[f].unusedContent = parsed.unused || '';
-              subscriptionConfig.lists[f].usedLines = parsed.used ? parsed.used.split(/\r\n|\r|\n/).length : 0;
-              subscriptionConfig.lists[f].unusedLines = parsed.unused ? parsed.unused.split(/\r\n|\r|\n/).length : 0;
+              subscriptionConfig.lists[f].includeRules = parsed.includeRules || '';
+              subscriptionConfig.lists[f].bypassRules = parsed.bypassRules || '';
+              subscriptionConfig.lists[f].includeLines = parsed.includeRules ? parsed.includeRules.split(/\r\n|\r|\n/).length : 0;
+              subscriptionConfig.lists[f].bypassLines = parsed.bypassRules ? parsed.bypassRules.split(/\r\n|\r|\n/).length : 0;
             }
           }
         });
@@ -217,10 +217,10 @@ const SubscriptionModule = (function () {
           if (content) {
             const parsed = parseSubscriptionContent(content, fmt, old.reverse || false);
             subscriptionConfig.lists[fmt].decodedContent = parsed.decoded || '';
-            subscriptionConfig.lists[fmt].usedContent = parsed.used || '';
-            subscriptionConfig.lists[fmt].unusedContent = parsed.unused || '';
-            subscriptionConfig.lists[fmt].usedLines = parsed.used ? parsed.used.split(/\r\n|\r|\n/).length : 0;
-            subscriptionConfig.lists[fmt].unusedLines = parsed.unused ? parsed.unused.split(/\r\n|\r|\n/).length : 0;
+            subscriptionConfig.lists[fmt].includeRules = parsed.includeRules || '';
+            subscriptionConfig.lists[fmt].bypassRules = parsed.bypassRules || '';
+            subscriptionConfig.lists[fmt].includeLines = parsed.includeRules ? parsed.includeRules.split(/\r\n|\r|\n/).length : 0;
+            subscriptionConfig.lists[fmt].bypassLines = parsed.bypassRules ? parsed.bypassRules.split(/\r\n|\r|\n/).length : 0;
           }
         }
       }
@@ -316,10 +316,10 @@ const SubscriptionModule = (function () {
 
     if (subscriptionConfig && subscriptionConfig.lists[format]) {
       subscriptionConfig.lists[format].decodedContent = parsed.decoded || '';
-      subscriptionConfig.lists[format].usedContent = parsed.used || '';
-      subscriptionConfig.lists[format].unusedContent = parsed.unused || '';
-      subscriptionConfig.lists[format].usedLines = parsed.used ? parsed.used.split(/\r\n|\r|\n/).length : 0;
-      subscriptionConfig.lists[format].unusedLines = parsed.unused ? parsed.unused.split(/\r\n|\r|\n/).length : 0;
+      subscriptionConfig.lists[format].includeRules = parsed.includeRules || '';
+      subscriptionConfig.lists[format].bypassRules = parsed.bypassRules || '';
+      subscriptionConfig.lists[format].includeLines = parsed.includeRules ? parsed.includeRules.split(/\r\n|\r|\n/).length : 0;
+      subscriptionConfig.lists[format].bypassLines = parsed.bypassRules ? parsed.bypassRules.split(/\r\n|\r|\n/).length : 0;
     }
 
     // Decoded Tab
@@ -335,24 +335,24 @@ const SubscriptionModule = (function () {
       }
     }
 
-    // Used/Unused Tabs - only show if content exists
+    // Include/Bypass Tabs - only show if content exists
     if (content && content.trim()) {
-      $('.subscription-tab[data-tab="used"]').show();
-      $('.subscription-tab[data-tab="unused"]').show();
+      $('.subscription-tab[data-tab="include"]').show();
+      $('.subscription-tab[data-tab="bypass"]').show();
     } else {
-      $('.subscription-tab[data-tab="used"]').hide();
-      $('.subscription-tab[data-tab="unused"]').hide();
-      $('#subscription-used-content').val('');
-      $('#subscription-unused-content').val('');
-      // If currently on used/unused tab, switch to original
+      $('.subscription-tab[data-tab="include"]').hide();
+      $('.subscription-tab[data-tab="bypass"]').hide();
+      $('#subscription-include-content').val('');
+      $('#subscription-bypass-content').val('');
+      // If currently on include/bypass tab, switch to original
       const activeTab = $('.subscription-tab.active').data('tab');
-      if (activeTab === 'used' || activeTab === 'unused') {
+      if (activeTab === 'include' || activeTab === 'bypass') {
         $('.subscription-tab[data-tab="original"]').click();
       }
     }
 
-    $('#subscription-used-content').val(parsed.used || '');
-    $('#subscription-unused-content').val(parsed.unused || '');
+    $('#subscription-include-content').val(parsed.includeRules || '');
+    $('#subscription-bypass-content').val(parsed.bypassRules || '');
 
     const activeTab = $('.subscription-tab.active').data('tab') || 'original';
     const activeContent = $('#tab-pane-' + activeTab + ' textarea').val();
@@ -403,10 +403,10 @@ const SubscriptionModule = (function () {
       url: '',
       content: '',
       decodedContent: '',
-      usedContent: '',
-      unusedContent: '',
-      usedLines: 0,
-      unusedLines: 0,
+      includeRules: '',
+      bypassRules: '',
+      includeLines: 0,
+      bypassLines: 0,
       refreshInterval: 0,
       reverse: false,
       lastFetchTime: null
@@ -416,10 +416,10 @@ const SubscriptionModule = (function () {
 
   function updateSubscriptionParsedData(format, config) {
     if (!config || !config.content) {
-      config.usedContent = '';
-      config.unusedContent = '';
-      config.usedLines = 0;
-      config.unusedLines = 0;
+      config.includeRules = '';
+      config.bypassRules = '';
+      config.includeLines = 0;
+      config.bypassLines = 0;
       return;
     }
 
@@ -427,10 +427,10 @@ const SubscriptionModule = (function () {
     const parsed = parseSubscriptionContent(config.content, format, reverse);
 
     config.decodedContent = parsed.decoded || '';
-    config.usedContent = parsed.used || '';
-    config.unusedContent = parsed.unused || '';
-    config.usedLines = parsed.used ? parsed.used.split(/\r\n|\r|\n/).length : 0;
-    config.unusedLines = parsed.unused ? parsed.unused.split(/\r\n|\r|\n/).length : 0;
+    config.includeRules = parsed.includeRules || '';
+    config.bypassRules = parsed.bypassRules || '';
+    config.includeLines = parsed.includeRules ? parsed.includeRules.split(/\r\n|\r|\n/).length : 0;
+    config.bypassLines = parsed.bypassRules ? parsed.bypassRules.split(/\r\n|\r|\n/).length : 0;
   }
 
   async function fetchSubscription() {
@@ -505,10 +505,10 @@ const SubscriptionModule = (function () {
           url: item.url,
           content: item.content,
           decodedContent: item.decodedContent || '',
-          usedContent: item.usedContent || '',
-          unusedContent: item.unusedContent || '',
-          usedLines: item.usedLines || 0,
-          unusedLines: item.unusedLines || 0,
+          includeRules: item.includeRules || '',
+          bypassRules: item.bypassRules || '',
+          includeLines: item.includeLines || 0,
+          bypassLines: item.bypassLines || 0,
           refreshInterval: item.refreshInterval,
           reverse: item.reverse,
           lastFetchTime: item.lastFetchTime
@@ -748,14 +748,14 @@ const SubscriptionModule = (function () {
 
   function parseSubscriptionContent(content, format, reverse) {
     const result = {
-      used: [],
-      unused: [],
+      includeRules: [],
+      bypassRules: [],
       decoded: null
     };
 
     if (!content) return {
-      used: '',
-      unused: '',
+      includeRules: '',
+      bypassRules: '',
       decoded: null
     };
 
@@ -802,7 +802,7 @@ const SubscriptionModule = (function () {
               pattern = line.substring(1) + '*';
             }
             if (pattern && isValidManualBypassPattern(pattern)) {
-              result.unused.push(pattern);
+              result.bypassRules.push(pattern);
             }
           } else {
             let pattern = line;
@@ -813,7 +813,7 @@ const SubscriptionModule = (function () {
             } else if (line.startsWith('/') && line.endsWith('/')) {
               pattern = line;
             }
-            if (pattern) result.used.push(pattern);
+            if (pattern) result.includeRules.push(pattern);
           }
         } else {
           if (format === 'switchy_omega') {
@@ -853,10 +853,10 @@ const SubscriptionModule = (function () {
             if (pattern) {
               if (isDirectRule) {
                 if (isValidManualBypassPattern(pattern)) {
-                  result.unused.push(pattern);
+                  result.bypassRules.push(pattern);
                 }
               } else {
-                result.used.push(pattern);
+                result.includeRules.push(pattern);
               }
             }
           } else if (format === 'switchy_legacy') {
@@ -893,10 +893,10 @@ const SubscriptionModule = (function () {
             if (pattern) {
               if (isDirectRule) {
                 if (isValidManualBypassPattern(pattern)) {
-                  result.unused.push(pattern);
+                  result.bypassRules.push(pattern);
                 }
               } else {
-                result.used.push(pattern);
+                result.includeRules.push(pattern);
               }
             }
           } else if (format === 'pac') {
@@ -911,7 +911,7 @@ const SubscriptionModule = (function () {
                 }
               }
             }
-            result.used = [...new Set(domains)];
+            result.includeRules = [...new Set(domains)];
           }
         }
       }
@@ -920,77 +920,34 @@ const SubscriptionModule = (function () {
     }
 
     if (reverse) {
-      const temp = result.used;
-      result.used = result.unused || '';
-      result.unused = temp;
+      const temp = result.includeRules;
+      result.includeRules = result.bypassRules || '';
+      result.bypassRules = temp;
     }
 
     return {
-      used: result.used.join('\n'),
-      unused: result.unused.join('\n'),
+      includeRules: result.includeRules.join('\n'),
+      bypassRules: result.bypassRules.join('\n'),
       decoded: result.decoded
     };
   }
 
   function convertContent(content, format) {
-    // When converting content for internal use, we need the reverse flag
-    // But this function signature doesn't support it currently.
-    // Assuming this function is called with config context or we default to false.
-    // Note: This function seems to be used externally, we might need to check call sites.
-    // For now, default reverse to false if not provided, or update signature if possible.
-    // However, looking at the code, convertContent is exported.
-    // If we want to support reverse here, we should add it as an argument.
-    // But wait, the original signature was (content, format).
-    // Let's check usages. It is exported.
     const parsed = parseSubscriptionContent(content, format, false);
-    return parsed.used;
-  }
-
-  function countRuleLines(content, format, reverse) {
-    if (!content) return { used: 0, unused: 0 };
-    const parsed = parseSubscriptionContent(content, format, reverse);
-    const usedLines = parsed.used ? parsed.used.split(/\r\n|\r|\n/).length : 0;
-    const unusedLines = parsed.unused ? parsed.unused.split(/\r\n|\r|\n/).length : 0;
-    return { used: usedLines, unused: unusedLines };
-  }
-
-  function getSubscriptionCounts(subscription) {
-    if (!subscription || !subscription.current || !subscription.lists || !subscription.lists[subscription.current]) {
-      return { used: 0, unused: 0 };
-    }
-    const currentFormat = subscription.current;
-    const config = subscription.lists[currentFormat];
-    if (!config) return { used: 0, unused: 0 };
-
-    return {
-      used: config.usedLines || 0,
-      unused: config.unusedLines || 0
-    };
-  }
-
-  function getCurrentSubscriptionCounts() {
-    if (!subscriptionConfig) return { used: 0, unused: 0 };
-    const format = subscriptionConfig.current;
-    const config = subscriptionConfig.lists[format];
-    if (!config) return { used: 0, unused: 0 };
-
-    return {
-      used: config.usedLines || 0,
-      unused: config.unusedLines || 0
-    };
+    return parsed.includeRules;
   }
 
   function getSubscriptionLineCounts(subscription) {
     if (!subscription || !subscription.current || !subscription.lists || !subscription.lists[subscription.current]) {
-      return { usedLines: 0, unusedLines: 0 };
+      return { includeLines: 0, bypassLines: 0 };
     }
     const currentFormat = subscription.current;
     const config = subscription.lists[currentFormat];
-    if (!config) return { usedLines: 0, unusedLines: 0 };
+    if (!config) return { includeLines: 0, bypassLines: 0 };
 
     return {
-      usedLines: config.usedLines || 0,
-      unusedLines: config.unusedLines || 0
+      includeLines: config.includeLines || 0,
+      bypassLines: config.bypassLines || 0
     };
   }
 
@@ -998,10 +955,10 @@ const SubscriptionModule = (function () {
     if (!content) {
       return {
         decodedContent: '',
-        usedContent: '',
-        unusedContent: '',
-        usedLines: 0,
-        unusedLines: 0
+        includeRules: '',
+        bypassRules: '',
+        includeLines: 0,
+        bypassLines: 0
       };
     }
 
@@ -1009,10 +966,10 @@ const SubscriptionModule = (function () {
 
     return {
       decodedContent: parsed.decoded || '',
-      usedContent: parsed.used || '',
-      unusedContent: parsed.unused || '',
-      usedLines: parsed.used ? parsed.used.split(/\r\n|\r|\n/).length : 0,
-      unusedLines: parsed.unused ? parsed.unused.split(/\r\n|\r|\n/).length : 0
+      includeRules: parsed.includeRules || '',
+      bypassRules: parsed.bypassRules || '',
+      includeLines: parsed.includeRules ? parsed.includeRules.split(/\r\n|\r|\n/).length : 0,
+      bypassLines: parsed.bypassRules ? parsed.bypassRules.split(/\r\n|\r|\n/).length : 0
     };
   }
 
@@ -1022,8 +979,6 @@ const SubscriptionModule = (function () {
     closeModal: closeModal,
     fetchSubscription: fetchSubscription,
     convertContent: convertContent,
-    getCurrentSubscriptionCounts: getCurrentSubscriptionCounts,
-    getSubscriptionCounts: getSubscriptionCounts,
     getSubscriptionLineCounts: getSubscriptionLineCounts,
     generateSubscriptionStats: generateSubscriptionStats,
     parseRules: parseRules
