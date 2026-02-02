@@ -20,10 +20,11 @@ function initApp() {
       return;
     }
 
-    const config = result.config;
+const config = result.config;
     if (!config) {
-      scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: [] }];
-      currentScenarioId = 'default';
+      const defaultId = window.ConfigModule.generateScenarioId();
+      scenarios = [{ id: defaultId, name: I18n.t('scenario_default'), proxies: [] }];
+      currentScenarioId = defaultId;
       list = [];
     } else {
       scenarios = config.scenarios?.lists || [];
@@ -33,8 +34,9 @@ function initApp() {
     }
 
     if (scenarios.length === 0) {
-      scenarios = [{ id: 'default', name: I18n.t('scenario_default'), proxies: [] }];
-      currentScenarioId = 'default';
+      const defaultId = window.ConfigModule.generateScenarioId();
+      scenarios = [{ id: defaultId, name: I18n.t('scenario_default'), proxies: [] }];
+      currentScenarioId = defaultId;
       list = [];
     }
 

@@ -61,6 +61,7 @@ const StorageModule = (function () {
       return window.ConfigModule.getDefaultConfig();
     }
 
+    const defaultId = window.ConfigModule.generateScenarioId();
     return {
       version: 4,
       system: {
@@ -74,9 +75,9 @@ const StorageModule = (function () {
         }
       },
       scenarios: {
-        current: 'default',
+        current: defaultId,
         lists: [{
-          id: 'default',
+          id: defaultId,
           name: 'Default',
           proxies: []
         }]

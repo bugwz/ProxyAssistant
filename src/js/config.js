@@ -8,7 +8,7 @@
 
 const PROXY_STATE_KEYS = ['show_password', 'is_new', 'open', 'disabled'];
 const PROXY_EXPORT_KEYS = [
-  'enabled', 'name', 'protocol', 'ip', 'port', 'username', 'password',
+  'enabled', 'id', 'name', 'protocol', 'ip', 'port', 'username', 'password',
   'bypass_rules', 'include_rules', 'fallback_policy', 'subscription'
 ];
 
@@ -69,6 +69,7 @@ function migrateConfig(config) {
 
     return {
       enabled: enabled,
+      id: p.id || generateProxyId(),
       name: p.name || "",
       protocol: cleanProtocol(p.protocol || p.type),
       ip: p.ip || "",
@@ -88,7 +89,7 @@ function migrateConfig(config) {
     const newScenarios = config.scenarios;
     const currentId = newScenarios.current || 'default';
     v4.scenarios.lists = (newScenarios.lists || []).map(s => ({
-      id: s.id || ('scenario_' + Date.now() + Math.random().toString(36).substr(2, 9)),
+      id: s.id || generateScenarioId(),
       name: s.name || I18n.t('scenario_default'),
       proxies: (s.proxies || []).map(migrateProxy)
     }));
@@ -96,25 +97,25 @@ function migrateConfig(config) {
   } else if (config.scenarios && Array.isArray(config.scenarios)) {
     // Old format: scenarios is array
     v4.scenarios.lists = config.scenarios.map(s => ({
-      id: s.id || ('scenario_' + Date.now() + Math.random().toString(36).substr(2, 9)),
+      id: s.id || generateScenarioId(),
       name: s.name || I18n.t('scenario_default'),
       proxies: (s.proxies || []).map(migrateProxy)
     }));
     v4.scenarios.current = config.currentScenarioId || v4.scenarios.lists[0]?.id || 'default';
   } else if (config.proxies && Array.isArray(config.proxies)) {
     v4.scenarios.lists = [{
-      id: 'default',
+      id: generateScenarioId(),
       name: I18n.t('scenario_default'),
       proxies: config.proxies.map(migrateProxy)
     }];
-    v4.scenarios.current = 'default';
+    v4.scenarios.current = v4.scenarios.lists[0].id;
   } else if (Array.isArray(config)) {
     v4.scenarios.lists = [{
-      id: 'default',
+      id: generateScenarioId(),
       name: I18n.t('scenario_default'),
       proxies: config.map(migrateProxy)
     }];
-    v4.scenarios.current = 'default';
+    v4.scenarios.current = v4.scenarios.lists[0].id;
   }
 
   // Ensure currentScenarioId is valid
@@ -170,6 +171,7 @@ function migrateConfig(config) {
 }
 
 function getDefaultConfig() {
+  const defaultScenarioId = generateScenarioId();
   return {
     version: 4,
     system: {
@@ -183,10 +185,10 @@ function getDefaultConfig() {
       }
     },
     scenarios: {
-      current: 'default',
+      current: defaultScenarioId,
       lists: [{
-        id: 'default',
-        name: typeof I18n !== 'undefined' && I18n.t ? I18n.t('scenario_default') : 'Default Scenario',
+        id: defaultScenarioId,
+        name: I18n.t('scenario_default'),
         proxies: []
       }]
     }
@@ -204,6 +206,18 @@ function normalizeConfig(config) {
   if (!config.system) {
     config.system = getDefaultConfig().system;
   }
+
+  // Ensure all proxies have unique IDs
+  config.scenarios.lists.forEach(scenario => {
+    if (scenario.proxies) {
+      scenario.proxies.forEach(proxy => {
+        if (!proxy.id) {
+          proxy.id = generateProxyId();
+        }
+      });
+    }
+  });
+
   return config;
 }
 
@@ -429,12 +443,26 @@ function cleanProtocol(protocol) {
   return 'http';
 }
 
+function generateId(prefix) {
+  return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 11);
+}
+
+function generateProxyId() {
+  return generateId('proxy_');
+}
+
+function generateScenarioId() {
+  return generateId('scenario_');
+}
+
 window.ConfigModule = {
   migrateConfig,
   buildConfigData,
   exportConfig,
   importConfig,
   getDefaultConfig,
+  generateProxyId,
+  generateScenarioId,
   PROXY_STATE_KEYS,
   PROXY_EXPORT_KEYS
 };

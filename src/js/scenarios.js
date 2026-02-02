@@ -277,7 +277,7 @@ const ScenariosModule = (function () {
       return false;
     }
 
-    const newId = 'scenario_' + Date.now();
+    const newId = window.ConfigModule.generateScenarioId();
     const newScenario = {
       id: newId,
       name: name,
@@ -341,9 +341,10 @@ const ScenariosModule = (function () {
       if (!nextScenario) {
         if (scenarios.length === 1) {
           // Create default scenario
-          const defaultScenario = { id: 'default', name: I18n.t('scenario_default'), proxies: [] };
+          const defaultScenarioId = window.ConfigModule.generateScenarioId();
+          const defaultScenario = { id: defaultScenarioId, name: I18n.t('scenario_default'), proxies: [] };
           setScenarios([defaultScenario]);
-          setCurrentScenarioId('default');
+          setCurrentScenarioId(defaultScenarioId);
           if (typeof onScenarioDelete === 'function') {
             onScenarioDelete(id, true);
           }
