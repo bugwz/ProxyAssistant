@@ -4134,7 +4134,6 @@ input:checked+.slider-modern:before {
   justify-content: flex-end;
   gap: 12px;
   padding-top: 12px;
-  border-top: 1px solid #e2e8f0;
   margin-top: 12px;
   flex-shrink: 0;
 }
