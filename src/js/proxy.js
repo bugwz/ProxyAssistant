@@ -86,7 +86,6 @@ const ProxyModule = (function () {
       StorageModule.save().then(() => {
         if (!options.silent) {
           UtilsModule.showTip(options.successMsg || I18n.t('save_success'), false);
-          renderList();
         }
 
         if ($(".sync-config-tip").hasClass("show") && SyncModule.getSyncConfig().type === 'native') {
@@ -117,7 +116,6 @@ const ProxyModule = (function () {
 
         if (!options.silent) {
           UtilsModule.showTip(options.successMsg || I18n.t('save_success'), false);
-          renderList();
         }
         chrome.runtime.sendMessage({ action: "refreshProxy" });
 
