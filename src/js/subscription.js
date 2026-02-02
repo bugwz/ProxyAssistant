@@ -20,7 +20,7 @@ const SubscriptionModule = (function () {
 
   function getEmptyConfig() {
     const config = {
-      enabled: true,
+      enabled: false,
       current: 'autoproxy',
       lists: {}
     };
