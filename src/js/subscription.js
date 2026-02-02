@@ -744,11 +744,13 @@ const SubscriptionModule = (function () {
       decoded: null
     };
 
-    if (!content) return {
-      include_rules: '',
-      bypass_rules: '',
-      decoded: null
-    };
+    if (!content) {
+      return {
+        include_rules: '',
+        bypass_rules: '',
+        decoded: null
+      };
+    }
 
     try {
       let contentToParse = content;
@@ -768,6 +770,26 @@ const SubscriptionModule = (function () {
       }
 
       const lines = contentToParse.split('\n');
+
+      if (format === 'pac') {
+        const matches = contentToParse.match(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g) || [];
+        const domains = [];
+        for (const match of matches) {
+          let str = match.slice(1, -1);
+          if (str && (str.includes('.') || str.includes('*')) && !str.includes(' ') && str.length > 3) {
+            if (!['PROXY', 'SOCKS', 'SOCKS5', 'DIRECT', 'HTTPS'].includes(str.toUpperCase())) {
+              domains.push(str);
+            }
+          }
+        }
+        result.include_rules = [...new Set(domains)];
+
+        return {
+          include_rules: result.include_rules.join('\n'),
+          bypass_rules: '',
+          decoded: result.decoded
+        };
+      }
 
       for (let line of lines) {
         line = line.trim();
@@ -892,19 +914,6 @@ const SubscriptionModule = (function () {
                 result.include_rules.push(pattern);
               }
             }
-          } else if (format === 'pac') {
-            const domains = [];
-            const regex = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g;
-            let match;
-            while ((match = regex.exec(contentToParse)) !== null) {
-              let str = match[0].slice(1, -1);
-              if (str && (str.includes('.') || str.includes('*')) && !str.includes(' ') && str.length > 3) {
-                if (!['PROXY', 'SOCKS', 'SOCKS5', 'DIRECT', 'HTTPS'].includes(str.toUpperCase())) {
-                  domains.push(str);
-                }
-              }
-            }
-            result.include_rules = [...new Set(domains)];
           }
         }
       }
@@ -961,12 +970,14 @@ const SubscriptionModule = (function () {
   }
 
   function parseProxyListSubscriptions(proxyList) {
-    if (!proxyList || !Array.isArray(proxyList)) return;
+    if (!proxyList || !Array.isArray(proxyList)) {
+      return;
+    }
 
-    proxyList.forEach(proxy => {
+    proxyList.forEach((proxy) => {
       if (!proxy.subscription || !proxy.subscription.lists) return;
 
-      Object.keys(proxy.subscription.lists).forEach(format => {
+      Object.keys(proxy.subscription.lists).forEach((format) => {
         const listConfig = proxy.subscription.lists[format];
         if (listConfig.content) {
           const stats = generateSubscriptionStats(
