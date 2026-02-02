@@ -19,7 +19,7 @@ const translations = {
     "dark_mode_schedule_desc": "设置夜间模式的开始和结束时间",
     "start_time": "开始时间",
     "end_time": "结束时间",
-    "auto_sync_desc": "在相同账户 (Google/FireFox) 的浏览器间同步代理数据",
+    "sync_desc": "在相同账户 (Google/FireFox) 的浏览器间同步代理数据",
     "sync_pull": "拉取",
     "sync_push": "推送",
     "config_management": "配置管理",
@@ -234,7 +234,7 @@ const translations = {
     "dark_mode_schedule_desc": "設定深色模式的開始和結束時間",
     "start_time": "開始",
     "end_time": "結束",
-    "auto_sync_desc": "在相同帳戶的瀏覽器間同步代理資料",
+    "sync_desc": "在相同帳戶的瀏覽器間同步代理資料",
     "sync_pull": "拉取",
     "sync_push": "推送",
     "config_management": "設定",
@@ -449,7 +449,7 @@ const translations = {
     "dark_mode_schedule_desc": "Set dark mode start and end time",
     "start_time": "Start",
     "end_time": "End",
-    "auto_sync_desc": "Sync proxy data across browsers with same account",
+    "sync_desc": "Sync proxy data across browsers with same account",
     "sync_pull": "Pull",
     "sync_push": "Push",
     "config_management": "Config",
@@ -664,7 +664,7 @@ const translations = {
     "dark_mode_schedule_desc": "ダークモードの開始・終了時刻を設定",
     "start_time": "開始",
     "end_time": "終了",
-    "auto_sync_desc": "同じアカウントでブラウザ間同期",
+    "sync_desc": "同じアカウントでブラウザ間同期",
     "sync_pull": "取得",
     "sync_push": "送信",
     "config_management": "設定",
@@ -879,7 +879,7 @@ const translations = {
     "dark_mode_schedule_desc": "Définir l'heure de début et de fin",
     "start_time": "Début",
     "end_time": "Fin",
-    "auto_sync_desc": "Sync proxy entre navigateurs même compte",
+    "sync_desc": "Sync proxy entre navigateurs même compte",
     "sync_pull": "Pull",
     "sync_push": "Push",
     "config_management": "Config",
@@ -1094,7 +1094,7 @@ const translations = {
     "dark_mode_schedule_desc": "Start- und Endzeit festlegen",
     "start_time": "Start",
     "end_time": "Ende",
-    "auto_sync_desc": "Proxy-Daten zwischen Browsern sync",
+    "sync_desc": "Proxy-Daten zwischen Browsern sync",
     "sync_pull": "Abrufen",
     "sync_push": "Senden",
     "config_management": "Config",
@@ -1309,7 +1309,7 @@ const translations = {
     "dark_mode_schedule_desc": "Establecer hora inicio y fin",
     "start_time": "Inicio",
     "end_time": "Fin",
-    "auto_sync_desc": "Sincronizar proxy entre navegadores",
+    "sync_desc": "Sincronizar proxy entre navegadores",
     "sync_pull": "Pull",
     "sync_push": "Push",
     "config_management": "Config",
@@ -1524,7 +1524,7 @@ const translations = {
     "dark_mode_schedule_desc": "시작/종료 시간 설정",
     "start_time": "시작",
     "end_time": "종료",
-    "auto_sync_desc": "동일 계정 브라우저 간 동기화",
+    "sync_desc": "동일 계정 브라우저 간 동기화",
     "sync_pull": "가져오기",
     "sync_push": "보내기",
     "config_management": "설정",
@@ -1739,7 +1739,7 @@ const translations = {
     "dark_mode_schedule_desc": "Definir início e fim",
     "start_time": "Início",
     "end_time": "Fim",
-    "auto_sync_desc": "Sync entre navegadores",
+    "sync_desc": "Sync entre navegadores",
     "sync_pull": "Pull",
     "sync_push": "Push",
     "config_management": "Config",
@@ -1954,7 +1954,7 @@ const translations = {
     "dark_mode_schedule_desc": "Время вкл/выкл",
     "start_time": "Начало",
     "end_time": "Конец",
-    "auto_sync_desc": "Sync между браузерами",
+    "sync_desc": "Sync между браузерами",
     "sync_pull": "Скачать",
     "sync_push": "Загрузить",
     "config_management": "Настройки",
@@ -2198,12 +2198,15 @@ function getSystemLanguage() {
 
 const I18n = {
   init: function (callback) {
-    chrome.storage.local.get(['appLanguage'], function (result) {
-      if (result.appLanguage) {
-        currentLang = result.appLanguage;
+    chrome.storage.local.get(['config'], function (result) {
+      const config = result.config || {};
+      if (config.system?.app_language) {
+        currentLang = config.system.app_language;
       } else {
         currentLang = getSystemLanguage();
-        chrome.storage.local.set({ appLanguage: currentLang });
+        if (!config.system) config.system = {};
+        config.system.app_language = currentLang;
+        chrome.storage.local.set({ config: config });
       }
       I18n.updatePage();
       if (callback) callback();
@@ -2213,7 +2216,12 @@ const I18n = {
   setLanguage: function (lang) {
     if (translations[lang]) {
       currentLang = lang;
-      chrome.storage.local.set({ appLanguage: lang });
+      chrome.storage.local.get(['config'], function (result) {
+        const config = result.config || {};
+        if (!config.system) config.system = {};
+        config.system.app_language = lang;
+        chrome.storage.local.set({ config: config });
+      });
       I18n.updatePage();
     }
   },

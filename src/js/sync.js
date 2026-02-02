@@ -409,7 +409,12 @@ async function pushToGist(data) {
         StorageModule.setSyncConfig(syncConfig);
         StorageModule.save();
       } else {
-        chrome.storage.local.set({ sync_config: syncConfig });
+        chrome.storage.local.get(['config'], function (result) {
+          const config = result.config || {};
+          if (!config.system) config.system = {};
+          config.system.sync = syncConfig;
+          chrome.storage.local.set({ config: config });
+        });
       }
     }
   }
@@ -423,7 +428,12 @@ async function pushToGist(data) {
       StorageModule.setSyncConfig(syncConfig);
       StorageModule.save();
     } else {
-      chrome.storage.local.set({ sync_config: syncConfig });
+      chrome.storage.local.get(['config'], function (result) {
+        const config = result.config || {};
+        if (!config.system) config.system = {};
+        config.system.sync = syncConfig;
+        chrome.storage.local.set({ config: config });
+      });
     }
   }
 }
@@ -443,7 +453,12 @@ async function pullFromGist() {
         StorageModule.setSyncConfig(syncConfig);
         StorageModule.save();
       } else {
-        chrome.storage.local.set({ sync_config: syncConfig });
+        chrome.storage.local.get(['config'], function (result) {
+          const config = result.config || {};
+          if (!config.system) config.system = {};
+          config.system.sync = syncConfig;
+          chrome.storage.local.set({ config: config });
+        });
       }
     } else {
       return null;
@@ -585,7 +600,12 @@ async function testGistConnection() {
       StorageModule.setSyncConfig(syncConfig);
       StorageModule.save();
     } else {
-      chrome.storage.local.set({ sync_config: syncConfig });
+      chrome.storage.local.get(['config'], function (result) {
+        const config = result.config || {};
+        if (!config.system) config.system = {};
+        config.system.sync = syncConfig;
+        chrome.storage.local.set({ config: config });
+      });
     }
     return I18n.t('sync_success_found') + filename;
   } else {

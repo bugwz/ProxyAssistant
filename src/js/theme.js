@@ -8,32 +8,13 @@ let nightModeEnd = '06:00';
 let themeInterval = null;
 
 function loadThemeSettings() {
-  chrome.storage.local.get(['themeSettings', 'config'], function (result) {
-    const themeSettings = result.themeSettings;
-    const config = result.config;
+  chrome.storage.local.get(['config'], function (result) {
+    const config = result.config || {};
 
-    if (themeSettings) {
-      if (themeSettings.mode) {
-        themeMode = themeSettings.mode;
-      }
-      if (themeSettings.startTime) {
-        nightModeStart = themeSettings.startTime;
-      }
-      if (themeSettings.endTime) {
-        nightModeEnd = themeSettings.endTime;
-      }
-    }
-
-    if (config && config.system) {
-      if (config.system.theme_mode && !themeSettings?.mode) {
-        themeMode = config.system.theme_mode;
-      }
-      if (config.system.night_mode_start && !themeSettings?.startTime) {
-        nightModeStart = config.system.night_mode_start;
-      }
-      if (config.system.night_mode_end && !themeSettings?.endTime) {
-        nightModeEnd = config.system.night_mode_end;
-      }
+    if (config.system) {
+      themeMode = config.system.theme_mode || 'light';
+      nightModeStart = config.system.night_mode_start || '22:00';
+      nightModeEnd = config.system.night_mode_end || '06:00';
     }
 
     updateThemeUI();
@@ -134,14 +115,6 @@ function startThemeInterval() {
 }
 
 function saveThemeSettings() {
-  const themeSettings = {
-    mode: themeMode,
-    startTime: nightModeStart,
-    endTime: nightModeEnd
-  };
-
-  chrome.storage.local.set({ themeSettings: themeSettings });
-
   chrome.storage.local.get(['config'], function (result) {
     const config = result.config || {};
     if (!config.system) {

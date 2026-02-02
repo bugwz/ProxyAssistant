@@ -101,14 +101,6 @@ function migrateConfig(config) {
       proxies: (s.proxies || []).map(migrateProxy)
     }));
     v4.scenarios.current = config.currentScenarioId || v4.scenarios.lists[0]?.id || 'default';
-  } else if (config.list && Array.isArray(config.list)) {
-    // Legacy format: only list array
-    v4.scenarios.lists = [{
-      id: 'default',
-      name: I18n.t('scenario_default'),
-      proxies: config.list.map(migrateProxy)
-    }];
-    v4.scenarios.current = 'default';
   } else if (config.proxies && Array.isArray(config.proxies)) {
     v4.scenarios.lists = [{
       id: 'default',
@@ -145,7 +137,6 @@ function migrateConfig(config) {
   applyIf(sourceSettings.nightModeEnd || sourceSettings.night_mode_end, v4.system, 'night_mode_end');
 
   applyIf(config.appLanguage || config.app_language, v4.system, 'app_language');
-  applyIf(config.auto_sync, v4.system, 'auto_sync');
 
   if (config.themeSettings) {
     applyIf(config.themeSettings.mode, v4.system, 'theme_mode');

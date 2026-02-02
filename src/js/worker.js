@@ -47,17 +47,6 @@ chrome.runtime.onInstalled.addListener((details) => {
   console.log('Proxy Assistant installed/updated');
 
   if (details.reason === 'install') {
-    // Requirement 4: Default sync enabled on first install, pull from remote
-    chrome.storage.local.set({ auto_sync: true }, () => {
-      chrome.storage.sync.get(['list'], (items) => {
-        if (items.list && items.list.length > 0) {
-          console.log('Initial sync: Pulled ' + items.list.length + ' proxies from remote');
-          chrome.storage.local.set({ list: items.list });
-        }
-      });
-    });
-
-    // Disable proxy on initialization only for new installs
     turnOffProxy();
   }
 });
@@ -68,7 +57,7 @@ function restoreProxySettings() {
 
   // Load both local (persistent) and session (runtime) settings
   const storagePromise = new Promise(resolve => {
-    chrome.storage.local.get(['currentProxy', 'proxyEnabled', 'proxyMode', 'list'], (localResult) => {
+    chrome.storage.local.get(['state'], (localResult) => {
       if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.session) {
         chrome.storage.session.get(['firefoxProxyState'], (sessionResult) => {
           resolve({ local: localResult, session: sessionResult });
@@ -82,11 +71,10 @@ function restoreProxySettings() {
   storagePromise.then(({ local: result, session: sessionResult }) => {
     if (isFirefox) {
       // Sync local state for Firefox
-      if (result.list) firefoxProxyState.list = result.list;
-      if (result.currentProxy) firefoxProxyState.currentProxy = result.currentProxy;
+      if (result.state?.proxy?.current) firefoxProxyState.currentProxy = result.state.proxy.current;
       // If enabled, restore mode
-      if (result.proxyEnabled) {
-        firefoxProxyState.mode = result.proxyMode || 'manual';
+      if (result.state?.proxy?.mode && result.state.proxy.mode !== 'disabled') {
+        firefoxProxyState.mode = result.state.proxy.mode || 'manual';
       } else {
         firefoxProxyState.mode = 'disabled';
       }
@@ -120,9 +108,9 @@ function restoreProxySettings() {
       }
     } else {
       // Chrome
-      if (result.proxyEnabled) {
+      if (result.state?.proxy?.mode && result.state.proxy.mode !== 'disabled') {
         console.log('Restoring saved proxy settings');
-        applyProxySettings(result.currentProxy);
+        applyProxySettings(result.state.proxy.current);
       } else {
         // Clear badge for disabled
         updateBadge();
@@ -201,22 +189,21 @@ function setBadge(text, color) {
 // Monitor storage changes to keep badge updated
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'local') {
-    if (changes.list || changes.proxyMode || changes.proxyEnabled) {
+    if (changes.state) {
       updateBadge();
     }
 
     // Sync Firefox state on storage changes
     if (isFirefox) {
-      if (changes.list) firefoxProxyState.list = changes.list.newValue;
-      if (changes.currentProxy) firefoxProxyState.currentProxy = changes.currentProxy.newValue;
+      if (changes.state?.proxy?.current) firefoxProxyState.currentProxy = changes.state.proxy.current.newValue;
     }
   }
 });
 
 // Update badge based on current state and requirements
 function updateBadge() {
-  chrome.storage.local.get(['proxyEnabled', 'proxyMode', 'list'], (result) => {
-    const mode = result.proxyMode || 'disabled';
+  chrome.storage.local.get(['state'], (result) => {
+    const mode = result.state?.proxy?.mode || 'disabled';
 
     if (mode === 'manual') {
       setBadge("ᴍ", "#4164f5");
@@ -230,12 +217,11 @@ function updateBadge() {
 
 // Handle different types of proxy settings
 function applyProxySettings(proxyInfo) {
-  chrome.storage.local.get(['proxyMode', 'currentProxy', 'list'], (result) => {
-    const mode = result.proxyMode || 'manual';
+  chrome.storage.local.get(['state'], (result) => {
+    const mode = result.state?.proxy?.mode || 'manual';
 
     if (isFirefox) {
       // Update Firefox state
-      firefoxProxyState.list = result.list || [];
       if (mode === 'disabled') {
         firefoxProxyState.mode = 'disabled';
         firefoxProxyState.currentProxy = null;
@@ -246,21 +232,20 @@ function applyProxySettings(proxyInfo) {
         // Manual
         firefoxProxyState.mode = 'manual';
         // Use provided info or fallback to storage
-        firefoxProxyState.currentProxy = proxyInfo || result.currentProxy;
+        firefoxProxyState.currentProxy = proxyInfo || result.state?.proxy?.current;
       }
       updateFirefoxSessionState();
 
       // Update UI
       chrome.storage.local.set({
-        proxyEnabled: mode !== 'disabled',
-        currentProxy: firefoxProxyState.currentProxy // Ensure storage matches state
+        state: { proxy: { mode: firefoxProxyState.mode, current: firefoxProxyState.currentProxy } }
       }, () => {
         updateBadge();
         setupFirefoxProxy(); // Activate the proxy logic
       });
     } else {
       // Chrome
-      const chromeMode = result.proxyMode || 'manual';
+      const chromeMode = result.state?.proxy?.mode || 'manual';
 
       if (chromeMode === 'auto') {
         applyAutoProxySettings();
@@ -270,7 +255,7 @@ function applyProxySettings(proxyInfo) {
       } else {
         // Manual mode
         // If manual mode and no proxyInfo provided (e.g. from refreshProxy), use the one from storage
-        const infoToApply = proxyInfo || result.currentProxy;
+        const infoToApply = proxyInfo || result.state?.proxy?.current;
         if (infoToApply) {
           applyManualProxySettings(infoToApply);
         } else {
@@ -443,8 +428,7 @@ async function applyManualProxySettings(proxyInfo) {
   updateSessionAuth(currentProxyAuth);
 
   chrome.storage.local.set({
-    currentProxy: { ...proxyInfo, type: type, ip: ip, port: port, name: proxyName },
-    proxyEnabled: true
+    state: { proxy: { mode: 'manual', current: { ...proxyInfo, type: type, ip: ip, port: port, name: proxyName } } }
   }, () => {
     updateBadge();
   });
@@ -485,29 +469,6 @@ async function applyManualProxySettings(proxyInfo) {
 // Flag to track if legacy fields have been cleaned up
 let legacyFieldsCleaned = false;
 
-// Clean up legacy storage fields after migration
-function cleanupLegacyFields() {
-  if (legacyFieldsCleaned) return;
-
-  chrome.storage.local.get(['list', 'currentProxy', 'proxyEnabled', 'proxyMode'], (result) => {
-    const hasLegacyData = result.list || result.currentProxy || result.proxyEnabled !== undefined || result.proxyMode;
-
-    if (hasLegacyData) {
-      console.log('Cleaning up legacy storage fields');
-      chrome.storage.local.remove(['list', 'currentProxy', 'proxyEnabled', 'proxyMode'], () => {
-        if (chrome.runtime.lastError) {
-          console.log('Error cleaning legacy fields:', chrome.runtime.lastError);
-        } else {
-          console.log('Legacy fields cleaned successfully');
-          legacyFieldsCleaned = true;
-        }
-      });
-    } else {
-      legacyFieldsCleaned = true;
-    }
-  });
-}
-
 // Auto mode: Generate and apply PAC script (Chrome only)
 async function applyAutoProxySettings() {
   // Read from new config format (unified storage)
@@ -539,9 +500,8 @@ async function applyAutoProxySettings() {
       console.log("Error setting auto proxy:", chrome.runtime.lastError);
     } else {
       console.log("Auto proxy (PAC) enabled");
-      chrome.storage.local.set({ proxyEnabled: true }, () => {
+      chrome.storage.local.set({ state: { proxy: { mode: 'auto', current: null } } }, () => {
         updateBadge();
-        cleanupLegacyFields();
       });
     }
   });
@@ -746,8 +706,15 @@ function checkBypass(bypassUrls, url) {
 function findProxyForRequestFirefox(url) {
   const host = new URL(url).hostname;
 
+  // Get proxy list from config
+  const config = currentConfig || {};
+  const scenarios = config.scenarios?.lists || [];
+  const currentScenarioId = config.scenarios?.current || 'default';
+  const currentScenario = scenarios.find(s => s.id === currentScenarioId);
+  const proxyList = currentScenario?.proxies || [];
+
   // Check proxy list in order, use first matching include_rules
-  for (const proxy of firefoxProxyState.list) {
+  for (const proxy of proxyList) {
     if (proxy.enabled === false || proxy.disabled === true) continue;
     if (!proxy.ip || !proxy.port) continue;
 
@@ -901,14 +868,14 @@ function handleAuthRequest(details, callback) {
     } else {
       // Helper for local storage fallback
       const checkLocalStorage = () => {
-        chrome.storage.local.get(['currentProxy'], (result) => {
-          if (result.currentProxy &&
-            result.currentProxy.username &&
-            result.currentProxy.password) {
+        chrome.storage.local.get(['state'], (result) => {
+          if (result.state?.proxy?.current &&
+            result.state.proxy.current.username &&
+            result.state.proxy.current.password) {
 
             // Update global variables
-            currentProxyAuth.username = result.currentProxy.username;
-            currentProxyAuth.password = result.currentProxy.password;
+            currentProxyAuth.username = result.state.proxy.current.username;
+            currentProxyAuth.password = result.state.proxy.current.password;
             // Note: We don't updateSessionAuth here because local storage is the source of truth for persisted settings
 
             console.log("Retrieved auth credentials from storage");
@@ -916,8 +883,8 @@ function handleAuthRequest(details, callback) {
             setTimeout(() => {
               callback({
                 authCredentials: {
-                  username: result.currentProxy.username,
-                  password: result.currentProxy.password
+                  username: result.state.proxy.current.username,
+                  password: result.state.proxy.current.password
                 }
               });
             }, 0);
@@ -960,7 +927,7 @@ async function turnOffProxy() {
   if (isFirefox) {
     firefoxProxyState.mode = 'disabled';
     updateFirefoxSessionState();
-    chrome.storage.local.set({ proxyEnabled: false }, () => {
+    chrome.storage.local.set({ state: { proxy: { mode: 'disabled', current: null } } }, () => {
       updateBadge();
     });
     browser.proxy.settings.clear({});
@@ -988,7 +955,7 @@ async function turnOffProxy() {
         updateSessionAuth(currentProxyAuth);
 
         // Mark proxy as disabled
-        chrome.storage.local.set({ proxyEnabled: false }, () => {
+        chrome.storage.local.set({ state: { proxy: { mode: 'disabled', current: null } } }, () => {
           updateBadge();
         });
 
@@ -1033,10 +1000,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       turnOffProxy();
       sendResponse({ success: true });
     } else if (message.action === "getProxyStatus") {
-      chrome.storage.local.get(['proxyEnabled', 'currentProxy'], (result) => {
+      chrome.storage.local.get(['state'], (result) => {
         sendResponse({
-          enabled: result.proxyEnabled || false,
-          proxyInfo: result.currentProxy || null
+          enabled: result.state?.proxy?.mode && result.state.proxy.mode !== 'disabled',
+          proxyInfo: result.state?.proxy?.current || null
         });
       });
       return true; // Keep message channel open for async response
