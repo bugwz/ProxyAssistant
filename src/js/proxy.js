@@ -28,6 +28,7 @@ const ProxyModule = (function () {
 
   function addProxy() {
     const newProxy = {
+      id: ConfigModule.generateProxyId(),
       enabled: true,
       name: "",
       protocol: "http",
@@ -50,6 +51,13 @@ const ProxyModule = (function () {
       list.push(newProxy);
       return list.length - 1;
     }
+  }
+
+
+  function ensureProxyId(proxy) {
+    if (!proxy || proxy.id) return proxy;
+    proxy.id = ConfigModule.generateProxyId();
+    return proxy;
   }
 
   function deleteProxy(index) {
@@ -860,6 +868,8 @@ const ProxyModule = (function () {
     saveSingleProxy: saveSingleProxy,
     renderList: renderList,
     confirmDelete: confirmDelete,
-    updateSubscriptionLinesDisplay: updateSubscriptionLinesDisplay
+    updateSubscriptionLinesDisplay: updateSubscriptionLinesDisplay,
+    ensureProxyId: ensureProxyId,
+    generateProxyId: generateProxyId
   };
 })();
