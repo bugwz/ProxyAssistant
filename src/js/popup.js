@@ -267,20 +267,39 @@ function switchScenario(id) {
         return;
       }
       const config = result.config || { scenarios: { current: 'default', lists: [] } };
-      const proxyMode = 'disabled';
+      const currentMode = result.state?.proxy?.mode || 'disabled';
+      const newProxies = scenario.proxies || [];
 
       currentScenarioId = id;
-      list = scenario.proxies || [];
+      list = newProxies;
       const displayName = scenario.name || I18n.t("scenario_default");
       $(".scenario-btn").attr("title", `${I18n.t("switch_scenario_tooltip")} (${displayName})`);
 
       config.scenarios = config.scenarios || { current: 'default', lists: [] };
       config.scenarios.current = id;
 
-      chrome.storage.local.set({ config: config }, function () {
+      let stateUpdate = null;
+      // Auto-select first proxy in manual mode
+      if (currentMode === 'manual') {
+        const firstEnabled = newProxies.find(p => p.enabled !== false && p.disabled !== true && p.ip && p.port);
+        if (firstEnabled) {
+          stateUpdate = { proxy: { mode: 'manual', current: firstEnabled } };
+        } else {
+          stateUpdate = { proxy: { mode: 'manual', current: null } };
+        }
+      }
+
+      chrome.storage.local.set({ config: config, state: stateUpdate }, function () {
         if (chrome.runtime.lastError) {
           console.log('Error switching scenario:', chrome.runtime.lastError);
           return;
+        }
+        if (currentMode === 'manual' && stateUpdate?.proxy?.current) {
+          chrome.runtime.sendMessage({ action: "applyProxy", proxyInfo: stateUpdate.proxy.current }, function () {
+            if (chrome.runtime.lastError) {
+              console.log('Error applying proxy after scenario switch:', chrome.runtime.lastError);
+            }
+          });
         }
         list_init();
       });
