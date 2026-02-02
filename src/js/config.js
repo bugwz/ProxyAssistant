@@ -36,11 +36,11 @@ function migrateConfig(config) {
     let subscription = null;
 
     if (p.subscription) {
-      const current = p.subscription.current || p.subscription.activeFormat || 'pac';
+      const current = p.subscription.current || p.subscription.activeFormat || 'autoproxy';
       const enabled = p.subscription.enabled !== false;
       const lists = {};
       const sourceLists = p.subscription.lists || p.subscription.formats || {};
-      const FORMATS = ['pac', 'autoproxy', 'switchy_legacy', 'switchy_omega'];
+      const FORMATS = ['autoproxy', 'switchy_legacy', 'switchy_omega'];
 
       FORMATS.forEach(f => {
         if (sourceLists[f]) {

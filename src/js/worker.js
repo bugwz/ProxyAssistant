@@ -351,7 +351,7 @@ async function applyManualProxySettings(proxyInfo) {
 
       if (subConfig && subConfig.bypass_rules) {
         const reverse = subConfig.reverse || false;
-        const rules = parseSubscriptionRules(subConfig.bypass_rules, 'pac', 'PROXY', '0.0.0.0:0', reverse);
+        const rules = parseSubscriptionRules(subConfig.bypass_rules, format, 'PROXY', '0.0.0.0:0', reverse);
 
         // Filter for DIRECT rules (exceptions/bypass)
         const directRules = rules.filter(r => r.action === 'DIRECT');
@@ -1358,10 +1358,6 @@ function parseSubscriptionRules(content, format, proxyType, proxyAddress, revers
         console.error("Base64 decode failed", e);
       }
     }
-  }
-
-  if (format === 'pac') {
-    actualFormat = 'autoproxy';
   }
 
   const lines = decoded.split(/[\r\n]+/);

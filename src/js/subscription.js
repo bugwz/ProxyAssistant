@@ -8,9 +8,8 @@ const SubscriptionModule = (function () {
   // Structure: { current: '...', lists: { ... } }
   let subscriptionConfig = null;
 
-  const FORMATS = ['pac', 'autoproxy', 'switchy_legacy', 'switchy_omega'];
+  const FORMATS = ['autoproxy', 'switchy_legacy', 'switchy_omega'];
   const FORMAT_NAMES = {
-    'pac': 'PAC',
     'autoproxy': 'AutoProxy',
     'switchy_legacy': 'Switchy Legacy',
     'switchy_omega': 'Switchy Omega'
@@ -170,7 +169,8 @@ const SubscriptionModule = (function () {
     if (proxy) {
       if (proxy.subscription) {
         subscriptionConfig.enabled = proxy.subscription.enabled !== false;
-        subscriptionConfig.current = proxy.subscription.current || proxy.subscription.activeFormat || 'autoproxy';
+        const savedCurrent = proxy.subscription.current || proxy.subscription.activeFormat || 'autoproxy';
+        subscriptionConfig.current = FORMATS.includes(savedCurrent) ? savedCurrent : FORMATS[0];
 
         const sourceLists = proxy.subscription.lists || proxy.subscription.formats || {};
         [...FORMATS].forEach(f => {
@@ -221,6 +221,14 @@ const SubscriptionModule = (function () {
     }
 
     updateRefreshTimer();
+
+    if (proxy.subscription && proxy.subscription.lists) {
+      Object.keys(proxy.subscription.lists).forEach(fmt => {
+        if (!FORMATS.includes(fmt)) {
+          delete proxy.subscription.lists[fmt];
+        }
+      });
+    }
   }
 
   function switchFormat(newFormat) {
@@ -524,6 +532,8 @@ const SubscriptionModule = (function () {
 
     const config = subscriptionConfig.lists[subscriptionConfig.current];
 
+    if (!config) return;
+
     if (config.refresh_interval > 0 && config.url) {
       const intervalMs = config.refresh_interval * 60 * 1000;
       refreshTimerId = setInterval(function () {
@@ -546,8 +556,6 @@ const SubscriptionModule = (function () {
     const trimmed = content.trim();
 
     switch (format) {
-      case 'pac':
-        return trimmed.includes('FindProxyForURL');
       case 'autoproxy':
         return trimmed.startsWith('[AutoProxy') || trimmed.startsWith('W0F1dG9Qcm94');
       case 'switchy_legacy':
@@ -718,10 +726,6 @@ const SubscriptionModule = (function () {
       }
     }
 
-    if (format === 'pac') {
-      actualFormat = 'autoproxy';
-    }
-
     const lines = decoded.split(/[\r\n]+/);
     const rules = [];
 
@@ -770,26 +774,6 @@ const SubscriptionModule = (function () {
       }
 
       const lines = contentToParse.split('\n');
-
-      if (format === 'pac') {
-        const matches = contentToParse.match(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g) || [];
-        const domains = [];
-        for (const match of matches) {
-          let str = match.slice(1, -1);
-          if (str && (str.includes('.') || str.includes('*')) && !str.includes(' ') && str.length > 3) {
-            if (!['PROXY', 'SOCKS', 'SOCKS5', 'DIRECT', 'HTTPS'].includes(str.toUpperCase())) {
-              domains.push(str);
-            }
-          }
-        }
-        result.include_rules = [...new Set(domains)];
-
-        return {
-          include_rules: result.include_rules.join('\n'),
-          bypass_rules: '',
-          decoded: result.decoded
-        };
-      }
 
       for (let line of lines) {
         line = line.trim();
