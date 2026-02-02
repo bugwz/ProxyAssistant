@@ -82,46 +82,23 @@ const ProxyModule = (function () {
   function saveData(options) {
     options = options || {};
 
-    if (StorageModule) {
-      StorageModule.save().then(() => {
-        if (!options.silent) {
-          UtilsModule.showTip(options.successMsg || I18n.t('save_success'), false);
-        }
+    StorageModule.save().then(() => {
+      if (!options.silent) {
+        UtilsModule.showTip(options.successMsg || I18n.t('save_success'), false);
+      }
 
-        if ($(".sync-config-tip").hasClass("show") && SyncModule.getSyncConfig().type === 'native') {
-          SyncModule.updateNativeQuotaInfo();
-        }
+      if ($(".sync-config-tip").hasClass("show") && SyncModule.getSyncConfig().type === 'native') {
+        SyncModule.updateNativeQuotaInfo();
+      }
 
-        if (options.callback) options.callback(true);
-      }).catch(err => {
-        console.error("Save failed:", err);
-        if (!options.silent) {
-          UtilsModule.showTip(I18n.t('save_failed'), true);
-        }
-        if (options.callback) options.callback(false);
-      });
-    } else {
-      // Fallback
-      chrome.storage.local.set({
-        scenarios: ScenariosModule.getScenarios(),
-        currentScenarioId: ScenariosModule.getCurrentScenarioId(),
-        list: list
-      }, function () {
-        if (chrome.runtime.lastError) {
-          console.log("Local save failed:", chrome.runtime.lastError);
-          UtilsModule.showTip(I18n.t('save_failed'), true);
-          if (options.callback) options.callback(false);
-          return;
-        }
-
-        if (!options.silent) {
-          UtilsModule.showTip(options.successMsg || I18n.t('save_success'), false);
-        }
-        chrome.runtime.sendMessage({ action: "refreshProxy" });
-
-        if (options.callback) options.callback(true);
-      });
-    }
+      if (options.callback) options.callback(true);
+    }).catch(err => {
+      console.error("Save failed:", err);
+      if (!options.silent) {
+        UtilsModule.showTip(I18n.t('save_failed'), true);
+      }
+      if (options.callback) options.callback(false);
+    });
   }
 
   function saveSingleProxy(i) {

@@ -50,11 +50,16 @@ function getBrowserProxyConfig() {
 
 function getPluginProxyConfig() {
   return new Promise(function (resolve) {
-    chrome.storage.local.get(['proxyMode', 'currentProxy', 'list'], function (result) {
+    chrome.storage.local.get(['state', 'config'], function (result) {
+      const config = result.config || {};
+      const scenarios = config.scenarios?.lists || [];
+      const currentScenarioId = config.scenarios?.current || 'default';
+      const currentScenario = scenarios.find(s => s.id === currentScenarioId);
+      const list = currentScenario?.proxies || [];
       resolve({
-        mode: result.proxyMode || 'disabled',
-        currentProxy: result.currentProxy || null,
-        list: result.list || []
+        mode: result.state?.proxy?.mode || 'disabled',
+        currentProxy: result.state?.proxy?.current || null,
+        list: list
       });
     });
   });
@@ -155,7 +160,7 @@ function displayErrorResult(errorMsg) {
 function showPacDetails() {
   updatePacDetails();
   pacStorageListener = function (changes, namespace) {
-    if (namespace === 'local' && (changes.list || changes.proxyMode)) {
+    if (namespace === 'local' && changes.state) {
       updatePacDetails();
     }
   };
@@ -164,9 +169,8 @@ function showPacDetails() {
 }
 
 function updatePacDetails() {
-  chrome.storage.local.get(['proxyMode', 'list'], function (result) {
-    const mode = result.proxyMode || 'disabled';
-    const proxyList = result.list || [];
+  chrome.storage.local.get(['state'], function (result) {
+    const mode = result.state?.proxy?.mode || 'disabled';
 
     $("#pac-mode-value").text(mode === 'auto' ? I18n.t('mode_auto') : I18n.t('mode_disabled'));
     $("#pac-generated-time").text(new Date().toLocaleString());

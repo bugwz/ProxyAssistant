@@ -14,7 +14,7 @@ function initApp() {
   const currentVersion = chrome.runtime.getManifest().version;
   $('#version-display').text('v' + currentVersion);
 
-  chrome.storage.local.get(['config'], function (result) {
+  chrome.storage.local.get(['config', 'state'], function (result) {
     if (chrome.runtime.lastError) {
       console.log('Error loading settings:', chrome.runtime.lastError);
       return;
@@ -38,14 +38,15 @@ function initApp() {
       list = [];
     }
 
-    const proxyMode = config?.proxyMode || 'disabled';
+    const state = result.state;
+    const proxyMode = state?.proxy?.mode || 'disabled';
     let mode = proxyMode;
     if (!['disabled', 'manual', 'auto'].includes(mode)) {
       mode = 'disabled';
     }
 
     updateModeUI(mode);
-    updateStatusDisplay(mode, null);
+    updateStatusDisplay(mode, state?.proxy?.current);
 
     renderScenarioSelector();
     updateScenarioVisibility();
@@ -74,7 +75,7 @@ function bindGlobalEvents() {
     const mode = $(this).data('mode');
     updateModeUI(mode);
 
-    chrome.storage.local.set({ proxyMode: mode }, function () {
+    chrome.storage.local.set({ state: { proxy: { mode: mode, current: null } } }, function () {
       if (chrome.runtime.lastError) {
         console.log('Error setting proxy mode:', chrome.runtime.lastError);
         return;
@@ -103,13 +104,34 @@ function bindGlobalEvents() {
           updateCurrentSiteDisplay(); updateScenarioVisibility();
         });
       } else {
-        // Manual mode - restore previous selection or show disconnected
-        chrome.storage.local.get(['currentProxy'], function (result) {
+        // Manual mode - restore previous selection or auto-select first proxy
+        chrome.storage.local.get(['state'], function (result) {
           if (chrome.runtime.lastError) {
-            console.log('Error getting currentProxy:', chrome.runtime.lastError);
+            console.log('Error getting state:', chrome.runtime.lastError);
             return;
           }
-          const currentProxy = result.currentProxy;
+          let currentProxy = result.state?.proxy?.current;
+
+          // Auto-select first available proxy if none selected
+          if (!currentProxy && list && list.length > 0) {
+            const firstEnabled = list.find(p => p.enabled !== false && p.disabled !== true && p.ip && p.port);
+            if (firstEnabled) {
+              currentProxy = firstEnabled;
+              // Save the auto-selected proxy
+              chrome.storage.local.set({ state: { proxy: { mode: 'manual', current: currentProxy } } }, function () {
+                if (chrome.runtime.lastError) {
+                  console.log('Error saving auto-selected proxy:', chrome.runtime.lastError);
+                }
+              });
+              // Apply the selected proxy
+              chrome.runtime.sendMessage({ action: "applyProxy", proxyInfo: currentProxy }, function () {
+                if (chrome.runtime.lastError) {
+                  console.log('Error applying auto-selected proxy:', chrome.runtime.lastError);
+                }
+              });
+            }
+          }
+
           if (currentProxy) {
             updateStatusDisplay('manual', currentProxy);
           } else {
@@ -118,12 +140,6 @@ function bindGlobalEvents() {
           list_init();
           updateBypassButton();
           updateCurrentSiteDisplay(); updateScenarioVisibility();
-          // Apply the current proxy settings
-          chrome.runtime.sendMessage({ action: "refreshProxy" }, function () {
-            if (chrome.runtime.lastError) {
-              console.log('Error sending refreshProxy:', chrome.runtime.lastError);
-            }
-          });
         });
       }
     });
@@ -184,16 +200,15 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
 // Theme Logic
 // ==========================================
 function initThemeMode() {
-  // Always load from local storage (consistent with proxy config)
-  chrome.storage.local.get({ themeSettings: {} }, function (items) {
+  chrome.storage.local.get(['config'], function (items) {
     if (chrome.runtime.lastError) {
-      console.log('Error getting themeSettings:', chrome.runtime.lastError);
+      console.log('Error getting config:', chrome.runtime.lastError);
       return;
     }
-    const settings = items.themeSettings || {};
-    themeMode = settings.mode || 'light';
+    const config = items.config || {};
+    const settings = config.system || {};
+    themeMode = settings.theme_mode || 'light';
 
-    // Apply theme based on mode
     applyTheme(themeMode);
   });
 }
@@ -246,13 +261,13 @@ function switchScenario(id) {
 
   const scenario = scenarios.find(s => s.id === id);
   if (scenario) {
-    chrome.storage.local.get(['config'], function (result) {
+    chrome.storage.local.get(['config', 'state'], function (result) {
       if (chrome.runtime.lastError) {
         console.log('Error getting config:', chrome.runtime.lastError);
         return;
       }
       const config = result.config || { scenarios: { current: 'default', lists: [] } };
-      const proxyMode = config.proxyMode || 'disabled';
+      const proxyMode = 'disabled';
 
       currentScenarioId = id;
       list = scenario.proxies || [];
@@ -328,12 +343,12 @@ function updateCurrentSiteDisplay() {
   const $siteUrl = $('#current-site-url');
   const $bypassBtn = $('#add-bypass-btn');
 
-  chrome.storage.local.get(['proxyMode', 'list'], function (result) {
+  chrome.storage.local.get(['state'], function (result) {
     if (chrome.runtime.lastError) {
-      console.log('Error getting proxyMode/list:', chrome.runtime.lastError);
+      console.log('Error getting state:', chrome.runtime.lastError);
       return;
     }
-    const mode = result.proxyMode || 'disabled';
+    const mode = result.state?.proxy?.mode || 'disabled';
 
     // Get current tab URL
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
@@ -406,13 +421,13 @@ function updateRefreshIndicator() {
 // Proxy List Logic
 // ==========================================
 function list_init() {
-  chrome.storage.local.get(['currentProxy', 'proxyMode'], function (result) {
+  chrome.storage.local.get(['state'], function (result) {
     if (chrome.runtime.lastError) {
       console.log('Error getting settings:', chrome.runtime.lastError);
       return;
     }
-    const currentProxy = result.currentProxy;
-    const mode = result.proxyMode || 'disabled';
+    const currentProxy = result.state?.proxy?.current;
+    const mode = result.state?.proxy?.mode || 'disabled';
 
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       if (chrome.runtime.lastError) {
@@ -524,9 +539,9 @@ function bindListEvents() {
     $('#status-display').text(proxyName);
 
     // Save current proxy selection
-    chrome.storage.local.set({ currentProxy: info }, function () {
+    chrome.storage.local.set({ state: { proxy: { mode: 'manual', current: info } } }, function () {
       if (chrome.runtime.lastError) {
-        console.log('Error saving currentProxy:', chrome.runtime.lastError);
+        console.log('Error saving state:', chrome.runtime.lastError);
         return;
       }
       // Update bypass button status
@@ -582,20 +597,20 @@ function bindListEvents() {
 // ==========================================
 // Refresh proxy status from browser and storage
 function refreshProxyStatus() {
-  chrome.storage.local.get(['proxyMode', 'currentProxy', 'list'], function (result) {
+  chrome.storage.local.get(['state'], function (result) {
     if (chrome.runtime.lastError) {
       console.log('Error getting settings:', chrome.runtime.lastError);
       return;
     }
-    const mode = result.proxyMode || 'disabled';
-    const list = result.list || [];
+    const mode = result.state?.proxy?.mode || 'disabled';
+    const currentProxy = result.state?.proxy?.current;
 
     // Get browser proxy settings
     if (typeof chrome !== 'undefined' && chrome.proxy && chrome.proxy.settings) {
       chrome.proxy.settings.get({ incognito: false }, function (browserConfig) {
         if (chrome.runtime.lastError) {
           console.log('Error getting proxy settings:', chrome.runtime.lastError);
-          updateStatusDisplay(mode, result.currentProxy);
+          updateStatusDisplay(mode, currentProxy);
           updateRefreshIndicator();
           return;
         }
@@ -619,12 +634,12 @@ function refreshProxyStatus() {
         }
 
         // Update status display based on comparison
-        updateStatusDisplay(mode, result.currentProxy);
+        updateStatusDisplay(mode, currentProxy);
         updateRefreshIndicator();
       });
     } else {
       // Fallback for Firefox
-      updateStatusDisplay(mode, result.currentProxy);
+      updateStatusDisplay(mode, currentProxy);
       updateRefreshIndicator();
     }
   });
@@ -758,13 +773,13 @@ function initBypassButton() {
 function updateBypassButton() {
   const $bypassBtn = $('#add-bypass-btn');
 
-  chrome.storage.local.get(['proxyMode', 'currentProxy', 'list'], function (result) {
+  chrome.storage.local.get(['state'], function (result) {
     if (chrome.runtime.lastError) {
       console.log('Error getting settings:', chrome.runtime.lastError);
       $bypassBtn.hide();
       return;
     }
-    const mode = result.proxyMode || 'disabled';
+    const mode = result.state?.proxy?.mode || 'disabled';
 
     // Only process in manual mode
     if (mode !== 'manual') {
@@ -795,7 +810,7 @@ function updateBypassButton() {
           return;
         }
 
-        const currentProxy = result.currentProxy;
+        const currentProxy = result.state?.proxy?.current;
         if (!currentProxy) {
           $bypassBtn.hide();
           return;
@@ -916,18 +931,22 @@ function checkIfBypassed(bypassUrls, hostname) {
 }
 
 function handleAddToBypass(hostname, $btn) {
-  chrome.storage.local.get(['proxyMode', 'currentProxy', 'list'], function (result) {
+  chrome.storage.local.get(['state', 'config'], function (result) {
     if (chrome.runtime.lastError) {
       console.log('Error getting settings:', chrome.runtime.lastError);
       $btn.prop('disabled', false).removeClass('btn-processing');
       return;
     }
-    const mode = result.proxyMode || 'disabled';
-    let proxy = result.currentProxy;
-    const list = result.list || [];
+    const mode = result.state?.proxy?.mode || 'disabled';
+    let proxy = result.state?.proxy?.current;
+    const config = result.config || {};
+    const configScenarios = config.scenarios?.lists || [];
+    const configCurrentScenarioId = config.scenarios?.current || 'default';
+    const configCurrentScenario = configScenarios.find(s => s.id === configCurrentScenarioId);
+    const proxyList = configCurrentScenario?.proxies || [];
 
     if (mode === 'auto') {
-      const autoMatchProxy = getAutoProxy(list, hostname);
+      const autoMatchProxy = getAutoProxy(proxyList, hostname);
       if (autoMatchProxy) {
         proxy = autoMatchProxy;
       } else {
@@ -954,19 +973,19 @@ function handleAddToBypass(hostname, $btn) {
     proxy.bypass_rules = bypassUrls;
 
     // Update corresponding proxy in list
-    const proxyIndex = list.findIndex(p => p.ip === proxy.ip && p.port === proxy.port);
+    const proxyIndex = proxyList.findIndex(p => p.ip === proxy.ip && p.port === proxy.port);
     if (proxyIndex !== -1) {
-      list[proxyIndex].bypass_rules = bypassUrls;
+      proxyList[proxyIndex].bypass_rules = bypassUrls;
     }
 
     // Update scenarios with modified list
-    const currentScenario = scenarios.find(s => s.id === currentScenarioId);
+    const currentScenario = configScenarios.find(s => s.id === configCurrentScenarioId);
     if (currentScenario) {
-      currentScenario.proxies = list;
+      currentScenario.proxies = proxyList;
     }
 
     // Save to local storage
-    chrome.storage.local.set({ currentProxy: proxy, scenarios: scenarios }, function () {
+    chrome.storage.local.set({ state: { proxy: { mode: mode, current: proxy } } }, function () {
       if (chrome.runtime.lastError) {
         console.log('Error saving settings:', chrome.runtime.lastError);
         $btn.prop('disabled', false).removeClass('btn-processing');
@@ -992,18 +1011,22 @@ function handleAddToBypass(hostname, $btn) {
 }
 
 function handleRemoveFromBypass(hostname, $btn) {
-  chrome.storage.local.get(['proxyMode', 'currentProxy', 'list'], function (result) {
+  chrome.storage.local.get(['state', 'config'], function (result) {
     if (chrome.runtime.lastError) {
       console.log('Error getting settings:', chrome.runtime.lastError);
       $btn.prop('disabled', false).removeClass('btn-processing');
       return;
     }
-    const mode = result.proxyMode || 'disabled';
-    let proxy = result.currentProxy;
-    const list = result.list || [];
+    const mode = result.state?.proxy?.mode || 'disabled';
+    let proxy = result.state?.proxy?.current;
+    const config = result.config || {};
+    const configScenarios = config.scenarios?.lists || [];
+    const configCurrentScenarioId = config.scenarios?.current || 'default';
+    const configCurrentScenario = configScenarios.find(s => s.id === configCurrentScenarioId);
+    const proxyList = configCurrentScenario?.proxies || [];
 
     if (mode === 'auto') {
-      const autoMatchProxy = getAutoProxy(list, hostname);
+      const autoMatchProxy = getAutoProxy(proxyList, hostname);
       if (autoMatchProxy) {
         proxy = autoMatchProxy;
       } else {
@@ -1047,19 +1070,19 @@ function handleRemoveFromBypass(hostname, $btn) {
     proxy.bypass_rules = filteredPatterns.join('\n');
 
     // Update corresponding proxy in list
-    const proxyIndex = list.findIndex(p => p.ip === proxy.ip && p.port === proxy.port);
+    const proxyIndex = proxyList.findIndex(p => p.ip === proxy.ip && p.port === proxy.port);
     if (proxyIndex !== -1) {
-      list[proxyIndex].bypass_rules = proxy.bypass_rules;
+      proxyList[proxyIndex].bypass_rules = proxy.bypass_rules;
     }
 
     // Update scenarios with modified list
-    const currentScenario = scenarios.find(s => s.id === currentScenarioId);
+    const currentScenario = configScenarios.find(s => s.id === configCurrentScenarioId);
     if (currentScenario) {
-      currentScenario.proxies = list;
+      currentScenario.proxies = proxyList;
     }
 
     // Save to local storage
-    chrome.storage.local.set({ currentProxy: proxy, scenarios: scenarios }, function () {
+    chrome.storage.local.set({ state: { proxy: { mode: mode, current: proxy } } }, function () {
       if (chrome.runtime.lastError) {
         console.log('Error saving settings:', chrome.runtime.lastError);
         $btn.prop('disabled', false).removeClass('btn-processing');

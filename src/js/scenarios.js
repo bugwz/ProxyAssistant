@@ -404,28 +404,6 @@ const ScenariosModule = (function () {
           UtilsModule.showTip(I18n.t('move_failed') + ': ' + err.message, true);
         });
       }
-    } else {
-      // Fallback
-      currentScenario.proxies.splice(proxyIndex, 1);
-      if (!targetScenario.proxies) targetScenario.proxies = [];
-      targetScenario.proxies.push(proxy);
-
-      if (typeof onProxyMove === 'function') {
-        onProxyMove(proxyIndex, targetScenarioId, proxy);
-      }
-
-      chrome.storage.local.set({
-        scenarios: scenarios,
-        currentScenarioId: currentId
-      }, function () {
-        if (chrome.runtime.lastError) {
-          console.log("Move proxy failed:", chrome.runtime.lastError);
-          UtilsModule.showTip(I18n.t('move_failed') + ': ' + chrome.runtime.lastError.message, true);
-          return;
-        }
-        UtilsModule.showTip(I18n.t('move_success'), false);
-        chrome.runtime.sendMessage({ action: "refreshProxy" });
-      });
     }
   }
 
