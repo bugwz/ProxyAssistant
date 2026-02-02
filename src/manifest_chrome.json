@@ -31,7 +31,8 @@
       "storage",
       "proxy",
       "webRequest",
-      "webRequestAuthProvider"
+      "webRequestAuthProvider",
+      "alarms"
    ],
    "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAo/uOAOyi+eSbms3mfsOPbCjWpkPaxxN2e/yLKMRqFp+g9ePiMwV4evWJPhCd++Nrp1CEyqyH9uw2N5gPz/hwrCBieOMB24chJj+HB7RbD2z+FBuhEdmjAImWIXddGTbKxdmLYJFN9IdymQLVzYJqtW/VlCvcmywTWR0VOmTYiQUSPacCfq4j11boiIUuX7kuqyEop3D+VvGYVhqPe2G6EfCZI5QTmBolPxvlywLsiyylohw2vwWpGnrG/OhxB8Iw1DvuGIG78fHIFPNhJNFiHhJCFoQ/samr0hr0pkyEh57U69x7EA5x5ZocO4LFtCbOG+whzaQXCAKVhbxinSOYgQIDAQAB"
 }

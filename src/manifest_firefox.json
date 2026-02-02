@@ -37,6 +37,7 @@
       "storage",
       "proxy",
       "webRequest",
-      "webRequestAuthProvider"
+      "webRequestAuthProvider",
+      "alarms"
    ]
 }
