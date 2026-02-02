@@ -11,6 +11,9 @@ let currentProxyAuth = {
   password: ''
 };
 
+// Track in-progress subscription fetches to prevent duplicates
+const inProgressFetches = new Set();
+
 // Helper to sync auth to session storage (MV3 state safety)
 function updateSessionAuth(auth) {
   if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.session) {
@@ -48,6 +51,341 @@ chrome.runtime.onInstalled.addListener((details) => {
 
   if (details.reason === 'install') {
     turnOffProxy();
+  }
+
+  if (details.reason === 'update' || details.reason === 'install') {
+    restoreProxySettings();
+  }
+});
+
+// Helper function: validate subscription format
+function isSubscriptionFormatValid(content, format) {
+  if (!content) return false;
+  const trimmed = content.trim();
+
+  switch (format) {
+    case 'autoproxy':
+      return trimmed.startsWith('[AutoProxy') || trimmed.startsWith('W0F1dG9Qcm94');
+    case 'switchy_legacy':
+      return !trimmed.startsWith('[SwitchyOmega Conditions]') && trimmed.includes('#BEGIN') && trimmed.includes('#END');
+    case 'switchy_omega':
+      return trimmed.startsWith('[SwitchyOmega Conditions]');
+    default:
+      return true;
+  }
+}
+
+// Helper function: parse subscription content
+function parseSubscriptionContent(content, format, reverse) {
+  const result = {
+    include_rules: '',
+    bypass_rules: '',
+    decoded: null
+  };
+
+  if (!content) return result;
+
+  try {
+    let contentToParse = content;
+
+    if (format === 'autoproxy') {
+      let decoded = content.trim();
+      if (decoded.startsWith('W0F1dG9Qcm94')) {
+        try {
+          decoded = atob(decoded);
+          result.decoded = decoded;
+        } catch (e) {
+          result.decoded = content;
+        }
+      }
+      contentToParse = result.decoded || content;
+    }
+
+    const lines = contentToParse.split('\n');
+    const includeRules = [];
+    const bypassRules = [];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      if (format === 'autoproxy') {
+        if (trimmed.startsWith('[') && trimmed.endsWith(']')) continue;
+        if (trimmed.startsWith('!')) continue;
+
+        let isException = false;
+        let pattern = trimmed;
+        if (trimmed.startsWith('@@')) {
+          isException = true;
+          pattern = trimmed.substring(2);
+        }
+
+        const finalActionIsDirect = isException ? !reverse : reverse;
+
+        if (finalActionIsDirect) {
+          if (pattern.startsWith('||')) pattern = '*.' + pattern.substring(2);
+          else if (pattern.startsWith('|')) pattern += '*';
+          if (pattern) bypassRules.push(pattern);
+        } else {
+          if (pattern.startsWith('||')) pattern = pattern.substring(2);
+          else if (pattern.startsWith('/') && pattern.endsWith('/')) {
+          } else if (pattern.startsWith('|')) pattern = pattern.substring(1);
+          if (pattern) includeRules.push(pattern);
+        }
+      } else {
+        includeRules.push(trimmed);
+      }
+    }
+
+    result.include_rules = includeRules.join('\n');
+    result.bypass_rules = bypassRules.join('\n');
+  } catch (e) {
+    console.error('[Worker] Parse subscription error:', e);
+  }
+
+  return result;
+}
+
+// Background fetch for subscription
+async function fetchSubscriptionBackground(proxyId, format, url) {
+  try {
+    console.log(`[Worker] Background fetch started: ${url}`);
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.error(`[Worker] HTTP error: ${response.status} ${response.statusText} for URL: ${url}`);
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const content = await response.text();
+
+    if (!isSubscriptionFormatValid(content, format)) {
+      console.error(`[Worker] Invalid subscription format: ${format} for proxy: ${proxyId}`);
+      throw new Error('Invalid format after fetch');
+    }
+
+    let updated = false;
+
+    const result = await new Promise((resolve, reject) => {
+      chrome.storage.local.get(['config'], (result) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(`Storage get error: ${chrome.runtime.lastError.message}`));
+          return;
+        }
+        resolve(result);
+      });
+    });
+
+    const config = result.config;
+    if (!config?.scenarios?.lists) {
+      console.warn(`[Worker] No config found for proxy: ${proxyId}`);
+      return;
+    }
+
+    let proxyFound = false;
+
+    for (const scenario of config.scenarios.lists) {
+      if (!scenario.proxies) continue;
+
+      for (const proxy of scenario.proxies) {
+        if (proxy.id === proxyId &&
+          proxy.subscription?.current === format &&
+          proxy.subscription?.lists?.[format]) {
+
+          proxyFound = true;
+          const listConfig = proxy.subscription.lists[format];
+          const oldContent = listConfig.content;
+
+          if (oldContent !== content) {
+            listConfig.content = content;
+            listConfig.last_fetch_time = Date.now();
+
+            const reverse = listConfig.reverse || false;
+            const parsed = parseSubscriptionContent(content, format, reverse);
+            listConfig.decoded_content = parsed.decoded || '';
+            listConfig.include_rules = parsed.include_rules || '';
+            listConfig.bypass_rules = parsed.bypass_rules || '';
+            listConfig.include_lines = parsed.include_rules ? parsed.include_rules.split(/\r\n|\r|\n/).length : 0;
+            listConfig.bypass_lines = parsed.bypass_rules ? parsed.bypass_rules.split(/\r\n|\r|\n/).length : 0;
+
+            updated = true;
+            console.log(`[Worker] Updated subscription for proxy: ${proxy.name || proxyId}`);
+          } else {
+            listConfig.last_fetch_time = Date.now();
+            console.log(`[Worker] No changes for proxy: ${proxy.name || proxyId}, content unchanged`);
+          }
+        }
+      }
+    }
+
+    if (!proxyFound) {
+      console.warn(`[Worker] Proxy ${proxyId} with format ${format} not found in config`);
+    }
+
+    await new Promise((resolve, reject) => {
+      chrome.storage.local.set({ config: config }, () => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(`Storage set error: ${chrome.runtime.lastError.message}`));
+          return;
+        }
+        resolve();
+      });
+    });
+
+    console.log(`[Worker] Background fetch saved: ${proxyId}`);
+
+    if (updated) {
+      await new Promise((resolve) => {
+        chrome.runtime.sendMessage({
+          action: 'subscriptionUpdated',
+          proxyId: proxyId,
+          format: format
+        }, () => {
+          if (chrome.runtime.lastError) {
+            console.error(`[Worker] Send message error: ${chrome.runtime.lastError.message} for proxy: ${proxyId}`);
+          }
+          resolve();
+        });
+      });
+    }
+
+    console.log(`[Worker] Background fetch completed for proxy: ${proxyId}, updated: ${updated}`);
+  } catch (error) {
+    console.error(`[Worker] Background fetch failed: ${error.message}`);
+    console.error(`[Worker] Stack trace: ${error.stack}`);
+    throw error;
+  }
+}
+
+// Schedule background refresh for all subscriptions
+function scheduleAllBackgroundRefreshes(config) {
+  if (!config?.scenarios?.lists) return;
+
+  console.log('[Worker] Scheduling subscription alarms for all enabled subscriptions');
+
+  config.scenarios.lists.forEach(scenario => {
+    if (!scenario.proxies) return;
+
+    scenario.proxies.forEach(proxy => {
+      if (proxy.id && proxy.subscription && proxy.subscription.enabled !== false) {
+        const format = proxy.subscription.current;
+        const subConfig = proxy.subscription.lists?.[format];
+
+        if (subConfig?.refresh_interval > 0 && subConfig?.url) {
+          const alarmName = `subscription_${proxy.id}_${format}`;
+
+          chrome.alarms.get(alarmName, (existingAlarm) => {
+            if (existingAlarm) {
+              const existingInterval = existingAlarm.periodInMinutes;
+              if (existingInterval !== subConfig.refresh_interval) {
+                chrome.alarms.clear(alarmName, () => {
+                  chrome.alarms.create(alarmName, {
+                    delayInMinutes: subConfig.refresh_interval,
+                    periodInMinutes: subConfig.refresh_interval
+                  });
+                  console.log(`[Worker] Alarm updated: ${alarmName}, interval: ${subConfig.refresh_interval}min`);
+                });
+              } else {
+                console.log(`[Worker] Alarm already exists with same interval: ${alarmName}`);
+              }
+            } else {
+              chrome.alarms.create(alarmName, {
+                delayInMinutes: subConfig.refresh_interval,
+                periodInMinutes: subConfig.refresh_interval
+              });
+              console.log(`[Worker] Alarm created: ${alarmName}, interval: ${subConfig.refresh_interval}min`);
+            }
+          });
+        }
+      }
+    });
+  });
+}
+
+// Schedule background refresh for single subscription (called from frontend)
+function scheduleSubscriptionRefresh(proxyId, format, refreshInterval, url) {
+  if (!refreshInterval || refreshInterval <= 0 || !url) return;
+
+  const alarmName = `subscription_${proxyId}_${format}`;
+
+  chrome.alarms.get(alarmName, (existingAlarm) => {
+    if (existingAlarm) {
+      const existingInterval = existingAlarm.periodInMinutes;
+      if (existingInterval !== refreshInterval) {
+        chrome.alarms.clear(alarmName, () => {
+          chrome.alarms.create(alarmName, {
+            delayInMinutes: refreshInterval,
+            periodInMinutes: refreshInterval
+          });
+          console.log(`[Worker] Alarm updated: ${alarmName}, interval: ${refreshInterval}min`);
+        });
+      } else {
+        console.log(`[Worker] Alarm already exists: ${alarmName}`);
+      }
+    } else {
+      chrome.alarms.create(alarmName, {
+        delayInMinutes: refreshInterval,
+        periodInMinutes: refreshInterval
+      });
+      console.log(`[Worker] Alarm created: ${alarmName}, interval: ${refreshInterval}min`);
+    }
+  });
+}
+
+// Alarm listener for subscription refresh
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name.startsWith('subscription_')) {
+    const parts = alarm.name.replace('subscription_', '').split('_');
+    const format = parts.pop();
+    const proxyId = parts.join('_');
+    const fetchKey = `${proxyId}_${format}`;
+
+    if (inProgressFetches.has(fetchKey)) {
+      console.log(`[Worker] Skipped duplicate alarm: ${alarm.name}`);
+      return;
+    }
+
+    console.log(`[Worker] Subscription alarm triggered: ${alarm.name}`);
+
+    chrome.storage.local.get(['config'], (result) => {
+      const config = result.config;
+      if (!config?.scenarios?.lists) return;
+
+      for (const scenario of config.scenarios.lists) {
+        if (!scenario.proxies) continue;
+
+        for (const proxy of scenario.proxies) {
+          if (proxy.id === proxyId &&
+            proxy.subscription?.current === format &&
+            proxy.subscription?.enabled !== false) {
+
+            const subConfig = proxy.subscription.lists?.[format];
+            if (subConfig?.url) {
+              inProgressFetches.add(fetchKey);
+              fetchSubscriptionBackground(proxyId, format, subConfig.url).finally(() => {
+                inProgressFetches.delete(fetchKey);
+              });
+            }
+            return;
+          }
+        }
+      }
+    });
+  }
+});
+
+// Storage change listener for subscription config updates
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'local' && changes.config) {
+    const newConfig = changes.config.newValue;
+    const oldConfig = changes.config.oldValue;
+
+    if (newConfig) {
+      console.log('[Worker] Config changed, scheduling alarms...');
+      setTimeout(() => {
+        scheduleAllBackgroundRefreshes(newConfig);
+      }, 1000);
+    }
   }
 });
 
@@ -122,6 +460,13 @@ function restoreProxySettings() {
       stateLoaded = true;
       if (stateLoadedResolve) stateLoadedResolve();
     }
+
+    // Restore subscription alarms after state is loaded
+    chrome.storage.local.get(['config'], (configResult) => {
+      if (configResult.config) {
+        scheduleAllBackgroundRefreshes(configResult.config);
+      }
+    });
   });
 }
 
@@ -296,6 +641,42 @@ function validateProxyConfig(ip, port) {
   }
 
   return { valid: true };
+}
+
+// ==========================================
+// Subscription Functions for Service Worker
+// ==========================================
+
+function scheduleBackgroundRefresh(proxyId, subscription) {
+  if (!subscription || subscription.enabled === false) return;
+
+  const format = subscription.current;
+  const config = subscription.lists?.[format];
+
+  if (config?.refresh_interval > 0 && config?.url) {
+    const alarmName = `subscription_${proxyId}_${format}`;
+
+    chrome.alarms.get(alarmName, (existingAlarm) => {
+      if (existingAlarm) {
+        const existingInterval = existingAlarm.periodInMinutes;
+        if (existingInterval !== config.refresh_interval) {
+          chrome.alarms.clear(alarmName, () => {
+            chrome.alarms.create(alarmName, {
+              delayInMinutes: config.refresh_interval,
+              periodInMinutes: config.refresh_interval
+            });
+            console.log(`[Subscription] Alarm updated: ${alarmName}, interval: ${config.refresh_interval}min`);
+          });
+        }
+      } else {
+        chrome.alarms.create(alarmName, {
+          delayInMinutes: config.refresh_interval,
+          periodInMinutes: config.refresh_interval
+        });
+        console.log(`[Subscription] Alarm created: ${alarmName}, interval: ${config.refresh_interval}min`);
+      }
+    });
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -1031,6 +1412,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
       })();
       return true;
+    } else if (message.action === "subscriptionUpdated") {
+      console.log(`[Worker] Subscription updated: ${message.proxyId}, format: ${message.format}`);
+      applyProxySettings();
+      sendResponse({ success: true });
+    } else if (message.action === "scheduleSubscriptionRefresh") {
+      scheduleSubscriptionRefresh(
+        message.proxyId,
+        message.format,
+        message.refreshInterval,
+        message.url
+      );
+      sendResponse({ success: true });
     } else {
       console.warn("Unknown action:", message.action);
       sendResponse({ success: false, error: "Unknown action" });

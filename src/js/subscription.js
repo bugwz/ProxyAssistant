@@ -3,7 +3,6 @@
 
 const SubscriptionModule = (function () {
   let currentProxyIndex = -1;
-  let refreshTimerId = null;
   // Holds the state for the currently open modal
   // Structure: { current: '...', lists: { ... } }
   let subscriptionConfig = null;
@@ -90,7 +89,6 @@ const SubscriptionModule = (function () {
       if (!subscriptionConfig) return;
       const interval = parseInt($(this).data('value'), 10) || 0;
       subscriptionConfig.lists[subscriptionConfig.current].refresh_interval = interval;
-      updateRefreshTimer();
       $(this).closest('.lh-select-op').hide();
     });
 
@@ -155,7 +153,6 @@ const SubscriptionModule = (function () {
     setTimeout(function () {
       $('.subscription-config-tip').hide();
     }, 300);
-    stopRefreshTimer();
     currentProxyIndex = -1;
     subscriptionConfig = null;
   }
@@ -220,8 +217,6 @@ const SubscriptionModule = (function () {
       }
     }
 
-    updateRefreshTimer();
-
     if (proxy.subscription && proxy.subscription.lists) {
       Object.keys(proxy.subscription.lists).forEach(fmt => {
         if (!FORMATS.includes(fmt)) {
@@ -234,15 +229,12 @@ const SubscriptionModule = (function () {
   function switchFormat(newFormat) {
     if (!subscriptionConfig) return;
 
-    // Save current input values to state before switching (in case 'input' event didn't catch everything)
     const oldFormat = subscriptionConfig.current;
     subscriptionConfig.lists[oldFormat].url = $('#subscription-url').val();
 
     subscriptionConfig.current = newFormat;
     updateModalUI();
-    updateRefreshTimer();
 
-    // Reset to first tab (original)
     $('.subscription-tab[data-tab="original"]').click();
   }
 
@@ -401,6 +393,8 @@ const SubscriptionModule = (function () {
   function resetCurrentFormat() {
     if (!subscriptionConfig) return;
     const format = subscriptionConfig.current;
+    const oldRefreshInterval = subscriptionConfig.lists[format].refresh_interval;
+    const oldUrl = subscriptionConfig.lists[format].url;
     subscriptionConfig.lists[format] = {
       url: '',
       content: '',
@@ -414,6 +408,14 @@ const SubscriptionModule = (function () {
       last_fetch_time: null
     };
     updateModalUI();
+
+    if (currentProxyIndex >= 0 && (oldRefreshInterval > 0 || oldUrl)) {
+      const proxyList = ProxyModule.getList();
+      const proxy = proxyList?.[currentProxyIndex];
+      if (proxy?.id) {
+        disableBackgroundRefresh(proxy.id, format);
+      }
+    }
   }
 
   function updateSubscriptionParsedData(format, config) {
@@ -492,6 +494,7 @@ const SubscriptionModule = (function () {
     const proxyList = ProxyModule.getList();
     if (currentProxyIndex >= 0 && proxyList && proxyList[currentProxyIndex]) {
       const proxy = proxyList[currentProxyIndex];
+      const oldUrl = proxy.subscription?.lists?.[format]?.url || '';
 
       proxy.subscription = {
         enabled: subscriptionConfig.enabled !== false,
@@ -520,33 +523,70 @@ const SubscriptionModule = (function () {
       ProxyModule.saveData({
         successMsg: I18n.t('subscription_save_success'),
         callback: function (success) {
-          if (success) closeModal();
+          if (success) {
+            closeModal();
+            if (currentProxyIndex >= 0) {
+              const proxyList = ProxyModule.getList();
+              const proxy = proxyList?.[currentProxyIndex];
+              if (proxy?.id && proxy?.subscription) {
+                const newUrl = proxy.subscription.lists?.[format]?.url || '';
+                const newInterval = proxy.subscription.lists?.[format]?.refresh_interval || 0;
+
+                if (newInterval <= 0 || !newUrl) {
+                  disableBackgroundRefresh(proxy.id, format);
+                } else {
+                  scheduleBackgroundRefresh(proxy.id, proxy.subscription);
+                }
+              }
+            }
+          }
         }
       });
     }
   }
 
-  function updateRefreshTimer() {
-    stopRefreshTimer();
-    if (!subscriptionConfig) return;
+  function scheduleBackgroundRefresh(proxyId, subscription) {
+    if (!subscription || subscription.enabled === false) return;
 
-    const config = subscriptionConfig.lists[subscriptionConfig.current];
+    const format = subscription.current;
+    const config = subscription.lists?.[format];
 
-    if (!config) return;
-
-    if (config.refresh_interval > 0 && config.url) {
-      const intervalMs = config.refresh_interval * 60 * 1000;
-      refreshTimerId = setInterval(function () {
-        fetchSubscription();
-      }, intervalMs);
+    if (config?.refresh_interval > 0 && config?.url) {
+      chrome.runtime.sendMessage({
+        action: 'scheduleSubscriptionRefresh',
+        proxyId: proxyId,
+        format: format,
+        refreshInterval: config.refresh_interval,
+        url: config.url
+      });
+      console.log(`[Subscription] Schedule refresh requested: ${proxyId}, interval: ${config.refresh_interval}min`);
     }
   }
 
-  function stopRefreshTimer() {
-    if (refreshTimerId) {
-      clearInterval(refreshTimerId);
-      refreshTimerId = null;
-    }
+  function disableBackgroundRefresh(proxyId, format) {
+    const alarmName = `subscription_${proxyId}_${format}`;
+    chrome.alarms.clear(alarmName, () => {
+      console.log(`[Subscription] Alarm cleared: ${alarmName}`);
+    });
+  }
+
+  function scheduleAllBackgroundRefreshes(config) {
+    if (!config?.scenarios?.lists) return;
+
+    config.scenarios.lists.forEach(scenario => {
+      if (scenario.proxies) {
+        scenario.proxies.forEach(proxy => {
+          if (proxy.id && proxy.subscription) {
+            scheduleBackgroundRefresh(proxy.id, proxy.subscription);
+          }
+        });
+      }
+    });
+  }
+
+  async function fetchSubscriptionBackground(proxyId, format, url) {
+    // This function is now handled by worker.js
+    console.log(`[Subscription] Background fetch should be handled by worker: ${proxyId}`);
   }
 
   // --- Helper Functions ---
@@ -988,6 +1028,10 @@ const SubscriptionModule = (function () {
     getSubscriptionLineCounts: getSubscriptionLineCounts,
     generateSubscriptionStats: generateSubscriptionStats,
     parseRules: parseRules,
-    parseProxyListSubscriptions: parseProxyListSubscriptions
+    parseProxyListSubscriptions: parseProxyListSubscriptions,
+    scheduleBackgroundRefresh: scheduleBackgroundRefresh,
+    scheduleAllBackgroundRefreshes: scheduleAllBackgroundRefreshes,
+    fetchSubscriptionBackground: fetchSubscriptionBackground,
+    disableBackgroundRefresh: disableBackgroundRefresh
   };
 })();

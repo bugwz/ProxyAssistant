@@ -394,8 +394,12 @@ function importConfig(e) {
         if (window.StorageModule) {
           StorageModule.setConfig(data);
           StorageModule.save().then(() => {
-            // Apply settings
             applyImportedSettings(data);
+
+            if (window.SubscriptionModule && window.SubscriptionModule.scheduleAllBackgroundRefreshes) {
+              window.SubscriptionModule.scheduleAllBackgroundRefreshes(data);
+            }
+
             UtilsModule.showTip(I18n.t('save_success'), false);
           });
         } else {

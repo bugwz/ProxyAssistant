@@ -319,10 +319,12 @@ async function manualPull() {
         StorageModule.setConfig(data);
         await StorageModule.save();
 
-        // Update syncConfig
         syncConfig = data.system.sync;
 
-        // Refresh UI
+        if (window.SubscriptionModule && window.SubscriptionModule.scheduleAllBackgroundRefreshes) {
+          window.SubscriptionModule.scheduleAllBackgroundRefreshes(data);
+        }
+
         if (typeof loadSettings === 'function') {
           loadSettings();
         } else {
