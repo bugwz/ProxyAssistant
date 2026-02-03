@@ -178,7 +178,7 @@ function updatePacDetails() {
     // Fetch the actual PAC script from the background worker to ensure it includes subscription logic
     chrome.runtime.sendMessage({ action: "getPacScript" }, function (response) {
       if (chrome.runtime.lastError) {
-        console.error("Error fetching PAC script:", chrome.runtime.lastError);
+        console.info("Error fetching PAC script:", chrome.runtime.lastError);
         $("#pac-script-content").text("// Error fetching PAC script: " + chrome.runtime.lastError.message);
         $("#pac-rules-count-text").text(I18n.t('pac_rules_count') + ": ");
         $("#pac-rules-count-value").text("0");

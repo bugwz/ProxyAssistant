@@ -497,7 +497,7 @@ const SubscriptionModule = (function () {
       UtilsModule.showTip(I18n.t('subscription_fetch_success'), false);
 
     } catch (error) {
-      console.error(error);
+      console.info(error);
       UtilsModule.showTip(I18n.t('subscription_fetch_failed') + ': ' + error.message, true);
     }
   }
@@ -723,7 +723,7 @@ const SubscriptionModule = (function () {
     try {
       config = JSON.parse(rule);
     } catch (error) {
-      console.error('PAC 脚本解析失败:', error);
+      console.info('Execute pac process rule failed:', error);
       return { include: [], bypass: [] };
     }
 
@@ -805,7 +805,7 @@ const SubscriptionModule = (function () {
       try {
         return atob(trimmed);
       } catch (e) {
-        console.error('Failed to decode Base64 AutoProxy content');
+        console.info('Failed to decode Base64 AutoProxy content');
         return content;
       }
     }
@@ -953,7 +953,7 @@ const SubscriptionModule = (function () {
         try {
           decoded = atob(content);
         } catch (e) {
-          console.error("Base64 decode failed", e);
+          console.info("Base64 decode failed", e);
         }
       }
     }
@@ -1009,7 +1009,7 @@ const SubscriptionModule = (function () {
             decoded = atob(decoded);
             result.decoded = decoded;
           } catch (e) {
-            console.error('Failed to decode Base64 AutoProxy content');
+            console.info('Failed to decode Base64 AutoProxy content');
             result.decoded = content;
           }
         }
@@ -1142,7 +1142,7 @@ const SubscriptionModule = (function () {
         }
       }
     } catch (e) {
-      console.error('Parse error', e);
+      console.info('Parse error', e);
     }
 
     return {
@@ -1161,7 +1161,7 @@ const SubscriptionModule = (function () {
     try {
       config = JSON.parse(processRule);
     } catch (error) {
-      console.error('PAC content parse failed:', error);
+      console.info('PAC content parse failed:', error);
       return { include: [], bypass: [] };
     }
 
