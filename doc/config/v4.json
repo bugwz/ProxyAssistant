@@ -15,15 +15,16 @@
         }
     },
     "scenarios": {
-        "current": "default",
+        "current": "scenario_ml5aa9b8iig9hx14c",
         "lists": [
             {
-                "id": "default",
-                "name": "公司",
+                "id": "scenario_ml5aa9b8iig9hx14c",
+                "name": "默认场景",
                 "proxies": [
                     {
                         "enabled": true,
-                        "name": "内网代理",
+                        "id": "proxy_ml5abd4z83nb009c4",
+                        "name": "公司代理",
                         "protocol": "http",
                         "ip": "10.12.56.112",
                         "port": "9090",
@@ -41,6 +42,28 @@
                                     "content": "||google.com\n@@local.com",
                                     "refresh_interval": 0,
                                     "reverse": false,
+                                    "last_fetch_time": null
+                                },
+                                "switchy_omega": {
+                                    "url": "https://example.com/switchy_omega.txt",
+                                    "content": "[SwitchyOmega Conditions]\nhost:*.google.com +DIRECT",
+                                    "refresh_interval": 1440,
+                                    "reverse": false,
+                                    "last_fetch_time": null
+                                },
+                                "switchy_legacy": {
+                                    "url": "https://example.com/switchy_legacy.txt",
+                                    "content": "#BEGIN\n!comment\nhost:*.baidu.com +PROXY\n#END",
+                                    "refresh_interval": 720,
+                                    "reverse": false,
+                                    "last_fetch_time": null
+                                },
+                                "pac": {
+                                    "url": "https://example.com/pac.txt",
+                                    "content": "var FindProxyForURL = function(url, host) { return 'PROXY 10.0.0.1:8080'; };",
+                                    "refresh_interval": 0,
+                                    "reverse": false,
+                                    "process_rule": "{\n  \"bypass\": {\n    \"left\": \"],[[\",\n    \"right\": \",[\"\n  },\n  \"include\": {\n    \"left\": \"\\\"],[\",\n    \"right\": \"]];\"\n  }\n}",
                                     "last_fetch_time": null
                                 }
                             }
