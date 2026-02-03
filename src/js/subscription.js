@@ -7,11 +7,12 @@ const SubscriptionModule = (function () {
   // Structure: { current: '...', lists: { ... } }
   let subscriptionConfig = null;
 
-  const FORMATS = ['autoproxy', 'switchy_legacy', 'switchy_omega'];
+  const FORMATS = ['autoproxy', 'switchy_legacy', 'switchy_omega', 'pac'];
   const FORMAT_NAMES = {
     'autoproxy': 'AutoProxy',
     'switchy_legacy': 'Switchy Legacy',
-    'switchy_omega': 'Switchy Omega'
+    'switchy_omega': 'Switchy Omega',
+    'pac': 'PAC'
   };
 
   function init() {
@@ -25,6 +26,7 @@ const SubscriptionModule = (function () {
       lists: {}
     };
     [...FORMATS].forEach(f => {
+      const isPac = f === 'pac';
       config.lists[f] = {
         url: '',
         content: '',
@@ -35,7 +37,19 @@ const SubscriptionModule = (function () {
         bypass_lines: 0,
         refresh_interval: 0,
         reverse: false,
-        last_fetch_time: null
+        last_fetch_time: null,
+        ...(isPac ? {
+          script: JSON.stringify({
+            bypass: {
+              left: "],[[",
+              right: "],["
+            },
+            include: {
+              left: "\"],[\"",
+              right: "]]];"
+            }
+          }, null, 2)
+        } : {})
       };
     });
     return config;
@@ -52,6 +66,22 @@ const SubscriptionModule = (function () {
       if (!subscriptionConfig) return;
       subscriptionConfig.enabled = $(this).prop('checked');
       $('.subscription-config-content').toggleClass('subscription-disabled', !subscriptionConfig.enabled);
+    });
+
+    $('#run-script-btn').on('click', function () {
+      runPacProcessRule();
+    });
+
+    $('#reset-script-btn').on('click', function () {
+      resetPacScript();
+    });
+
+    $('#subscription-process-rule-content').on('input', function () {
+      if (!subscriptionConfig) return;
+      const format = subscriptionConfig.current;
+      if (format === 'pac') {
+        subscriptionConfig.lists[format].process_rule = $(this).val();
+      }
     });
 
     $('#fetch-subscription-btn').on('click', function () {
@@ -73,10 +103,6 @@ const SubscriptionModule = (function () {
 
     $('#save-subscription-btn').on('click', function () {
       saveSubscriptionConfig();
-    });
-
-    $('#test-subscription-btn').on('click', function () {
-      resetCurrentFormat();
     });
 
     $('.subscription-format-selector .lh-select-op li').on('click', function () {
@@ -116,26 +142,10 @@ const SubscriptionModule = (function () {
 
     $('.subscription-tab').on('click', function () {
       const tab = $(this).data('tab');
-      $('.subscription-tab').removeClass('active');
-      $(this).addClass('active');
-      $('.subscription-tab-pane').removeClass('active');
-      $('#tab-pane-' + tab).addClass('active');
 
-      // Toggle empty state for original tab
-      if (tab === 'original') {
-        const content = $('#subscription-raw-content').val();
-        const $emptyState = $('#subscription-raw-empty');
-        if (content && content.trim()) {
-          $emptyState.hide();
-        } else {
-          $emptyState.show();
-        }
-      } else {
-        $('#subscription-raw-empty').hide();
-      }
-
-      const content = $('#tab-pane-' + tab + ' textarea').val();
-      updateContentStats(content || '');
+      switchToTab(tab);
+      updateProcessRuleEditable(tab);
+      updateEmptyStateVisibility(tab);
     });
   }
 
@@ -163,64 +173,16 @@ const SubscriptionModule = (function () {
     const proxyList = ProxyModule.getList();
     const proxy = currentProxyIndex >= 0 && proxyList ? proxyList[currentProxyIndex] : null;
 
-    if (proxy) {
-      if (proxy.subscription) {
-        subscriptionConfig.enabled = proxy.subscription.enabled !== false;
-        const savedCurrent = proxy.subscription.current || proxy.subscription.activeFormat || 'autoproxy';
-        subscriptionConfig.current = FORMATS.includes(savedCurrent) ? savedCurrent : FORMATS[0];
+    if (proxy && proxy.subscription) {
+      subscriptionConfig.enabled = proxy.subscription.enabled !== false;
+      const savedCurrent = proxy.subscription.current || proxy.subscription.activeFormat || 'autoproxy';
+      subscriptionConfig.current = FORMATS.includes(savedCurrent) ? savedCurrent : FORMATS[0];
 
-        const sourceLists = proxy.subscription.lists || proxy.subscription.formats || {};
-        [...FORMATS].forEach(f => {
-          if (sourceLists[f]) {
-            subscriptionConfig.lists[f] = {
-              ...sourceLists[f],
-              decoded_content: sourceLists[f].decoded_content || '',
-              include_rules: sourceLists[f].include_rules || '',
-              bypass_rules: sourceLists[f].bypass_rules || '',
-              include_lines: sourceLists[f].include_lines || 0,
-              bypass_lines: sourceLists[f].bypass_lines || 0
-            };
+      const savedLists = proxy.subscription.lists || proxy.subscription.formats || {};
 
-            if (sourceLists[f].content && !subscriptionConfig.lists[f].include_lines && !subscriptionConfig.lists[f].bypass_lines) {
-              const parsed = parseSubscriptionContent(sourceLists[f].content, f, sourceLists[f].reverse || false);
-              subscriptionConfig.lists[f].decoded_content = parsed.decoded || '';
-              subscriptionConfig.lists[f].include_rules = parsed.include_rules || '';
-              subscriptionConfig.lists[f].bypass_rules = parsed.bypass_rules || '';
-              subscriptionConfig.lists[f].include_lines = parsed.include_rules ? parsed.include_rules.split(/\r\n|\r|\n/).length : 0;
-              subscriptionConfig.lists[f].bypass_lines = parsed.bypass_rules ? parsed.bypass_rules.split(/\r\n|\r|\n/).length : 0;
-            }
-          }
-        });
-      } else if (proxy.subscription_config) {
-        const old = proxy.subscription_config;
-        const fmt = old.format || 'autoproxy';
-        subscriptionConfig.current = fmt;
-
-        if (subscriptionConfig.lists[fmt]) {
-          subscriptionConfig.lists[fmt].url = old.url || '';
-          subscriptionConfig.lists[fmt].refresh_interval = old.refresh_interval || 0;
-          subscriptionConfig.lists[fmt].reverse = old.reverse || false;
-          subscriptionConfig.lists[fmt].last_fetch_time = old.last_fetch_time || null;
-
-          let content = old.lastContent || '';
-          subscriptionConfig.lists[fmt].content = content;
-
-          if (content) {
-            const parsed = parseSubscriptionContent(content, fmt, old.reverse || false);
-            subscriptionConfig.lists[fmt].decoded_content = parsed.decoded || '';
-            subscriptionConfig.lists[fmt].include_rules = parsed.include_rules || '';
-            subscriptionConfig.lists[fmt].bypass_rules = parsed.bypass_rules || '';
-            subscriptionConfig.lists[fmt].include_lines = parsed.include_rules ? parsed.include_rules.split(/\r\n|\r|\n/).length : 0;
-            subscriptionConfig.lists[fmt].bypass_lines = parsed.bypass_rules ? parsed.bypass_rules.split(/\r\n|\r|\n/).length : 0;
-          }
-        }
-      }
-    }
-
-    if (proxy.subscription && proxy.subscription.lists) {
-      Object.keys(proxy.subscription.lists).forEach(fmt => {
-        if (!FORMATS.includes(fmt)) {
-          delete proxy.subscription.lists[fmt];
+      [...FORMATS].forEach(f => {
+        if (savedLists[f]) {
+          subscriptionConfig.lists[f] = { ...savedLists[f] };
         }
       });
     }
@@ -293,64 +255,126 @@ const SubscriptionModule = (function () {
   }
 
   function updateContentDisplay(content, format) {
+    updateRawContent(content);
+    updateParsedData(format);
+    updateTabVisibility(format);
+    updateScriptPane(format);
+    updateActiveTabContent();
+  }
+
+  function updateRawContent(content) {
     $('#subscription-raw-content').val(content);
+    $('#subscription-raw-empty').toggle(!(content && content.trim()));
+  }
 
-    // Toggle empty state for raw content
-    const $emptyState = $('#subscription-raw-empty');
-    if (content && content.trim()) {
-      $emptyState.hide();
-    } else {
-      $emptyState.show();
+  function updateParsedData(format) {
+    if (!subscriptionConfig || !subscriptionConfig.lists[format]) return;
+
+    const config = subscriptionConfig.lists[format];
+    const parsed = {
+      decoded: config.decoded_content || '',
+      include_rules: config.include_rules || '',
+      bypass_rules: config.bypass_rules || ''
+    };
+
+    $('#subscription-decoded-content').val(parsed.decoded);
+    $('#subscription-include-content').val(parsed.include_rules);
+    $('#subscription-bypass-content').val(parsed.bypass_rules);
+
+    const includeLines = parsed.include_rules ? countNonEmptyLines(parsed.include_rules) : 0;
+    const bypassLines = parsed.bypass_rules ? countNonEmptyLines(parsed.bypass_rules) : 0;
+
+    config.decoded_content = parsed.decoded;
+    config.include_rules = parsed.include_rules;
+    config.bypass_rules = parsed.bypass_rules;
+    config.include_lines = includeLines;
+    config.bypass_lines = bypassLines;
+  }
+
+  function countNonEmptyLines(text) {
+    return text.split(/\r\n|\r|\n/).filter(line => line.trim()).length;
+  }
+
+  function updateTabVisibility(format) {
+    const hasContent = subscriptionConfig?.lists[format]?.content?.trim();
+    const hasDecoded = subscriptionConfig?.lists[format]?.decoded_content;
+
+    $('.subscription-tab[data-tab="process-rule"]').toggle(format === 'pac');
+    $('.subscription-tab[data-tab="decoded"]').toggle(!!hasDecoded && hasDecoded !== subscriptionConfig?.lists[format]?.content);
+    $('.subscription-tab[data-tab="include"]').toggle(!!hasContent);
+    $('.subscription-tab[data-tab="bypass"]').toggle(!!hasContent);
+
+    const activeTab = $('.subscription-tab.active').data('tab');
+    const shouldSwitch = (
+      (activeTab === 'decoded' && !hasDecoded) ||
+      ((activeTab === 'include' || activeTab === 'bypass') && !hasContent)
+    );
+    if (shouldSwitch) {
+      switchToTab('original');
     }
+  }
 
-    const config = subscriptionConfig ? subscriptionConfig.lists[format] : {};
-    const reverse = config.reverse || false;
+  function updateScriptPane(format) {
+    const $processRulePane = $('#tab-pane-process-rule');
+    const $processRuleContent = $('#subscription-process-rule-content');
+    const config = subscriptionConfig?.lists[format];
 
-    const parsed = parseSubscriptionContent(content, format, reverse);
-
-    if (subscriptionConfig && subscriptionConfig.lists[format]) {
-      subscriptionConfig.lists[format].decoded_content = parsed.decoded || '';
-      subscriptionConfig.lists[format].include_rules = parsed.include_rules || '';
-      subscriptionConfig.lists[format].bypass_rules = parsed.bypass_rules || '';
-      subscriptionConfig.lists[format].include_lines = parsed.include_rules ? parsed.include_rules.split(/\r\n|\r|\n/).length : 0;
-      subscriptionConfig.lists[format].bypass_lines = parsed.bypass_rules ? parsed.bypass_rules.split(/\r\n|\r|\n/).length : 0;
-    }
-
-    // Decoded Tab
-    if (parsed.decoded && parsed.decoded !== content) {
-      $('.subscription-tab[data-tab="decoded"]').show();
-      $('#subscription-decoded-content').val(parsed.decoded);
-    } else {
-      $('.subscription-tab[data-tab="decoded"]').hide();
-      $('#subscription-decoded-content').val('');
-      // If currently on decoded tab, switch to original
-      if ($('.subscription-tab[data-tab="decoded"]').hasClass('active')) {
-        $('.subscription-tab[data-tab="original"]').click();
+    if (format === 'pac') {
+      if ($processRuleContent.val() === '') {
+        $processRuleContent.val(config?.process_rule || getDefaultPacProcessRule());
       }
-    }
-
-    // Include/Bypass Tabs - only show if content exists
-    if (content && content.trim()) {
-      $('.subscription-tab[data-tab="include"]').show();
-      $('.subscription-tab[data-tab="bypass"]').show();
-    } else {
-      $('.subscription-tab[data-tab="include"]').hide();
-      $('.subscription-tab[data-tab="bypass"]').hide();
-      $('#subscription-include-content').val('');
-      $('#subscription-bypass-content').val('');
-      // If currently on include/bypass tab, switch to original
-      const activeTab = $('.subscription-tab.active').data('tab');
-      if (activeTab === 'include' || activeTab === 'bypass') {
-        $('.subscription-tab[data-tab="original"]').click();
+      if (config) {
+        config.process_rule = $processRuleContent.val();
       }
+    } else {
+      $processRulePane.hide();
+    }
+  }
+
+  function getDefaultPacProcessRule() {
+    return JSON.stringify({
+      bypass: { left: '],[[', right: ',[' },
+      include: { left: '","', right: '"]]];' }
+    }, null, 2);
+  }
+
+  function switchToTab(tabName) {
+    const $tabs = $('.subscription-tab');
+    const $panes = $('.subscription-tab-pane');
+
+    $tabs.filter('.active').removeClass('active');
+    $panes.filter('.active').removeClass('active').hide();
+
+    const $targetTab = $(`.subscription-tab[data-tab="${tabName}"]`);
+    const $targetPane = $(`#tab-pane-${tabName}`);
+
+    if ($targetTab.length && $targetPane.length) {
+      $targetTab.addClass('active');
+      $targetPane.addClass('active').show();
     }
 
-    $('#subscription-include-content').val(parsed.include_rules || '');
-    $('#subscription-bypass-content').val(parsed.bypass_rules || '');
+    updateActiveTabContent();
+  }
 
+  function updateActiveTabContent() {
     const activeTab = $('.subscription-tab.active').data('tab') || 'original';
-    const activeContent = $('#tab-pane-' + activeTab + ' textarea').val();
-    updateContentStats(activeContent || '');
+    const $textarea = $(`#tab-pane-${activeTab} textarea`);
+    updateContentStats($textarea.val() || '');
+  }
+
+  function updateProcessRuleEditable(activeTab) {
+    const isProcessRuleTab = activeTab === 'process-rule';
+    $('#subscription-process-rule-content').prop('readonly', !isProcessRuleTab);
+    $('#subscription-raw-content, #subscription-decoded-content, #subscription-include-content, #subscription-bypass-content').prop('readonly', true);
+  }
+
+  function updateEmptyStateVisibility(activeTab) {
+    if (activeTab === 'original') {
+      const content = $('#subscription-raw-content').val();
+      $('#subscription-raw-empty').toggle(!(content && content.trim()));
+    } else {
+      $('#subscription-raw-empty').hide();
+    }
   }
 
   function updateContentStats(content) {
@@ -428,7 +452,8 @@ const SubscriptionModule = (function () {
     }
 
     const reverse = config.reverse || false;
-    const parsed = parseSubscriptionContent(config.content, format, reverse);
+      const processRule = format === 'pac' ? config.process_rule : undefined;
+      const parsed = parseSubscriptionContent(config.content, format, reverse, processRule);
 
     config.decoded_content = parsed.decoded || '';
     config.include_rules = parsed.include_rules || '';
@@ -480,10 +505,17 @@ const SubscriptionModule = (function () {
   function saveSubscriptionConfig() {
     if (!subscriptionConfig) return;
 
-    // Sync current inputs to state
     const format = subscriptionConfig.current;
     subscriptionConfig.lists[format].url = $('#subscription-url').val().trim();
-    // refresh_interval is already updated via click handler
+    if (format === 'pac') {
+      const processRule = $('#subscription-process-rule-content').val();
+      const validation = validatePacProcessRule(processRule);
+      if (!validation.valid) {
+        UtilsModule.showTip(I18n.t('subscription_save_failed') + ': ' + validation.error, true);
+        return;
+      }
+      subscriptionConfig.lists[format].process_rule = processRule;
+    }
 
     const currentInterval = subscriptionConfig.lists[format].refresh_interval || 0;
     if (currentInterval < 0 || currentInterval > 10080) {
@@ -504,18 +536,24 @@ const SubscriptionModule = (function () {
 
       Object.keys(subscriptionConfig.lists).forEach(key => {
         const item = subscriptionConfig.lists[key];
-        proxy.subscription.lists[key] = {
+        const includeRulesStr = item.include_rules || '';
+        const bypassRulesStr = item.bypass_rules || '';
+        const saveItem = {
           url: item.url,
           content: item.content,
           decoded_content: item.decoded_content || '',
-          include_rules: item.include_rules || '',
-          bypass_rules: item.bypass_rules || '',
-          include_lines: item.include_lines || 0,
-          bypass_lines: item.bypass_lines || 0,
+          include_rules: includeRulesStr,
+          bypass_rules: bypassRulesStr,
+          include_lines: includeRulesStr ? includeRulesStr.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0,
+          bypass_lines: bypassRulesStr ? bypassRulesStr.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0,
           refresh_interval: item.refresh_interval,
           reverse: item.reverse,
           last_fetch_time: item.last_fetch_time
         };
+        if (key === 'pac') {
+          saveItem.process_rule = item.process_rule || '';
+        }
+        proxy.subscription.lists[key] = saveItem;
       });
 
       delete proxy.subscription_config;
@@ -585,8 +623,62 @@ const SubscriptionModule = (function () {
   }
 
   async function fetchSubscriptionBackground(proxyId, format, url) {
-    // This function is now handled by worker.js
     console.log(`[Subscription] Background fetch should be handled by worker: ${proxyId}`);
+  }
+
+  function resetPacScript() {
+    if (!subscriptionConfig) return;
+    const format = subscriptionConfig.current;
+    if (format !== 'pac') return;
+
+    const defaultProcessRule = JSON.stringify({
+      bypass: {
+        left: "],[[",
+        right: "],["
+      },
+      include: {
+        left: "\"],[\"",
+        right: "]]];"
+      }
+    }, null, 2);
+
+    subscriptionConfig.lists[format].process_rule = defaultProcessRule;
+    $('#subscription-process-rule-content').val(defaultProcessRule);
+    UtilsModule.showTip(I18n.t('subscription_reset_success'), false);
+  }
+
+  function runPacProcessRule() {
+    if (!subscriptionConfig) return;
+    const format = subscriptionConfig.current;
+    if (format !== 'pac') return;
+
+    const rule = $('#subscription-process-rule-content').val();
+    const content = $('#subscription-raw-content').val();
+    const reverse = subscriptionConfig.lists[format].reverse || false;
+
+    const validation = validatePacProcessRule(rule);
+    if (!validation.valid) {
+      UtilsModule.showTip(I18n.t('subscription_process_rule_error') + ': ' + validation.error, true);
+      return;
+    }
+
+    const result = executePacProcessRule(rule, content, reverse);
+
+    subscriptionConfig.lists[format].include_rules = result.include.join('\n');
+    subscriptionConfig.lists[format].bypass_rules = result.bypass.join('\n');
+    subscriptionConfig.lists[format].include_lines = result.include.length;
+    subscriptionConfig.lists[format].bypass_lines = result.bypass.length;
+    subscriptionConfig.lists[format].process_rule = rule;
+
+    $('#subscription-include-content').val(result.include.join('\n'));
+    $('#subscription-bypass-content').val(result.bypass.join('\n'));
+
+    const includeCount = result.include.length;
+    const bypassCount = result.bypass.length;
+    const successText = I18n.t('subscription_process_rule_success')
+      .replace('{include_count}', includeCount)
+      .replace('{bypass_count}', bypassCount);
+    UtilsModule.showTip(successText, false);
   }
 
   // --- Helper Functions ---
@@ -602,9 +694,109 @@ const SubscriptionModule = (function () {
         return !trimmed.startsWith('[SwitchyOmega Conditions]') && trimmed.includes('#BEGIN') && trimmed.includes('#END');
       case 'switchy_omega':
         return trimmed.startsWith('[SwitchyOmega Conditions]');
+      case 'pac':
+        return true;
       default:
         return true;
     }
+  }
+
+  function validatePacProcessRule(rule) {
+    if (!rule || !rule.trim()) {
+      return { valid: false, error: '规则不能为空' };
+    }
+
+    try {
+      const config = JSON.parse(rule);
+      return { valid: true, config };
+    } catch (error) {
+      return { valid: false, error: `JSON 格式错误: ${error.message}` };
+    }
+  }
+
+  function executePacProcessRule(rule, rawContent, reverse = false) {
+    if (!rule || !rawContent) {
+      return { include: [], bypass: [] };
+    }
+
+    let config;
+    try {
+      config = JSON.parse(rule);
+    } catch (error) {
+      console.error('PAC 脚本解析失败:', error);
+      return { include: [], bypass: [] };
+    }
+
+    const content = rawContent.replace(/\s+/g, '');
+
+    const extractedInclude = [];
+    const extractedBypass = [];
+
+    const bypassConfig = config.bypass || {};
+    const includeConfig = config.include || {};
+
+    const bypassLeft = bypassConfig.left || '';
+    const bypassRight = bypassConfig.right || '';
+    const includeLeft = includeConfig.left || '';
+    const includeRight = includeConfig.right || '';
+
+    function extractByBounds(content, left, right) {
+      if (!left || !right) return [];
+
+      const results = [];
+      let start = 0;
+      while (true) {
+        const leftIdx = content.indexOf(left, start);
+        if (leftIdx === -1) break;
+        const rightIdx = content.indexOf(right, leftIdx + left.length);
+        if (rightIdx === -1) break;
+
+        const extracted = content.substring(leftIdx + left.length, rightIdx);
+        results.push(extracted);
+
+        start = rightIdx + right.length;
+      }
+      return results;
+    }
+
+    function parseExtracted(items) {
+      const parsed = [];
+      for (const item of items) {
+        const parts = item.replace(/["']/g, '').split(',');
+        for (const part of parts) {
+          const trimmed = part.trim();
+          if (trimmed) {
+            parsed.push(trimmed);
+          }
+        }
+      }
+      return parsed;
+    }
+
+    if (bypassLeft && bypassRight) {
+      const bypassItems = extractByBounds(content, bypassLeft, bypassRight);
+      extractedBypass.push(...parseExtracted(bypassItems));
+    }
+
+    if (includeLeft && includeRight) {
+      const includeItems = extractByBounds(content, includeLeft, includeRight);
+      extractedInclude.push(...parseExtracted(includeItems));
+    }
+
+    const include = [...new Set(extractedInclude.filter(item => item && typeof item === 'string'))];
+    const bypass = [...new Set(extractedBypass.filter(item => item && typeof item === 'string'))];
+
+    if (reverse) {
+      return {
+        include: bypass,
+        bypass: include
+      };
+    }
+
+    return {
+      include: include,
+      bypass: bypass
+    };
   }
 
   function decodeAutoProxyContent(content) {
@@ -781,13 +973,7 @@ const SubscriptionModule = (function () {
     return rules;
   }
 
-  function parseSubscriptionContent(content, format, reverse) {
-    const result = {
-      include_rules: [],
-      bypass_rules: [],
-      decoded: null
-    };
-
+  function parseSubscriptionContent(content, format, reverse, processRule) {
     if (!content) {
       return {
         include_rules: '',
@@ -796,8 +982,25 @@ const SubscriptionModule = (function () {
       };
     }
 
+    const result = {
+      include_rules: [],
+      bypass_rules: [],
+      decoded: null
+    };
+
     try {
       let contentToParse = content;
+
+      if (format === 'pac') {
+        const pacResult = parsePacContent(contentToParse, processRule, reverse);
+        result.include_rules = pacResult.include;
+        result.bypass_rules = pacResult.bypass;
+        return {
+          include_rules: Array.isArray(result.include_rules) ? result.include_rules.join('\n') : result.include_rules,
+          bypass_rules: Array.isArray(result.bypass_rules) ? result.bypass_rules.join('\n') : result.bypass_rules,
+          decoded: result.decoded
+        };
+      }
 
       if (format === 'autoproxy') {
         let decoded = content.trim();
@@ -814,7 +1017,6 @@ const SubscriptionModule = (function () {
       }
 
       const lines = contentToParse.split('\n');
-
       for (let line of lines) {
         line = line.trim();
         if (!line) continue;
@@ -852,91 +1054,89 @@ const SubscriptionModule = (function () {
             }
             if (pattern) result.include_rules.push(pattern);
           }
-        } else {
-          if (format === 'switchy_omega') {
-            if (line.startsWith('[SwitchyOmega Conditions]')) continue;
-            if (line.startsWith(';')) continue;
-            if (line.startsWith('@')) continue;
-            let pattern = line;
-            let isDirectRule = false;
+        } else if (format === 'switchy_omega') {
+          if (line.startsWith('[SwitchyOmega Conditions]')) continue;
+          if (line.startsWith(';')) continue;
+          if (line.startsWith('@')) continue;
+          let pattern = line;
+          let isDirectRule = false;
 
-            if (line.includes(' +')) {
-              const parts = line.split(' +');
-              pattern = parts[0].trim();
-              const res = parts[1] ? parts[1].trim().toLowerCase() : '';
-              if (res === 'direct') isDirectRule = true;
-            } else if (line.includes('\t+')) {
-              const parts = line.split('\t+');
-              pattern = parts[0].trim();
-              const res = parts[1] ? parts[1].trim().toLowerCase() : '';
-              if (res === 'direct') isDirectRule = true;
+          if (line.includes(' +')) {
+            const parts = line.split(' +');
+            pattern = parts[0].trim();
+            const res = parts[1] ? parts[1].trim().toLowerCase() : '';
+            if (res === 'direct') isDirectRule = true;
+          } else if (line.includes('\t+')) {
+            const parts = line.split('\t+');
+            pattern = parts[0].trim();
+            const res = parts[1] ? parts[1].trim().toLowerCase() : '';
+            if (res === 'direct') isDirectRule = true;
+          }
+          if (pattern.startsWith('!')) {
+            pattern = pattern.substring(1).trim();
+            isDirectRule = true;
+          }
+          if (pattern.includes(': ')) {
+            const parts = pattern.split(': ');
+            const type = parts[0].toLowerCase();
+            if (['host', 'wildcard', 'hostwildcard', 'url', 'urlwildcard'].some(t => type.includes(t))) {
+              pattern = parts[1].trim();
+            } else {
+              continue;
             }
-            if (pattern.startsWith('!')) {
-              pattern = pattern.substring(1).trim();
-              isDirectRule = true;
-            }
-            if (pattern.includes(': ')) {
-              const parts = pattern.split(': ');
-              const type = parts[0].toLowerCase();
-              if (['host', 'wildcard', 'hostwildcard', 'url', 'urlwildcard'].some(t => type.includes(t))) {
-                pattern = parts[1].trim();
-              } else {
-                continue;
+          }
+          if (pattern.startsWith(': ')) {
+            pattern = pattern.substring(2).trim();
+          }
+          if (pattern) {
+            const shouldBeDirect = isDirectRule ? !reverse : reverse;
+            if (shouldBeDirect) {
+              if (isValidManualBypassPattern(pattern)) {
+                result.bypass_rules.push(pattern);
               }
+            } else {
+              result.include_rules.push(pattern);
             }
-            if (pattern.startsWith(': ')) {
-              pattern = pattern.substring(2).trim();
-            }
-            if (pattern) {
-              const shouldBeDirect = isDirectRule ? !reverse : reverse;
-              if (shouldBeDirect) {
-                if (isValidManualBypassPattern(pattern)) {
-                  result.bypass_rules.push(pattern);
-                }
-              } else {
-                result.include_rules.push(pattern);
-              }
-            }
-          } else if (format === 'switchy_legacy') {
-            if (line.startsWith(';') || line.startsWith('#') || line.startsWith('[') || line.startsWith('@')) continue;
-            let pattern = line;
-            let isDirectRule = false;
+          }
+        } else if (format === 'switchy_legacy') {
+          if (line.startsWith(';') || line.startsWith('#') || line.startsWith('[') || line.startsWith('@')) continue;
+          let pattern = line;
+          let isDirectRule = false;
 
-            if (line.startsWith('!')) {
-              isDirectRule = true;
-              pattern = line.substring(1);
-            } else if (line.includes(' +')) {
-              const parts = line.split(' +');
-              pattern = parts[0].trim();
-              const res = parts[1] ? parts[1].trim().toLowerCase() : '';
-              if (res === 'direct') isDirectRule = true;
-            } else if (line.includes('\t+')) {
-              const parts = line.split('\t+');
-              pattern = parts[0].trim();
-              const res = parts[1] ? parts[1].trim().toLowerCase() : '';
-              if (res === 'direct') isDirectRule = true;
+          if (line.startsWith('!')) {
+            isDirectRule = true;
+            pattern = line.substring(1);
+          } else if (line.includes(' +')) {
+            const parts = line.split(' +');
+            pattern = parts[0].trim();
+            const res = parts[1] ? parts[1].trim().toLowerCase() : '';
+            if (res === 'direct') isDirectRule = true;
+          } else if (line.includes('\t+')) {
+            const parts = line.split('\t+');
+            pattern = parts[0].trim();
+            const res = parts[1] ? parts[1].trim().toLowerCase() : '';
+            if (res === 'direct') isDirectRule = true;
+          }
+          if (pattern.includes(': ')) {
+            const parts = pattern.split(': ');
+            const type = parts[0].toLowerCase();
+            if (['host', 'wildcard', 'hostwildcard', 'url', 'urlwildcard'].some(t => type.includes(t))) {
+              pattern = parts[1].trim();
+            } else {
+              continue;
             }
-            if (pattern.includes(': ')) {
-              const parts = pattern.split(': ');
-              const type = parts[0].toLowerCase();
-              if (['host', 'wildcard', 'hostwildcard', 'url', 'urlwildcard'].some(t => type.includes(t))) {
-                pattern = parts[1].trim();
-              } else {
-                continue;
+          }
+          if (pattern.startsWith(': ')) {
+            pattern = pattern.substring(2).trim();
+          }
+          if (pattern) {
+            const shouldBeDirect = isDirectRule ? !reverse : reverse;
+            if (shouldBeDirect) {
+              if (isValidManualBypassPattern(pattern)) {
+                result.bypass_rules.push(pattern);
               }
-            }
-            if (pattern.startsWith(': ')) {
-              pattern = pattern.substring(2).trim();
-            }
-            if (pattern) {
-              const shouldBeDirect = isDirectRule ? !reverse : reverse;
-              if (shouldBeDirect) {
-                if (isValidManualBypassPattern(pattern)) {
-                  result.bypass_rules.push(pattern);
-                }
-              } else {
-                result.include_rules.push(pattern);
-              }
+            } else {
+              result.include_rules.push(pattern);
             }
           }
         }
@@ -946,10 +1146,89 @@ const SubscriptionModule = (function () {
     }
 
     return {
-      include_rules: result.include_rules.join('\n'),
-      bypass_rules: result.bypass_rules.join('\n'),
+      include_rules: Array.isArray(result.include_rules) ? result.include_rules.join('\n') : result.include_rules,
+      bypass_rules: Array.isArray(result.bypass_rules) ? result.bypass_rules.join('\n') : result.bypass_rules,
       decoded: result.decoded
     };
+  }
+
+  function parsePacContent(rawContent, processRule, reverse = false) {
+    if (!rawContent || !processRule) {
+      return { include: [], bypass: [] };
+    }
+
+    let config;
+    try {
+      config = JSON.parse(processRule);
+    } catch (error) {
+      console.error('PAC content parse failed:', error);
+      return { include: [], bypass: [] };
+    }
+
+    const content = rawContent.replace(/\s+/g, '');
+
+    const extractedInclude = [];
+    const extractedBypass = [];
+
+    const bypassConfig = config.bypass || {};
+    const includeConfig = config.include || {};
+
+    const bypassLeft = bypassConfig.left || '';
+    const bypassRight = bypassConfig.right || '';
+    const includeLeft = includeConfig.left || '';
+    const includeRight = includeConfig.right || '';
+
+    function extractByBounds(content, left, right) {
+      if (!left || !right) return [];
+
+      const results = [];
+      let start = 0;
+      while (true) {
+        const leftIdx = content.indexOf(left, start);
+        if (leftIdx === -1) break;
+        const rightIdx = content.indexOf(right, leftIdx + left.length);
+        if (rightIdx === -1) break;
+
+        const extracted = content.substring(leftIdx + left.length, rightIdx);
+        results.push(extracted);
+
+        start = rightIdx + right.length;
+      }
+      return results;
+    }
+
+    function parseExtracted(items) {
+      const parsed = [];
+      for (const item of items) {
+        const parts = item.replace(/["']/g, '').split(',');
+        for (const part of parts) {
+          const trimmed = part.trim();
+          if (trimmed) {
+            parsed.push(trimmed);
+          }
+        }
+      }
+      return parsed;
+    }
+
+    if (bypassLeft && bypassRight) {
+      const bypassItems = extractByBounds(content, bypassLeft, bypassRight);
+      extractedBypass.push(...parseExtracted(bypassItems));
+    }
+
+    if (includeLeft && includeRight) {
+      const includeItems = extractByBounds(content, includeLeft, includeRight);
+      extractedInclude.push(...parseExtracted(includeItems));
+    }
+
+    const include = [...new Set(extractedInclude.filter(item => item && typeof item === 'string'))];
+    const bypass = [...new Set(extractedBypass.filter(item => item && typeof item === 'string'))];
+
+    if (reverse) {
+      return { include: bypass, bypass: include };
+    }
+
+    return { include, bypass };
   }
 
   function convertContent(content, format) {
@@ -971,7 +1250,7 @@ const SubscriptionModule = (function () {
     };
   }
 
-  function generateSubscriptionStats(content, format, reverse) {
+  function generateSubscriptionStats(content, format, reverse, processRule) {
     if (!content) {
       return {
         decoded_content: '',
@@ -982,7 +1261,7 @@ const SubscriptionModule = (function () {
       };
     }
 
-    const parsed = parseSubscriptionContent(content, format, reverse || false);
+    const parsed = parseSubscriptionContent(content, format, reverse || false, processRule);
 
     return {
       decoded_content: parsed.decoded || '',
@@ -1007,7 +1286,8 @@ const SubscriptionModule = (function () {
           const stats = generateSubscriptionStats(
             listConfig.content,
             format,
-            listConfig.reverse || false
+            listConfig.reverse || false,
+            format === 'pac' ? listConfig.process_rule : undefined
           );
           listConfig.decoded_content = stats.decoded_content;
           listConfig.include_rules = stats.include_rules;
