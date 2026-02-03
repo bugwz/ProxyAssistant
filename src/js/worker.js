@@ -70,13 +70,15 @@ function isSubscriptionFormatValid(content, format) {
       return !trimmed.startsWith('[SwitchyOmega Conditions]') && trimmed.includes('#BEGIN') && trimmed.includes('#END');
     case 'switchy_omega':
       return trimmed.startsWith('[SwitchyOmega Conditions]');
+    case 'pac':
+      return true;
     default:
       return true;
   }
 }
 
 // Helper function: parse subscription content
-function parseSubscriptionContent(content, format, reverse) {
+function parseSubscriptionContent(content, format, reverse, processRule) {
   const result = {
     include_rules: '',
     bypass_rules: '',
@@ -87,6 +89,17 @@ function parseSubscriptionContent(content, format, reverse) {
 
   try {
     let contentToParse = content;
+
+    if (format === 'pac') {
+      const pacResult = parsePacContent(contentToParse, processRule, reverse);
+      result.include_rules = pacResult.include;
+      result.bypass_rules = pacResult.bypass;
+      return {
+        include_rules: Array.isArray(result.include_rules) ? result.include_rules.join('\n') : result.include_rules,
+        bypass_rules: Array.isArray(result.bypass_rules) ? result.bypass_rules.join('\n') : result.bypass_rules,
+        decoded: result.decoded
+      };
+    }
 
     if (format === 'autoproxy') {
       let decoded = content.trim();
@@ -132,6 +145,91 @@ function parseSubscriptionContent(content, format, reverse) {
           } else if (pattern.startsWith('|')) pattern = pattern.substring(1);
           if (pattern) includeRules.push(pattern);
         }
+      } else if (format === 'switchy_omega') {
+        if (trimmed.startsWith('[SwitchyOmega Conditions]')) continue;
+        if (trimmed.startsWith(';')) continue;
+        if (trimmed.startsWith('@')) continue;
+        let pattern = trimmed;
+        let isDirectRule = false;
+
+        if (line.includes(' +')) {
+          const parts = line.split(' +');
+          pattern = parts[0].trim();
+          const res = parts[1] ? parts[1].trim().toLowerCase() : '';
+          if (res === 'direct') isDirectRule = true;
+        } else if (line.includes('\t+')) {
+          const parts = line.split('\t+');
+          pattern = parts[0].trim();
+          const res = parts[1] ? parts[1].trim().toLowerCase() : '';
+          if (res === 'direct') isDirectRule = true;
+        }
+        if (pattern.startsWith('!')) {
+          pattern = pattern.substring(1).trim();
+          isDirectRule = true;
+        }
+        if (pattern.includes(': ')) {
+          const parts = pattern.split(': ');
+          const type = parts[0].toLowerCase();
+          if (['host', 'wildcard', 'hostwildcard', 'url', 'urlwildcard'].some(t => type.includes(t))) {
+            pattern = parts[1].trim();
+          } else {
+            continue;
+          }
+        }
+        if (pattern.startsWith(': ')) {
+          pattern = pattern.substring(2).trim();
+        }
+        if (pattern) {
+          const shouldBeDirect = isDirectRule ? !reverse : reverse;
+          if (shouldBeDirect) {
+            if (isValidManualBypassPattern(pattern)) {
+              bypassRules.push(pattern);
+            }
+          } else {
+            includeRules.push(pattern);
+          }
+        }
+      } else if (format === 'switchy_legacy') {
+        if (trimmed.startsWith(';') || trimmed.startsWith('#') || trimmed.startsWith('[') || trimmed.startsWith('@')) continue;
+        let pattern = trimmed;
+        let isDirectRule = false;
+
+        if (trimmed.startsWith('!')) {
+          isDirectRule = true;
+          pattern = trimmed.substring(1);
+        } else if (line.includes(' +')) {
+          const parts = line.split(' +');
+          pattern = parts[0].trim();
+          const res = parts[1] ? parts[1].trim().toLowerCase() : '';
+          if (res === 'direct') isDirectRule = true;
+        } else if (line.includes('\t+')) {
+          const parts = line.split('\t+');
+          pattern = parts[0].trim();
+          const res = parts[1] ? parts[1].trim().toLowerCase() : '';
+          if (res === 'direct') isDirectRule = true;
+        }
+        if (pattern.includes(': ')) {
+          const parts = pattern.split(': ');
+          const type = parts[0].toLowerCase();
+          if (['host', 'wildcard', 'hostwildcard', 'url', 'urlwildcard'].some(t => type.includes(t))) {
+            pattern = parts[1].trim();
+          } else {
+            continue;
+          }
+        }
+        if (pattern.startsWith(': ')) {
+          pattern = pattern.substring(2).trim();
+        }
+        if (pattern) {
+          const shouldBeDirect = isDirectRule ? !reverse : reverse;
+          if (shouldBeDirect) {
+            if (isValidManualBypassPattern(pattern)) {
+              bypassRules.push(pattern);
+            }
+          } else {
+            includeRules.push(pattern);
+          }
+        }
       } else {
         includeRules.push(trimmed);
       }
@@ -144,6 +242,125 @@ function parseSubscriptionContent(content, format, reverse) {
   }
 
   return result;
+}
+
+function isValidManualBypassPattern(pattern) {
+  if (!pattern || typeof pattern !== 'string') return false;
+
+  const trimmed = pattern.trim();
+  if (!trimmed) return false;
+
+  if (trimmed.startsWith('/') && trimmed.endsWith('/')) {
+    return false;
+  }
+
+  if (trimmed.startsWith('|') && !trimmed.startsWith('||')) {
+    return false;
+  }
+
+  const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+  if (ipv4Pattern.test(trimmed)) {
+    return true;
+  }
+
+  if (trimmed.includes('/')) {
+    const ipv4CidrPattern = /^(\d{1,3}\.){3}\d{1,3}\/(8|9|1\d|2\d|3[0-2])$/;
+    if (ipv4CidrPattern.test(trimmed)) {
+      return true;
+    }
+    return false;
+  }
+
+  const portPattern = /^([a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?:[1-9]\d{0,4}$/;
+  if (portPattern.test(trimmed)) {
+    return true;
+  }
+
+  const ipPortPattern = /^(\d{1,3}\.){3}\d{1,3}:[1-9]\d{0,4}$/;
+  if (ipPortPattern.test(trimmed)) {
+    return true;
+  }
+
+  return true;
+}
+
+function parsePacContent(rawContent, processRule, reverse = false) {
+  if (!rawContent || !processRule) {
+    return { include: [], bypass: [] };
+  }
+
+  let config;
+  try {
+    config = JSON.parse(processRule);
+  } catch (error) {
+    console.error('[Worker] PAC content parse failed:', error);
+    return { include: [], bypass: [] };
+  }
+
+  const content = rawContent.replace(/\s+/g, '');
+
+  const extractedInclude = [];
+  const extractedBypass = [];
+
+  const bypassConfig = config.bypass || {};
+  const includeConfig = config.include || {};
+
+  const bypassLeft = bypassConfig.left || '';
+  const bypassRight = bypassConfig.right || '';
+  const includeLeft = includeConfig.left || '';
+  const includeRight = includeConfig.right || '';
+
+  function extractByBounds(content, left, right) {
+    if (!left || !right) return [];
+
+    const results = [];
+    let start = 0;
+    while (true) {
+      const leftIdx = content.indexOf(left, start);
+      if (leftIdx === -1) break;
+      const rightIdx = content.indexOf(right, leftIdx + left.length);
+      if (rightIdx === -1) break;
+
+      const extracted = content.substring(leftIdx + left.length, rightIdx);
+      results.push(extracted);
+
+      start = rightIdx + right.length;
+    }
+    return results;
+  }
+
+  function parseExtracted(items) {
+    const parsed = [];
+    for (const item of items) {
+      const parts = item.replace(/["']/g, '').split(',');
+      for (const part of parts) {
+        const trimmed = part.trim();
+        if (trimmed) {
+          parsed.push(trimmed);
+        }
+      }
+    }
+    return parsed;
+  }
+
+  if (bypassLeft && bypassRight) {
+    const bypassItems = extractByBounds(content, bypassLeft, bypassRight);
+    extractedBypass.push(...parseExtracted(bypassItems));
+  }
+
+  if (includeLeft && includeRight) {
+    const includeItems = extractByBounds(content, includeLeft, includeRight);
+    extractedInclude.push(...parseExtracted(includeItems));
+  }
+
+  const include = [...new Set(extractedInclude.filter(item => item && typeof item === 'string'))];
+  const bypass = [...new Set(extractedBypass.filter(item => item && typeof item === 'string'))];
+
+  if (reverse) {
+    return { include: bypass, bypass: include };
+  }
+
+  return { include, bypass };
 }
 
 // Background fetch for subscription
@@ -201,7 +418,8 @@ async function fetchSubscriptionBackground(proxyId, format, url) {
             listConfig.last_fetch_time = Date.now();
 
             const reverse = listConfig.reverse || false;
-            const parsed = parseSubscriptionContent(content, format, reverse);
+            const processRule = format === 'pac' ? listConfig.process_rule : undefined;
+            const parsed = parseSubscriptionContent(content, format, reverse, processRule);
             listConfig.decoded_content = parsed.decoded || '';
             listConfig.include_rules = parsed.include_rules || '';
             listConfig.bypass_rules = parsed.bypass_rules || '';

@@ -287,6 +287,9 @@ function buildConfigData(includeInternalState = false) {
             reverse: item.reverse || false,
             last_fetch_time: item.last_fetch_time !== undefined ? item.last_fetch_time : null
           };
+          if (key === 'pac' && item.process_rule) {
+            lists[key].process_rule = item.process_rule;
+          }
         });
 
         if (Object.keys(lists).length > 0) {
@@ -366,6 +369,13 @@ function importConfig(e) {
       var rawData = JSON.parse(e.target.result);
       if (rawData) {
         const data = migrateConfig(rawData);
+
+        // Parse subscription content
+        if (window.SubscriptionModule && window.SubscriptionModule.parseProxyListSubscriptions) {
+          SubscriptionModule.parseProxyListSubscriptions(
+            data.scenarios?.lists?.flatMap(s => s.proxies) || []
+          );
+        }
 
         // Preserve local sync config
         const syncConfig = window.SyncModule ? window.SyncModule.getSyncConfig() : null;

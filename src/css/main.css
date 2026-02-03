@@ -4111,7 +4111,91 @@ input:checked+.slider-modern:before {
 [data-theme="dark"] .subscription-refresh-input input:focus {
   border-color: #818cf8;
   box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+  outline: none;
 }
+
+.script-editor-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+#tab-pane-process-rule textarea {
+  flex: 1;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  resize: none;
+  padding: 12px;
+  padding-right: 130px;
+}
+
+.script-actions {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  display: flex;
+  gap: 8px;
+}
+
+.script-actions-vertical {
+  flex-direction: column;
+  gap: 6px;
+}
+
+.script-run-btn,
+.script-reset-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.script-run-btn {
+  background: #4164f5;
+  color: white;
+}
+
+.script-run-btn:hover {
+  background: #3451db;
+}
+
+.script-reset-btn {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.script-reset-btn:hover {
+  background: #e2e8f0;
+}
+
+[data-theme="dark"] .script-run-btn {
+  background: #6366f1;
+}
+
+[data-theme="dark"] .script-run-btn:hover {
+  background: #818cf8;
+}
+
+[data-theme="dark"] .script-reset-btn {
+  background: #334155;
+  color: #cbd5e1;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .script-reset-btn:hover {
+  background: #475569;
+}
+
+/* 旧的 script-toolbar 和 script-status 样式已废弃 */
 
 .subscription-refresh-unit {
   font-size: 13px;
@@ -4315,13 +4399,23 @@ textarea.subscription-content:read-only {
 }
 
 @keyframes fadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .textarea-fade-out {

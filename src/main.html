@@ -542,6 +542,7 @@
                   <li data-value="autoproxy">AutoProxy</li>
                   <li data-value="switchy_legacy">Switchy Legacy</li>
                   <li data-value="switchy_omega">Switchy Omega</li>
+                  <li data-value="pac">PAC</li>
                 </ul>
               </div>
             </div>
@@ -599,6 +600,7 @@
             <div class="subscription-tabs-container">
               <div class="subscription-tabs">
                 <div class="subscription-tab active" data-tab="original" data-i18n="subscription_content_original">原始内容</div>
+                <div class="subscription-tab" data-tab="process-rule" data-i18n="subscription_content_script" style="display:none">数据处理规则</div>
                 <div class="subscription-tab" data-tab="decoded" data-i18n="subscription_content_decoded" style="display:none">解码后内容</div>
                 <div class="subscription-tab" data-tab="bypass" data-i18n="subscription_content_bypass">不使用代理的地址</div>
                 <div class="subscription-tab" data-tab="include" data-i18n="subscription_content_include">使用代理的地址</div>
@@ -611,6 +613,35 @@
                       <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/>
                     </svg>
                     <span data-i18n="subscription_empty_content">暂无内容</span>
+                  </div>
+                </div>
+                <div class="subscription-tab-pane" id="tab-pane-process-rule" style="display:none">
+                   <div class="script-editor-wrapper">
+                     <textarea id="subscription-process-rule-content" placeholder="// JSON 格式的处理规则配置
+{
+  &quot;bypass&quot;: {
+    &quot;left&quot;: &quot;],[[&quot;,
+    &quot;right&quot;: &quot;,[&quot;
+  },
+  &quot;include&quot;: {
+    &quot;left&quot;: &quot;\&quot;],[\&quot;&quot;,
+    &quot;right&quot;: &quot;]]];&quot;
+  }
+}" spellcheck="false"></textarea>
+                    <div class="script-actions script-actions-vertical">
+                      <button class="script-reset-btn" id="reset-script-btn" title="重置为默认">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                          <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                        </svg>
+                        <span data-i18n="reset">重置</span>
+                      </button>
+                      <button class="script-run-btn" id="run-script-btn" title="执行脚本">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                          <path d="M8 5v14l11-7z"/>
+                        </svg>
+                        <span data-i18n="run_script">执行</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div class="subscription-tab-pane" id="tab-pane-decoded">
@@ -637,9 +668,6 @@
 
       </div>
       <div class="subscription-config-footer">
-        <button class="btn-test" id="test-subscription-btn">
-          <span data-i18n="reset">重置</span>
-        </button>
         <button class="btn-save" id="save-subscription-btn">
           <span data-i18n="save_config">保存</span>
         </button>
