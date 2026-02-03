@@ -511,7 +511,7 @@ const SubscriptionModule = (function () {
       const processRule = $('#subscription-process-rule-content').val();
       const validation = validatePacProcessRule(processRule);
       if (!validation.valid) {
-        UtilsModule.showTip(I18n.t('subscription_save_failed') + ': ' + validation.error, true);
+        UtilsModule.showTip(I18n.t('subscription_save_failed') + ': ' + I18n.t(validation.error), true);
         return;
       }
       subscriptionConfig.lists[format].process_rule = processRule;
@@ -658,7 +658,7 @@ const SubscriptionModule = (function () {
 
     const validation = validatePacProcessRule(rule);
     if (!validation.valid) {
-      UtilsModule.showTip(I18n.t('subscription_process_rule_error') + ': ' + validation.error, true);
+      UtilsModule.showTip(I18n.t('subscription_process_rule_error') + ': ' + I18n.t(validation.error), true);
       return;
     }
 
@@ -703,14 +703,14 @@ const SubscriptionModule = (function () {
 
   function validatePacProcessRule(rule) {
     if (!rule || !rule.trim()) {
-      return { valid: false, error: '规则不能为空' };
+      return { valid: false, error: 'process_rule_empty' };
     }
 
     try {
       const config = JSON.parse(rule);
       return { valid: true, config };
     } catch (error) {
-      return { valid: false, error: `JSON 格式错误: ${error.message}` };
+      return { valid: false, error: 'process_rule_json_error' };
     }
   }
 
