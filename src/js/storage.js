@@ -33,7 +33,7 @@ const StorageModule = (function () {
     return new Promise((resolve, reject) => {
       chrome.storage.local.get([STORAGE_KEY], function (result) {
         if (chrome.runtime.lastError) {
-          console.error('Storage load error:', chrome.runtime.lastError);
+          console.info('Storage load error:', chrome.runtime.lastError);
           configCache = getDefaultConfig();
           resolve(configCache);
           return;
@@ -98,7 +98,7 @@ const StorageModule = (function () {
 
       chrome.storage.local.set({ [STORAGE_KEY]: configCache }, function () {
         if (chrome.runtime.lastError) {
-          console.error('Storage save error:', chrome.runtime.lastError);
+          console.info('Storage save error:', chrome.runtime.lastError);
           reject(chrome.runtime.lastError);
           return;
         }

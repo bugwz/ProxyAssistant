@@ -58,7 +58,7 @@ function initApp() {
     loadSettings();
     bindGlobalEvents();
   }).catch(err => {
-    console.error('Failed to initialize storage:', err);
+    console.info('Failed to initialize storage:', err);
   });
 }
 
@@ -115,7 +115,7 @@ function saveConfig(options) {
 
     if (options.callback) options.callback(true);
   }).catch(err => {
-    console.error('Save failed:', err);
+    console.info('Save failed:', err);
     if (!options.silent) {
       UtilsModule.showTip(I18n.t('save_failed'), true);
     }

@@ -238,7 +238,7 @@ function parseSubscriptionContent(content, format, reverse, processRule) {
     result.include_rules = includeRules.join('\n');
     result.bypass_rules = bypassRules.join('\n');
   } catch (e) {
-    console.error('[Worker] Parse subscription error:', e);
+    console.info('[Worker] Parse subscription error:', e);
   }
 
   return result;
@@ -293,7 +293,7 @@ function parsePacContent(rawContent, processRule, reverse = false) {
   try {
     config = JSON.parse(processRule);
   } catch (error) {
-    console.error('[Worker] PAC content parse failed:', error);
+    console.info('[Worker] PAC content parse failed:', error);
     return { include: [], bypass: [] };
   }
 
@@ -370,14 +370,14 @@ async function fetchSubscriptionBackground(proxyId, format, url) {
 
     const response = await fetch(url);
     if (!response.ok) {
-      console.error(`[Worker] HTTP error: ${response.status} ${response.statusText} for URL: ${url}`);
+      console.info(`[Worker] HTTP error: ${response.status} ${response.statusText} for URL: ${url}`);
       throw new Error(`HTTP ${response.status}`);
     }
 
     const content = await response.text();
 
     if (!isSubscriptionFormatValid(content, format)) {
-      console.error(`[Worker] Invalid subscription format: ${format} for proxy: ${proxyId}`);
+      console.info(`[Worker] Invalid subscription format: ${format} for proxy: ${proxyId}`);
       throw new Error('Invalid format after fetch');
     }
 
@@ -460,7 +460,7 @@ async function fetchSubscriptionBackground(proxyId, format, url) {
           format: format
         }, () => {
           if (chrome.runtime.lastError) {
-            console.error(`[Worker] Send message error: ${chrome.runtime.lastError.message} for proxy: ${proxyId}`);
+            console.info(`[Worker] Send message error: ${chrome.runtime.lastError.message} for proxy: ${proxyId}`);
           }
           resolve();
         });
@@ -469,8 +469,8 @@ async function fetchSubscriptionBackground(proxyId, format, url) {
 
     console.log(`[Worker] Background fetch completed for proxy: ${proxyId}, updated: ${updated}`);
   } catch (error) {
-    console.error(`[Worker] Background fetch failed: ${error.message}`);
-    console.error(`[Worker] Stack trace: ${error.stack}`);
+    console.info(`[Worker] Background fetch failed: ${error.message}`);
+    console.info(`[Worker] Stack trace: ${error.stack}`);
     throw error;
   }
 }
@@ -1019,7 +1019,7 @@ async function applyManualProxySettings(proxyInfo) {
         console.log(`Merged ${addedCount} bypass rules from subscription (Manual Mode)`);
       }
     } catch (e) {
-      console.error("Error merging subscription bypass rules:", e);
+      console.info("Error merging subscription bypass rules:", e);
     }
   }
 
@@ -1202,7 +1202,7 @@ function generatePacScript(list) {
           }
         }
       } catch (e) {
-        console.error("Error merging subscription rules in Auto Mode:", e);
+        console.info("Error merging subscription rules in Auto Mode:", e);
       }
     }
   }
@@ -1625,7 +1625,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const script = generatePacScript(list);
           sendResponse({ success: true, script: script });
         } catch (e) {
-          console.error("Error generating PAC script:", e);
+          console.info("Error generating PAC script:", e);
           sendResponse({ success: false, error: e.message });
         }
       })();
@@ -1966,7 +1966,7 @@ function parseSubscriptionRules(content, format, proxyType, proxyAddress, revers
       try {
         decoded = atob(content);
       } catch (e) {
-        console.error("Base64 decode failed", e);
+        console.info("Base64 decode failed", e);
       }
     }
   }

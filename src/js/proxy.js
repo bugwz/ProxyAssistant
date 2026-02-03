@@ -101,7 +101,7 @@ const ProxyModule = (function () {
 
       if (options.callback) options.callback(true);
     }).catch(err => {
-      console.error("Save failed:", err);
+      console.info("Save failed:", err);
       if (!options.silent) {
         UtilsModule.showTip(I18n.t('save_failed'), true);
       }
@@ -850,7 +850,7 @@ const ProxyModule = (function () {
         chrome.runtime.sendMessage({ action: "refreshProxy" });
         renderList();
       }).catch(err => {
-        console.error("Delete failed:", err);
+        console.info("Delete failed:", err);
         UtilsModule.showTip(I18n.t('delete_failed'), true);
       });
     }

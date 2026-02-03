@@ -401,7 +401,7 @@ const ScenariosModule = (function () {
           UtilsModule.showTip(I18n.t('move_success'), false);
           chrome.runtime.sendMessage({ action: "refreshProxy" });
         }).catch(err => {
-          console.error("Move proxy failed:", err);
+          console.info("Move proxy failed:", err);
           UtilsModule.showTip(I18n.t('move_failed') + ': ' + err.message, true);
         });
       }
