@@ -1,0 +1,51 @@
+; Summary: Rule List for websites censored in Russia
+
+; Author: Danila Vershinin (https://github.com/dvershinin)
+
+; Date: 2022-03-22
+
+; URL: https://raw.githubusercontent.com/dvershinin/switchy-rules/main/russia.txt
+
+; https://github.com/dvershinin/switchy-rules
+
+
+#BEGIN
+
+[Wildcard]
+
+; Roskomnadzor
+*://*.thepiratebay.org/*
+*://*.rutracker.org/*
+*://*.rutor.is/*
+*://*.pornolab.net/*
+*://*.line.me/*
+*://*.twitter.com/*
+*://*.twimg.com/*
+*://*.t.co/*
+*://*.line.naver.jp/*
+*://*.bbc.com/*
+*://*.bbci.co.uk/*
+*://*.facebook.com/*
+*://*.fbcdn.net/*
+*://*.lostfilm/*
+; Self-imposed
+*://*.grammarly.com/*
+
+
+[RegExp]
+
+; Roskomnadzor
+instagram
+linkedin
+mailfence
+payoneer
+protonmail
+tutanota
+hashvault
+torproject
+; Self-imposed
+upwork
+circleci
+
+
+#END
