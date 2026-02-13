@@ -71,7 +71,7 @@ function isSubscriptionFormatValid(content, format) {
     case 'switchy_omega':
       return trimmed.startsWith('[SwitchyOmega Conditions]');
     case 'pac':
-      return true;
+      return trimmed.includes('FindProxyForURL');
     default:
       return true;
   }
@@ -130,53 +130,48 @@ function extractDomainInfo(pattern) {
   if (!pattern) return null;
 
   let domain = pattern
-    .replace(/^\*\:\/\/\*\./, '')
-    .replace(/^\*\:\/\//, '')
-    .replace(/^\*\./, '')
-    .replace(/\/\*$/, '')
+    .replace(/^\*\:?\/?\/?(\*\.)?/, '')
     .replace(/\/\*.*$/, '')
     .trim();
 
   if (!domain) return null;
 
   const domainParts = domain.split('.');
-  const segmentCount = domainParts.filter(part => part && part.trim()).length;
+  const segmentCount = domainParts.filter(Boolean).length;
 
-  if (domainParts.length >= 2 && domainParts[domainParts.length - 2]) {
-    return {
-      domain: domainParts.slice(-2).join('.'),
-      segmentCount: segmentCount
-    };
-  }
-
+  const secondLastPart = domainParts[domainParts.length - 2];
   return {
-    domain: domain,
+    domain: domainParts.length >= 2 && secondLastPart
+      ? domainParts.slice(-2).join('.')
+      : domain,
     segmentCount: segmentCount
   };
 }
 
 function classifyOmegaPattern(pattern) {
-  const ipPattern = /^(\d{1,3}|\*)\.(\d{1,3}|\*)\.(\d{1,3}|\*)\.(\d{1,3}|\*)$/;
-  if (ipPattern.test(pattern)) {
+  const IP_RANGE_PATTERN = /^(\d{1,3}|\*)\.(\d{1,3}|\*)\.(\d{1,3}|\*)\.(\d{1,3}|\*)$/;
+  if (IP_RANGE_PATTERN.test(pattern)) {
     return 'ip_range';
   }
 
   const segments = pattern.split('.');
   const hasWildcard = pattern.includes('*');
+  const firstSegment = segments[0];
+  const lastSegment = segments[segments.length - 1];
 
   if (!hasWildcard) {
     return segments.length >= 2 ? 'domain' : 'single_segment';
   }
 
-  if (segments.length === 2 && segments[0] === '*') {
+  if (segments.length === 2 && firstSegment === '*') {
     return 'single_wildcard';
   }
 
-  if (segments[0] === '*' && segments[segments.length - 1] === '*') {
+  if (firstSegment === '*' && lastSegment === '*') {
     return 'complex_wildcard';
   }
 
-  if (segments[0] === '*' && segments.length >= 3) {
+  if (firstSegment === '*' && segments.length >= 3) {
     return 'wildcard_domain';
   }
 
@@ -189,62 +184,43 @@ function escapeRegExp(string) {
 
 function convertIPRangeToCIDR(pattern) {
   const parts = pattern.split('.');
-  const result = [];
+  const segments = parts.map(seg => seg === '*' ? 0 : parseInt(seg, 10));
+  const [s0, s1, s2, s3] = segments;
 
-  function parseSegment(seg, base, bits) {
-    if (seg === '*') {
-      return { start: 0, end: 255 };
-    }
-    const val = parseInt(seg, 10);
-    return { start: val, end: val };
-  }
+  const isFullRange = (s, e) => s === 0 && e === 255;
+  const isSingle = (seg, idx) => seg === segments[idx];
 
-  const s0 = parseSegment(parts[0], 0, 8);
-  const s1 = parseSegment(parts[1], 0, 8);
-  const s2 = parseSegment(parts[2], 0, 8);
-  const s3 = parseSegment(parts[3], 0, 8);
+  if (isFullRange(s0) && isFullRange(s1) && isFullRange(s2) && isFullRange(s3)) {
+    return s0 === s1 && s1 === s2 && s2 === s3 ? pattern : `${s0}.0.0.0/8`;
+  }
+  if (s0 === s1 && s1 === s2 && isFullRange(s3)) {
+    return `${s0}.${s1}.0.0/16`;
+  }
+  if (s0 === s1 && s2 === s3 && isFullRange(s3)) {
+    return `${s0}.${s1}.${s2}.0/24`;
+  }
+  if (s0 === 10 && s1 === 0 && s2 === 0 && s3 === 0) return '10.0.0.0/8';
+  if (s0 === 172 && s1 === 16 && s2 === 0 && s3 === 0) return '172.16.0.0/12';
+  if (s0 === 192 && s1 === 168 && s2 === 0 && s3 === 0) return '192.168.0.0/16';
 
-  if (s0.start === s0.end && s1.start === 0 && s2.start === 0 && s3.start === 0) {
-    return '10.0.0.0/8';
-  }
-  if (s0.start === s0.end && s1.start === 16 && s2.start === 0 && s3.start === 0) {
-    return '172.16.0.0/12';
-  }
-  if (s0.start === s0.end && s1.start === 168 && s2.start === 0 && s3.start === 0) {
-    return '192.168.0.0/16';
-  }
-  if (s0.start === s0.end && s1.start === s1.end && s2.start === 0 && s3.start === 0) {
-    return `${parts[0]}.${parts[1]}.0.0/16`;
-  }
-  if (s0.start === s0.end && s1.start === s1.end && s2.start === s2.end && s3.start === 0) {
-    return `${parts[0]}.${parts[1]}.${parts[2]}.0/24`;
-  }
-  if (s0.start === s0.end && s1.start === s1.end && s2.start === s2.end && s3.start === s3.end) {
-    return pattern;
-  }
-
-  return null;
+  return s0 === s1 && s1 === s2 && s2 === s3 ? pattern : null;
 }
 
 function convertOmegaToProxyRule(pattern, type) {
+  const domainWithoutWildcard = pattern.replace(/^\*\./, '');
+
   switch (type) {
     case 'ip_range':
       return convertIPRangeToCIDR(pattern);
 
-    case 'single_wildcard': {
-      const domain = pattern.replace(/^\*\./, '');
-      return `/^[a-z0-9-]+\.${escapeRegExp(domain)}$/`;
-    }
+    case 'single_wildcard':
+      return `/^[a-z0-9-]+\.${escapeRegExp(domainWithoutWildcard)}$/`;
 
-    case 'complex_wildcard': {
-      const domainPart = pattern.substring(2, pattern.length - 1);
-      return `/.*\\.${escapeRegExp(domainPart)}\\..*/`;
-    }
+    case 'complex_wildcard':
+      return `/.*\\.${escapeRegExp(pattern.substring(2, pattern.length - 1))}\\..*/`;
 
-    case 'wildcard_domain': {
-      const domain = pattern.replace(/^\*\./, '');
-      return domain;
-    }
+    case 'wildcard_domain':
+      return domainWithoutWildcard;
 
     case 'domain':
       return pattern;
@@ -262,10 +238,8 @@ function convertOmegaToBypassRule(pattern, type) {
     case 'ip_range':
       return convertIPRangeToCIDR(pattern);
 
-    case 'wildcard_domain': {
-      const domain = pattern.replace(/^\*\./, '');
-      return domain;
-    }
+    case 'wildcard_domain':
+      return pattern.replace(/^\*\./, '');
 
     case 'domain':
       return pattern;
@@ -310,21 +284,12 @@ function extractDomainFromWildcard(pattern) {
 }
 
 function extractHostname(url) {
-  if (url.includes('://')) {
-    url = url.split('://')[1];
-  }
-  url = url.split('/')[0];
-  url = url.replace(/\/$/, '');
-  url = url.split('?')[0];
-  url = url.split('#')[0];
+  url = url.replace(/^[^:]+:\/\//, '').replace(/\/.*$/, '').replace(/\?.*$/, '').replace(/#.*$/, '');
   const atIndex = url.indexOf('@');
   if (atIndex !== -1) {
     url = url.substring(atIndex + 1);
   }
-  const colonIndex = url.lastIndexOf(':');
-  if (colonIndex !== -1 && !/:\d+$/.test(url)) {
-    url = url.substring(0, colonIndex);
-  }
+  url = url.replace(/:\d+$/, '');
   return url;
 }
 
@@ -333,7 +298,7 @@ function normalizeAutoproxyPattern(pattern) {
     return pattern;
   }
 
-  if (pattern.startsWith('|') && (pattern.includes('://') || (pattern.startsWith('|') && pattern.endsWith('|')))) {
+  if (pattern.startsWith('|') && (pattern.includes('://') || pattern.endsWith('|'))) {
     let url = pattern.replace(/^\|+|\|+$/g, '');
     const hostname = extractHostname(url);
     const extractedIP = extractIPFromURL(hostname);
@@ -341,10 +306,7 @@ function normalizeAutoproxyPattern(pattern) {
       return extractedIP;
     }
     const extracted = extractDomainFromWildcard(hostname);
-    if (extracted) {
-      return extracted;
-    }
-    return null;
+    return extracted || null;
   }
 
   if (pattern.startsWith('||')) {
@@ -352,39 +314,27 @@ function normalizeAutoproxyPattern(pattern) {
     const hostname = extractHostname(domainPart);
     if (hostname.includes('*')) {
       const extracted = extractDomainFromWildcard(hostname);
-      if (extracted) {
-        return extracted;
-      }
-      return null;
+      return extracted || null;
     }
     return hostname;
   }
 
   if (pattern.startsWith('.')) {
-    if (pattern.includes('*')) {
-      return null;
-    }
-    return pattern.substring(1);
+    return pattern.includes('*') ? null : pattern.substring(1);
   }
 
   if (pattern.includes('/')) {
     const hostname = extractHostname(pattern);
     if (hostname.includes('*')) {
       const extracted = extractDomainFromWildcard(hostname);
-      if (extracted) {
-        return extracted;
-      }
-      return null;
+      return extracted || null;
     }
     return hostname;
   }
 
   if (pattern.includes('*')) {
     const extracted = extractDomainFromWildcard(pattern);
-    if (extracted) {
-      return extracted;
-    }
-    return null;
+    return extracted || null;
   }
 
   return pattern;
@@ -423,34 +373,29 @@ function normalizeAutoproxyLine(line, reverse) {
 }
 
 function normalizeSwitchyOmegaLine(line, reverse) {
-  if (line.startsWith('[SwitchyOmega Conditions]')) return null;
-  if (line.startsWith(';')) return null;
-  if (line.startsWith('@')) return null;
+  if (line.startsWith('[SwitchyOmega Conditions]') || line.startsWith(';') || line.startsWith('@')) {
+    return null;
+  }
 
   let pattern = line;
   let isDirectRule = false;
 
-  if (line.includes(' +')) {
-    const parts = line.split(' +');
-    pattern = parts[0].trim();
-    const res = parts[1] ? parts[1].trim().toLowerCase() : '';
-    if (res === 'direct') isDirectRule = true;
-  } else if (line.includes('\t+')) {
-    const parts = line.split('\t+');
-    pattern = parts[0].trim();
-    const res = parts[1] ? parts[1].trim().toLowerCase() : '';
-    if (res === 'direct') isDirectRule = true;
-  }
-
-  if (pattern.startsWith('!')) {
-    pattern = pattern.substring(1).trim();
+  const plusMatch = line.match(/^(.+?)[\t ]\+(.+)$/);
+  if (plusMatch) {
+    pattern = plusMatch[1].trim();
+    if (plusMatch[2].trim().toLowerCase() === 'direct') {
+      isDirectRule = true;
+    }
+  } else if (line.startsWith('!')) {
     isDirectRule = true;
+    pattern = line.substring(1);
   }
 
   if (pattern.includes(': ')) {
     const parts = pattern.split(': ');
     const type = parts[0].toLowerCase();
-    if (['host', 'wildcard', 'hostwildcard', 'url', 'urlwildcard'].some(t => type.includes(t))) {
+    const validTypes = ['host', 'wildcard', 'hostwildcard', 'url', 'urlwildcard'];
+    if (validTypes.some(t => type.includes(t))) {
       const domainInfo = extractDomainInfo(parts[1].trim());
       pattern = domainInfo ? domainInfo.domain : null;
     } else {
@@ -465,14 +410,11 @@ function normalizeSwitchyOmegaLine(line, reverse) {
   if (!pattern) return null;
 
   const shouldBeDirect = isDirectRule ? !reverse : reverse;
-  const type = classifyOmegaPattern(pattern);
+  const patternType = classifyOmegaPattern(pattern);
 
-  let finalPattern;
-  if (shouldBeDirect) {
-    finalPattern = convertOmegaToBypassRule(pattern, type);
-  } else {
-    finalPattern = convertOmegaToProxyRule(pattern, type);
-  }
+  const finalPattern = shouldBeDirect
+    ? convertOmegaToBypassRule(pattern, patternType)
+    : convertOmegaToProxyRule(pattern, patternType);
 
   if (finalPattern === null) return null;
   if (shouldBeDirect && !isValidManualBypassPattern(finalPattern)) return null;
@@ -489,25 +431,22 @@ function normalizeSwitchyLegacyLine(line, reverse, section) {
   let pattern = line;
   let isDirectRule = false;
 
-  if (line.startsWith('!')) {
+  const plusMatch = line.match(/^(.+?)[\t ]\+(.+)$/);
+  if (plusMatch) {
+    pattern = plusMatch[1].trim();
+    if (plusMatch[2].trim().toLowerCase() === 'direct') {
+      isDirectRule = true;
+    }
+  } else if (line.startsWith('!')) {
     isDirectRule = true;
     pattern = line.substring(1);
-  } else if (line.includes(' +')) {
-    const parts = line.split(' +');
-    pattern = parts[0].trim();
-    const res = parts[1] ? parts[1].trim().toLowerCase() : '';
-    if (res === 'direct') isDirectRule = true;
-  } else if (line.includes('\t+')) {
-    const parts = line.split('\t+');
-    pattern = parts[0].trim();
-    const res = parts[1] ? parts[1].trim().toLowerCase() : '';
-    if (res === 'direct') isDirectRule = true;
   }
 
   if (pattern.includes(': ')) {
     const parts = pattern.split(': ');
     const type = parts[0].toLowerCase();
-    if (['host', 'wildcard', 'hostwildcard', 'url', 'urlwildcard'].some(t => type.includes(t))) {
+    const validTypes = ['host', 'wildcard', 'hostwildcard', 'url', 'urlwildcard'];
+    if (validTypes.some(t => type.includes(t))) {
       pattern = parts[1].trim();
     } else {
       return null;
@@ -528,24 +467,18 @@ function normalizeSwitchyLegacyLine(line, reverse, section) {
 
   let finalPattern = pattern;
 
-  if (section === 'wildcard' || section === 'host_wildcard' || section === 'url_wildcard') {
+  const wildcardSections = ['wildcard', 'host_wildcard', 'url_wildcard'];
+  if (wildcardSections.includes(section)) {
     const extracted = extractDomainInfo(pattern);
     if (!extracted) return null;
 
-    if (extracted.segmentCount === 1) {
-      if (shouldBeDirect && reverse) {
-        return null;
-      }
+    if (extracted.segmentCount === 1 && !(shouldBeDirect && reverse)) {
       finalPattern = '/.*' + extracted.domain + '.*/';
     } else {
       finalPattern = extracted.domain;
     }
   } else if (section === 'regexp') {
-    if (shouldBeDirect) {
-      finalPattern = pattern;
-    } else {
-      finalPattern = '/.*' + pattern + '.*/';
-    }
+    finalPattern = shouldBeDirect ? pattern : '/.*' + pattern + '.*/';
   }
 
   return {
@@ -557,8 +490,8 @@ function normalizeSwitchyLegacyLine(line, reverse, section) {
 // Helper function: parse subscription content
 function parseSubscriptionContent(content, format, reverse, processRule) {
   const result = {
-    include_rules: '',
-    bypass_rules: '',
+    include_rules: [],
+    bypass_rules: [],
     decoded: null
   };
 
@@ -566,74 +499,68 @@ function parseSubscriptionContent(content, format, reverse, processRule) {
 
   try {
     let contentToParse = content;
+    const sectionRegex = /^\[(Wildcard|Host Wildcard|URL Wildcard|RegExp)\]$/i;
 
     if (format === 'pac') {
       const pacResult = parsePacContent(contentToParse, processRule, reverse);
       result.include_rules = pacResult.include;
       result.bypass_rules = pacResult.bypass;
-      return {
-        include_rules: Array.isArray(result.include_rules) ? result.include_rules.join('\n') : result.include_rules,
-        bypass_rules: Array.isArray(result.bypass_rules) ? result.bypass_rules.join('\n') : result.bypass_rules,
-        decoded: result.decoded
-      };
-    }
-
-    if (format === 'autoproxy') {
-      let decoded = content.trim();
-      if (decoded.startsWith('W0F1dG9Qcm94')) {
-        try {
-          decoded = atob(decoded);
-          result.decoded = decoded;
-        } catch (e) {
-          result.decoded = content;
-        }
-      }
-      contentToParse = result.decoded || content;
-    }
-
-    const lines = contentToParse.split('\n');
-    const includeRules = [];
-    const bypassRules = [];
-    let currentSection = 'wildcard';
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-
-      const sectionMatch = trimmed.match(/^\[(Wildcard|Host Wildcard|URL Wildcard|RegExp)\]$/i);
-      if (sectionMatch) {
-        currentSection = sectionMatch[1].toLowerCase().replace(/\s+/g, '_');
-        continue;
-      }
-
-      let normalized = null;
+    } else {
       if (format === 'autoproxy') {
-        normalized = normalizeAutoproxyLine(trimmed, reverse);
-      } else if (format === 'switchy_omega') {
-        normalized = normalizeSwitchyOmegaLine(trimmed, reverse);
-      } else if (format === 'switchy_legacy') {
-        normalized = normalizeSwitchyLegacyLine(trimmed, reverse, currentSection);
+        const trimmed = content.trim();
+        if (trimmed.startsWith('W0F1dG9Qcm94')) {
+          try {
+            result.decoded = atob(trimmed);
+            contentToParse = result.decoded;
+          } catch (e) {
+            result.decoded = content;
+          }
+        }
       }
 
-      if (normalized) {
-        if (normalized.isDirect) {
-          bypassRules.push(normalized.pattern);
-        } else {
-          includeRules.push(normalized.pattern);
+      const lines = contentToParse.split('\n');
+      let currentSection = 'wildcard';
+
+      for (let line of lines) {
+        line = line.trim();
+        if (!line) continue;
+
+        const sectionMatch = line.match(sectionRegex);
+        if (sectionMatch) {
+          currentSection = sectionMatch[1].toLowerCase().replace(/\s+/g, '_');
+          continue;
+        }
+
+        let normalized = null;
+        if (format === 'autoproxy') {
+          normalized = normalizeAutoproxyLine(line, reverse);
+        } else if (format === 'switchy_omega') {
+          normalized = normalizeSwitchyOmegaLine(line, reverse);
+        } else if (format === 'switchy_legacy') {
+          normalized = normalizeSwitchyLegacyLine(line, reverse, currentSection);
+        }
+
+        if (normalized) {
+          if (normalized.isDirect) {
+            result.bypass_rules.push(normalized.pattern);
+          } else {
+            result.include_rules.push(normalized.pattern);
+          }
         }
       }
     }
-
-    const uniqueInclude = [...new Set(includeRules)];
-    const uniqueBypass = [...new Set(bypassRules)];
-
-    result.include_rules = uniqueInclude.join('\n');
-    result.bypass_rules = uniqueBypass.join('\n');
   } catch (e) {
     console.info('[Worker] Parse subscription error:', e);
   }
 
-  return result;
+  const uniqueInclude = [...new Set(result.include_rules)];
+  const uniqueBypass = [...new Set(result.bypass_rules)];
+
+  return {
+    include_rules: uniqueInclude.join('\n'),
+    bypass_rules: uniqueBypass.join('\n'),
+    decoded: result.decoded
+  };
 }
 
 function parsePacContent(rawContent, processRule, reverse = false) {
@@ -651,20 +578,13 @@ function parsePacContent(rawContent, processRule, reverse = false) {
 
   const content = rawContent.replace(/\s+/g, '');
 
-  const extractedInclude = [];
-  const extractedBypass = [];
+  const { left: bypassLeft = '', right: bypassRight = '' } = config.bypass || {};
+  const { left: includeLeft = '', right: includeRight = '' } = config.include || {};
 
-  const bypassConfig = config.bypass || {};
-  const includeConfig = config.include || {};
-
-  const bypassLeft = bypassConfig.left || '';
-  const bypassRight = bypassConfig.right || '';
-  const includeLeft = includeConfig.left || '';
-  const includeRight = includeConfig.right || '';
+  const isValidItem = item => item && typeof item === 'string' && !item.includes('*');
 
   function extractByBounds(content, left, right) {
     if (!left || !right) return [];
-
     const results = [];
     let start = 0;
     while (true) {
@@ -672,41 +592,29 @@ function parsePacContent(rawContent, processRule, reverse = false) {
       if (leftIdx === -1) break;
       const rightIdx = content.indexOf(right, leftIdx + left.length);
       if (rightIdx === -1) break;
-
-      const extracted = content.substring(leftIdx + left.length, rightIdx);
-      results.push(extracted);
-
+      results.push(content.substring(leftIdx + left.length, rightIdx));
       start = rightIdx + right.length;
     }
     return results;
   }
 
-  function parseExtracted(items) {
-    const parsed = [];
-    for (const item of items) {
-      const parts = item.replace(/["']/g, '').split(',');
-      for (const part of parts) {
-        const trimmed = part.trim();
-        if (trimmed) {
-          parsed.push(trimmed);
-        }
-      }
-    }
-    return parsed;
+  function extractItems(targetArray, left, right) {
+    if (!left || !right) return;
+    const items = extractByBounds(content, left, right)
+      .flatMap(item => item.replace(/["']/g, '').split(',')
+        .map(part => part.trim())
+        .filter(Boolean));
+    targetArray.push(...items);
   }
 
-  if (bypassLeft && bypassRight) {
-    const bypassItems = extractByBounds(content, bypassLeft, bypassRight);
-    extractedBypass.push(...parseExtracted(bypassItems));
-  }
+  const extractedInclude = [];
+  const extractedBypass = [];
 
-  if (includeLeft && includeRight) {
-    const includeItems = extractByBounds(content, includeLeft, includeRight);
-    extractedInclude.push(...parseExtracted(includeItems));
-  }
+  extractItems(extractedBypass, bypassLeft, bypassRight);
+  extractItems(extractedInclude, includeLeft, includeRight);
 
-  const include = [...new Set(extractedInclude.filter(item => item && typeof item === 'string' && !item.includes('*')))];
-  const bypass = [...new Set(extractedBypass.filter(item => item && typeof item === 'string' && !item.includes('*')))];
+  const include = [...new Set(extractedInclude.filter(isValidItem))];
+  const bypass = [...new Set(extractedBypass.filter(isValidItem))];
 
   if (reverse) {
     return { include: bypass, bypass: include };
@@ -715,168 +623,164 @@ function parsePacContent(rawContent, processRule, reverse = false) {
   return { include, bypass };
 }
 
-// Background fetch for subscription
-async function fetchSubscriptionBackground(proxyId, format, url) {
+// Fetch with timeout and retry support
+async function fetchWithTimeout(url, options = {}, timeout = 30000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
   try {
-    console.log(`[Worker] Background fetch started: ${url}`);
-
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.info(`[Worker] HTTP error: ${response.status} ${response.statusText} for URL: ${url}`);
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const content = await response.text();
-
-    if (!isSubscriptionFormatValid(content, format)) {
-      console.info(`[Worker] Invalid subscription format: ${format} for proxy: ${proxyId}`);
-      throw new Error('Invalid format after fetch');
-    }
-
-    let updated = false;
-
-    const result = await new Promise((resolve, reject) => {
-      chrome.storage.local.get(['config'], (result) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(`Storage get error: ${chrome.runtime.lastError.message}`));
-          return;
-        }
-        resolve(result);
-      });
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
     });
-
-    const config = result.config;
-    if (!config?.scenarios?.lists) {
-      console.warn(`[Worker] No config found for proxy: ${proxyId}`);
-      return;
-    }
-
-    let proxyFound = false;
-
-    for (const scenario of config.scenarios.lists) {
-      if (!scenario.proxies) continue;
-
-      for (const proxy of scenario.proxies) {
-        if (proxy.id === proxyId &&
-          proxy.subscription?.current === format &&
-          proxy.subscription?.lists?.[format]) {
-
-          proxyFound = true;
-          const listConfig = proxy.subscription.lists[format];
-          const oldContent = listConfig.content;
-
-          if (oldContent !== content) {
-            listConfig.content = content;
-            listConfig.last_fetch_time = Date.now();
-
-            const reverse = listConfig.reverse || false;
-            const processRule = format === 'pac' ? listConfig.process_rule : undefined;
-            const parsed = parseSubscriptionContent(content, format, reverse, processRule);
-            listConfig.decoded_content = parsed.decoded || '';
-            listConfig.include_rules = parsed.include_rules || '';
-            listConfig.bypass_rules = parsed.bypass_rules || '';
-            listConfig.include_lines = parsed.include_rules ? parsed.include_rules.split(/\r\n|\r|\n/).length : 0;
-            listConfig.bypass_lines = parsed.bypass_rules ? parsed.bypass_rules.split(/\r\n|\r|\n/).length : 0;
-
-            updated = true;
-            console.log(`[Worker] Updated subscription for proxy: ${proxy.name || proxyId}`);
-          } else {
-            listConfig.last_fetch_time = Date.now();
-            console.log(`[Worker] No changes for proxy: ${proxy.name || proxyId}, content unchanged`);
-          }
-        }
-      }
-    }
-
-    if (!proxyFound) {
-      console.warn(`[Worker] Proxy ${proxyId} with format ${format} not found in config`);
-    }
-
-    await new Promise((resolve, reject) => {
-      chrome.storage.local.set({ config: config }, () => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(`Storage set error: ${chrome.runtime.lastError.message}`));
-          return;
-        }
-        resolve();
-      });
-    });
-
-    console.log(`[Worker] Background fetch saved: ${proxyId}`);
-
-    if (updated) {
-      await new Promise((resolve) => {
-        chrome.runtime.sendMessage({
-          action: 'subscriptionUpdated',
-          proxyId: proxyId,
-          format: format
-        }, () => {
-          if (chrome.runtime.lastError) {
-            console.info(`[Worker] Send message error: ${chrome.runtime.lastError.message} for proxy: ${proxyId}`);
-          }
-          resolve();
-        });
-      });
-    }
-
-    console.log(`[Worker] Background fetch completed for proxy: ${proxyId}, updated: ${updated}`);
+    clearTimeout(timeoutId);
+    return response;
   } catch (error) {
-    console.info(`[Worker] Background fetch failed: ${error.message}`);
-    console.info(`[Worker] Stack trace: ${error.stack}`);
+    clearTimeout(timeoutId);
     throw error;
   }
 }
 
-// Schedule background refresh for all subscriptions
-function scheduleAllBackgroundRefreshes(config) {
-  if (!config?.scenarios?.lists) return;
+// Background fetch for subscription with retry
+async function fetchSubscriptionBackground(proxyId, format, url, maxRetries = 3) {
+  let lastError = null;
 
-  console.log('[Worker] Scheduling subscription alarms for all enabled subscriptions');
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`[Worker] Background fetch started (attempt ${attempt}/${maxRetries}): ${url}`);
 
-  config.scenarios.lists.forEach(scenario => {
-    if (!scenario.proxies) return;
+      const response = await fetchWithTimeout(url, {}, 30000);
+      if (!response.ok) {
+        console.info(`[Worker] HTTP error: ${response.status} ${response.statusText} for URL: ${url}`);
+        throw new Error(`HTTP ${response.status}`);
+      }
 
-    scenario.proxies.forEach(proxy => {
-      if (proxy.id && proxy.subscription && proxy.subscription.enabled !== false) {
-        const format = proxy.subscription.current;
-        const subConfig = proxy.subscription.lists?.[format];
+      const content = await response.text();
 
-        if (subConfig?.refresh_interval > 0 && subConfig?.url) {
-          const alarmName = `subscription_${proxy.id}_${format}`;
+      if (!isSubscriptionFormatValid(content, format)) {
+        console.info(`[Worker] Invalid subscription format: ${format} for proxy: ${proxyId}`);
+        throw new Error('Invalid format after fetch');
+      }
 
-          chrome.alarms.get(alarmName, (existingAlarm) => {
-            if (existingAlarm) {
-              const existingInterval = existingAlarm.periodInMinutes;
-              if (existingInterval !== subConfig.refresh_interval) {
-                chrome.alarms.clear(alarmName, () => {
-                  chrome.alarms.create(alarmName, {
-                    delayInMinutes: subConfig.refresh_interval,
-                    periodInMinutes: subConfig.refresh_interval
-                  });
-                  console.log(`[Worker] Alarm updated: ${alarmName}, interval: ${subConfig.refresh_interval}min`);
-                });
-              } else {
-                console.log(`[Worker] Alarm already exists with same interval: ${alarmName}`);
-              }
+      let updated = false;
+
+      const result = await new Promise((resolve, reject) => {
+        chrome.storage.local.get(['config'], (result) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(`Storage get error: ${chrome.runtime.lastError.message}`));
+            return;
+          }
+          resolve(result);
+        });
+      });
+
+      const config = result.config;
+      if (!config?.scenarios?.lists) {
+        console.warn(`[Worker] No config found for proxy: ${proxyId}`);
+        return;
+      }
+
+      let proxyFound = false;
+
+      for (const scenario of config.scenarios.lists) {
+        if (!scenario.proxies) continue;
+
+        for (const proxy of scenario.proxies) {
+          if (proxy.id === proxyId &&
+            proxy.subscription?.current === format &&
+            proxy.subscription?.lists?.[format]) {
+
+            proxyFound = true;
+            const listConfig = proxy.subscription.lists[format];
+            const oldContent = listConfig.content;
+
+            if (oldContent !== content) {
+              listConfig.content = content;
+              listConfig.last_fetch_time = Date.now();
+
+              const reverse = listConfig.reverse || false;
+              const processRule = format === 'pac' ? listConfig.process_rule : undefined;
+              const parsed = parseSubscriptionContent(content, format, reverse, processRule);
+              listConfig.decoded_content = parsed.decoded || '';
+              listConfig.include_rules = parsed.include_rules || '';
+              listConfig.bypass_rules = parsed.bypass_rules || '';
+              listConfig.include_lines = parsed.include_rules ? parsed.include_rules.split(/\r\n|\r|\n/).length : 0;
+              listConfig.bypass_lines = parsed.bypass_rules ? parsed.bypass_rules.split(/\r\n|\r|\n/).length : 0;
+
+              updated = true;
+              console.log(`[Worker] Updated subscription for proxy: ${proxy.name || proxyId}`);
             } else {
-              chrome.alarms.create(alarmName, {
-                delayInMinutes: subConfig.refresh_interval,
-                periodInMinutes: subConfig.refresh_interval
-              });
-              console.log(`[Worker] Alarm created: ${alarmName}, interval: ${subConfig.refresh_interval}min`);
+              listConfig.last_fetch_time = Date.now();
+              console.log(`[Worker] No changes for proxy: ${proxy.name || proxyId}, content unchanged`);
             }
-          });
+          }
         }
       }
-    });
-  });
+
+      if (!proxyFound) {
+        console.warn(`[Worker] Proxy ${proxyId} with format ${format} not found in config`);
+      }
+
+      await new Promise((resolve, reject) => {
+        chrome.storage.local.set({ config: config }, () => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(`Storage set error: ${chrome.runtime.lastError.message}`));
+            return;
+          }
+          resolve();
+        });
+      });
+
+      console.log(`[Worker] Background fetch saved: ${proxyId}`);
+
+      if (updated) {
+        await new Promise((resolve) => {
+          chrome.runtime.sendMessage({
+            action: 'subscriptionUpdated',
+            proxyId: proxyId,
+            format: format
+          }, () => {
+            if (chrome.runtime.lastError) {
+              console.info(`[Worker] Send message error: ${chrome.runtime.lastError.message} for proxy: ${proxyId}`);
+            }
+            resolve();
+          });
+        });
+      }
+
+      console.log(`[Worker] Background fetch completed for proxy: ${proxyId}, updated: ${updated}`);
+      return;
+    } catch (error) {
+      lastError = error;
+      console.info(`[Worker] Background fetch attempt ${attempt} failed: ${error.message}`);
+      if (attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000;
+        console.log(`[Worker] Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  console.info(`[Worker] All ${maxRetries} attempts failed for proxy: ${proxyId}, last error: ${lastError?.message}`);
 }
 
-// Schedule background refresh for single subscription (called from frontend)
-function scheduleSubscriptionRefresh(proxyId, format, refreshInterval, url) {
-  if (!refreshInterval || refreshInterval <= 0 || !url) return;
+// Unified function to schedule or clear subscription alarm
+function scheduleOrClearSubscriptionAlarm(proxyId, format, refreshInterval, url) {
+  const alarmName = `subscription___${proxyId}___${format}`;
 
-  const alarmName = `subscription_${proxyId}_${format}`;
+  if (!refreshInterval || refreshInterval <= 0 || !url) {
+    chrome.alarms.clear(alarmName);
+    console.log(`[Worker] Alarm cleared: ${alarmName}`);
+    return;
+  }
+
+  // Clear all old subscription alarms for this proxy before creating new one
+  const knownFormats = ['autoproxy', 'switchy_omega', 'switchy_legacy', 'pac'];
+  knownFormats.forEach(oldFormat => {
+    if (oldFormat !== format) {
+      chrome.alarms.clear(`subscription___${proxyId}___${oldFormat}`);
+    }
+  });
 
   chrome.alarms.get(alarmName, (existingAlarm) => {
     if (existingAlarm) {
@@ -890,7 +794,7 @@ function scheduleSubscriptionRefresh(proxyId, format, refreshInterval, url) {
           console.log(`[Worker] Alarm updated: ${alarmName}, interval: ${refreshInterval}min`);
         });
       } else {
-        console.log(`[Worker] Alarm already exists: ${alarmName}`);
+        console.log(`[Worker] Alarm already exists with same interval: ${alarmName}`);
       }
     } else {
       chrome.alarms.create(alarmName, {
@@ -902,12 +806,52 @@ function scheduleSubscriptionRefresh(proxyId, format, refreshInterval, url) {
   });
 }
 
+// Schedule background refresh for all subscriptions
+function scheduleAllBackgroundRefreshes(config) {
+  if (!config?.scenarios?.lists) return;
+
+  console.log('[Worker] Scheduling subscription alarms for all enabled subscriptions');
+
+  config.scenarios.lists.forEach(scenario => {
+    if (!scenario.proxies) return;
+
+    scenario.proxies.forEach(proxy => {
+      if (!proxy.id || !proxy.subscription) return;
+
+      // Clear all old subscription alarms for this proxy first
+      if (proxy.subscription.lists) {
+        Object.keys(proxy.subscription.lists).forEach(format => {
+          const oldAlarmName = `subscription___${proxy.id}___${format}`;
+          chrome.alarms.clear(oldAlarmName);
+        });
+      }
+
+      if (proxy.subscription.enabled !== false) {
+        const format = proxy.subscription.current;
+        const subConfig = proxy.subscription.lists?.[format];
+        scheduleOrClearSubscriptionAlarm(
+          proxy.id,
+          format,
+          subConfig?.refresh_interval,
+          subConfig?.url
+        );
+      }
+    });
+  });
+}
+
+// Schedule background refresh for single subscription (called from frontend)
+function scheduleSubscriptionRefresh(proxyId, format, refreshInterval, url) {
+  scheduleOrClearSubscriptionAlarm(proxyId, format, refreshInterval, url);
+}
+
 // Alarm listener for subscription refresh
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name.startsWith('subscription_')) {
-    const parts = alarm.name.replace('subscription_', '').split('_');
-    const format = parts.pop();
-    const proxyId = parts.join('_');
+  if (alarm.name.startsWith('subscription___')) {
+    const alarmName = alarm.name.replace('subscription___', '');
+    const lastSeparatorIndex = alarmName.lastIndexOf('___');
+    const proxyId = alarmName.substring(0, lastSeparatorIndex);
+    const format = alarmName.substring(lastSeparatorIndex + 3);
     const fetchKey = `${proxyId}_${format}`;
 
     if (inProgressFetches.has(fetchKey)) {
@@ -1218,35 +1162,17 @@ function validateProxyConfig(ip, port) {
 // ==========================================
 
 function scheduleBackgroundRefresh(proxyId, subscription) {
-  if (!subscription || subscription.enabled === false) return;
+  if (!subscription) return;
 
   const format = subscription.current;
   const config = subscription.lists?.[format];
 
-  if (config?.refresh_interval > 0 && config?.url) {
-    const alarmName = `subscription_${proxyId}_${format}`;
-
-    chrome.alarms.get(alarmName, (existingAlarm) => {
-      if (existingAlarm) {
-        const existingInterval = existingAlarm.periodInMinutes;
-        if (existingInterval !== config.refresh_interval) {
-          chrome.alarms.clear(alarmName, () => {
-            chrome.alarms.create(alarmName, {
-              delayInMinutes: config.refresh_interval,
-              periodInMinutes: config.refresh_interval
-            });
-            console.log(`[Subscription] Alarm updated: ${alarmName}, interval: ${config.refresh_interval}min`);
-          });
-        }
-      } else {
-        chrome.alarms.create(alarmName, {
-          delayInMinutes: config.refresh_interval,
-          periodInMinutes: config.refresh_interval
-        });
-        console.log(`[Subscription] Alarm created: ${alarmName}, interval: ${config.refresh_interval}min`);
-      }
-    });
-  }
+  scheduleOrClearSubscriptionAlarm(
+    proxyId,
+    format,
+    subscription.enabled === false ? 0 : config?.refresh_interval,
+    subscription.enabled === false ? null : config?.url
+  );
 }
 
 // -----------------------------------------------------------------------------
