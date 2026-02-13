@@ -25,7 +25,7 @@ describe('Popup.js - Proxy Matching Functions', () => {
     if (!proxyList || !hostname) return null;
 
     for (const proxy of proxyList) {
-      if (proxy.disabled) continue;
+      if (proxy.enabled === false) continue;
       if (!proxy.ip || !proxy.port) continue;
 
       if (checkMatch(proxy.include_rules, hostname)) {
@@ -94,7 +94,7 @@ describe('Popup.js - Proxy Matching Functions', () => {
     });
 
     test('should handle invalid regex patterns gracefully', () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
       expect(checkMatch('[invalid', 'example.com')).toBe(false);
       expect(consoleSpy).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
@@ -126,8 +126,8 @@ describe('Popup.js - Proxy Matching Functions', () => {
 
     test('should skip disabled proxies', () => {
       const list = [
-        { ip: '192.168.1.1', port: '8080', include_rules: 'example.com', disabled: true },
-        { ip: '10.0.0.1', port: '3128', include_rules: 'test.com', disabled: false }
+        { ip: '192.168.1.1', port: '8080', include_rules: 'example.com', enabled: false },
+        { ip: '10.0.0.1', port: '3128', include_rules: 'test.com' }
       ];
       expect(getAutoProxy(list, 'test.com')).toEqual(list[1]);
     });

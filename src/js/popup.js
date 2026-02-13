@@ -20,7 +20,7 @@ function initApp() {
       return;
     }
 
-const config = result.config;
+    const config = result.config;
     if (!config) {
       const defaultId = window.ConfigModule.generateScenarioId();
       scenarios = [{ id: defaultId, name: I18n.t('scenario_default'), proxies: [] }];
@@ -116,7 +116,7 @@ function bindGlobalEvents() {
 
           // Auto-select first available proxy if none selected
           if (!currentProxy && list && list.length > 0) {
-            const firstEnabled = list.find(p => p.enabled !== false && p.disabled !== true && p.ip && p.port);
+            const firstEnabled = list.find(p => p.enabled !== false && p.ip && p.port);
             if (firstEnabled) {
               currentProxy = firstEnabled;
               // Save the auto-selected proxy
@@ -283,7 +283,7 @@ function switchScenario(id) {
       let stateUpdate = null;
       // Auto-select first proxy in manual mode
       if (currentMode === 'manual') {
-        const firstEnabled = newProxies.find(p => p.enabled !== false && p.disabled !== true && p.ip && p.port);
+        const firstEnabled = newProxies.find(p => p.enabled !== false && p.ip && p.port);
         if (firstEnabled) {
           stateUpdate = { proxy: { mode: 'manual', current: firstEnabled } };
         } else {
@@ -473,7 +473,7 @@ function list_init() {
         const info = list[i];
 
         // Skip disabled proxies
-        if (info.enabled === false || info.disabled === true) continue;
+        if (info.enabled === false) continue;
 
         if (info.ip != "" && info.port != "") {
           // Determine selection status
@@ -671,7 +671,7 @@ function getAutoProxy(proxyList, hostname) {
 
   // Check include_rules in proxy list order, return first match
   for (const proxy of proxyList) {
-    if (proxy.enabled === false || proxy.disabled === true) continue;
+    if (proxy.enabled === false) continue;
     if (!proxy.ip || !proxy.port) continue;
 
     // Only check include_rules, match in order

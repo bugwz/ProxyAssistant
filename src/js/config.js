@@ -6,7 +6,7 @@
 // Constants
 // ==========================================
 
-const PROXY_STATE_KEYS = ['show_password', 'is_new', 'open', 'disabled'];
+const PROXY_STATE_KEYS = ['show_password', 'is_new', 'open'];
 const PROXY_EXPORT_KEYS = [
   'enabled', 'id', 'name', 'protocol', 'ip', 'port', 'username', 'password',
   'bypass_rules', 'include_rules', 'fallback_policy', 'subscription'

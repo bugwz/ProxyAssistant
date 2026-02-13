@@ -27,7 +27,7 @@ describe('Worker.js - Utility Functions', () => {
     let script = "function FindProxyForURL(url, host) {\n";
 
     for (const proxy of list) {
-      if (proxy.disabled === true) continue;
+      if (proxy.enabled === false) continue;
       if (!proxy.ip || !proxy.port) continue;
 
       const type = (proxy.protocol || "HTTP").toUpperCase();
@@ -224,7 +224,7 @@ describe('Worker.js - Utility Functions', () => {
           ip: '192.168.1.1',
           port: '8080',
           include_rules: 'example.com',
-          disabled: true
+          enabled: false
         },
         {
           name: 'Enabled Proxy',
