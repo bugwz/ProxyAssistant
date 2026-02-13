@@ -695,7 +695,7 @@ const SubscriptionModule = (function () {
       case 'switchy_omega':
         return trimmed.startsWith('[SwitchyOmega Conditions]');
       case 'pac':
-        return true;
+        return trimmed.includes('FindProxyForURL');
       default:
         return true;
     }
@@ -1456,20 +1456,13 @@ const SubscriptionModule = (function () {
 
     const content = rawContent.replace(/\s+/g, '');
 
-    const extractedInclude = [];
-    const extractedBypass = [];
+    const { left: bypassLeft = '', right: bypassRight = '' } = config.bypass || {};
+    const { left: includeLeft = '', right: includeRight = '' } = config.include || {};
 
-    const bypassConfig = config.bypass || {};
-    const includeConfig = config.include || {};
-
-    const bypassLeft = bypassConfig.left || '';
-    const bypassRight = bypassConfig.right || '';
-    const includeLeft = includeConfig.left || '';
-    const includeRight = includeConfig.right || '';
+    const isValidItem = item => item && typeof item === 'string' && !item.includes('*');
 
     function extractByBounds(content, left, right) {
       if (!left || !right) return [];
-
       const results = [];
       let start = 0;
       while (true) {
@@ -1477,41 +1470,29 @@ const SubscriptionModule = (function () {
         if (leftIdx === -1) break;
         const rightIdx = content.indexOf(right, leftIdx + left.length);
         if (rightIdx === -1) break;
-
-        const extracted = content.substring(leftIdx + left.length, rightIdx);
-        results.push(extracted);
-
+        results.push(content.substring(leftIdx + left.length, rightIdx));
         start = rightIdx + right.length;
       }
       return results;
     }
 
-    function parseExtracted(items) {
-      const parsed = [];
-      for (const item of items) {
-        const parts = item.replace(/["']/g, '').split(',');
-        for (const part of parts) {
-          const trimmed = part.trim();
-          if (trimmed) {
-            parsed.push(trimmed);
-          }
-        }
-      }
-      return parsed;
+    function extractItems(targetArray, left, right) {
+      if (!left || !right) return;
+      const items = extractByBounds(content, left, right)
+        .flatMap(item => item.replace(/["']/g, '').split(',')
+          .map(part => part.trim())
+          .filter(Boolean));
+      targetArray.push(...items);
     }
 
-    if (bypassLeft && bypassRight) {
-      const bypassItems = extractByBounds(content, bypassLeft, bypassRight);
-      extractedBypass.push(...parseExtracted(bypassItems));
-    }
+    const extractedInclude = [];
+    const extractedBypass = [];
 
-    if (includeLeft && includeRight) {
-      const includeItems = extractByBounds(content, includeLeft, includeRight);
-      extractedInclude.push(...parseExtracted(includeItems));
-    }
+    extractItems(extractedBypass, bypassLeft, bypassRight);
+    extractItems(extractedInclude, includeLeft, includeRight);
 
-    const include = [...new Set(extractedInclude.filter(item => item && typeof item === 'string' && !item.includes('*')))];
-    const bypass = [...new Set(extractedBypass.filter(item => item && typeof item === 'string' && !item.includes('*')))];
+    const include = [...new Set(extractedInclude.filter(isValidItem))];
+    const bypass = [...new Set(extractedBypass.filter(isValidItem))];
 
     if (reverse) {
       return { include: bypass, bypass: include };
