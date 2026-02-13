@@ -31,6 +31,9 @@ let firefoxProxyState = {
   testProxy: null
 };
 
+// Global config cache for Firefox auto mode
+let currentConfig = null;
+
 // Helper to sync Firefox state to session storage
 function updateFirefoxSessionState() {
   if (isFirefox && typeof chrome !== 'undefined' && chrome.storage && chrome.storage.session) {
@@ -909,7 +912,7 @@ function restoreProxySettings() {
 
   // Load both local (persistent) and session (runtime) settings
   const storagePromise = new Promise(resolve => {
-    chrome.storage.local.get(['state'], (localResult) => {
+    chrome.storage.local.get(['state', 'config'], (localResult) => {
       if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.session) {
         chrome.storage.session.get(['firefoxProxyState'], (sessionResult) => {
           resolve({ local: localResult, session: sessionResult });
@@ -922,6 +925,9 @@ function restoreProxySettings() {
 
   storagePromise.then(({ local: result, session: sessionResult }) => {
     if (isFirefox) {
+      // Load config for Firefox auto mode
+      currentConfig = result.config || {};
+
       // Sync local state for Firefox
       if (result.state?.proxy?.current) firefoxProxyState.currentProxy = result.state.proxy.current;
       // If enabled, restore mode
@@ -1050,6 +1056,11 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'local') {
     if (changes.state) {
       updateBadge();
+    }
+
+    // Sync Firefox config on storage changes
+    if (isFirefox && changes.config) {
+      currentConfig = changes.config.newValue || {};
     }
 
     // Sync Firefox state on storage changes
@@ -1595,13 +1606,28 @@ function findProxyForRequestFirefox(url) {
     if (proxy.enabled === false) continue;
     if (!proxy.ip || !proxy.port) continue;
 
-    // Only check include_rules, ignore bypass_rules in auto mode
+    const includeUrlsList = [];
+
+    // Add local include_rules
     if (proxy.include_rules) {
-      const includeUrls = proxy.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
-      for (const pattern of includeUrls) {
-        if (matchesPattern(url, pattern)) {
-          return createFirefoxProxyObject(proxy);
-        }
+      const localRules = proxy.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+      includeUrlsList.push(...localRules);
+    }
+
+    // Merge subscription include_rules
+    if (proxy.subscription && proxy.subscription.enabled !== false && proxy.subscription.current) {
+      const format = proxy.subscription.current;
+      const subConfig = proxy.subscription.lists ? proxy.subscription.lists[format] : null;
+      if (subConfig && subConfig.include_rules) {
+        const subRules = subConfig.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+        includeUrlsList.push(...subRules);
+      }
+    }
+
+    // Check include rules
+    for (const pattern of includeUrlsList) {
+      if (matchesPattern(url, pattern)) {
+        return createFirefoxProxyObject(proxy);
       }
     }
   }
@@ -1624,6 +1650,19 @@ function isInCidrRange(ip, cidr) {
 function matchesPattern(url, pattern) {
   const host = new URL(url).hostname;
   const port = new URL(url).port;
+
+  // Handle regex pattern: /pattern/ or /pattern/flags
+  if (pattern.startsWith('/') && pattern.endsWith('/') && pattern.length > 2) {
+    const regexContent = pattern.slice(1, -1);
+    const regexFlags = pattern.slice(1, -1).split('/').pop();
+    const flags = regexFlags && !regexFlags.includes('/') ? regexFlags : '';
+    try {
+      const regex = new RegExp(regexContent, flags || 'i');
+      return regex.test(host);
+    } catch (e) {
+      return false;
+    }
+  }
 
   if (pattern.includes('/')) {
     return isInCidrRange(host, pattern);
