@@ -58,42 +58,51 @@ Uma poderosa extensão de gerenciamento de proxy para navegador que suporta Chro
 - **Alternância Rápida**: Alternância com um clique de listas de proxy entre diferentes cenários
 - **Gestão Flexível**: Suporte para adicionar, renomear, excluir e ordenar cenários
 - **Migração de Proxy**: Suporte para mover proxies entre diferentes cenários
+- **Aplicação automática**: Seleção e aplicação automáticas de proxy ao mudar de cenário no modo manual
 
-### 1.5 📋 Configuração flexível de regras de URL
+### 1.5 📥 Função de assinatura de proxy
 
-- **Endereços que ignoram o proxy** (`bypass_urls`): Domínios/IPs de conexão direta no modo manual
-- **Endereços que usam o proxy** (`include_urls`): Domínios que requerem acesso proxy no modo automático
+- **Suporte multi-formato**: Suporta formatos de assinatura AutoProxy, SwitchyLegacy, SwitchyOmega, PAC
+- **Atualização automática**: Suporta atualização automática programada (1min/6h/12h/1dia)
+- **Inversão de regras**: Suporta inversão de regras de correspondência e bypass de assinatura (modo lista branca/preta)
+- **Visualização de regras**: Visualização rápida das regras de correspondência e bypass extraídas da assinatura
+- **ID único**: Cada proxy e cenário tem um ID único para gestão precisa
+
+### 1.6 📋 Configuração flexível de regras de URL
+
+- **Endereços que ignoram o proxy** (`bypass_rules`): Domínios/IPs de conexão direta no modo manual
+- **Endereços que usam o proxy** (`include_rules`): Domínios que requerem acesso proxy no modo automático
 - **Estratégia de fallback**: No modo automático, escolher conexão direta ou rejeição quando a conexão falha
 - Suporta curinga `*` e correspondência de domínio
 - Adequado para cenários onde diferentes sites usam diferentes proxies
 
-### 1.6 🔐 Suporte a autenticação de proxy
+### 1.7 🔐 Suporte a autenticação de proxy
 
 - Autenticação com nome de usuário/senha
 - Tratamento automático de solicitações de autenticação do servidor proxy
 - Armazenamento seguro de credenciais
 
-### 1.7 🧪 Funcionalidades de teste de proxy
+### 1.8 🧪 Funcionalidades de teste de proxy
 
 - **Teste de conexão**: Verificar disponibilidade do proxy
 - **Medição de latência**: Testar tempo de resposta do proxy
 - **Teste em lote**: Testar todos os proxies com um clique
 - **Indicadores de cor**: Verde(<500ms) / Laranja(≥500ms) / Vermelho(Falhou)
 
-### 1.8 🏃 Detecção de estado do proxy
+### 1.9 🏃 Detecção de estado do proxy
 
 - Detectar a configuração atual do proxy do navegador
-- Verificar se a extensão controló com sucesso o proxy
+- Verificar se a extensão controlou com sucesso o proxy
 - Identificar outras extensões que controlam o proxy
 - Fornecer três resultados: estado, advertência, erro
 
-### 1.9 🔍 Visualização do Script PAC
+### 1.10 🔍 Visualização do Script PAC
 
 - **Visualização do Script**: Ver o conteúdo do script PAC gerado automaticamente
 - **Lista de Regras**: Exibição clara de todas as regras de correspondência de proxy ativas
 - **Suporte a Depuração**: Solução fácil de problemas de correspondência no modo automático
 
-### 1.10 🌙 Modos de tema
+### 1.11 🌙 Modos de tema
 
 - **Modo Claro**: Para uso diurno
 - **Modo Escuro**: Para uso noturno
@@ -101,18 +110,18 @@ Uma poderosa extensão de gerenciamento de proxy para navegador que suporta Chro
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/features/02.png)
 
-### 1.11 ☁️ Armazenamento e sincronização de dados
+### 1.12 ☁️ Armazenamento e sincronização de dados
 
-#### 1.11.1 Estratégia de armazenamento
+#### 1.12.1 Estratégia de armazenamento
 
 | Tipo de armazenamento | Conteúdo de armazenamento | Descrição |
 |----------------------|---------------------------|-----------|
 | **Armazenamento local (local)** | Lista de proxies, configurações de tema, configurações de idioma, configuração de sincronização | Sempre ativo, garantindo disponibilidade offline e persistência de dados |
 | **Sincronização em nuvem (sync)** | Dados de configuração completos (armazenamento fragmentado) | Opcional, usa armazenamento fragmentado para contornar limites de cota |
 
-#### 1.11.2 Métodos de sincronização
+#### 1.12.2 Métodos de sincronização
 
-##### 1.11.2.1 Sincronização nativa do navegador (Native Sync)
+##### 1.12.2.1 Sincronização nativa do navegador (Native Sync)
 - Usa a API `chrome.storage.sync` (Chrome) ou `browser.storage.sync` (Firefox)
 - Sincronização automática através da conta Chrome/Firefox
 - Adequado para sincronização multi-dispositivo com a mesma conta do navegador
@@ -121,7 +130,7 @@ Uma poderosa extensão de gerenciamento de proxy para navegador que suporta Chro
 - **Operações atômicas**: A operação Push limpa os dados antigos antes de escrever os novos para garantir consistência
 - **Exibição de cota**: Exibição em tempo real da cota usada/total (100KB) e número de fragmentos
 
-##### 1.11.2.2 Sincronização GitHub Gist
+##### 1.12.2.2 Sincronização GitHub Gist
 - Sincronização de configuração entre navegadores e dispositivos via GitHub Gist
 - Requer configuração do GitHub Personal Access Token
 - Suporta push/pull manual ou sincronização automática
@@ -133,7 +142,7 @@ Uma poderosa extensão de gerenciamento de proxy para navegador que suporta Chro
 | **Nome do arquivo** | Nome do arquivo no Gist, padrão `proxy_assistant_config.json` |
 | **ID do Gist** | Reconhecimento e salvamento automático, nenhuma entrada manual necessária |
 
-#### 1.11.3 Operações de sincronização
+#### 1.12.3 Operações de sincronização
 
 | Operação | Descrição |
 |----------|-----------|
@@ -141,44 +150,14 @@ Uma poderosa extensão de gerenciamento de proxy para navegador que suporta Chro
 | **Pull** | Baixar configuração da nuvem/Gist para local |
 | **Testar conexão** | Verificar a validade do Gist Token e o estado da configuração |
 
-#### 1.11.4 Importar/Exportar
+#### 1.12.4 Importar/Exportar
 
 - **Exportar configuração**: Gerar arquivo JSON com todas as informações de proxy, configurações de tema, configurações de idioma, etc.
 - **Importar configuração**: Suporte para restaurar configuração a partir de arquivo JSON
 - **Segurança de dados**: O arquivo de exportação remove automaticamente informações sensíveis (Token, senha)
 - **Compatibilidade de formato**: Suporta importação de arquivos de configuração de versões anteriores
 
-**Estrutura de exportação:**
-```json
-{
-  "version": 1,
-  "settings": {
-    "appLanguage": "zh-CN",
-    "themeMode": "light",
-    "nightModeStart": "22:00",
-    "nightModeEnd": "06:00"
-  },
-  "sync": {
-    "type": "native",
-    "gist": { "filename": "proxy_assistant_config.json" }
-  },
-  "proxies": [
-    {
-      "name": "My Proxy",
-      "protocol": "http",
-      "ip": "192.168.1.1",
-      "port": "8080",
-      "username": "",
-      "password": "",
-      "fallback_policy": "direct",
-      "include_urls": "",
-      "bypass_urls": ""
-    }
-  ]
-}
-```
-
-### 1.12 🌍 Suporte a múltiplos idiomas
+### 1.13 🌍 Suporte a múltiplos idiomas
 
 Esta extensão suporta os seguintes idiomas:
 
@@ -208,7 +187,6 @@ ProxyAssistant/
 ├── conf/                     # Configuração de exemplo
 │   └── demo.json             # Arquivo de configuração de exemplo
 ├── readme/                   # Documentação multilíngue
-│   ├── README-zh-CN.md       # Chinês simplificado
 │   ├── README-zh-TW.md       # Chinês tradicional
 │   ├── README-en.md          # Inglês
 │   ├── README-ja.md          # Japonês
@@ -223,16 +201,30 @@ ProxyAssistant/
 │   ├── manifest_firefox.json # Configuração extensão Firefox
 │   ├── main.html             # Página de configuração
 │   ├── popup.html            # Página popup
+│   ├── _locales/             # Recursos de internacionalização
 │   ├── js/
 │   │   ├── main.js           # Lógica principal da página de configuração
 │   │   ├── popup.js          # Lógica principal do popup
 │   │   ├── worker.js         # Serviço em segundo plano (Chrome: Service Worker)
 │   │   ├── i18n.js           # Suporte à internacionalização
+│   │   ├── storage.js        # Módulo de gestão de armazenamento
+│   │   ├── proxy.js          # Módulo de gestão de proxy
+│   │   ├── scenarios.js      # Módulo de gestão de cenários
+│   │   ├── sync.js           # Módulo de sincronização de dados
+│   │   ├── subscription.js   # Módulo de função de assinatura
+│   │   ├── theme.js          # Módulo de mudança de tema
+│   │   ├── detection.js      # Módulo de detecção de proxy
+│   │   ├── validator.js      # Módulo de validação de dados
+│   │   ├── language.js       # Módulo de seleção de idioma
+│   │   ├── utils.js          # Módulo de funções utilitárias
+│   │   ├── config.js         # Módulo de constantes de configuração
+│   │   ├── version.js        # Módulo de gestão de versões
 │   │   └── jquery.js         # Biblioteca jQuery
 │   ├── css/
 │   │   ├── main.css          # Estilos da página de configuração (inclui componentes comuns)
 │   │   ├── popup.css         # Estilos do popup
 │   │   ├── theme.css         # Estilos de tema
+│   │   ├── tabs.css          # Estilos de abas
 │   │   └── eye-button.css    # Estilos do botão mostrar senha
 │   └── images/               # Recursos de imagem
 │       ├── icon-16.png
@@ -241,7 +233,7 @@ ProxyAssistant/
 │       ├── icon-128.png
 │       └── logo-128.png
 ├── public/                   # Recursos públicos
-    └── img/                  # Imagens promocionais e de demonstração
+│   └── img/                  # Imagens promocionais e de demonstração
 ├── tests/                    # Testes
 │   ├── jest.config.js        # Configuração do Jest
 │   ├── setup.js              # Configuração do ambiente de teste
@@ -254,12 +246,14 @@ ProxyAssistant/
 │   └── build.sh              # Script de compilação da extensão
 ├── release/                  # Notas de lançamento
 │   └── *.md                  # Logs de atualização de versão
+├── doc/                      # Diretório de documentação
 ├── build/                    # Diretório de saída de compilação
 ├── package.json              # Dependências do projeto
 ├── package-lock.json         # Bloqueio de versões de dependências
 ├── Makefile                  # Entrada de comandos de compilação
 ├── jest.config.js            # Configuração do Jest (aponta para tests/jest.config.js)
-└── AGENTS.md                 # Guia de desenvolvimento
+├── AGENTS.md                 # Guia de desenvolvimento
+└── LICENSE                   # Licença MIT
 ```
 
 ## 4. 🚀 Início rápido
@@ -370,7 +364,7 @@ npm install
 | `make test_unit` | Executar apenas testes unitários |
 | `make test_integration` | Executar apenas testes de integração |
 | `make test_e2e` | Executar apenas testes e2e |
-| `make test_watch_nocache` | Executar testes em modo watch |
+| `make test_clean` | Limpar cache de testes e arquivos de cobertura |
 
 **Uso direto do npm**:
 ```bash
@@ -511,41 +505,46 @@ Clicar no botão "Detectar efeito do proxy" pode:
 - Chrome usa especificação Manifest V3
 - Service Worker substitui páginas de segundo plano
 - Firefox usa background scripts + onRequest API
+- Suporta armazenamento de sincronização nativa do navegador e sincronização GitHub Gist
 
 ### 7.2 Módulos principais
 
-1. **worker.js (Chrome)**:
-   - Gerenciamento de configuração do proxy
-   - Geração de script PAC
-   - Tratamento de autenticação
-   - Lógica de teste de proxy
-   - Escuta de mudanças de armazenamento
-
-2. **popup.js**:
-   - Interação com interface do popup
-   - Exibição de estado do proxy
-   - Alternância rápida de proxy
-   - Exibição de correspondência automática
-
-3. **main.js**:
-   - Lógica da página de configurações
-   - Gerenciamento de cenários (Scenarios)
-   - Gerenciamento de proxies (CRUD)
-   - Ordenação por arrastar e soltar
-   - Importar/Exportar
-   - Função de detecção de proxy
-
-4. **i18n.js**:
-   - Suporte a múltiplos idiomas
-   - Alternância de idioma em tempo real
+| Módulo | Arquivo | Descrição |
+|--------|---------|-----------|
+| **Principal** | main.js | Lógica da página de configurações, gestão de cenários, proxy CRUD, ordenação por arrastar, import/export, detecção de proxy |
+| **Popup** | popup.js | Interação com interface do popup, exibição de estado do proxy, alternância rápida de proxy, exibição de correspondência automática |
+| **Fundo** | worker.js | Gestão de configuração do proxy, geração de script PAC, tratamento de autenticação, teste de proxy, atualização automática de assinatura, monitoramento de mudanças de armazenamento |
+| **Armazenamento** | storage.js | Gestão de armazenamento local/nuvem, sincronização fragmentada, validação de dados, import/export de configuração |
+| **i18n** | i18n.js | Suporte a múltiplos idiomas, mudança em tempo real, carregamento dinâmico de traduções |
+| **Tema** | theme.js | Mudança de tema claro/escuro, mudança automática baseada no horário |
+| **Cenários** | scenarios.js | Suporte multi-cenário, mudança de cenário, renomear/excluir/ordenar cenários |
+| **Sincronização** | sync.js | Sincronização nativa do navegador, sincronização GitHub Gist |
+| **Assinatura** | subscription.js | Análise de assinatura proxy (AutoProxy/SwitchyLegacy/SwitchyOmega/PAC), atualização automática |
+| **Proxy** | proxy.js | Renderização de lista de proxies, edição, teste, ordenação por arrastar |
+| **Detecção** | detection.js | Detecção de estado do proxy, detecção de controle de extensão, detecção de conflitos |
+| **Validação** | validator.js | Validação de formato IP/domínio/porta/regra |
+| **Utilitários** | utils.js | Funções utilitárias comuns, auxiliares de operações DOM |
+| **Idioma** | language.js | Tratamento de interação de menu suspenso de idioma |
+| **Configuração** | config.js | Constantes de configuração padrão, gestão de configuração do sistema |
 
 ### 7.3 Armazenamento de dados
 
 - `chrome.storage.local`: Armazenamento local (sempre usado)
 - `chrome.storage.sync`: Armazenamento de sincronização em nuvem (opcional)
+- `chrome.storage.session`: Armazenamento de sessão (informações de autenticação, cache de estado)
 - Princípio local first, resolve problema de cota de sincronização
+- Armazenamento fragmentado (7KB por fragmento) contorna limite de cota de 8KB
 
-### 7.4 Compatibilidade de navegador
+### 7.4 Versão do formato de configuração
+
+| Versão | Descrição |
+|--------|-----------|
+| v1 | Formato inicial |
+| v2 | Adicionado suporte a cenários |
+| v3 | Adicionado suporte a assinatura |
+| v4 | Estado de desativação de proxy unificado, uso de IDs únicos, inversão de regras de assinatura |
+
+### 7.5 Compatibilidade de navegador
 
 | Função | Chrome | Firefox |
 |--------|--------|---------|
@@ -556,6 +555,16 @@ Clicar no botão "Detectar efeito do proxy" pode:
 | Alternância de tema | ✅ | ✅ |
 | Sincronização de dados | ✅ | ✅ |
 | Detecção proxy | ✅ | ✅ |
+| Assinatura | ✅ | ✅ |
+
+### 7.6 Tecnologias principais de implementação
+
+- **JavaScript nativo + jQuery**: Sem dependência de framework, leve
+- **Manifest V3**: Chrome usa Service Worker, Firefox usa background scripts
+- **Script PAC**: Script de configuração automática de proxy gerado dinamicamente no modo automático
+- **Autenticação proxy**: Usa API `webRequestAuthProvider` para manipular solicitações de autenticação
+- **Sincronização fragmentada**: Algoritmo de fragmentação personalizado para resolver limites de cota do Chrome storage.sync
+- **Análise de assinatura**: Suporta análise e conversão automáticas de múltiplos formatos de assinatura
 
 ## 8. 📝 Casos de uso
 

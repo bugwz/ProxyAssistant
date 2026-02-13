@@ -39,7 +39,7 @@ A powerful browser proxy management extension, compatible with Chrome/Firefox/Ed
 
 ### 1.2 🌐 Multi-Browser Support
 - **Chrome** - Using Manifest V3 + Service Worker
-- **Firefox** - Using Manifest V3 + `proxy.onRequest` API for proxy interception
+- **Firefox** - Using Manifest V3 + `proxy.onRequest` API for proxy request interception
 - **Edge** - Perfectly compatible with Chrome extensions, based on Chromium kernel
 
 ### 1.3 🔄 Three Proxy Modes
@@ -58,42 +58,51 @@ A powerful browser proxy management extension, compatible with Chrome/Firefox/Ed
 - **Quick Switch**: One-click switch of proxy lists between different scenarios
 - **Flexible Management**: Support adding, renaming, deleting, and sorting scenarios
 - **Proxy Migration**: Support moving proxies between different scenarios
+- **Auto Apply**: Automatically select and apply proxy when switching scenarios in manual mode
 
-### 1.5 📋 Flexible URL Rule Configuration
+### 1.5 📥 Proxy Subscription
 
-- **No proxy addresses** (`bypass_urls`): Domains/IPs for direct connection in manual mode
-- **Use proxy addresses** (`include_urls`): Domains that need proxy access in auto mode
+- **Multi-format Support**: Supports AutoProxy, SwitchyLegacy, SwitchyOmega, PAC subscription formats
+- **Auto Update**: Supports scheduled auto-update (1min/6h/12h/1day)
+- **Rule Reversal**: Supports reversing subscription match and bypass rules (whitelist/blacklist mode)
+- **Rule Preview**: Quickly view extracted match and bypass rules from subscription
+- **Unique ID**: Each proxy and scenario has a unique ID for precise management
+
+### 1.6 📋 Flexible URL Rule Configuration
+
+- **No proxy addresses** (`bypass_rules`): Domains/IPs for direct connection in manual mode
+- **Use proxy addresses** (`include_rules`): Domains that need proxy access in auto mode
 - **Fallback Policy**: Choose direct connection or reject when connection fails in auto mode
 - Supports wildcards `*` and domain matching
 - Suitable for scenarios where different websites use different proxies
 
-### 1.6 🔐 Proxy Authentication Support
+### 1.7 🔐 Proxy Authentication Support
 
 - Username/password authentication support
 - Automatic handling of proxy server authentication requests
 - Secure credential storage
 
-### 1.7 🧪 Proxy Testing Functionality
+### 1.8 🧪 Proxy Testing Functionality
 
 - **Connection Test**: Verify if proxy is available
 - **Latency Measurement**: Test proxy response time
 - **Batch Testing**: One-click test all proxies
 - **Color Coding**: Green (<500ms) / Orange (≥500ms) / Red (failed)
 
-### 1.8 🏃 Proxy Status Detection
+### 1.9 🏃 Proxy Status Detection
 
 - Detect current browser proxy settings
 - Verify if extension successfully controls proxy
 - Identify other extensions controlling proxy
-- Provides status, warning, and error results
+- Provides status, warning, and error detection results
 
-### 1.9 🔍 PAC Script Preview
+### 1.10 🔍 PAC Script Preview
 
 - **Script Viewing**: View the automatically generated PAC script content
 - **Rules List**: Clearly display all active proxy matching rules
 - **Debug Support**: Easy troubleshooting of matching issues in auto mode
 
-### 1.10 🌙 Theme Modes
+### 1.11 🌙 Theme Modes
 
 - **Light Mode**: For daytime use
 - **Dark Mode**: For nighttime use
@@ -101,18 +110,18 @@ A powerful browser proxy management extension, compatible with Chrome/Firefox/Ed
 
 ![](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/store/features/02.png)
 
-### 1.11 ☁️ Data Storage & Sync
+### 1.12 ☁️ Data Storage & Sync
 
-#### 1.11.1 Storage Strategy
+#### 1.12.1 Storage Strategy
 
 | Storage Type | Storage Content | Description |
 |--------------|-----------------|-------------|
 | **Local Storage** | Proxy list, theme settings, language settings, sync config | Always enabled, ensuring offline availability and data persistence |
 | **Cloud Sync** | Complete configuration data (chunked storage) | Optional, uses chunked storage to bypass quota limits |
 
-#### 1.11.2 Sync Methods
+#### 1.12.2 Sync Methods
 
-##### 1.11.2.1 Native Browser Sync
+##### 1.12.2.1 Native Browser Sync
 - Uses `chrome.storage.sync` API (Chrome) or `browser.storage.sync` (Firefox)
 - Automatic sync via Chrome/Firefox account
 - Suitable for multi-device sync with same browser account
@@ -121,7 +130,7 @@ A powerful browser proxy management extension, compatible with Chrome/Firefox/Ed
 - **Atomic Operations**: Push operation clears old data before writing new data to ensure consistency
 - **Quota Display**: Real-time display of used/total quota (100KB) and chunk count
 
-##### 1.11.2.2 GitHub Gist Sync
+##### 1.12.2.2 GitHub Gist Sync
 - Sync configuration across browsers and devices via GitHub Gist
 - Requires GitHub Personal Access Token
 - Supports manual push/pull or automatic sync
@@ -133,7 +142,7 @@ A powerful browser proxy management extension, compatible with Chrome/Firefox/Ed
 | **Filename** | Filename in Gist, default `proxy_assistant_config.json` |
 | **Gist ID** | Automatically recognized and saved, no manual input needed |
 
-#### 1.11.3 Sync Operations
+#### 1.12.3 Sync Operations
 
 | Operation | Description |
 |-----------|-------------|
@@ -141,44 +150,14 @@ A powerful browser proxy management extension, compatible with Chrome/Firefox/Ed
 | **Pull** | Download configuration from cloud/Gist to local |
 | **Test Connection** | Verify Gist Token validity and configuration status |
 
-#### 1.11.4 Import/Export
+#### 1.12.4 Import/Export
 
 - **Export Configuration**: Generate JSON file with all proxy info, theme settings, language settings, etc.
 - **Import Configuration**: Restore configuration from JSON file
 - **Data Security**: Export file automatically clears sensitive info (Token, Password)
 - **Format Compatibility**: Supports import of configuration files from old versions
 
-**Export Structure:**
-```json
-{
-  "version": 1,
-  "settings": {
-    "appLanguage": "zh-CN",
-    "themeMode": "light",
-    "nightModeStart": "22:00",
-    "nightModeEnd": "06:00"
-  },
-  "sync": {
-    "type": "native",
-    "gist": { "filename": "proxy_assistant_config.json" }
-  },
-  "proxies": [
-    {
-      "name": "My Proxy",
-      "protocol": "http",
-      "ip": "192.168.1.1",
-      "port": "8080",
-      "username": "",
-      "password": "",
-      "fallback_policy": "direct",
-      "include_urls": "",
-      "bypass_urls": ""
-    }
-  ]
-}
-```
-
-### 1.12 🌍 Multilingual Support
+### 1.13 🌍 Multilingual Support
 
 This extension supports the following languages:
 
@@ -208,7 +187,6 @@ ProxyAssistant/
 ├── conf/                     # Example configuration
 │   └── demo.json             # Example configuration file
 ├── readme/                   # Multilingual documentation
-│   ├── README-zh-CN.md       # Simplified Chinese
 │   ├── README-zh-TW.md       # Traditional Chinese
 │   ├── README-en.md          # English
 │   ├── README-ja.md          # Japanese
@@ -223,16 +201,30 @@ ProxyAssistant/
 │   ├── manifest_firefox.json # Firefox extension configuration
 │   ├── main.html             # Settings page
 │   ├── popup.html            # Popup page
+│   ├── _locales/             # Internationalization resources
 │   ├── js/
 │   │   ├── main.js           # Settings page main logic
 │   │   ├── popup.js          # Popup UI logic
 │   │   ├── worker.js         # Service Worker (Chrome) / Background Script (Firefox)
 │   │   ├── i18n.js           # Internationalization support
+│   │   ├── storage.js        # Storage management module
+│   │   ├── proxy.js          # Proxy management module
+│   │   ├── scenarios.js      # Scenario management module
+│   │   ├── sync.js           # Data sync module
+│   │   ├── subscription.js   # Subscription module
+│   │   ├── theme.js          # Theme switch module
+│   │   ├── detection.js      # Proxy detection module
+│   │   ├── validator.js      # Data validation module
+│   │   ├── language.js       # Language selection module
+│   │   ├── utils.js          # Utility functions module
+│   │   ├── config.js         # Configuration constants module
+│   │   ├── version.js        # Version management module
 │   │   └── jquery.js         # jQuery library
 │   ├── css/
 │   │   ├── main.css          # Settings page styles (incl. common components)
 │   │   ├── popup.css         # Popup styles
 │   │   ├── theme.css         # Theme styles
+│   │   ├── tabs.css          # Tab styles
 │   │   └── eye-button.css    # Password visibility button styles
 │   └── images/               # Icon resources
 │       ├── icon-16.png
@@ -254,12 +246,14 @@ ProxyAssistant/
 │   └── build.sh              # Extension build script
 ├── release/                  # Release notes
 │   └── *.md                  # Update logs for versions
+├── doc/                      # Documentation directory
 ├── build/                    # Build output directory
 ├── package.json              # Project dependencies
 ├── package-lock.json         # Dependency versions lock
 ├── Makefile                  # Build command entry
 ├── jest.config.js            # Jest configuration (points to tests/jest.config.js)
-└── AGENTS.md                 # Development guide
+├── AGENTS.md                 # Development guide
+└── LICENSE                   # MIT License
 ```
 
 ## 4. 🚀 Quick Start
@@ -370,7 +364,7 @@ npm install
 | `make test_unit` | Run unit tests only |
 | `make test_integration` | Run integration tests only |
 | `make test_e2e` | Run e2e tests only |
-| `make test_watch_nocache` | Run tests in watch mode |
+| `make test_clean` | Clean test cache and coverage files |
 
 **Using npm directly**:
 ```bash
@@ -511,41 +505,46 @@ Click "Detect Proxy Effect" button to:
 - Chrome uses Manifest V3 specification
 - Service Worker replaces background page
 - Firefox uses background scripts + onRequest API
+- Supports browser native sync storage and GitHub Gist sync
 
 ### 7.2 Core Modules
 
-1. **worker.js (Chrome)**:
-   - Proxy configuration management
-   - PAC script generation
-   - Authentication handling
-   - Proxy testing logic
-   - Storage change monitoring
-
-2. **popup.js**:
-   - Popup interface interaction
-   - Proxy status display
-   - Quick proxy switching
-   - Auto-match display
-
-3. **main.js**:
-   - Settings page logic
-   - Scenario Management
-   - Proxy management (CRUD)
-   - Drag and drop sorting
-   - Import/Export
-   - Proxy detection function
-
-4. **i18n.js**:
-   - Multilingual support
-   - Real-time language switching
+| Module | File | Description |
+|--------|------|-------------|
+| **Main** | main.js | Settings page logic, scenario management, proxy CRUD, drag-drop sorting, import/export, proxy detection |
+| **Popup** | popup.js | Popup interface interaction, proxy status display, quick proxy switching, auto-match display |
+| **Background** | worker.js | Proxy configuration management, PAC script generation, authentication handling, proxy testing, subscription auto-update, storage change monitoring |
+| **Storage** | storage.js | Local/cloud storage management, chunked sync, data validation, config import/export |
+| **i18n** | i18n.js | Multilingual support, real-time switching, dynamic translation loading |
+| **Theme** | theme.js | Light/dark theme switch, auto-switch based on time |
+| **Scenarios** | scenarios.js | Multi-scenario support, scenario switching, scenario rename/delete/sort |
+| **Sync** | sync.js | Browser native sync, GitHub Gist sync |
+| **Subscription** | subscription.js | Proxy subscription parsing (AutoProxy/SwitchyLegacy/SwitchyOmega/PAC), auto-update |
+| **Proxy** | proxy.js | Proxy list rendering, editing, testing, drag-drop sorting |
+| **Detection** | detection.js | Proxy status detection, extension control detection, conflict detection |
+| **Validator** | validator.js | IP/domain/port/rule format validation |
+| **Utils** | utils.js | Common utility functions, DOM operation helpers |
+| **Language** | language.js | Language dropdown interaction handling |
+| **Config** | config.js | Default configuration constants, system configuration management |
 
 ### 7.3 Data Storage
 
 - `chrome.storage.local`: Local storage (always used)
 - `chrome.storage.sync`: Cloud sync storage (optional)
+- `chrome.storage.session`: Session storage (authentication info, state cache)
 - Follow local-first principle, solves sync quota issues
+- Chunked storage (7KB per chunk) bypasses 8KB quota limit
 
-### 7.4 Browser Compatibility
+### 7.4 Configuration Format Version
+
+| Version | Description |
+|---------|-------------|
+| v1 | Initial format |
+| v2 | Added scenario support |
+| v3 | Added subscription support |
+| v4 | Unified proxy disabled status, uses unique IDs, subscription rule reversal |
+
+### 7.5 Browser Compatibility
 
 | Feature | Chrome | Firefox |
 |---------|--------|---------|
@@ -556,6 +555,16 @@ Click "Detect Proxy Effect" button to:
 | Theme Switch | ✅ | ✅ |
 | Data Sync | ✅ | ✅ |
 | Proxy Detection | ✅ | ✅ |
+| Subscription | ✅ | ✅ |
+
+### 7.6 Core Implementation Technologies
+
+- **Native JavaScript + jQuery**: No framework dependency, lightweight
+- **Manifest V3**: Chrome uses Service Worker, Firefox uses background scripts
+- **PAC Script**: Dynamically generated proxy auto-config script in auto mode
+- **Proxy Authentication**: Uses `webRequestAuthProvider` API for authentication requests
+- **Chunked Sync**: Custom chunking algorithm to solve Chrome storage.sync quota limits
+- **Subscription Parsing**: Supports automatic parsing and conversion of multiple subscription formats
 
 ## 8. 📝 Use Cases
 
