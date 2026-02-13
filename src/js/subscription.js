@@ -452,8 +452,8 @@ const SubscriptionModule = (function () {
     }
 
     const reverse = config.reverse || false;
-      const processRule = format === 'pac' ? config.process_rule : undefined;
-      const parsed = parseSubscriptionContent(config.content, format, reverse, processRule);
+    const processRule = format === 'pac' ? config.process_rule : undefined;
+    const parsed = parseSubscriptionContent(config.content, format, reverse, processRule);
 
     config.decoded_content = parsed.decoded || '';
     config.include_rules = parsed.include_rules || '';
@@ -783,8 +783,8 @@ const SubscriptionModule = (function () {
       extractedInclude.push(...parseExtracted(includeItems));
     }
 
-    const include = [...new Set(extractedInclude.filter(item => item && typeof item === 'string'))];
-    const bypass = [...new Set(extractedBypass.filter(item => item && typeof item === 'string'))];
+    const include = [...new Set(extractedInclude.filter(item => item && typeof item === 'string' && !item.includes('*')))];
+    const bypass = [...new Set(extractedBypass.filter(item => item && typeof item === 'string' && !item.includes('*')))];
 
     if (reverse) {
       return {
@@ -812,10 +812,14 @@ const SubscriptionModule = (function () {
     return content;
   }
 
-  function wildcardToRegex(wildcard) {
-    let escaped = wildcard.replace(/[.+^${}()|[\]\\]/g, '\\$&');
-    let regex = '^' + escaped.replace(/\*/g, '.*');
-    return regex;
+  function extractDomainFromWildcard(pattern) {
+    if (pattern.startsWith('*.')) {
+      return pattern.substring(2);
+    }
+    if (pattern.startsWith('*')) {
+      return pattern.substring(1);
+    }
+    return pattern;
   }
 
   function isValidManualBypassPattern(pattern) {
@@ -855,7 +859,12 @@ const SubscriptionModule = (function () {
       return true;
     }
 
-    return true;
+    const domainPattern = /^([a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
+    if (domainPattern.test(trimmed)) {
+      return true;
+    }
+
+    return false;
   }
 
   function parseRuleLine(line, format, defaultType, defaultAddress, reverse) {
@@ -924,10 +933,14 @@ const SubscriptionModule = (function () {
       pattern = line.substring(1, line.length - 1);
       js = `if (/${pattern}/.test(url)) return ${returnVal};`;
       ruleType = 'regex';
-    } else if (line.indexOf('*') !== -1) {
-      const regex = wildcardToRegex(line);
-      js = `if (/${regex}/.test(url)) return ${returnVal};`;
-      ruleType = 'wildcard';
+    } else if (isIpPattern(line)) {
+      if (line.includes('/')) {
+        js = `if (isInCidrRange(host, "${line}")) return ${returnVal};`;
+        ruleType = 'cidr';
+      } else {
+        js = `if (host === "${line}") return ${returnVal};`;
+        ruleType = 'ip';
+      }
     } else if (format === 'switchy_omega' && line.startsWith(':')) {
       pattern = line.substring(1).trim();
       js = `if (host.endsWith('.${pattern}') || host === '${pattern}') return ${returnVal};`;
@@ -971,6 +984,446 @@ const SubscriptionModule = (function () {
     }
 
     return rules;
+  }
+
+  function extractDomainFromWildcard(pattern) {
+    const parts = pattern.split('.');
+    if (parts.length < 2) return null;
+
+    let wildcardIndex = -1;
+    for (let i = 0; i < parts.length; i++) {
+      if (parts[i].includes('*')) {
+        wildcardIndex = i;
+        break;
+      }
+    }
+
+    if (wildcardIndex === -1) return pattern;
+
+    const wildcardFromRight = parts.length - 1 - wildcardIndex;
+
+    if (wildcardFromRight === 0 || wildcardFromRight === 1) {
+      return null;
+    }
+
+    const lastDotIndex = pattern.lastIndexOf('.');
+    return pattern.substring(pattern.lastIndexOf('.', lastDotIndex - 1) + 1);
+  }
+
+  function extractIPFromURL(url) {
+    const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}/;
+    const match = url.match(ipv4Pattern);
+    if (match) {
+      return match[0];
+    }
+    return null;
+  }
+
+  function extractHostname(url) {
+    if (url.includes('://')) {
+      url = url.split('://')[1];
+    }
+    url = url.split('/')[0];
+    url = url.replace(/\/$/, '');
+    url = url.split('?')[0];
+    url = url.split('#')[0];
+    const atIndex = url.indexOf('@');
+    if (atIndex !== -1) {
+      url = url.substring(atIndex + 1);
+    }
+    const colonIndex = url.lastIndexOf(':');
+    if (colonIndex !== -1 && !/:\d+$/.test(url)) {
+      url = url.substring(0, colonIndex);
+    }
+    return url;
+  }
+
+  function normalizeAutoproxyPattern(pattern) {
+    if (pattern.startsWith('/') && pattern.endsWith('/')) {
+      return pattern;
+    }
+
+    if (pattern.startsWith('|') && (pattern.includes('://') || (pattern.startsWith('|') && pattern.endsWith('|')))) {
+      let url = pattern.replace(/^\|+|\|+$/g, '');
+      const hostname = extractHostname(url);
+      const extractedIP = extractIPFromURL(hostname);
+      if (extractedIP) {
+        return extractedIP;
+      }
+      const extracted = extractDomainFromWildcard(hostname);
+      if (extracted) {
+        return extracted;
+      }
+      return null;
+    }
+
+    if (pattern.startsWith('||')) {
+      const domainPart = pattern.substring(2);
+      const hostname = extractHostname(domainPart);
+      if (hostname.includes('*')) {
+        const extracted = extractDomainFromWildcard(hostname);
+        if (extracted) {
+          return extracted;
+        }
+        return null;
+      }
+      return hostname;
+    }
+
+    if (pattern.startsWith('.')) {
+      if (pattern.includes('*')) {
+        return null;
+      }
+      return pattern.substring(1);
+    }
+
+    if (pattern.includes('/')) {
+      const hostname = extractHostname(pattern);
+      if (hostname.includes('*')) {
+        const extracted = extractDomainFromWildcard(hostname);
+        if (extracted) {
+          return extracted;
+        }
+        return null;
+      }
+      return hostname;
+    }
+
+    if (pattern.includes('*')) {
+      const extracted = extractDomainFromWildcard(pattern);
+      if (extracted) {
+        return extracted;
+      }
+      return null;
+    }
+
+    return pattern;
+  }
+
+  function isIpPattern(pattern) {
+    const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}(\/([0-9]|[12][0-9]|3[0-2]))?$/;
+    return ipv4Pattern.test(pattern);
+  }
+
+  function ipToNumber(ip) {
+    return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+  }
+
+  function isInCidrRange(ip, cidr) {
+    const [range, bits] = cidr.split('/');
+    const mask = ~(2 ** (32 - parseInt(bits)) - 1);
+    const ipNum = ipToNumber(ip);
+    const rangeNum = ipToNumber(range);
+    return (ipNum & mask) === (rangeNum & mask);
+  }
+
+  function normalizeAutoproxyLine(line, reverse) {
+    if (line.startsWith('[') && line.endsWith(']')) return null;
+    if (line.startsWith('!')) return null;
+
+    let isException = false;
+    let normalizedLine = line;
+    if (line.startsWith('@@')) {
+      isException = true;
+      normalizedLine = line.substring(2);
+    }
+
+    const finalActionIsDirect = isException ? !reverse : reverse;
+    const normalizedPattern = normalizeAutoproxyPattern(normalizedLine);
+
+    if (!normalizedPattern) return null;
+    if (!isValidManualBypassPattern(normalizedPattern) && finalActionIsDirect) return null;
+
+    return {
+      pattern: normalizedPattern,
+      isDirect: finalActionIsDirect
+    };
+  }
+
+  function classifyOmegaPattern(pattern) {
+    const ipPattern = /^(\d{1,3}|\*)\.(\d{1,3}|\*)\.(\d{1,3}|\*)\.(\d{1,3}|\*)$/;
+    if (ipPattern.test(pattern)) {
+      return 'ip_range';
+    }
+
+    const segments = pattern.split('.');
+    const hasWildcard = pattern.includes('*');
+
+    if (!hasWildcard) {
+      return segments.length >= 2 ? 'domain' : 'single_segment';
+    }
+
+    if (segments.length === 2 && segments[0] === '*') {
+      return 'single_wildcard';
+    }
+
+    if (segments[0] === '*' && segments[segments.length - 1] === '*') {
+      return 'complex_wildcard';
+    }
+
+    if (segments[0] === '*' && segments.length >= 3) {
+      return 'wildcard_domain';
+    }
+
+    return 'unknown';
+  }
+
+  function convertOmegaToProxyRule(pattern, type) {
+    switch (type) {
+      case 'ip_range':
+        return convertIPRangeToCIDR(pattern);
+
+      case 'single_wildcard': {
+        const domain = pattern.replace(/^\*\./, '');
+        return `/^[a-z0-9-]+\.${escapeRegExp(domain)}$/`;
+      }
+
+      case 'complex_wildcard': {
+        const domainPart = pattern.substring(2, pattern.length - 1);
+        return `/.*\\.${escapeRegExp(domainPart)}\\..*/`;
+      }
+
+      case 'wildcard_domain': {
+        const domain = pattern.replace(/^\*\./, '');
+        return domain;
+      }
+
+      case 'domain':
+        return pattern;
+
+      case 'single_segment':
+        return null;
+
+      default:
+        return pattern;
+    }
+  }
+
+  function convertOmegaToBypassRule(pattern, type) {
+    switch (type) {
+      case 'ip_range':
+        return convertIPRangeToCIDR(pattern);
+
+      case 'wildcard_domain': {
+        const domain = pattern.replace(/^\*\./, '');
+        return domain;
+      }
+
+      case 'domain':
+        return pattern;
+
+      case 'single_wildcard':
+      case 'complex_wildcard':
+      case 'single_segment':
+        return null;
+
+      default:
+        return pattern;
+    }
+  }
+
+  function convertIPRangeToCIDR(pattern) {
+    const parts = pattern.split('.');
+    const result = [];
+
+    function parseSegment(seg, base, bits) {
+      if (seg === '*') {
+        return { start: 0, end: 255 };
+      }
+      const val = parseInt(seg, 10);
+      return { start: val, end: val };
+    }
+
+    const s0 = parseSegment(parts[0], 0, 8);
+    const s1 = parseSegment(parts[1], 0, 8);
+    const s2 = parseSegment(parts[2], 0, 8);
+    const s3 = parseSegment(parts[3], 0, 8);
+
+    if (s0.start === s0.end && s1.start === 0 && s2.start === 0 && s3.start === 0) {
+      return '10.0.0.0/8';
+    }
+    if (s0.start === s0.end && s1.start === 16 && s2.start === 0 && s3.start === 0) {
+      return '172.16.0.0/12';
+    }
+    if (s0.start === s0.end && s1.start === 168 && s2.start === 0 && s3.start === 0) {
+      return '192.168.0.0/16';
+    }
+    if (s0.start === s0.end && s1.start === s1.end && s2.start === 0 && s3.start === 0) {
+      return `${parts[0]}.${parts[1]}.0.0/16`;
+    }
+    if (s0.start === s0.end && s1.start === s1.end && s2.start === s2.end && s3.start === 0) {
+      return `${parts[0]}.${parts[1]}.${parts[2]}.0/24`;
+    }
+    if (s0.start === s0.end && s1.start === s1.end && s2.start === s2.end && s3.start === s3.end) {
+      return pattern;
+    }
+
+    return null;
+  }
+
+  function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function normalizeSwitchyOmegaLine(line, reverse) {
+    if (line.startsWith('[SwitchyOmega Conditions]')) return null;
+    if (line.startsWith(';')) return null;
+    if (line.startsWith('@')) return null;
+
+    let pattern = line;
+    let isDirectRule = false;
+
+    if (line.includes(' +')) {
+      const parts = line.split(' +');
+      pattern = parts[0].trim();
+      const res = parts[1] ? parts[1].trim().toLowerCase() : '';
+      if (res === 'direct') isDirectRule = true;
+    } else if (line.includes('\t+')) {
+      const parts = line.split('\t+');
+      pattern = parts[0].trim();
+      const res = parts[1] ? parts[1].trim().toLowerCase() : '';
+      if (res === 'direct') isDirectRule = true;
+    }
+
+    if (pattern.startsWith('!')) {
+      pattern = pattern.substring(1).trim();
+      isDirectRule = true;
+    }
+
+    if (pattern.includes(': ')) {
+      const parts = pattern.split(': ');
+      const type = parts[0].toLowerCase();
+      if (['host', 'wildcard', 'hostwildcard', 'url', 'urlwildcard'].some(t => type.includes(t))) {
+        const domainInfo = extractDomainInfo(parts[1].trim());
+        pattern = domainInfo ? domainInfo.domain : null;
+      } else {
+        return null;
+      }
+    }
+
+    if (pattern.startsWith(': ')) {
+      pattern = pattern.substring(2).trim();
+    }
+
+    if (!pattern) return null;
+
+    const shouldBeDirect = isDirectRule ? !reverse : reverse;
+    const type = classifyOmegaPattern(pattern);
+
+    let finalPattern;
+    if (shouldBeDirect) {
+      finalPattern = convertOmegaToBypassRule(pattern, type);
+    } else {
+      finalPattern = convertOmegaToProxyRule(pattern, type);
+    }
+
+    if (finalPattern === null) return null;
+    if (shouldBeDirect && !isValidManualBypassPattern(finalPattern)) return null;
+
+    return {
+      pattern: finalPattern,
+      isDirect: shouldBeDirect
+    };
+  }
+
+  function normalizeSwitchyLegacyLine(line, reverse, section) {
+    if (line.startsWith(';') || line.startsWith('#') || line.startsWith('@')) return null;
+
+    let pattern = line;
+    let isDirectRule = false;
+
+    if (line.startsWith('!')) {
+      isDirectRule = true;
+      pattern = line.substring(1);
+    } else if (line.includes(' +')) {
+      const parts = line.split(' +');
+      pattern = parts[0].trim();
+      const res = parts[1] ? parts[1].trim().toLowerCase() : '';
+      if (res === 'direct') isDirectRule = true;
+    } else if (line.includes('\t+')) {
+      const parts = line.split('\t+');
+      pattern = parts[0].trim();
+      const res = parts[1] ? parts[1].trim().toLowerCase() : '';
+      if (res === 'direct') isDirectRule = true;
+    }
+
+    if (pattern.includes(': ')) {
+      const parts = pattern.split(': ');
+      const type = parts[0].toLowerCase();
+      if (['host', 'wildcard', 'hostwildcard', 'url', 'urlwildcard'].some(t => type.includes(t))) {
+        pattern = parts[1].trim();
+      } else {
+        return null;
+      }
+    }
+
+    if (pattern.startsWith(': ')) {
+      pattern = pattern.substring(2).trim();
+    }
+
+    if (!pattern) return null;
+
+    const shouldBeDirect = isDirectRule ? !reverse : reverse;
+
+    if (section === 'regexp' && reverse) {
+      return null;
+    }
+
+    let finalPattern = pattern;
+
+    if (section === 'wildcard' || section === 'host_wildcard' || section === 'url_wildcard') {
+      const extracted = extractDomainInfo(pattern);
+      if (!extracted) return null;
+
+      if (extracted.segmentCount === 1) {
+        if (shouldBeDirect && reverse) {
+          return null;
+        }
+        finalPattern = '/.*' + extracted.domain + '.*/';
+      } else {
+        finalPattern = extracted.domain;
+      }
+    } else if (section === 'regexp') {
+      if (shouldBeDirect) {
+        finalPattern = pattern;
+      } else {
+        finalPattern = '/.*' + pattern + '.*/';
+      }
+    }
+
+    return {
+      pattern: finalPattern,
+      isDirect: shouldBeDirect
+    };
+  }
+
+  function extractDomainInfo(pattern) {
+    if (!pattern) return null;
+
+    let domain = pattern
+      .replace(/^\*\:\/\/\*\./, '')
+      .replace(/^\*\:\/\//, '')
+      .replace(/^\*\./, '')
+      .replace(/\/\*$/, '')
+      .replace(/\/\*.*$/, '')
+      .trim();
+
+    if (!domain) return null;
+
+    const domainParts = domain.split('.');
+    const segmentCount = domainParts.filter(part => part && part.trim()).length;
+
+    if (domainParts.length >= 2 && domainParts[domainParts.length - 2]) {
+      return {
+        domain: domainParts.slice(-2).join('.'),
+        segmentCount: segmentCount
+      };
+    }
+
+    return {
+      domain: domain,
+      segmentCount: segmentCount
+    };
   }
 
   function parseSubscriptionContent(content, format, reverse, processRule) {
@@ -1017,127 +1470,32 @@ const SubscriptionModule = (function () {
       }
 
       const lines = contentToParse.split('\n');
+      let currentSection = 'wildcard';
+
       for (let line of lines) {
         line = line.trim();
         if (!line) continue;
 
+        const sectionMatch = line.match(/^\[(Wildcard|Host Wildcard|URL Wildcard|RegExp)\]$/i);
+        if (sectionMatch) {
+          currentSection = sectionMatch[1].toLowerCase().replace(/\s+/g, '_');
+          continue;
+        }
+
+        let normalized = null;
         if (format === 'autoproxy') {
-          if (line.startsWith('[') && line.endsWith(']')) continue;
-          if (line.startsWith('!')) continue;
-
-          let isException = false;
-          if (line.startsWith('@@')) {
-            isException = true;
-            line = line.substring(2);
-          }
-
-          const finalActionIsDirect = isException ? !reverse : reverse;
-
-          if (finalActionIsDirect) {
-            let pattern = line;
-            if (line.startsWith('||')) {
-              pattern = '*.' + line.substring(2);
-            } else if (line.startsWith('|')) {
-              pattern = line.substring(1) + '*';
-            }
-            if (pattern && isValidManualBypassPattern(pattern)) {
-              result.bypass_rules.push(pattern);
-            }
-          } else {
-            let pattern = line;
-            if (line.startsWith('||')) {
-              pattern = '*.' + line.substring(2);
-            } else if (line.startsWith('|')) {
-              pattern = line.substring(1) + '*';
-            } else if (line.startsWith('/') && line.endsWith('/')) {
-              pattern = line;
-            }
-            if (pattern) result.include_rules.push(pattern);
-          }
+          normalized = normalizeAutoproxyLine(line, reverse);
         } else if (format === 'switchy_omega') {
-          if (line.startsWith('[SwitchyOmega Conditions]')) continue;
-          if (line.startsWith(';')) continue;
-          if (line.startsWith('@')) continue;
-          let pattern = line;
-          let isDirectRule = false;
-
-          if (line.includes(' +')) {
-            const parts = line.split(' +');
-            pattern = parts[0].trim();
-            const res = parts[1] ? parts[1].trim().toLowerCase() : '';
-            if (res === 'direct') isDirectRule = true;
-          } else if (line.includes('\t+')) {
-            const parts = line.split('\t+');
-            pattern = parts[0].trim();
-            const res = parts[1] ? parts[1].trim().toLowerCase() : '';
-            if (res === 'direct') isDirectRule = true;
-          }
-          if (pattern.startsWith('!')) {
-            pattern = pattern.substring(1).trim();
-            isDirectRule = true;
-          }
-          if (pattern.includes(': ')) {
-            const parts = pattern.split(': ');
-            const type = parts[0].toLowerCase();
-            if (['host', 'wildcard', 'hostwildcard', 'url', 'urlwildcard'].some(t => type.includes(t))) {
-              pattern = parts[1].trim();
-            } else {
-              continue;
-            }
-          }
-          if (pattern.startsWith(': ')) {
-            pattern = pattern.substring(2).trim();
-          }
-          if (pattern) {
-            const shouldBeDirect = isDirectRule ? !reverse : reverse;
-            if (shouldBeDirect) {
-              if (isValidManualBypassPattern(pattern)) {
-                result.bypass_rules.push(pattern);
-              }
-            } else {
-              result.include_rules.push(pattern);
-            }
-          }
+          normalized = normalizeSwitchyOmegaLine(line, reverse);
         } else if (format === 'switchy_legacy') {
-          if (line.startsWith(';') || line.startsWith('#') || line.startsWith('[') || line.startsWith('@')) continue;
-          let pattern = line;
-          let isDirectRule = false;
+          normalized = normalizeSwitchyLegacyLine(line, reverse, currentSection);
+        }
 
-          if (line.startsWith('!')) {
-            isDirectRule = true;
-            pattern = line.substring(1);
-          } else if (line.includes(' +')) {
-            const parts = line.split(' +');
-            pattern = parts[0].trim();
-            const res = parts[1] ? parts[1].trim().toLowerCase() : '';
-            if (res === 'direct') isDirectRule = true;
-          } else if (line.includes('\t+')) {
-            const parts = line.split('\t+');
-            pattern = parts[0].trim();
-            const res = parts[1] ? parts[1].trim().toLowerCase() : '';
-            if (res === 'direct') isDirectRule = true;
-          }
-          if (pattern.includes(': ')) {
-            const parts = pattern.split(': ');
-            const type = parts[0].toLowerCase();
-            if (['host', 'wildcard', 'hostwildcard', 'url', 'urlwildcard'].some(t => type.includes(t))) {
-              pattern = parts[1].trim();
-            } else {
-              continue;
-            }
-          }
-          if (pattern.startsWith(': ')) {
-            pattern = pattern.substring(2).trim();
-          }
-          if (pattern) {
-            const shouldBeDirect = isDirectRule ? !reverse : reverse;
-            if (shouldBeDirect) {
-              if (isValidManualBypassPattern(pattern)) {
-                result.bypass_rules.push(pattern);
-              }
-            } else {
-              result.include_rules.push(pattern);
-            }
+        if (normalized) {
+          if (normalized.isDirect) {
+            result.bypass_rules.push(normalized.pattern);
+          } else {
+            result.include_rules.push(normalized.pattern);
           }
         }
       }
@@ -1145,9 +1503,12 @@ const SubscriptionModule = (function () {
       console.info('Parse error', e);
     }
 
+    const uniqueInclude = [...new Set(result.include_rules)];
+    const uniqueBypass = [...new Set(result.bypass_rules)];
+
     return {
-      include_rules: Array.isArray(result.include_rules) ? result.include_rules.join('\n') : result.include_rules,
-      bypass_rules: Array.isArray(result.bypass_rules) ? result.bypass_rules.join('\n') : result.bypass_rules,
+      include_rules: Array.isArray(uniqueInclude) ? uniqueInclude.join('\n') : uniqueInclude,
+      bypass_rules: Array.isArray(uniqueBypass) ? uniqueBypass.join('\n') : uniqueBypass,
       decoded: result.decoded
     };
   }
@@ -1221,8 +1582,8 @@ const SubscriptionModule = (function () {
       extractedInclude.push(...parseExtracted(includeItems));
     }
 
-    const include = [...new Set(extractedInclude.filter(item => item && typeof item === 'string'))];
-    const bypass = [...new Set(extractedBypass.filter(item => item && typeof item === 'string'))];
+    const include = [...new Set(extractedInclude.filter(item => item && typeof item === 'string' && !item.includes('*')))];
+    const bypass = [...new Set(extractedBypass.filter(item => item && typeof item === 'string' && !item.includes('*')))];
 
     if (reverse) {
       return { include: bypass, bypass: include };
