@@ -58,42 +58,51 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome/Firefox/Ed
 - **Schnelles Wechseln**: Ein-Klick-Wechsel der Proxy-Listen zwischen verschiedenen Szenarien
 - **Flexible Verwaltung**: Unterstützung für Hinzufügen, Umbenennen, Löschen und Sortieren von Szenarien
 - **Proxy-Migration**: Unterstützung für das Verschieben von Proxies zwischen verschiedenen Szenarien
+- **Auto-Anwendung**: Automatische Proxy-Auswahl und -Anwendung beim Wechseln von Szenarien im manuellen Modus
 
-### 1.5 📋 Flexible URL-Regelkonfiguration
+### 1.5 📥 Proxy-Abonnementfunktion
 
-- **Adressen ohne Proxy** (`bypass_urls`): Direktverbindungs-Domains/IPs im manuellen Modus
-- **Adressen mit Proxy** (`include_urls`): Domains, die Proxy-Zugriff im automatischen Modus erfordern
+- **Multi-Format-Unterstützung**: Unterstützt AutoProxy, SwitchyLegacy, SwitchyOmega, PAC-Abonnementformate
+- **Auto-Update**: Unterstützt geplante Auto-Updates (1Min/6Std/12Std/1Tag)
+- **Regelumkehrung**: Unterstützt die Umkehrung von Abonnement-Match- und Umgehungsregeln (Whitelist/Blacklist-Modus)
+- **Regelvorschau**: Schnelle Ansicht der aus dem Abonnement extrahierten Match- und Umgehungsregeln
+- **Eindeutige ID**: Jeder Proxy und jedes Szenario hat eine eindeutige ID für präzise Verwaltung
+
+### 1.6 📋 Flexible URL-Regelkonfiguration
+
+- **Adressen ohne Proxy** (`bypass_rules`): Direktverbindungs-Domains/IPs im manuellen Modus
+- **Adressen mit Proxy** (`include_rules`): Domains, die Proxy-Zugriff im automatischen Modus erfordern
 - **Fallback-Strategie**: Im automatischen Modus direkte Verbindung oder Ablehnung bei Verbindungsfehler wählen
 - Unterstützt Wildcard `*` und Domain-Matching
 - Geeignet für Szenarien, in denen verschiedene Websites verschiedene Proxys verwenden
 
-### 1.6 🔐 Proxy-Authentifizierungsunterstützung
+### 1.7 🔐 Proxy-Authentifizierungsunterstützung
 
 - Benutzername/Passwort-Authentifizierung
 - Automatische Behandlung von Authentifizierungsanforderungen des Proxy-Servers
 - Sichere Speicherung von Anmeldeinformationen
 
-### 1.7 🧪 Proxy-Testfunktionen
+### 1.8 🧪 Proxy-Testfunktionen
 
 - **Verbindungstest**: Proxy-Verfügbarkeit überprüfen
 - **Latenzmessung**: Proxy-Antwortzeit testen
 - **Batch-Test**: Alle Proxys mit einem Klick testen
 - **Farbindikatoren**: Grün(<500ms) / Orange(≥500ms) / Rot(Fehlgeschlagen)
 
-### 1.8 🏃 Proxy-Statuserkennung
+### 1.9 🏃 Proxy-Statuserkennung
 
 - Erkennen der aktuellen Browser-Proxy-Einstellungen
-- Überprüfen, ob die Erweiterung den Proxy erfolgreich gesteuert hat
-- Identifizieren anderer Erweiterungen, die den Proxy steuern
-- Drei Ergebnisse bereitstellen: Status, Warnung, Fehler
+- Überprüfen, ob die Erweiterung die Proxy-Steuerung erfolgreich übernommen hat
+- Identifizieren, ob andere Erweiterungen die Proxy-Steuerung übernommen haben
+- Drei Erkennungsergebnisse bereitstellen: Status, Warnung, Fehler
 
-### 1.9 🔍 PAC-Skript-Vorschau
+### 1.10 🔍 PAC-Skript-Vorschau
 
 - **Skript-Ansicht**: Automatisch generierten PAC-Skript-Inhalt anzeigen
 - **Regelliste**: Klare Anzeige aller aktiven Proxy-Matching-Regeln
 - **Debug-Support**: Einfache Fehlerbehebung bei Matching-Problemen im Auto-Modus
 
-### 1.10 🌙 Themen-Modi
+### 1.11 🌙 Themen-Modi
 
 - **Hellmodus**: Für den Tag
 - **Dunkelmodus**: Für die Nacht
@@ -101,18 +110,18 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome/Firefox/Ed
 
 ![](../public/img/promotion/1280-800-02.png)
 
-### 1.11 ☁️ Datenspeicherung und Synchronisierung
+### 1.12 ☁️ Datenspeicherung und Synchronisierung
 
-#### 1.11.1 Speicherstrategie
+#### 1.12.1 Speicherstrategie
 
 | Speichertyp | Speicherinhalt | Beschreibung |
 |-------------|----------------|--------------|
 | **Lokalspeicher (local)** | Proxy-Liste, Themeneinstellungen, Spracheinstellungen, Synchronisierungseinstellungen | Immer aktiv, Offline-Verfügbarkeit und Datenpersistenz gewährleistet |
 | **Cloud-Synchronisierung (sync)** | Vollständige Konfigurationsdaten (Chunk-Speicher) | Optional, verwendet Chunk-Speicher, um Quotenlimits zu umgehen |
 
-#### 1.11.2 Synchronisierungsmethoden
+#### 1.12.2 Synchronisierungsmethoden
 
-##### 1.11.2.1 Native Browser-Synchronisierung (Native Sync)
+##### 1.12.2.1 Native Browser-Synchronisierung (Native Sync)
 - Verwendet `chrome.storage.sync` API (Chrome) oder `browser.storage.sync` (Firefox)
 - Automatische Synchronisierung über Chrome/Firefox-Konto
 - Geeignet für Multi-Geräte-Synchronisierung mit demselben Browser-Konto
@@ -121,7 +130,7 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome/Firefox/Ed
 - **Atomare Operationen**: Push-Vorgang löscht alte Daten, bevor neue Daten geschrieben werden, um Konsistenz zu gewährleisten
 - **Quotenanzeige**: Echtzeitanzeige der genutzten/gesamten Quote (100KB) und Anzahl der Chunks
 
-##### 1.11.2.2 GitHub Gist-Synchronisierung
+##### 1.12.2.2 GitHub Gist-Synchronisierung
 - Synchronisierung der Konfiguration über Browser und Geräte hinweg via GitHub Gist
 - Erfordert GitHub Personal Access Token
 - Unterstützt manuelles Push/Pull oder automatische Synchronisierung
@@ -133,7 +142,7 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome/Firefox/Ed
 | **Dateiname** | Dateiname in Gist, Standard `proxy_assistant_config.json` |
 | **Gist-ID** | Automatisch erkannt und gespeichert, keine manuelle Eingabe erforderlich |
 
-#### 1.11.3 Synchronisierungsvorgänge
+#### 1.12.3 Synchronisierungsvorgänge
 
 | Vorgang | Beschreibung |
 |---------|--------------|
@@ -141,44 +150,14 @@ Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung, die Chrome/Firefox/Ed
 | **Pull** | Konfiguration aus der Cloud/Gist herunterladen |
 | **Verbindung testen** | Gist Token-Gültigkeit und Konfigurationsstatus überprüfen |
 
-#### 1.11.4 Import/Export
+#### 1.12.4 Import/Export
 
 - **Exportieren**: JSON-Datei mit allen Proxy-Informationen, Themen-Einstellungen, Spracheinstellungen usw. generieren
 - **Importieren**: Wiederherstellung der Konfiguration aus JSON-Datei unterstützen
 - **Datensicherheit**: Export-Datei löscht automatisch sensible Informationen (Token, Passwort)
 - **Format-Kompatibilität**: Import von Konfigurationsdateien aus älteren Versionen unterstützt
 
-**Export-Struktur:**
-```json
-{
-  "version": 1,
-  "settings": {
-    "appLanguage": "zh-CN",
-    "themeMode": "light",
-    "nightModeStart": "22:00",
-    "nightModeEnd": "06:00"
-  },
-  "sync": {
-    "type": "native",
-    "gist": { "filename": "proxy_assistant_config.json" }
-  },
-  "proxies": [
-    {
-      "name": "My Proxy",
-      "protocol": "http",
-      "ip": "192.168.1.1",
-      "port": "8080",
-      "username": "",
-      "password": "",
-      "fallback_policy": "direct",
-      "include_urls": "",
-      "bypass_urls": ""
-    }
-  ]
-}
-```
-
-### 1.12 🌍 Mehrsprachige Unterstützung
+### 1.13 🌍 Mehrsprachige Unterstützung
 
 Diese Erweiterung unterstützt die folgenden Sprachen:
 
@@ -208,7 +187,6 @@ ProxyAssistant/
 ├── conf/                     # Beispielkonfiguration
 │   └── demo.json             # Beispielkonfigurationsdatei
 ├── readme/                   # Mehrsprachige Dokumentation
-│   ├── README-zh-CN.md       # Vereinfachtes Chinesisch
 │   ├── README-zh-TW.md       # Traditionelles Chinesisch
 │   ├── README-en.md          # Englisch
 │   ├── README-ja.md          # Japanisch
@@ -223,16 +201,30 @@ ProxyAssistant/
 │   ├── manifest_firefox.json # Firefox-Erweiterungskonfiguration
 │   ├── main.html             # Einstellungsseite
 │   ├── popup.html            # Popup-Seite
+│   ├── _locales/             # Internationalisierungsressourcen
 │   ├── js/
 │   │   ├── main.js           # Hauptlogik der Einstellungsseite
 │   │   ├── popup.js          # Hauptlogik des Popups
 │   │   ├── worker.js         # Hintergrunddienst (Chrome: Service Worker)
 │   │   ├── i18n.js           # Internationalisierungsunterstützung
+│   │   ├── storage.js        # Speicherverwaltungsmodul
+│   │   ├── proxy.js          # Proxy-Verwaltungsmodul
+│   │   ├── scenarios.js      # Szenario-Verwaltungsmodul
+│   │   ├── sync.js           # Datensynchronisierungsmodul
+│   │   ├── subscription.js   # Abonnementfunktionsmodul
+│   │   ├── theme.js          # Themen-Wechselmodul
+│   │   ├── detection.js      # Proxy-Erkennungsmodul
+│   │   ├── validator.js      # Datenvalidierungsmodul
+│   │   ├── language.js       # Sprachauswahlmodul
+│   │   ├── utils.js          # Hilfsfunktionenmodul
+│   │   ├── config.js         # Konfigurationskonstantenmodul
+│   │   ├── version.js        # Versionsverwaltungsmodul
 │   │   └── jquery.js         # jQuery-Bibliothek
 │   ├── css/
 │   │   ├── main.css          # Stile der Einstellungsseite (inkl. allgemeine Komponenten)
 │   │   ├── popup.css         # Popup-Stile
 │   │   ├── theme.css         # Themen-Stile
+│   │   ├── tabs.css          # Tab-Stile
 │   │   └── eye-button.css    # Passwort-sichtbar-Button-Stile
 │   └── images/               # Bildressourcen
 │       ├── icon-16.png
@@ -241,7 +233,7 @@ ProxyAssistant/
 │       ├── icon-128.png
 │       └── logo-128.png
 ├── public/                   # Öffentliche Ressourcen
-    └── img/                  # Demo- und Werbebilder
+│   └── img/                  # Demo- und Werbebilder
 ├── tests/                    # Tests
 │   ├── jest.config.js        # Jest-Konfiguration
 │   ├── setup.js              # Testumgebung-Setup
@@ -254,12 +246,14 @@ ProxyAssistant/
 │   └── build.sh              # Erweiterungs-Build-Skript
 ├── release/                  # Release-Notizen
 │   └── *.md                  # Update-Logs für Versionen
+├── doc/                      # Dokumentationsverzeichnis
 ├── build/                    # Build-Ausgabeverzeichnis
 ├── package.json              # Projektabhängigkeiten
 ├── package-lock.json         # Abhängigkeitsversionen-Sperre
 ├── Makefile                  # Build-Befehlseingang
 ├── jest.config.js            # Jest-Konfiguration (verweist auf tests/jest.config.js)
-└── AGENTS.md                 # Entwicklungsleitfaden
+├── AGENTS.md                 # Entwicklungsleitfaden
+└── LICENSE                   # MIT-Lizenz
 ```
 
 ## 4. 🚀 Schnellstart
@@ -370,7 +364,7 @@ npm install
 | `make test_unit` | Nur Unit-Tests ausführen |
 | `make test_integration` | Nur Integrationstests ausführen |
 | `make test_e2e` | Nur E2E-Tests ausführen |
-| `make test_watch_nocache` | Tests im Watch-Modus ausführen |
+| `make test_clean` | Test-Cache und Abdeckungsdateien bereinigen |
 
 **npm direkt verwenden**:
 ```bash
@@ -511,41 +505,46 @@ Auf den Button "Proxy-Effekt erkennen" klicken kann:
 - Chrome verwendet Manifest V3-Spezifikation
 - Service Worker ersetzt Hintergrundseiten
 - Firefox verwendet background scripts + onRequest API
+- Unterstützt native Browser-Synchronisierungsspeicher und GitHub Gist-Synchronisierung
 
 ### 7.2 Kernmodule
 
-1. **worker.js (Chrome)**:
-   - Proxy-Konfigurationsverwaltung
-   - PAC-Skript-Generierung
-   - Authentifizierungsbehandlung
-   - Proxy-Testlogik
-   - Speicheränderungen überwachen
-
-2. **popup.js**:
-   - Popup-Schnittstelleninteraktion
-   - Proxy-Statusanzeige
-   - Schneller Proxy-Wechsel
-   - Automatische Übereinstimmungsanzeige
-
-3. **main.js**:
-   - Einstellungsseitenlogik
-   - Szenario-Verwaltung (Scenarios)
-   - Proxy-Verwaltung (CRUD)
-   - Drag & Drop-Sortierung
-   - Import/Export
-   - Proxy-Erkennungsfunktion
-
-4. **i18n.js**:
-   - Mehrsprachige Unterstützung
-   - Echtzeit-Sprachwechsel
+| Modul | Datei | Funktionsbeschreibung |
+|-------|------|----------------------|
+| **Hauptprogramm** | main.js | Einstellungsseitenlogik, Szenarioverwaltung, Proxy-CRUD, Drag&Drop-Sortierung, Import/Export, Proxy-Erkennung |
+| **Popup** | popup.js | Popup-Schnittstelleninteraktion, Proxy-Statusanzeige, schneller Proxy-Wechsel, automatische Übereinstimmungsanzeige |
+| **Hintergrund** | worker.js | Proxy-Konfigurationsverwaltung, PAC-Skript-Generierung, Authentifizierungsbehandlung, Proxy-Test, Abonnement-Auto-Update, Speicheränderungsüberwachung |
+| **Speicher** | storage.js | Lokale/Cloud-Speicherverwaltung, Chunk-Synchronisierung, Datenvalidierung, Konfigurations-Import/Export |
+| **i18n** | i18n.js | Mehrsprachige Unterstützung, Echtzeit-Wechsel, dynamische Übersetzungsladung |
+| **Thema** | theme.js | Hell/Dunkel-Thema-Wechsel, automatischer Wechsel nach Zeit |
+| **Szenarien** | scenarios.js | Multi-Szenario-Unterstützung, Szenario-Wechsel, Szenario-Umbenennung/Löschen/Sortierung |
+| **Synchronisierung** | sync.js | Native Browser-Synchronisierung, GitHub Gist-Synchronisierung |
+| **Abonnement** | subscription.js | Proxy-Abonnement-Parsing (AutoProxy/SwitchyLegacy/SwitchyOmega/PAC), Auto-Update |
+| **Proxy** | proxy.js | Proxy-Listen-Rendering, Bearbeitung, Test, Drag&Drop-Sortierung |
+| **Erkennung** | detection.js | Proxy-Statuserkennung, Erweiterungs-Steuerungsübernahme-Erkennung, Konflikterkennung |
+| **Validierung** | validator.js | IP/Domain/Port/Regelformat-Validierung |
+| **Hilfsfunktionen** | utils.js | Allgemeine Hilfsfunktionen, DOM-Operationshilfen |
+| **Sprache** | language.js | Dropdown-Menü-Interaktionsbehandlung |
+| **Konfiguration** | config.js | Standard-Konfigurationskonstanten, Systemkonfigurationsverwaltung |
 
 ### 7.3 Datenspeicherung
 
 - `chrome.storage.local`: Lokaler Speicher (immer verwendet)
 - `chrome.storage.sync`: Cloud-Synchronisierungsspeicher (optional)
+- `chrome.storage.session`: Sitzungsspeicher (Authentifizierungsinformationen, Status-Cache)
 - Lokal-zuerst-Prinzip, löst Problem der Synchronisierungsquote
+- Chunk-Speicherung (7KB pro Chunk) umgeht 8KB-Quote-Limit
 
-### 7.4 Browser-Kompatibilität
+### 7.4 Konfigurationsformat-Version
+
+| Version | Beschreibung |
+|---------|--------------|
+| v1 | Erstes Format |
+| v2 | Szenario-Unterstützung hinzugefügt |
+| v3 | Abonnement-Unterstützung hinzugefügt |
+| v4 | Einheitlicher Proxy-Deaktivierungsstatus, Verwendung eindeutiger IDs, Abonnement-Regelumkehrung |
+
+### 7.5 Browser-Kompatibilität
 
 | Funktion | Chrome | Firefox |
 |----------|--------|---------|
@@ -556,6 +555,16 @@ Auf den Button "Proxy-Effekt erkennen" klicken kann:
 | Themenwechsel | ✅ | ✅ |
 | Datensynchronisierung | ✅ | ✅ |
 | Proxy-Erkennung | ✅ | ✅ |
+| Abonnement | ✅ | ✅ |
+
+### 7.6 Kernimplementierungstechnologien
+
+- **Natives JavaScript + jQuery**: Ke Framework-Abhängigkeit, leichtgewichtig
+- **Manifest V3**: Chrome verwendet Service Worker, Firefox verwendet background scripts
+- **PAC-Skript**: Dynamisch generiertes Proxy-Auto-Config-Skript im Auto-Modus
+- **Proxy-Authentifizierung**: Verwendet `webRequestAuthProvider` API zur Authentifizierungsanfragenbehandlung
+- **Chunk-Synchronisierung**: Benutzerdefinierter Chunking-Algorithmus löst Chrome storage.sync Quote-Limits
+- **Abonnement-Parsing**: Unterstützt automatisches Parsen und Konvertieren mehrerer Abonnementformate
 
 ## 8. 📝 Anwendungsfälle
 

@@ -39,7 +39,7 @@
 
 ### 1.2 🌐 多瀏覽器支持
 - **Chrome** - 使用 Manifest V3 + Service Worker
-- **Firefox** - 使用 Manifest V3 + `proxy.onRequest` API 進行代理攔截
+- **Firefox** - 使用 Manifest V3 + `proxy.onRequest` API 進行代理請求攔截
 - **Edge** - 完美兼容 Chrome 擴展，基於 Chromium 內核
 
 ### 1.3 🔄 三種代理模式
@@ -58,42 +58,51 @@
 - **快速切換**: 一鍵在不同場景間切換代理列表
 - **靈活管理**: 支持場景的新增、重命名、刪除及排序
 - **代理遷移**: 支持將代理在不同場景間移動
+- **自動應用**: 手動模式下切換場景時自動選擇並應用代理
 
-### 1.5 📋 靈活的URL規則配置
+### 1.5 📥 代理訂閱功能
 
-- **不使用代理的地址** (`bypass_urls`): 手動模式下直接連接的域名/IP
-- **使用代理的地址** (`include_urls`): 自動模式下需要通過代理訪問的域名
-- **失敗回退策略**: 自動模式下連接失敗時選擇直接連接或拒絕連接
+- **多格式支持**: 支持 AutoProxy、SwitchyLegacy、SwitchyOmega、PAC 等訂閱格式
+- **自動更新**: 支持定時自動更新（1分鐘/6小時/12小時/1天）
+- **規則反轉**: 支持反轉訂閱的匹配和繞過規則（白名單/黑名單模式）
+- **規則預覽**: 可快速查看從訂閱中提取的匹配和繞過規則列表
+- **唯一 ID**: 每個代理和場景具有唯一 ID，便於精確管理
+
+### 1.6 📋 靈活的URL規則配置
+
+- **不走代理的地址** (`bypass_rules`): 手動模式下直接連接的域名/IP
+- **走代理的地址** (`include_rules`): 自動模式下需要通過代理訪問的域名
+- **備用策略**: 自動模式下連接失敗時選擇直接連接或拒絕連接
 - 支持通配符 `*` 和域名匹配
 - 適用於不同網站使用不同代理的場景
 
-### 1.6 🔐 代理認證支持
+### 1.7 🔐 代理認證支持
 
 - 用戶名/密碼認證支持
 - 自動處理代理服務器的認證請求
 - 安全存儲憑證信息
 
-### 1.7 🧪 代理測試功能
+### 1.8 🧪 代理測試功能
 
 - **連接測試**: 驗證代理是否可用
 - **延遲測量**: 測試代理響應時間
 - **批量測試**: 一鍵測試所有代理
 - **顏色標識**: 綠色(<500ms) / 橙色(≥500ms) / 紅色(失敗)
 
-### 1.8 🏃 代理狀態檢測
+### 1.9 🏃 代理狀態檢測
 
 - 檢測當前瀏覽器代理設置
-- 驗證擴展是否成功控制代理
-- 識別其他擴展對代理的控制
-- 提供狀態、警告、錯誤三種結果
+- 驗證擴展是否成功接管代理控制
+- 識別其他擴展是否搶佔代理控制權
+- 提供狀態、警告、錯誤三種檢測結果
 
-### 1.9 🔍 PAC 腳本預覽
+### 1.10 🔍 PAC 腳本預覽
 
 - **腳本查看**: 查看自動生成的 PAC 腳本內容
 - **規則列表**: 清晰展示所有生效的代理匹配規則
 - **調試支持**: 方便排查自動模式下的匹配問題
 
-### 1.10 🌙 主題模式
+### 1.11 🌙 主題模式
 
 - **淺色模式**: 白天使用
 - **深色模式**: 夜間使用
@@ -101,18 +110,18 @@
 
 ![](../public/img/promotion/1280-800-02.png)
 
-### 1.11 ☁️ 數據存儲與同步
+### 1.12 ☁️ 數據存儲與同步
 
-#### 1.11.1 存儲策略
+#### 1.12.1 存儲策略
 
 | 存儲類型 | 存儲內容 | 說明 |
 |---------|----------|------|
 | **本地存儲 (local)** | 代理列表、主題設置、語言設置、同步配置 | 始終啟用，確保離線可用和數據持久化 |
 | **雲端同步 (sync)** | 完整配置數據（分塊存儲） | 可選功能，使用分塊存儲繞過配額限制 |
 
-#### 1.11.2 同步方式
+#### 1.12.2 同步方式
 
-##### 1.11.2.1 瀏覽器原生同步 (Native Sync)
+##### 1.12.2.1 瀏覽器原生同步 (Native Sync)
 - 使用 `chrome.storage.sync` API（Chrome）或 `browser.storage.sync`（Firefox）
 - 通過 Chrome/Firefox 帳號自動同步
 - 適合同一瀏覽器帳號的多設備同步
@@ -121,7 +130,7 @@
 - **原子操作**: Push 操作先清空舊數據再寫入新數據，保證一致性
 - **配額顯示**: 實時顯示已用/總配額（100KB）和分塊數量
 
-##### 1.11.2.2 GitHub Gist 同步
+##### 1.12.2.2 GitHub Gist 同步
 - 通過 GitHub Gist 實現跨瀏覽器、跨設備的配置同步
 - 需要配置 GitHub Personal Access Token
 - 支持手動推送/拉取或自動同步
@@ -133,7 +142,7 @@
 | **文件名** | Gist 中的文件名，默認 `proxy_assistant_config.json` |
 | **Gist ID** | 自動識別並保存，無需手動輸入 |
 
-#### 1.11.3 同步操作
+#### 1.12.3 同步操作
 
 | 操作 | 說明 |
 |------|------|
@@ -141,44 +150,14 @@
 | **拉取 (Pull)** | 從雲端/Gist 下載配置到本地 |
 | **測試連接** | 驗證 Gist Token 有效性及配置狀態 |
 
-#### 1.11.4 導入導出
+#### 1.12.4 導入導出
 
 - **導出配置**: 生成 JSON 文件，包含所有代理信息、主題設置、語言設置等
 - **導入配置**: 支持從 JSON 文件恢復配置
 - **數據安全**: 導出文件自動清除敏感信息（Token、密碼）
 - **格式兼容**: 支持新舊版本配置文件的導入
 
-**導出內容結構:**
-```json
-{
-  "version": 1,
-  "settings": {
-    "appLanguage": "zh-CN",
-    "themeMode": "light",
-    "nightModeStart": "22:00",
-    "nightModeEnd": "06:00"
-  },
-  "sync": {
-    "type": "native",
-    "gist": { "filename": "proxy_assistant_config.json" }
-  },
-  "proxies": [
-    {
-      "name": "My Proxy",
-      "protocol": "http",
-      "ip": "192.168.1.1",
-      "port": "8080",
-      "username": "",
-      "password": "",
-      "fallback_policy": "direct",
-      "include_urls": "",
-      "bypass_urls": ""
-    }
-  ]
-}
-```
-
-### 1.12 🌍 多語言支持
+### 1.13 🌍 多語言支持
 
 本擴展支持以下語言：
 
@@ -222,16 +201,30 @@ ProxyAssistant/
 │   ├── manifest_firefox.json # Firefox 擴展配置
 │   ├── main.html             # 設置頁面
 │   ├── popup.html            # 彈窗頁面
+│   ├── _locales/             # 國際化資源
 │   ├── js/
 │   │   ├── main.js           # 設置頁面主邏輯
 │   │   ├── popup.js          # 彈窗 UI 邏輯
 │   │   ├── worker.js         # Service Worker (Chrome) / Background Script (Firefox)
 │   │   ├── i18n.js           # 國際化支持
+│   │   ├── storage.js        # 存儲管理模組
+│   │   ├── proxy.js          # 代理管理模組
+│   │   ├── scenarios.js      # 場景管理模組
+│   │   ├── sync.js           # 數據同步模組
+│   │   ├── subscription.js   # 訂閱功能模組
+│   │   ├── theme.js          # 主題切換模組
+│   │   ├── detection.js      # 代理檢測模組
+│   │   ├── validator.js      # 數據驗證模組
+│   │   ├── language.js       # 語言選擇模組
+│   │   ├── utils.js          # 工具函數模組
+│   │   ├── config.js         # 配置常量模組
+│   │   ├── version.js        # 版本管理模組
 │   │   └── jquery.js         # jQuery 庫
 │   ├── css/
 │   │   ├── main.css          # 設置頁面樣式 (含通用組件)
 │   │   ├── popup.css         # 彈窗樣式
 │   │   ├── theme.css         # 主題樣式
+│   │   ├── tabs.css          # 標籤頁樣式
 │   │   └── eye-button.css    # 顯示密碼按鈕樣式
 │   └── images/               # 圖片資源
 │       ├── icon-16.png
@@ -253,12 +246,14 @@ ProxyAssistant/
 │   └── build.sh              # 擴展構建腳本
 ├── release/                  # 版本發佈說明
 │   └── *.md                  # 各版本更新日誌
+├── doc/                      # 文檔目錄
 ├── build/                    # 構建產物目錄
 ├── package.json              # 項目依賴配置
 ├── package-lock.json         # 鎖定依賴版本
 ├── Makefile                  # 構建命令入口
 ├── jest.config.js            # Jest 配置（指向 tests/jest.config.js）
-└── AGENTS.md                 # 開發指南
+├── AGENTS.md                 # 開發指南
+└── LICENSE                   # MIT 許可證
 ```
 
 ## 4. 🚀 快速開始
@@ -369,7 +364,7 @@ npm install
 | `make test_unit` | 僅運行單元測試 |
 | `make test_integration` | 僅運行集成測試 |
 | `make test_e2e` | 僅運行 e2e 測試 |
-| `make test_watch_nocache` | 監聽模式運行測試 |
+| `make test_clean` | 清理測試緩存和覆蓋率文件 |
 
 **直接使用 npm**:
 ```bash
@@ -510,41 +505,46 @@ www.google.com
 - Chrome 使用 Manifest V3 規範
 - Service Worker 代替後台頁面
 - Firefox 使用 background scripts + onRequest API
+- 支持瀏覽器原生同步存儲和 GitHub Gist 同步
 
-### 7.2 核心模塊
+### 7.2 核心模組
 
-1. **worker.js (Chrome)**:
-   - 代理配置管理
-   - PAC腳本生成
-   - 認證處理
-   - 代理測試邏輯
-   - 存儲變更監聽
-
-2. **popup.js**:
-   - 彈窗界面交互
-   - 代理狀態顯示
-   - 快速切換代理
-   - 自動匹配顯示
-
-3. **main.js**:
-   - 設置頁面邏輯
-   - 場景管理（Scenarios）
-   - 代理管理（增刪改）
-   - 拖拽排序
-   - 導入導出
-   - 代理檢測功能
-
-4. **i18n.js**:
-   - 多語言支持
-   - 實時語言切換
+| 模組 | 文件 | 功能描述 |
+|------|------|----------|
+| **主程序** | main.js | 設置頁面主邏輯、場景管理、代理 CRUD、拖拽排序、導入導出、代理檢測 |
+| **彈窗** | popup.js | 彈窗界面交互、代理狀態展示、快速切換代理、自動匹配展示 |
+| **後台** | worker.js | 代理配置管理、PAC 腳本生成、認證處理、代理測試、訂閱自動更新、存儲變化監聽 |
+| **存儲** | storage.js | 本地/雲端存儲管理、分塊同步、數據校驗、配置導入導出 |
+| **國際化** | i18n.js | 多語言支持、切換、動態翻譯加載 |
+| **主題** | theme.js | 淺色/深色主題切換、根據時間自動切換 |
+| **場景** | scenarios.js | 多場景支持、切換、重命名/刪除/排序 |
+| **同步** | sync.js | 瀏覽器原生同步、GitHub Gist 同步 |
+| **訂閱** | subscription.js | 代理訂閱解析 (AutoProxy/SwitchyLegacy/SwitchyOmega/PAC)、自動更新 |
+| **代理** | proxy.js | 代理列表渲染、編輯、測試、拖拽排序 |
+| **檢測** | detection.js | 代理狀態檢測、擴展接管檢測、衝突檢測 |
+| **驗證** | validator.js | IP/域名/端口/規則格式驗證 |
+| **工具** | utils.js | 通用工具函數、DOM 操作輔助 |
+| **語言** | language.js | 語言下拉選單互動處理 |
+| **配置** | config.js | 默認配置常量、系統配置管理 |
 
 ### 7.3 數據存儲
 
 - `chrome.storage.local`: 本地存儲（始終使用）
 - `chrome.storage.sync`: 雲端同步存儲（可選）
+- `chrome.storage.session`: 會話存儲（認證信息、狀態緩存）
 - 遵循本地優先原則，解決同步配額問題
+- 分塊存儲（每塊 7KB）繞過 8KB 配額限制
 
-### 7.4 瀏覽器兼容性
+### 7.4 配置格式版本
+
+| 版本 | 描述 |
+|------|------|
+| v1 | 初始格式 |
+| v2 | 增加場景支持 |
+| v3 | 增加訂閱支持 |
+| v4 | 統一代理禁用狀態、使用唯一 ID、訂閱規則反轉 |
+
+### 7.5 瀏覽器兼容性
 
 | 功能 | Chrome | Firefox |
 |------|--------|---------|
@@ -555,6 +555,16 @@ www.google.com
 | 主題切換 | ✅ | ✅ |
 | 數據同步 | ✅ | ✅ |
 | 代理檢測 | ✅ | ✅ |
+| 訂閱功能 | ✅ | ✅ |
+
+### 7.6 核心實現技術
+
+- **原生 JavaScript + jQuery**: 無框架依賴，保持輕量
+- **Manifest V3**: Chrome 使用 Service Worker，Firefox 使用 background scripts
+- **PAC 腳本**: 自動模式下動態生成代理自動配置腳本
+- **代理認證**: 使用 `webRequestAuthProvider` API 處理認證請求
+- **分塊同步**: 自定義分塊算法解決 Chrome storage.sync 配額限制
+- **訂閱解析**: 支持多種訂閱格式的自動解析和轉換
 
 ## 8. 📝 使用場景
 
