@@ -1117,27 +1117,29 @@ const SubscriptionModule = (function () {
   }
 
   function classifyOmegaPattern(pattern) {
-    const ipPattern = /^(\d{1,3}|\*)\.(\d{1,3}|\*)\.(\d{1,3}|\*)\.(\d{1,3}|\*)$/;
-    if (ipPattern.test(pattern)) {
+    const IP_RANGE_PATTERN = /^(\d{1,3}|\*)\.(\d{1,3}|\*)\.(\d{1,3}|\*)\.(\d{1,3}|\*)$/;
+    if (IP_RANGE_PATTERN.test(pattern)) {
       return 'ip_range';
     }
 
     const segments = pattern.split('.');
     const hasWildcard = pattern.includes('*');
+    const firstSegment = segments[0];
+    const lastSegment = segments[segments.length - 1];
 
     if (!hasWildcard) {
       return segments.length >= 2 ? 'domain' : 'single_segment';
     }
 
-    if (segments.length === 2 && segments[0] === '*') {
+    if (segments.length === 2 && firstSegment === '*') {
       return 'single_wildcard';
     }
 
-    if (segments[0] === '*' && segments[segments.length - 1] === '*') {
+    if (firstSegment === '*' && lastSegment === '*') {
       return 'complex_wildcard';
     }
 
-    if (segments[0] === '*' && segments.length >= 3) {
+    if (firstSegment === '*' && segments.length >= 3) {
       return 'wildcard_domain';
     }
 
@@ -1145,24 +1147,20 @@ const SubscriptionModule = (function () {
   }
 
   function convertOmegaToProxyRule(pattern, type) {
+    const domainWithoutWildcard = pattern.replace(/^\*\./, '');
+
     switch (type) {
       case 'ip_range':
         return convertIPRangeToCIDR(pattern);
 
-      case 'single_wildcard': {
-        const domain = pattern.replace(/^\*\./, '');
-        return `/^[a-z0-9-]+\.${escapeRegExp(domain)}$/`;
-      }
+      case 'single_wildcard':
+        return `/^[a-z0-9-]+\.${escapeRegExp(domainWithoutWildcard)}$/`;
 
-      case 'complex_wildcard': {
-        const domainPart = pattern.substring(2, pattern.length - 1);
-        return `/.*\\.${escapeRegExp(domainPart)}\\..*/`;
-      }
+      case 'complex_wildcard':
+        return `/.*\\.${escapeRegExp(pattern.substring(2, pattern.length - 1))}\\..*/`;
 
-      case 'wildcard_domain': {
-        const domain = pattern.replace(/^\*\./, '');
-        return domain;
-      }
+      case 'wildcard_domain':
+        return domainWithoutWildcard;
 
       case 'domain':
         return pattern;
@@ -1180,10 +1178,8 @@ const SubscriptionModule = (function () {
       case 'ip_range':
         return convertIPRangeToCIDR(pattern);
 
-      case 'wildcard_domain': {
-        const domain = pattern.replace(/^\*\./, '');
-        return domain;
-      }
+      case 'wildcard_domain':
+        return pattern.replace(/^\*\./, '');
 
       case 'domain':
         return pattern;
@@ -1200,41 +1196,26 @@ const SubscriptionModule = (function () {
 
   function convertIPRangeToCIDR(pattern) {
     const parts = pattern.split('.');
-    const result = [];
+    const segments = parts.map(seg => seg === '*' ? 0 : parseInt(seg, 10));
+    const [s0, s1, s2, s3] = segments;
 
-    function parseSegment(seg, base, bits) {
-      if (seg === '*') {
-        return { start: 0, end: 255 };
-      }
-      const val = parseInt(seg, 10);
-      return { start: val, end: val };
-    }
+    const isFullRange = (s, e) => s === 0 && e === 255;
+    const isSingle = (seg, idx) => seg === segments[idx];
 
-    const s0 = parseSegment(parts[0], 0, 8);
-    const s1 = parseSegment(parts[1], 0, 8);
-    const s2 = parseSegment(parts[2], 0, 8);
-    const s3 = parseSegment(parts[3], 0, 8);
+    if (isFullRange(s0) && isFullRange(s1) && isFullRange(s2) && isFullRange(s3)) {
+      return s0 === s1 && s1 === s2 && s2 === s3 ? pattern : `${s0}.0.0.0/8`;
+    }
+    if (s0 === s1 && s1 === s2 && isFullRange(s3)) {
+      return `${s0}.${s1}.0.0/16`;
+    }
+    if (s0 === s1 && s2 === s3 && isFullRange(s3)) {
+      return `${s0}.${s1}.${s2}.0/24`;
+    }
+    if (s0 === 10 && s1 === 0 && s2 === 0 && s3 === 0) return '10.0.0.0/8';
+    if (s0 === 172 && s1 === 16 && s2 === 0 && s3 === 0) return '172.16.0.0/12';
+    if (s0 === 192 && s1 === 168 && s2 === 0 && s3 === 0) return '192.168.0.0/16';
 
-    if (s0.start === s0.end && s1.start === 0 && s2.start === 0 && s3.start === 0) {
-      return '10.0.0.0/8';
-    }
-    if (s0.start === s0.end && s1.start === 16 && s2.start === 0 && s3.start === 0) {
-      return '172.16.0.0/12';
-    }
-    if (s0.start === s0.end && s1.start === 168 && s2.start === 0 && s3.start === 0) {
-      return '192.168.0.0/16';
-    }
-    if (s0.start === s0.end && s1.start === s1.end && s2.start === 0 && s3.start === 0) {
-      return `${parts[0]}.${parts[1]}.0.0/16`;
-    }
-    if (s0.start === s0.end && s1.start === s1.end && s2.start === s2.end && s3.start === 0) {
-      return `${parts[0]}.${parts[1]}.${parts[2]}.0/24`;
-    }
-    if (s0.start === s0.end && s1.start === s1.end && s2.start === s2.end && s3.start === s3.end) {
-      return pattern;
-    }
-
-    return null;
+    return s0 === s1 && s1 === s2 && s2 === s3 ? pattern : null;
   }
 
   function escapeRegExp(string) {
@@ -1242,34 +1223,29 @@ const SubscriptionModule = (function () {
   }
 
   function normalizeSwitchyOmegaLine(line, reverse) {
-    if (line.startsWith('[SwitchyOmega Conditions]')) return null;
-    if (line.startsWith(';')) return null;
-    if (line.startsWith('@')) return null;
+    if (line.startsWith('[SwitchyOmega Conditions]') || line.startsWith(';') || line.startsWith('@')) {
+      return null;
+    }
 
     let pattern = line;
     let isDirectRule = false;
 
-    if (line.includes(' +')) {
-      const parts = line.split(' +');
-      pattern = parts[0].trim();
-      const res = parts[1] ? parts[1].trim().toLowerCase() : '';
-      if (res === 'direct') isDirectRule = true;
-    } else if (line.includes('\t+')) {
-      const parts = line.split('\t+');
-      pattern = parts[0].trim();
-      const res = parts[1] ? parts[1].trim().toLowerCase() : '';
-      if (res === 'direct') isDirectRule = true;
-    }
-
-    if (pattern.startsWith('!')) {
-      pattern = pattern.substring(1).trim();
+    const plusMatch = line.match(/^(.+?)[\t ]\+(.+)$/);
+    if (plusMatch) {
+      pattern = plusMatch[1].trim();
+      if (plusMatch[2].trim().toLowerCase() === 'direct') {
+        isDirectRule = true;
+      }
+    } else if (line.startsWith('!')) {
       isDirectRule = true;
+      pattern = line.substring(1);
     }
 
     if (pattern.includes(': ')) {
       const parts = pattern.split(': ');
       const type = parts[0].toLowerCase();
-      if (['host', 'wildcard', 'hostwildcard', 'url', 'urlwildcard'].some(t => type.includes(t))) {
+      const validTypes = ['host', 'wildcard', 'hostwildcard', 'url', 'urlwildcard'];
+      if (validTypes.some(t => type.includes(t))) {
         const domainInfo = extractDomainInfo(parts[1].trim());
         pattern = domainInfo ? domainInfo.domain : null;
       } else {
@@ -1284,14 +1260,11 @@ const SubscriptionModule = (function () {
     if (!pattern) return null;
 
     const shouldBeDirect = isDirectRule ? !reverse : reverse;
-    const type = classifyOmegaPattern(pattern);
+    const patternType = classifyOmegaPattern(pattern);
 
-    let finalPattern;
-    if (shouldBeDirect) {
-      finalPattern = convertOmegaToBypassRule(pattern, type);
-    } else {
-      finalPattern = convertOmegaToProxyRule(pattern, type);
-    }
+    const finalPattern = shouldBeDirect
+      ? convertOmegaToBypassRule(pattern, patternType)
+      : convertOmegaToProxyRule(pattern, patternType);
 
     if (finalPattern === null) return null;
     if (shouldBeDirect && !isValidManualBypassPattern(finalPattern)) return null;
