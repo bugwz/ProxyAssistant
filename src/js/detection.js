@@ -201,7 +201,7 @@ function generatePacScript(proxyList) {
   var usedPatterns = new Set();
 
   proxyList.forEach(function (proxy) {
-    if (proxy.disabled === true || !proxy.ip || !proxy.port) return;
+    if (proxy.enabled === false || !proxy.ip || !proxy.port) return;
     const type = (proxy.protocol || "HTTP").toUpperCase();
     let proxyType = type.startsWith("SOCKS") ? "SOCKS5" : "PROXY";
     const proxyStr = proxyType + " " + proxy.ip + ":" + proxy.port;

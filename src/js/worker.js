@@ -1410,7 +1410,7 @@ function generatePacScript(list) {
   // Check include_rules in proxy list order, use first match
   for (const proxy of list) {
     // Skip disabled proxies
-    if (proxy.disabled === true) continue;
+    if (proxy.enabled === false) continue;
     if (!proxy.ip || !proxy.port) continue;
 
     const type = (proxy.protocol || "HTTP").toUpperCase();
@@ -1592,7 +1592,7 @@ function findProxyForRequestFirefox(url) {
 
   // Check proxy list in order, use first matching include_rules
   for (const proxy of proxyList) {
-    if (proxy.enabled === false || proxy.disabled === true) continue;
+    if (proxy.enabled === false) continue;
     if (!proxy.ip || !proxy.port) continue;
 
     // Only check include_rules, ignore bypass_rules in auto mode

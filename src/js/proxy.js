@@ -182,9 +182,6 @@ const ProxyModule = (function () {
     for (let i = 0; i < list.length; i++) {
       const info = list[i];
 
-      if (info.enabled === undefined) {
-        info.enabled = info.disabled !== true;
-      }
       const is_enabled = info.enabled;
 
       const protocolClass = (info.protocol || "http").toLowerCase();
@@ -438,7 +435,7 @@ const ProxyModule = (function () {
         proxy.username = $item.find('.username').val();
         proxy.password = $item.find('.password').val();
 
-        if (proxy.disabled || !proxy.ip || !proxy.port) continue;
+        if (proxy.enabled === false || !proxy.ip || !proxy.port) continue;
 
         const $resultSpan = $(`.proxy-header-test-result[data-index="${index}"]`);
         $resultSpan.text(I18n.t('testing')).removeClass("text-green text-orange text-red").addClass("text-blue");
@@ -623,8 +620,6 @@ const ProxyModule = (function () {
     $(document).off("change", ".proxy-status-toggle").on("change", ".proxy-status-toggle", function () {
       var i = $(this).data("index");
       if (i !== undefined && list[i]) {
-        delete list[i].disabled;
-
         const $item = $(this).closest('.proxy-card');
         const $statusText = $item.find('.status-text');
 
