@@ -1,4 +1,8 @@
 /* ========== Base Styles ========== */
+body {
+  font-family: "Noto Sans SC", "Source Han Sans SC", "Source Han Sans CN", "思源黑体", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", "微软雅黑", sans-serif;
+}
+
 .main-container {
   max-width: 900px;
   margin: 0 auto;
