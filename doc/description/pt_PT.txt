@@ -1,0 +1,69 @@
+Uma poderosa extensão de gestão de proxy para Chrome e Firefox.
+
+【Funcionalidades principais】
+
+🔌 Suporte multi-protocolo
+• Protocolos proxy HTTP, HTTPS, SOCKS5, SOCKS4
+• Autenticação proxy (nome de usuário/senha)
+
+🔄 Três modos de proxy
+• Modo desativado: desativar proxy, conexão direta
+• Modo manual: mudar para o proxy preferido com um clique
+• Modo automático: correspondência inteligente de proxy baseada em regras URL
+
+📋 Regras URL flexíveis
+• Configurar diferentes proxies para diferentes sites
+• Suporte a curingas
+• Estratégia de fallback para conexão direta ou falha de proxy
+
+📥 Regras de assinatura
+• Importar regras proxy de URL
+• Compatível com vários formatos: AutoProxy, SwitchyOmega, SwitchyLegacy, PAC
+• Autenticação de URL de assinatura
+
+⏰ Atualização automática programada
+• Buscar automaticamente as listas de proxy mais recentes de URLs de assinatura
+• Manter as configurações atualizadas sem atualizações manuais
+• Intervalos de atualização personalizáveis (1 minuto a 24 horas)
+• Suporte a múltiplos formatos de assinatura: AutoProxy, SwitchyOmega, PAC
+
+🧪 Teste de proxy
+• Testar disponibilidade do proxy com um clique
+• Exibir latência de resposta (verde <500ms / laranja ≥500ms / vermelho falhou)
+• Testar todos os proxies em lote
+
+🌙 Tema escuro/claro
+• Alternância manual ou automática baseada no tempo
+
+🎬 Modo cenário
+• Modos de cenário personalizados
+
+☁️ Sincronização de dados
+• Sincronização na nuvem Chrome/Firefox
+• Armazenamento local prioritário, dados nunca perdidos
+• Importar/exportar configuração
+
+🌍 10 idiomas
+Chinês simplificado, Chinês tradicional, Inglês, Japonês, Francês, Alemão, Espanhol, Português, Russo, Coreano
+
+【Casos de uso】
+
+• Troca rápida entre múltiplos proxies
+• Roteamento inteligente (conexão direta para doméstico / proxy para sites específicos)
+• Teste e filtragem de latência do pool de proxies
+• Compartilhamento de configuração de equipe
+• Atualizações automáticas de assinatura de proxy (sem manutenção manual)
+
+【Por que escolher-nos】
+
+✓ Interface limpa, operação intuitiva
+✓ Recursos ricos mas não inchados
+✓ Armazenamento local, seguro e confiável
+✓ Suporte entre navegadores
+✓ Atualizações automáticas, zero manutenção
+✓ Completamente gratuito
+
+【Permissões】
+Esta extensão usa a permissão "alarms" para atualizar automaticamente as listas de assinatura de proxy conforme um cronograma, garantindo que suas configurações de proxy permaneçam atualizadas. Nenhum dado do usuário é coletado.
+
+Instale agora e experimente a gestão eficiente de proxy!

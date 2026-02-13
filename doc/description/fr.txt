@@ -1,0 +1,69 @@
+Une puissante extension de gestion de proxy pour Chrome et Firefox.
+
+【Fonctionnalités principales】
+
+🔌 Support multi-protocoles
+• Protocoles proxy HTTP, HTTPS, SOCKS5, SOCKS4
+• Authentification proxy (nom d'utilisateur/mot de passe)
+
+🔄 Trois modes proxy
+• Mode désactivé : désactive le proxy, connexion directe
+• Mode manuel : basculer vers le proxy souhaité en un clic
+• Mode automatique : correspondance intelligente du proxy basée sur les règles URL
+
+📋 Règles URL flexibles
+• Configurer différents proxies pour différents sites
+• Support des caractères génériques
+• Stratégie de repli en cas d'échec de connexion directe ou proxy
+
+📥 Règles d'abonnement
+• Importer des règles proxy depuis une URL
+• Compatible avec plusieurs formats : AutoProxy, SwitchyOmega, SwitchyLegacy, PAC
+• Authentification URL d'abonnement
+
+⏰ Actualisation automatique planifiée
+• Récupérer automatiquement les dernières listes proxy depuis les URLs d'abonnement
+• Maintenir les configurations à jour sans mise à jour manuelle
+• Intervalles d'actualisation personnalisables (1 minute à 24 heures)
+• Support de plusieurs formats d'abonnement : AutoProxy, SwitchyOmega, PAC
+
+🧪 Test de proxy
+• Tester la disponibilité du proxy en un clic
+• Afficher la latence de réponse (vert <500ms / orange ≥500ms / rouge échoué)
+• Tester tous les proxies en lot
+
+🌙 Thème sombre/clair
+• Basculement manuel ou automatique selon l'heure
+
+🎬 Mode scénario
+• Modes scénario personnalisés
+
+☁️ Synchronisation des données
+• Synchronisation cloud Chrome/Firefox
+• Stockage local prioritaire, données jamais perdues
+• Import/export de configuration
+
+🌍 10 langues
+Chinois simplifié, chinois traditionnel, anglais, japonais, français, allemand, espagnol, portugais, russe, coréen
+
+【Cas d'utilisation】
+
+• Basculement rapide entre plusieurs proxies
+• Routage intelligent (connexion directe pour le pays / proxy pour sites spécifiques)
+• Test de latence et filtrage du pool proxy
+• Partage de configuration d'équipe
+• Mise à jour automatique des abonnements proxy (sans maintenance manuelle)
+
+【Pourquoi nous choisir】
+
+✓ Interface épurée, utilisation intuitive
+✓ Fonctionnalités riches mais pas surchargées
+✓ Stockage local, sécurisé et fiable
+✓ Support multi-navigateurs
+✓ Mises à jour automatiques, zéro maintenance
+✓ Entièrement gratuit
+
+【Permissions】
+Cette extension utilise la permission "alarms" pour actualiser automatiquement les listes d'abonnement proxy selon un calendrier, garantissant que vos configurations proxy restent à jour. Aucune donnée utilisateur n'est collectée.
+
+Installez maintenant et expériencez une gestion de proxy efficace !

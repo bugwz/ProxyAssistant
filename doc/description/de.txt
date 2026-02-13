@@ -1,0 +1,69 @@
+Eine leistungsstarke Browser-Proxy-Verwaltungserweiterung für Chrome und Firefox.
+
+【Kernfunktionen】
+
+🔌 Multi-Protokoll-Unterstützung
+• HTTP, HTTPS, SOCKS5, SOCKS4 Proxy-Protokolle
+• Proxy-Authentifizierung (Benutzername/Passwort)
+
+🔄 Drei Proxy-Modi
+• Deaktiviert-Modus: Proxy ausschalten, direkte Verbindung
+• Manueller-Modus: Mit einem Klick zum bevorzugten Proxy wechseln
+• Automatischer-Modus: Intelligente Proxy-Anpassung basierend auf URL-Regeln
+
+📋 Flexible URL-Regeln
+• Verschiedene Proxys für verschiedene Websites konfigurieren
+• Platzhalter-Unterstützung
+• Fallback-Strategie bei direkter Verbindung oder Proxy-Fehler festlegen
+
+📥 Abonnement-Regeln
+• Proxy-Regeln aus URL importieren
+• Kompatibel mit mehreren Formaten: AutoProxy, SwitchyOmega, SwitchyLegacy, PAC
+• URL-Authentifizierung für Abonnements
+
+⏰ Automatische geplante Aktualisierung
+• Automatisch neueste Proxy-Listen von Abonnement-URLs abrufen
+• Konfigurationen ohne manuelle Aktualisierung aktuell halten
+• Anpassbare Aktualisierungsintervalle (1 Minute bis 24 Stunden)
+• Unterstützung mehrerer Abonnement-Formate: AutoProxy, SwitchyOmega, PAC
+
+🧪 Proxy-Test
+• Proxy-Verfügbarkeit mit einem Klick testen
+• Antwortlatenz anzeigen (grün <500ms / orange ≥500ms / rot fehlgeschlagen)
+• Alle Proxys stapelweise testen
+
+🌙 Dunkel/Hell-Thema
+• Manuelle Umschaltung oder automatische zeitbasierte Umschaltung
+
+🎬 Szenario-Modus
+• Benutzerdefinierte Szenario-Modi
+
+☁️ Datensynchronisierung
+• Chrome/Firefox-Konto-Cloud-Synchronisierung
+• Lokale Datenspeicherung, Daten gehen nie verloren
+• Import/Export-Konfiguration
+
+🌍 10 Sprachen
+Vereinfachtes Chinesisch, Traditionelles Chinesisch, Englisch, Japanisch, Französisch, Deutsch, Spanisch, Portugiesisch, Russisch, Koreanisch
+
+【Anwendungsfälle】
+
+• Schnelles Wechseln zwischen mehreren Proxys
+• Intelligentes Routing (direkte Verbindung für Inlands-/Proxy für bestimmte Websites)
+• Proxy-Pool-Latenztest und -filterung
+• Team-Konfigurationsfreigabe
+• Automatische Proxy-Abonnement-Updates (keine manuelle Wartung)
+
+【Warum wir】
+
+✓ Saubere Benutzeroberfläche, intuitive Bedienung
+✓ Reichhaltige Funktionen aber nicht überladen
+✓ Lokale Speicherung, sicher und zuverlässig
+✓ Browser-übergreifende Unterstützung
+✓ Automatische Updates, wartungsfrei
+✓ Vollständig kostenlos
+
+【Berechtigungen】
+Diese Erweiterung verwendet die "alarms"-Berechtigung, um Proxy-Abonnementlisten automatisch nach einem Zeitplan zu aktualisieren und sicherzustellen, dass Ihre Proxy-Konfigurationen aktuell bleiben. Es werden keine Benutzerdaten erfasst.
+
+Jetzt installieren und effizientes Proxy-Management erleben!

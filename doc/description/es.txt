@@ -1,0 +1,69 @@
+Una potente extensión de gestión de proxy para Chrome y Firefox.
+
+【Funciones principales】
+
+🔌 Soporte multi-protocolo
+• Protocolos proxy HTTP, HTTPS, SOCKS5, SOCKS4
+• Autenticación proxy (nombre de usuario/contraseña)
+
+🔄 Tres modos proxy
+• Modo deshabilitado: desactivar proxy, conexión directa
+• Modo manual: cambiar al proxy preferido con un clic
+• Modo automático: coincidencia inteligente de proxy basada en reglas URL
+
+📋 Reglas URL flexibles
+• Configurar diferentes proxies para diferentes sitios web
+• Soporte de comodines
+• Estrategia de respaldo para conexión directa o fallo de proxy
+
+📥 Reglas de suscripción
+• Importar reglas proxy desde URL
+• Compatible con múltiples formatos: AutoProxy, SwitchyOmega, SwitchyLegacy, PAC
+• Autenticación de URL de suscripción
+
+⏰ Actualización automática programada
+• Obtener automáticamente las últimas listas de proxy de URLs de suscripción
+• Mantener las configuraciones actualizadas sin actualizaciones manuales
+• Intervalos de actualización personalizables (1 minuto a 24 horas)
+• Soporte de múltiples formatos de suscripción: AutoProxy, SwitchyOmega, PAC
+
+🧪 Prueba de proxy
+• Probar la disponibilidad del proxy con un clic
+• Mostrar latencia de respuesta (verde <500ms / naranja ≥500ms / rojo fallido)
+• Probar todos los proxies en lote
+
+🌙 Tema oscuro/claro
+• Cambio manual o cambio automático basado en tiempo
+
+🎬 Modo escenario
+• Modos de escenario personalizados
+
+☁️ Sincronización de datos
+• Sincronización en la nube de Chrome/Firefox
+• Almacenamiento local prioritario, datos nunca perdidos
+• Importar/exportar configuración
+
+🌍 10 idiomas
+Chino simplificado, chino tradicional, inglés, japonés, francés, alemán, español, portugués, ruso, coreano
+
+【Casos de uso】
+
+• Cambio rápido entre múltiples proxies
+• Enrutamiento inteligente (conexión directa para doméstico / proxy para sitios específicos)
+• Prueba y filtrado de latencia del grupo de proxies
+• Compartir configuración de equipo
+• Actualizaciones automáticas de suscripción proxy (sin mantenimiento manual)
+
+【Por qué elegirnos】
+
+✓ Interfaz limpia, operación intuitiva
+✓ Funciones completas pero no recargadas
+✓ Almacenamiento local, seguro y confiable
+✓ Soporte multiplataforma
+✓ Actualizaciones automáticas, sin mantenimiento
+✓ Completamente gratuito
+
+【Permisos】
+Esta extensión usa el permiso "alarms" para actualizar automáticamente las listas de suscripción proxy según un programa, asegurando que sus configuraciones de proxy permanezcan actualizadas. No se recopilan datos de usuario.
+
+¡Instala ahora y experimenta una gestión de proxy eficiente!
