@@ -1308,25 +1308,22 @@ const SubscriptionModule = (function () {
     let pattern = line;
     let isDirectRule = false;
 
-    if (line.startsWith('!')) {
+    const plusMatch = line.match(/^(.+?)[\t ]\+(.+)$/);
+    if (plusMatch) {
+      pattern = plusMatch[1].trim();
+      if (plusMatch[2].trim().toLowerCase() === 'direct') {
+        isDirectRule = true;
+      }
+    } else if (line.startsWith('!')) {
       isDirectRule = true;
       pattern = line.substring(1);
-    } else if (line.includes(' +')) {
-      const parts = line.split(' +');
-      pattern = parts[0].trim();
-      const res = parts[1] ? parts[1].trim().toLowerCase() : '';
-      if (res === 'direct') isDirectRule = true;
-    } else if (line.includes('\t+')) {
-      const parts = line.split('\t+');
-      pattern = parts[0].trim();
-      const res = parts[1] ? parts[1].trim().toLowerCase() : '';
-      if (res === 'direct') isDirectRule = true;
     }
 
     if (pattern.includes(': ')) {
       const parts = pattern.split(': ');
       const type = parts[0].toLowerCase();
-      if (['host', 'wildcard', 'hostwildcard', 'url', 'urlwildcard'].some(t => type.includes(t))) {
+      const validTypes = ['host', 'wildcard', 'hostwildcard', 'url', 'urlwildcard'];
+      if (validTypes.some(t => type.includes(t))) {
         pattern = parts[1].trim();
       } else {
         return null;
@@ -1347,24 +1344,18 @@ const SubscriptionModule = (function () {
 
     let finalPattern = pattern;
 
-    if (section === 'wildcard' || section === 'host_wildcard' || section === 'url_wildcard') {
+    const wildcardSections = ['wildcard', 'host_wildcard', 'url_wildcard'];
+    if (wildcardSections.includes(section)) {
       const extracted = extractDomainInfo(pattern);
       if (!extracted) return null;
 
-      if (extracted.segmentCount === 1) {
-        if (shouldBeDirect && reverse) {
-          return null;
-        }
+      if (extracted.segmentCount === 1 && !(shouldBeDirect && reverse)) {
         finalPattern = '/.*' + extracted.domain + '.*/';
       } else {
         finalPattern = extracted.domain;
       }
     } else if (section === 'regexp') {
-      if (shouldBeDirect) {
-        finalPattern = pattern;
-      } else {
-        finalPattern = '/.*' + pattern + '.*/';
-      }
+      finalPattern = shouldBeDirect ? pattern : '/.*' + pattern + '.*/';
     }
 
     return {
@@ -1377,27 +1368,20 @@ const SubscriptionModule = (function () {
     if (!pattern) return null;
 
     let domain = pattern
-      .replace(/^\*\:\/\/\*\./, '')
-      .replace(/^\*\:\/\//, '')
-      .replace(/^\*\./, '')
-      .replace(/\/\*$/, '')
+      .replace(/^\*\:?\/?\/?(\*\.)?/, '')
       .replace(/\/\*.*$/, '')
       .trim();
 
     if (!domain) return null;
 
     const domainParts = domain.split('.');
-    const segmentCount = domainParts.filter(part => part && part.trim()).length;
+    const segmentCount = domainParts.filter(Boolean).length;
 
-    if (domainParts.length >= 2 && domainParts[domainParts.length - 2]) {
-      return {
-        domain: domainParts.slice(-2).join('.'),
-        segmentCount: segmentCount
-      };
-    }
-
+    const secondLastPart = domainParts[domainParts.length - 2];
     return {
-      domain: domain,
+      domain: domainParts.length >= 2 && secondLastPart
+        ? domainParts.slice(-2).join('.')
+        : domain,
       segmentCount: segmentCount
     };
   }
