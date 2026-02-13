@@ -1020,21 +1020,12 @@ const SubscriptionModule = (function () {
   }
 
   function extractHostname(url) {
-    if (url.includes('://')) {
-      url = url.split('://')[1];
-    }
-    url = url.split('/')[0];
-    url = url.replace(/\/$/, '');
-    url = url.split('?')[0];
-    url = url.split('#')[0];
+    url = url.replace(/^[^:]+:\/\//, '').replace(/\/.*$/, '').replace(/\?.*$/, '').replace(/#.*$/, '');
     const atIndex = url.indexOf('@');
     if (atIndex !== -1) {
       url = url.substring(atIndex + 1);
     }
-    const colonIndex = url.lastIndexOf(':');
-    if (colonIndex !== -1 && !/:\d+$/.test(url)) {
-      url = url.substring(0, colonIndex);
-    }
+    url = url.replace(/:\d+$/, '');
     return url;
   }
 
@@ -1043,7 +1034,7 @@ const SubscriptionModule = (function () {
       return pattern;
     }
 
-    if (pattern.startsWith('|') && (pattern.includes('://') || (pattern.startsWith('|') && pattern.endsWith('|')))) {
+    if (pattern.startsWith('|') && (pattern.includes('://') || pattern.endsWith('|'))) {
       let url = pattern.replace(/^\|+|\|+$/g, '');
       const hostname = extractHostname(url);
       const extractedIP = extractIPFromURL(hostname);
@@ -1051,10 +1042,7 @@ const SubscriptionModule = (function () {
         return extractedIP;
       }
       const extracted = extractDomainFromWildcard(hostname);
-      if (extracted) {
-        return extracted;
-      }
-      return null;
+      return extracted || null;
     }
 
     if (pattern.startsWith('||')) {
@@ -1062,39 +1050,27 @@ const SubscriptionModule = (function () {
       const hostname = extractHostname(domainPart);
       if (hostname.includes('*')) {
         const extracted = extractDomainFromWildcard(hostname);
-        if (extracted) {
-          return extracted;
-        }
-        return null;
+        return extracted || null;
       }
       return hostname;
     }
 
     if (pattern.startsWith('.')) {
-      if (pattern.includes('*')) {
-        return null;
-      }
-      return pattern.substring(1);
+      return pattern.includes('*') ? null : pattern.substring(1);
     }
 
     if (pattern.includes('/')) {
       const hostname = extractHostname(pattern);
       if (hostname.includes('*')) {
         const extracted = extractDomainFromWildcard(hostname);
-        if (extracted) {
-          return extracted;
-        }
-        return null;
+        return extracted || null;
       }
       return hostname;
     }
 
     if (pattern.includes('*')) {
       const extracted = extractDomainFromWildcard(pattern);
-      if (extracted) {
-        return extracted;
-      }
-      return null;
+      return extracted || null;
     }
 
     return pattern;
@@ -1443,59 +1419,54 @@ const SubscriptionModule = (function () {
 
     try {
       let contentToParse = content;
+      const sectionRegex = /^\[(Wildcard|Host Wildcard|URL Wildcard|RegExp)\]$/i;
 
       if (format === 'pac') {
         const pacResult = parsePacContent(contentToParse, processRule, reverse);
         result.include_rules = pacResult.include;
         result.bypass_rules = pacResult.bypass;
-        return {
-          include_rules: Array.isArray(result.include_rules) ? result.include_rules.join('\n') : result.include_rules,
-          bypass_rules: Array.isArray(result.bypass_rules) ? result.bypass_rules.join('\n') : result.bypass_rules,
-          decoded: result.decoded
-        };
-      }
-
-      if (format === 'autoproxy') {
-        let decoded = content.trim();
-        if (decoded.startsWith('W0F1dG9Qcm94')) {
-          try {
-            decoded = atob(decoded);
-            result.decoded = decoded;
-          } catch (e) {
-            console.info('Failed to decode Base64 AutoProxy content');
-            result.decoded = content;
+      } else {
+        if (format === 'autoproxy') {
+          const trimmed = content.trim();
+          if (trimmed.startsWith('W0F1dG9Qcm94')) {
+            try {
+              result.decoded = atob(trimmed);
+              contentToParse = result.decoded;
+            } catch (e) {
+              console.info('Failed to decode Base64 AutoProxy content');
+              result.decoded = content;
+            }
           }
         }
-        contentToParse = result.decoded || content;
-      }
 
-      const lines = contentToParse.split('\n');
-      let currentSection = 'wildcard';
+        const lines = contentToParse.split('\n');
+        let currentSection = 'wildcard';
 
-      for (let line of lines) {
-        line = line.trim();
-        if (!line) continue;
+        for (let line of lines) {
+          line = line.trim();
+          if (!line) continue;
 
-        const sectionMatch = line.match(/^\[(Wildcard|Host Wildcard|URL Wildcard|RegExp)\]$/i);
-        if (sectionMatch) {
-          currentSection = sectionMatch[1].toLowerCase().replace(/\s+/g, '_');
-          continue;
-        }
+          const sectionMatch = line.match(sectionRegex);
+          if (sectionMatch) {
+            currentSection = sectionMatch[1].toLowerCase().replace(/\s+/g, '_');
+            continue;
+          }
 
-        let normalized = null;
-        if (format === 'autoproxy') {
-          normalized = normalizeAutoproxyLine(line, reverse);
-        } else if (format === 'switchy_omega') {
-          normalized = normalizeSwitchyOmegaLine(line, reverse);
-        } else if (format === 'switchy_legacy') {
-          normalized = normalizeSwitchyLegacyLine(line, reverse, currentSection);
-        }
+          let normalized = null;
+          if (format === 'autoproxy') {
+            normalized = normalizeAutoproxyLine(line, reverse);
+          } else if (format === 'switchy_omega') {
+            normalized = normalizeSwitchyOmegaLine(line, reverse);
+          } else if (format === 'switchy_legacy') {
+            normalized = normalizeSwitchyLegacyLine(line, reverse, currentSection);
+          }
 
-        if (normalized) {
-          if (normalized.isDirect) {
-            result.bypass_rules.push(normalized.pattern);
-          } else {
-            result.include_rules.push(normalized.pattern);
+          if (normalized) {
+            if (normalized.isDirect) {
+              result.bypass_rules.push(normalized.pattern);
+            } else {
+              result.include_rules.push(normalized.pattern);
+            }
           }
         }
       }
@@ -1507,8 +1478,8 @@ const SubscriptionModule = (function () {
     const uniqueBypass = [...new Set(result.bypass_rules)];
 
     return {
-      include_rules: Array.isArray(uniqueInclude) ? uniqueInclude.join('\n') : uniqueInclude,
-      bypass_rules: Array.isArray(uniqueBypass) ? uniqueBypass.join('\n') : uniqueBypass,
+      include_rules: uniqueInclude.join('\n'),
+      bypass_rules: uniqueBypass.join('\n'),
       decoded: result.decoded
     };
   }
