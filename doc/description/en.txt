@@ -1,0 +1,69 @@
+A powerful browser proxy management extension for Chrome and Firefox.
+
+【Core Features】
+
+🔌 Multi-Protocol Support
+• HTTP, HTTPS, SOCKS5, SOCKS4 proxy protocols
+• Proxy authentication support (username/password)
+
+🔄 Three Proxy Modes
+• Disable mode: Turn off proxy, direct connection
+• Manual mode: One-click switch to preferred proxy
+• Auto mode: Smart proxy matching based on URL rules
+
+📋 Flexible URL Rules
+• Configure different proxies for different websites
+• Support wildcard matching
+• Set fallback strategy for direct connection or proxy failure
+
+📥 Subscription Rules
+• Import proxy rules from URL
+• Compatible with multiple formats: AutoProxy, SwitchyOmega, SwitchyLegacy, PAC
+• Support subscription URL authentication
+
+⏰ Automatic Scheduled Refresh
+• Automatically fetch latest proxy lists from subscription URLs
+• Keep configurations up-to-date without manual updates
+• Customizable refresh intervals (1 minute to 24 hours)
+• Support multiple subscription formats: AutoProxy, SwitchyOmega, PAC
+
+🧪 Proxy Testing
+• One-click test proxy availability
+• Display response latency (green <500ms / orange ≥500ms / red failed)
+• Batch test all proxies
+
+🌙 Dark/Light Theme
+• Manual toggle or automatic time-based switching
+
+🎬 Scenario Mode
+• Support custom scenario modes
+
+☁️ Data Sync
+• Chrome/Firefox account cloud sync
+• Local-first storage, data never lost
+• Import/export configuration support
+
+🌍 10 Languages
+Simplified Chinese, Traditional Chinese, English, Japanese, French, German, Spanish, Portuguese, Russian, Korean
+
+【Use Cases】
+
+• Quick multi-proxy switching
+• Smart routing (direct connection for domestic / proxy for specific sites)
+• Proxy pool latency testing and filtering
+• Team configuration sharing
+• Automatic proxy subscription updates (no manual maintenance)
+
+【Why Choose Us】
+
+✓ Clean interface, intuitive operation
+✓ Rich features but not bloated
+✓ Local storage, secure and reliable
+✓ Cross-browser support
+✓ Automatic updates, zero maintenance
+✓ Completely free
+
+【Permissions】
+This extension uses the "alarms" permission to automatically refresh proxy subscription lists on a schedule, ensuring your proxy configurations stay up-to-date. No user data is collected.
+
+Install now and experience efficient proxy management!
