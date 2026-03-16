@@ -134,10 +134,10 @@ function isValidBypassPattern(pattern) {
   if (trimmed.startsWith('|') && !trimmed.startsWith('||')) return false;
 
   var ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}$/;
-  if (ipv4Pattern.test(trimmed)) return true;
+  if (ipv4Pattern.test(trimmed) && trimmed.split('.').every(o => parseInt(o, 10) <= 255)) return true;
 
   var ipv4CidrPattern = /^(\d{1,3}\.){3}\d{1,3}\/(8|9|1\d|2\d|3[0-2])$/;
-  if (ipv4CidrPattern.test(trimmed)) return true;
+  if (ipv4CidrPattern.test(trimmed) && trimmed.split('/')[0].split('.').every(o => parseInt(o, 10) <= 255)) return true;
 
   var portPattern = /^([a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?:[1-9]\d{0,4}$/;
   if (portPattern.test(trimmed)) return true;

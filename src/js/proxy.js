@@ -131,7 +131,7 @@ const ProxyModule = (function () {
       if (!ValidatorModule.isValidHost(info.ip)) { isIpValid = false; ipErrorMsg = I18n.t('alert_ip_invalid'); }
     }
 
-    var port = parseInt(info.port);
+    var port = parseInt(info.port, 10);
     var isPortValid = !isNaN(port) && port >= 1 && port <= 65535 && info.port.toString() === port.toString();
 
     var isIncludeUrlsValid = true, includeUrlsErrorMsg = '';
@@ -801,7 +801,7 @@ const ProxyModule = (function () {
 
           const newItems = $container.find(".proxy-card").toArray();
           const newList = newItems.map(node => {
-            const oldIdx = parseInt($(node).attr("data-id"));
+            const oldIdx = parseInt($(node).attr("data-id"), 10);
             return list[oldIdx];
           });
 

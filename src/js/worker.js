@@ -1011,7 +1011,7 @@ function getProxySettings() {
             rules: {
               singleProxy: {
                 host: firefoxProxyState.currentProxy?.ip,
-                port: parseInt(firefoxProxyState.currentProxy?.port || 0)
+                port: parseInt(firefoxProxyState.currentProxy?.port || 0, 10)
               }
             }
           };
@@ -1160,7 +1160,7 @@ function validateProxyConfig(ip, port) {
     return { valid: false, error: "Invalid IP address or hostname format" };
   }
 
-  const portNum = parseInt(port);
+  const portNum = parseInt(port, 10);
   if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
     return { valid: false, error: "Invalid port number (must be 1-65535)" };
   }
@@ -1222,7 +1222,7 @@ async function applyManualProxySettings(proxyInfo) {
   let proxyScheme = type === "socks5" ? "socks5" : (type === "socks4" ? "socks4" : "http");
   if (type === "https") proxyScheme = "https";
 
-  let portNumber = parseInt(port);
+  let portNumber = parseInt(port, 10);
 
   // Parse bypassUrls
   let bypassList = ["localhost", "127.0.0.1", "<local>"];
@@ -1410,7 +1410,7 @@ function generatePacScript(list) {
 
   function isInCidrRange(ip, cidr) {
     const [range, bits] = cidr.split('/');
-    const mask = ~(2 ** (32 - parseInt(bits)) - 1);
+    const mask = ~(2 ** (32 - parseInt(bits, 10)) - 1);
     const ipNum = ipToNumber(ip);
     const rangeNum = ipToNumber(range);
     return (ipNum & mask) === (rangeNum & mask);
@@ -1434,64 +1434,60 @@ function generatePacScript(list) {
     const returnVal = `"${proxyStr}${fallback}"`;
 
     // Only process include_rules, ignore bypass_rules in auto mode
+    const allIncludeUrls = [];
     if (proxy.include_rules) {
-      const includeUrls = proxy.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
-      for (const pattern of includeUrls) {
-        // Support regex pattern: /pattern/flags
-        if (pattern.startsWith('/') && pattern.endsWith('/') && pattern.length > 2) {
-          const regexContent = pattern.slice(1, -1);
-          const regexFlags = pattern.includes('/') ? pattern.split('/').pop() : '';
-          const flags = regexFlags && !regexFlags.includes('/') ? regexFlags : '';
-          script += `  if (/${regexContent}/${flags}.test(host)) return ${returnVal};\n`;
-        } else if (pattern.includes('*')) {
-          const regexPattern = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
-          script += `  if (/${regexPattern}/.test(host)) return ${returnVal};\n`;
-        } else if (isIpPattern(pattern)) {
-          // IP address or CIDR range
-          if (pattern.includes('/')) {
-            // CIDR format: 192.168.1.0/24
-            script += `  if (isInCidrRange(host, "${pattern}")) return ${returnVal};\n`;
-          } else {
-            // Single IP address
-            script += `  if (host === "${pattern}") return ${returnVal};\n`;
-          }
-        } else {
-          script += `  if (dnsDomainIs(host, "${pattern}") || host === "${pattern}") return ${returnVal};\n`;
-        }
-      }
+      const localRules = proxy.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+      allIncludeUrls.push(...localRules);
     }
 
-    // Process subscription rules for Auto Mode
+    // Merge subscription include_rules (with deduplication)
     if (proxy.subscription && proxy.subscription.enabled !== false && proxy.subscription.current) {
       try {
         const format = proxy.subscription.current;
         const subConfig = proxy.subscription.lists ? proxy.subscription.lists[format] : null;
-
         if (subConfig && subConfig.include_rules) {
-          const includeUrls = subConfig.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
-
-          for (const pattern of includeUrls) {
-            if (pattern.startsWith('/') && pattern.endsWith('/') && pattern.length > 2) {
-              const regexContent = pattern.slice(1, -1);
-              const regexFlags = pattern.includes('/') ? pattern.split('/').pop() : '';
-              const flags = regexFlags && !regexFlags.includes('/') ? regexFlags : '';
-              script += `  if (/${regexContent}/${flags}.test(host)) return ${returnVal};\n`;
-            } else if (pattern.includes('*')) {
-              const regexPattern = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
-              script += `  if (/${regexPattern}/.test(host)) return ${returnVal};\n`;
-            } else if (isIpPattern(pattern)) {
-              if (pattern.includes('/')) {
-                script += `  if (isInCidrRange(host, "${pattern}")) return ${returnVal};\n`;
-              } else {
-                script += `  if (host === "${pattern}") return ${returnVal};\n`;
-              }
-            } else {
-              script += `  if (dnsDomainIs(host, "${pattern}") || host === "${pattern}") return ${returnVal};\n`;
-            }
-          }
+          const subRules = subConfig.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+          subRules.forEach(r => { if (!allIncludeUrls.includes(r)) allIncludeUrls.push(r); });
         }
       } catch (e) {
         console.info("Error merging subscription rules in Auto Mode:", e);
+      }
+    }
+
+    for (const pattern of allIncludeUrls) {
+      // Support regex pattern: /pattern/ or /pattern/flags
+      if (pattern.startsWith('/') && pattern.length > 2) {
+        const lastSlash = pattern.lastIndexOf('/');
+        const potentialFlags = pattern.slice(lastSlash + 1);
+        if (lastSlash > 0 && /^[gimsuy]*$/.test(potentialFlags)) {
+          const regexContent = pattern.slice(1, lastSlash);
+          const flags = potentialFlags;
+          try {
+            new RegExp(regexContent, flags); // validate before embedding
+            script += `  if (/${regexContent}/${flags}.test(host)) return ${returnVal};\n`;
+          } catch (e) {
+            console.warn('Invalid regex pattern skipped in PAC generation:', pattern);
+          }
+          continue;
+        }
+      }
+      if (pattern.includes('*')) {
+        const regexPattern = pattern
+          .replace(/[+?^${}()|[\]\\]/g, '\\$&')
+          .replace(/\./g, '\\.')
+          .replace(/\*/g, '.*');
+        script += `  if (/${regexPattern}/.test(host)) return ${returnVal};\n`;
+      } else if (isIpPattern(pattern)) {
+        // IP address or CIDR range
+        if (pattern.includes('/')) {
+          // CIDR format: 192.168.1.0/24
+          script += `  if (isInCidrRange(host, "${pattern}")) return ${returnVal};\n`;
+        } else {
+          // Single IP address
+          script += `  if (host === "${pattern}") return ${returnVal};\n`;
+        }
+      } else {
+        script += `  if (dnsDomainIs(host, "${pattern}") || host === "${pattern}") return ${returnVal};\n`;
       }
     }
   }
@@ -1641,7 +1637,7 @@ function ipToNumber(ip) {
 
 function isInCidrRange(ip, cidr) {
   const [range, bits] = cidr.split('/');
-  const mask = ~(2 ** (32 - parseInt(bits)) - 1);
+  const mask = ~(2 ** (32 - parseInt(bits, 10)) - 1);
   const ipNum = ipToNumber(ip);
   const rangeNum = ipToNumber(range);
   return (ipNum & mask) === (rangeNum & mask);
@@ -1652,15 +1648,18 @@ function matchesPattern(url, pattern) {
   const port = new URL(url).port;
 
   // Handle regex pattern: /pattern/ or /pattern/flags
-  if (pattern.startsWith('/') && pattern.endsWith('/') && pattern.length > 2) {
-    const regexContent = pattern.slice(1, -1);
-    const regexFlags = pattern.slice(1, -1).split('/').pop();
-    const flags = regexFlags && !regexFlags.includes('/') ? regexFlags : '';
-    try {
-      const regex = new RegExp(regexContent, flags || 'i');
-      return regex.test(host);
-    } catch (e) {
-      return false;
+  if (pattern.startsWith('/') && pattern.length > 2) {
+    const lastSlash = pattern.lastIndexOf('/');
+    const potentialFlags = pattern.slice(lastSlash + 1);
+    if (lastSlash > 0 && /^[gimsuy]*$/.test(potentialFlags)) {
+      const regexContent = pattern.slice(1, lastSlash);
+      const flags = potentialFlags || 'i';
+      try {
+        const regex = new RegExp(regexContent, flags);
+        return regex.test(host);
+      } catch (e) {
+        return false;
+      }
     }
   }
 
@@ -1669,7 +1668,10 @@ function matchesPattern(url, pattern) {
   }
 
   if (pattern.includes('*')) {
-    const regexStr = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
+    const regexStr = pattern
+      .replace(/[+?^${}()|[\]\\]/g, '\\$&')
+      .replace(/\./g, '\\.')
+      .replace(/\*/g, '.*');
     const regex = new RegExp(`^${regexStr}$`, 'i');
     return regex.test(host);
   }
@@ -1697,7 +1699,7 @@ function createFirefoxProxyObject(proxy) {
   const result = {
     type: proxyType,
     host: proxy.ip,
-    port: parseInt(proxy.port),
+    port: parseInt(proxy.port, 10),
     username: proxy.username || undefined,
     password: proxy.password || undefined,
     proxyDNS: proxyDNS
@@ -1709,7 +1711,7 @@ function createFirefoxProxyObject(proxy) {
 
   // Include Auth header for HTTP/HTTPS to potentially skip onAuthRequired
   if ((proxyType === 'http' || proxyType === 'https') && proxy.username && proxy.password) {
-    result.proxyAuthorizationHeader = 'Basic ' + btoa(proxy.username + ':' + proxy.password);
+    result.proxyAuthorizationHeader = 'Basic ' + btoa(unescape(encodeURIComponent(proxy.username + ':' + proxy.password)));
   }
 
   return result;
@@ -1764,7 +1766,7 @@ function handleAuthRequest(details, callback) {
     console.log("Handling proxy auth request");
 
     if (currentProxyAuth.username && currentProxyAuth.password) {
-      console.log("Providing auth credentials for: " + currentProxyAuth.username);
+      console.log("Providing auth credentials for proxy");
 
       // Direct callback for better performance and reliability with fetch
       callback({
@@ -2034,7 +2036,7 @@ async function testProxyConnection(proxyInfo, sendResponse) {
         singleProxy: {
           scheme: proxyScheme,
           host: proxyInfo.ip,
-          port: parseInt(proxyInfo.port)
+          port: parseInt(proxyInfo.port, 10)
         },
         bypassList: ["<local>"]
       }

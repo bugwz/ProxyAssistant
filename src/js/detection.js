@@ -147,7 +147,8 @@ function displayDetectionResult(result) {
 function displayErrorResult(errorMsg) {
   $("#detection-status-icon").html(detectionIcons.error);
   $("#detection-status-text").text(I18n.t('proxy_status_error'));
-  $("#detection-details").html('<div class="detection-row"><span class="detection-label">Error</span><span class="detection-value">' + (errorMsg || I18n.t('proxy_suggestion_retry')) + '</span></div>').show();
+  var safeErrorMsg = errorMsg ? UtilsModule.escapeHtml(errorMsg) : I18n.t('proxy_suggestion_retry');
+  $("#detection-details").html('<div class="detection-row"><span class="detection-label">Error</span><span class="detection-value">' + safeErrorMsg + '</span></div>').show();
   $("#detection-warning").hide();
   $("#detection-suggestion-text").text(I18n.t('proxy_suggestion_retry'));
   $("#detection-suggestion").show();
@@ -159,6 +160,9 @@ function displayErrorResult(errorMsg) {
 
 function showPacDetails() {
   updatePacDetails();
+  if (pacStorageListener) {
+    chrome.storage.onChanged.removeListener(pacStorageListener);
+  }
   pacStorageListener = function (changes, namespace) {
     if (namespace === 'local' && changes.state) {
       updatePacDetails();
