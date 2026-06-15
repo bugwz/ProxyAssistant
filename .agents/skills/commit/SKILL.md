@@ -2,7 +2,6 @@
 name: commit
 description: 规范化的代码提交工具，自动生成符合 Conventional Commits 格式的提交信息，并支持用户确认机制
 license: MIT
-compatibility: opencode
 ---
 
 ## What I do
