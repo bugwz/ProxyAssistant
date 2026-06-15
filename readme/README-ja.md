@@ -246,7 +246,7 @@ ProxyAssistant/
 │   └── build.sh              # 拡張機能ビルドスクリプト
 ├── release/                  # リリースノート
 │   └── *.md                  # バージョン更新ログ
-├── doc/                      # ドキュメントディレクトリ
+├── docs/                     # ドキュメントディレクトリ
 ├── build/                    # ビルド出力ディレクトリ
 ├── package.json              # プロジェクト依存関係
 ├── package-lock.json         # 依存バージョンロック

@@ -246,7 +246,7 @@ ProxyAssistant/
 │   └── build.sh              # Script de construction de l'extension
 ├── release/                  # Notes de version
 │   └── *.md                  # Journaux de mise à jour des versions
-├── doc/                      # Répertoire de documentation
+├── docs/                     # Répertoire de documentation
 ├── build/                    # Répertoire de sortie de construction
 ├── package.json              # Dépendances du projet
 ├── package-lock.json         # Verrouillage des versions des dépendances
