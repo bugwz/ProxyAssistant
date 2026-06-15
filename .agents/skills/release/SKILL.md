@@ -2,7 +2,6 @@
 name: release
 description: 自动化处理项目版本发布流程，包括收集版本号、提取变更日志、智能分类、生成 Release Notes 并创建 Git 标签
 license: MIT
-compatibility: opencode
 ---
 
 ## What I do
