@@ -246,7 +246,7 @@ ProxyAssistant/
 │   └── build.sh              # 擴展構建腳本
 ├── release/                  # 版本發佈說明
 │   └── *.md                  # 各版本更新日誌
-├── doc/                      # 文檔目錄
+├── docs/                     # 文檔目錄
 ├── build/                    # 構建產物目錄
 ├── package.json              # 項目依賴配置
 ├── package-lock.json         # 鎖定依賴版本

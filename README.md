@@ -246,7 +246,7 @@ ProxyAssistant/
 │   └── build.sh              # 扩展构建脚本
 ├── release/                  # 版本发布说明
 │   └── *.md                  # 各版本更新日志
-├── doc/                      # 文档目录
+├── docs/                     # 文档目录
 ├── build/                    # 构建产物目录
 ├── package.json              # 项目依赖配置
 ├── package-lock.json         # 锁定依赖版本
