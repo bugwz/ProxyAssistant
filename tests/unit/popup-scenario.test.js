@@ -19,13 +19,18 @@ function loadPopupContext() {
     off: jest.fn().mockReturnThis()
   };
   const proxyListContainer = {
+    removeClass: jest.fn().mockReturnThis(),
+    addClass: jest.fn().mockReturnThis(),
     hasClass: jest.fn(() => false)
   };
   const proxyItemCards = {
     removeClass: jest.fn().mockReturnThis()
   };
   const statusDisplay = {
-    text: jest.fn().mockReturnThis()
+    text: jest.fn().mockReturnThis(),
+    removeAttr: jest.fn().mockReturnThis(),
+    attr: jest.fn().mockReturnThis(),
+    css: jest.fn().mockReturnThis()
   };
   const defaultChainableJquery = {
     attr: jest.fn().mockReturnThis(),
@@ -80,6 +85,7 @@ function loadPopupContext() {
       if (selector === '.proxy-list-container') return proxyListContainer;
       if (selector === '.proxy-item-card') return proxyItemCards;
       if (selector === '#status-display') return statusDisplay;
+      if (selector === context.document) return defaultChainableJquery;
       if (selector && typeof selector === 'object') return selector;
       return defaultChainableJquery;
     })
@@ -98,6 +104,59 @@ function loadPopupContext() {
 }
 
 describe('popup scenario switching', () => {
+  test('restores previous manual proxy when switching back to manual mode', () => {
+    const context = loadPopupContext();
+    const previousManualProxy = { name: 'Previous', ip: '127.0.0.1', port: '8080' };
+    const fallbackProxy = { name: 'Fallback', ip: '10.0.0.2', port: '3128' };
+    const clickedModeButton = {
+      data: jest.fn((key) => (key === 'mode' ? 'manual' : undefined))
+    };
+    let storedState = {
+      proxy: {
+        mode: 'auto',
+        current: previousManualProxy
+      }
+    };
+
+    context.list = [fallbackProxy];
+    context.list_init = jest.fn();
+    context.updateBypassButton = jest.fn();
+    context.updateCurrentSiteDisplay = jest.fn();
+    context.updateScenarioVisibility = jest.fn();
+    context.chrome.storage.local.get.mockImplementation((keys, callback) => {
+      callback({ state: storedState });
+    });
+    context.chrome.storage.local.set.mockImplementation((payload, callback) => {
+      if (payload.state) {
+        storedState = payload.state;
+      }
+      callback();
+    });
+    context.chrome.runtime.sendMessage.mockImplementation((message, callback) => {
+      if (callback) {
+        callback({ success: true });
+      }
+    });
+
+    context.bindGlobalEvents();
+
+    const modeClickHandler = context.__jqueryMocks.defaultChainableJquery.on.mock.calls[2][1];
+    modeClickHandler.call(clickedModeButton);
+
+    expect(context.chrome.storage.local.set).toHaveBeenCalledWith(
+      { state: { proxy: { mode: 'manual', current: previousManualProxy } } },
+      expect.any(Function)
+    );
+    expect(context.chrome.runtime.sendMessage).toHaveBeenCalledWith(
+      { action: 'applyProxy', proxyInfo: previousManualProxy },
+      expect.any(Function)
+    );
+    expect(context.chrome.runtime.sendMessage).not.toHaveBeenCalledWith(
+      { action: 'applyProxy', proxyInfo: fallbackProxy },
+      expect.any(Function)
+    );
+  });
+
   test('does not write null state when switching scenario outside manual mode', () => {
     const context = loadPopupContext();
     const existingState = {

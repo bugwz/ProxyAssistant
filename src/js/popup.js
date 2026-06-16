@@ -62,6 +62,26 @@ function initApp() {
   bindGlobalEvents();
 }
 
+function isSelectableProxy(proxy) {
+  return !!(proxy && proxy.enabled !== false && proxy.ip && proxy.port);
+}
+
+function getFirstSelectableProxy(proxyList) {
+  if (!Array.isArray(proxyList)) {
+    return null;
+  }
+
+  return proxyList.find(isSelectableProxy) || null;
+}
+
+function refreshPopupForMode(mode, currentProxy) {
+  updateStatusDisplay(mode, currentProxy);
+  list_init();
+  updateBypassButton();
+  updateCurrentSiteDisplay();
+  updateScenarioVisibility();
+}
+
 function bindGlobalEvents() {
   // Settings button click event
   $(".settings-btn").on("click", function () {
@@ -77,73 +97,59 @@ function bindGlobalEvents() {
     const mode = $(this).data('mode');
     updateModeUI(mode);
 
-    chrome.storage.local.set({ state: { proxy: { mode: mode, current: null } } }, function () {
+    chrome.storage.local.get(['state'], function (result) {
       if (chrome.runtime.lastError) {
-        console.log('Error setting proxy mode:', chrome.runtime.lastError);
+        console.log('Error getting state:', chrome.runtime.lastError);
         return;
       }
-      if (mode === 'auto') {
-        // Auto mode
-        chrome.runtime.sendMessage({ action: "refreshProxy" }, function () {
-          if (chrome.runtime.lastError) {
-            console.log('Error sending refreshProxy:', chrome.runtime.lastError);
-          }
-        });
-        updateStatusDisplay('auto');
-        // Re-render list to apply auto-match highlighting
-        list_init();
-        updateBypassButton();
-        updateCurrentSiteDisplay(); updateScenarioVisibility();
-      } else if (mode === 'disabled') {
-        // Disabled mode
-        chrome.runtime.sendMessage({ action: "turnOffProxy" }, function () {
-          if (chrome.runtime.lastError) {
-            console.log('Error sending turnOffProxy message:', chrome.runtime.lastError);
-          }
-          list_init();
-          updateStatusDisplay('disabled', null);
-          updateBypassButton();
-          updateCurrentSiteDisplay(); updateScenarioVisibility();
-        });
-      } else {
-        // Manual mode - restore previous selection or auto-select first proxy
-        chrome.storage.local.get(['state'], function (result) {
-          if (chrome.runtime.lastError) {
-            console.log('Error getting state:', chrome.runtime.lastError);
-            return;
-          }
-          let currentProxy = result.state?.proxy?.current;
 
-          // Auto-select first available proxy if none selected
-          if (!currentProxy && list && list.length > 0) {
-            const firstEnabled = list.find(p => p.enabled !== false && p.ip && p.port);
-            if (firstEnabled) {
-              currentProxy = firstEnabled;
-              // Save the auto-selected proxy
-              chrome.storage.local.set({ state: { proxy: { mode: 'manual', current: currentProxy } } }, function () {
-                if (chrome.runtime.lastError) {
-                  console.log('Error saving auto-selected proxy:', chrome.runtime.lastError);
-                }
-              });
-              // Apply the selected proxy
-              chrome.runtime.sendMessage({ action: "applyProxy", proxyInfo: currentProxy }, function () {
-                if (chrome.runtime.lastError) {
-                  console.log('Error applying auto-selected proxy:', chrome.runtime.lastError);
-                }
-              });
+      const previousCurrent = result.state?.proxy?.current || null;
+      const nextCurrent = mode === 'manual'
+        ? (isSelectableProxy(previousCurrent) ? previousCurrent : getFirstSelectableProxy(list))
+        : previousCurrent;
+
+      chrome.storage.local.set({ state: { proxy: { mode: mode, current: nextCurrent } } }, function () {
+        if (chrome.runtime.lastError) {
+          console.log('Error setting proxy mode:', chrome.runtime.lastError);
+          return;
+        }
+
+        if (mode === 'auto') {
+          // Auto mode
+          chrome.runtime.sendMessage({ action: "refreshProxy" }, function () {
+            if (chrome.runtime.lastError) {
+              console.log('Error sending refreshProxy:', chrome.runtime.lastError);
             }
-          }
-
-          if (currentProxy) {
-            updateStatusDisplay('manual', currentProxy);
-          } else {
-            updateStatusDisplay('manual', null);
-          }
+          });
+          updateStatusDisplay('auto');
+          // Re-render list to apply auto-match highlighting
           list_init();
           updateBypassButton();
           updateCurrentSiteDisplay(); updateScenarioVisibility();
-        });
-      }
+        } else if (mode === 'disabled') {
+          // Disabled mode
+          chrome.runtime.sendMessage({ action: "turnOffProxy" }, function () {
+            if (chrome.runtime.lastError) {
+              console.log('Error sending turnOffProxy message:', chrome.runtime.lastError);
+            }
+            list_init();
+            updateStatusDisplay('disabled', null);
+            updateBypassButton();
+            updateCurrentSiteDisplay(); updateScenarioVisibility();
+          });
+        } else {
+          // Manual mode - restore previous selection or auto-select first proxy
+          if (nextCurrent) {
+            chrome.runtime.sendMessage({ action: "applyProxy", proxyInfo: nextCurrent }, function () {
+              if (chrome.runtime.lastError) {
+                console.log('Error applying restored proxy:', chrome.runtime.lastError);
+              }
+            });
+          }
+
+          refreshPopupForMode('manual', nextCurrent);
+        }
+      });
     });
   });
 
