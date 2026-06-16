@@ -401,7 +401,27 @@ build/
 └── ProxyAssistant_{VERSION}_firefox.xpi     # Firefox 官方擴展包
 ```
 
-### 5.4 本地開發測試
+### 5.4 GitHub CI
+
+專案包含 GitHub Actions CI 工作流：`.github/workflows/ci.yml`。
+
+- 推送到 `main` 分支時會執行 CI
+- 所有 `pull_request` 都會執行 CI
+- CI 拆分為 `unit`、`integration`、`e2e`、`build` 四個獨立 job
+- 如果目前倉庫還沒有 `integration` 或 `e2e` 測試檔案，對應 job 會明確跳過，不會直接失敗
+
+CI 目前使用的命令如下：
+
+```bash
+npm run test:unit -- --no-cache
+npm run test:integration -- --no-cache
+npm run test:e2e -- --no-cache
+make build VERSION=ci-<run-number>
+```
+
+`build` job 會安裝 `web-ext`、在 Ubuntu 環境執行擴展構建，並把 `build/` 下的產物上傳為 workflow artifacts。
+
+### 5.5 本地開發測試
 
 **Chrome 本地安裝**:
 1. 修改 `src/manifest_chrome.json` 為 `manifest.json`
@@ -416,7 +436,7 @@ build/
 3. 點擊 **齒輪圖標** → **從文件安裝附加組件**
 4. 選擇生成的 `.xpi` 文件
 
-### 5.5 代碼風格
+### 5.6 代碼風格
 
 - **縮進**: 2 個空格
 - **引號**: 單引號

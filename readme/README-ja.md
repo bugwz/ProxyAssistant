@@ -401,7 +401,27 @@ build/
 └── ProxyAssistant_{VERSION}_firefox.xpi     # Firefox 公式拡張パッケージ
 ```
 
-### 5.4 ローカル開発
+### 5.4 GitHub CI
+
+このリポジトリには `.github/workflows/ci.yml` の GitHub Actions CI ワークフローが含まれています。
+
+- `main` ブランチへの `push` で CI が実行されます
+- すべての `pull_request` で CI が実行されます
+- CI は `unit`、`integration`、`e2e`、`build` の 4 つの独立した job に分かれています
+- リポジトリに `integration` または `e2e` のテストファイルがまだ存在しない場合、対応する job は失敗せず明示的にスキップされます
+
+現在の CI で使用するコマンドは次のとおりです。
+
+```bash
+npm run test:unit -- --no-cache
+npm run test:integration -- --no-cache
+npm run test:e2e -- --no-cache
+make build VERSION=ci-<run-number>
+```
+
+`build` job は `web-ext` をインストールし、Ubuntu 上で拡張機能をビルドし、`build/` 配下の生成物を workflow artifacts としてアップロードします。
+
+### 5.5 ローカル開発
 
 **Chrome ローカルインストール**:
 1. `src/manifest_chrome.json` を `manifest.json` に変更
@@ -416,7 +436,7 @@ build/
 3. **歯車アイコン** → **ファイルからアドオンをインストール**
 4. 生成された `.xpi` ファイルを選択
 
-### 5.5 コードスタイル
+### 5.6 コードスタイル
 
 - **インデント**: 2 スペース
 - **引用符**: シングルクォート

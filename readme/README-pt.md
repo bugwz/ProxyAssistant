@@ -401,7 +401,27 @@ build/
 └── ProxyAssistant_{VERSION}_firefox.xpi     # Pacote de extensão oficial Firefox
 ```
 
-### 5.4 Desenvolvimento local
+### 5.4 GitHub CI
+
+O repositório inclui um workflow de CI do GitHub Actions em `.github/workflows/ci.yml`.
+
+- Pushes para a branch `main` executam a CI
+- Todos os eventos `pull_request` executam a CI
+- A CI é dividida em quatro jobs independentes: `unit`, `integration`, `e2e` e `build`
+- Se o repositório ainda não tiver arquivos de teste `integration` ou `e2e`, esses jobs serão ignorados explicitamente em vez de falhar
+
+Atualmente a CI usa os seguintes comandos:
+
+```bash
+npm run test:unit -- --no-cache
+npm run test:integration -- --no-cache
+npm run test:e2e -- --no-cache
+make build VERSION=ci-<run-number>
+```
+
+O job `build` instala `web-ext`, executa a compilação da extensão no Ubuntu e envia os pacotes gerados em `build/` como workflow artifacts.
+
+### 5.5 Desenvolvimento local
 
 **Instalação local Chrome**:
 1. Renomear `src/manifest_chrome.json` para `manifest.json`
@@ -416,7 +436,7 @@ build/
 3. Clicar em **ícone de engrenagem** → **Instalar extra a partir do arquivo**
 4. Selecionar o arquivo `.xpi` gerado
 
-### 5.5 Estilo de código
+### 5.6 Estilo de código
 
 - **Indentação**: 2 espaços
 - **Aspas**: Aspas simples
