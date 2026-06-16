@@ -1,6 +1,11 @@
 // ==========================================
 // State & Constants
 // ==========================================
+let scenarios = [];
+let currentScenarioId = null;
+let list = [];
+let themeMode = 'light';
+
 document.addEventListener('DOMContentLoaded', function () {
   I18n.init(function () {
     // Initialize theme mode first
@@ -72,6 +77,37 @@ function getFirstSelectableProxy(proxyList) {
   }
 
   return proxyList.find(isSelectableProxy) || null;
+}
+
+function getProxyIncludeRules(proxy) {
+  const includeRules = [];
+
+  if (!proxy) {
+    return includeRules;
+  }
+
+  if (proxy.include_rules) {
+    includeRules.push(...proxy.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s));
+  }
+
+  if (proxy.subscription && proxy.subscription.enabled !== false && proxy.subscription.current) {
+    try {
+      const format = proxy.subscription.current;
+      const subConfig = proxy.subscription.lists ? proxy.subscription.lists[format] : null;
+      if (subConfig && subConfig.include_rules) {
+        const subRules = subConfig.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+        subRules.forEach(rule => {
+          if (!includeRules.includes(rule)) {
+            includeRules.push(rule);
+          }
+        });
+      }
+    } catch (e) {
+      console.info('Error merging subscription rules in popup:', e);
+    }
+  }
+
+  return includeRules;
 }
 
 function refreshPopupForMode(mode, currentProxy) {
@@ -289,7 +325,7 @@ function switchScenario(id) {
       let stateUpdate = null;
       // Auto-select first proxy in manual mode
       if (currentMode === 'manual') {
-        const firstEnabled = newProxies.find(p => p.enabled !== false && p.ip && p.port);
+        const firstEnabled = getFirstSelectableProxy(newProxies);
         if (firstEnabled) {
           stateUpdate = { proxy: { mode: 'manual', current: firstEnabled } };
         } else {
@@ -313,6 +349,18 @@ function switchScenario(id) {
               console.log('Error applying proxy after scenario switch:', chrome.runtime.lastError);
             }
             list_init();
+          });
+          return;
+        }
+        if (currentMode === 'manual' && stateUpdate && !stateUpdate.proxy.current) {
+          chrome.runtime.sendMessage({ action: 'turnOffProxy' }, function () {
+            if (chrome.runtime.lastError) {
+              console.log('Error turning off proxy after scenario switch:', chrome.runtime.lastError);
+            }
+            updateStatusDisplay('manual', null);
+            list_init();
+            updateBypassButton();
+            updateCurrentSiteDisplay();
           });
           return;
         }
@@ -682,8 +730,8 @@ function getAutoProxy(proxyList, hostname) {
     if (proxy.enabled === false) continue;
     if (!proxy.ip || !proxy.port) continue;
 
-    // Only check include_rules, match in order
-    if (checkMatch(proxy.include_rules, hostname)) {
+    const includeRules = getProxyIncludeRules(proxy);
+    if (includeRules.length > 0 && checkMatch(includeRules.join('\n'), hostname)) {
       return proxy; // Return first matched proxy
     }
   }
