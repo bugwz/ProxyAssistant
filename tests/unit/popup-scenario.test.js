@@ -139,4 +139,112 @@ describe('popup scenario switching', () => {
       expect.any(Function)
     );
   });
+
+  test('persists config when adding current site to bypass rules', () => {
+    const context = loadPopupContext();
+    const proxy = { name: 'Proxy A', ip: '127.0.0.1', port: '8080', bypass_rules: 'existing.com' };
+    const config = {
+      scenarios: {
+        current: 'scenario-a',
+        lists: [
+          { id: 'scenario-a', name: 'Scenario A', proxies: [proxy] }
+        ]
+      }
+    };
+    const button = {
+      prop: jest.fn().mockReturnThis(),
+      removeClass: jest.fn().mockReturnThis(),
+      text: jest.fn().mockReturnThis(),
+      addClass: jest.fn().mockReturnThis()
+    };
+
+    context.updateBypassButton = jest.fn();
+    context.updateCurrentSiteDisplay = jest.fn();
+    context.chrome.storage.local.get.mockImplementation((keys, callback) => {
+      callback({
+        state: { proxy: { mode: 'manual', current: proxy } },
+        config
+      });
+    });
+    context.chrome.storage.local.set.mockImplementation((payload, callback) => {
+      callback();
+    });
+    context.chrome.runtime.sendMessage.mockImplementation((message, callback) => {
+      if (callback) {
+        callback({ success: true });
+      }
+    });
+
+    context.handleAddToBypass('example.com', button);
+
+    expect(context.chrome.storage.local.set).toHaveBeenCalledWith(
+      {
+        config,
+        state: {
+          proxy: {
+            mode: 'manual',
+            current: expect.objectContaining({
+              bypass_rules: 'existing.com\nexample.com'
+            })
+          }
+        }
+      },
+      expect.any(Function)
+    );
+    expect(config.scenarios.lists[0].proxies[0].bypass_rules).toBe('existing.com\nexample.com');
+  });
+
+  test('persists config when removing current site from bypass rules', () => {
+    const context = loadPopupContext();
+    const proxy = { name: 'Proxy A', ip: '127.0.0.1', port: '8080', bypass_rules: 'example.com\nkeep.com' };
+    const config = {
+      scenarios: {
+        current: 'scenario-a',
+        lists: [
+          { id: 'scenario-a', name: 'Scenario A', proxies: [proxy] }
+        ]
+      }
+    };
+    const button = {
+      prop: jest.fn().mockReturnThis(),
+      removeClass: jest.fn().mockReturnThis(),
+      text: jest.fn().mockReturnThis(),
+      addClass: jest.fn().mockReturnThis()
+    };
+
+    context.updateBypassButton = jest.fn();
+    context.updateCurrentSiteDisplay = jest.fn();
+    context.chrome.storage.local.get.mockImplementation((keys, callback) => {
+      callback({
+        state: { proxy: { mode: 'manual', current: proxy } },
+        config
+      });
+    });
+    context.chrome.storage.local.set.mockImplementation((payload, callback) => {
+      callback();
+    });
+    context.chrome.runtime.sendMessage.mockImplementation((message, callback) => {
+      if (callback) {
+        callback({ success: true });
+      }
+    });
+
+    context.handleRemoveFromBypass('example.com', button);
+
+    expect(context.chrome.storage.local.set).toHaveBeenCalledWith(
+      {
+        config,
+        state: {
+          proxy: {
+            mode: 'manual',
+            current: expect.objectContaining({
+              bypass_rules: 'keep.com'
+            })
+          }
+        }
+      },
+      expect.any(Function)
+    );
+    expect(config.scenarios.lists[0].proxies[0].bypass_rules).toBe('keep.com');
+  });
 });
