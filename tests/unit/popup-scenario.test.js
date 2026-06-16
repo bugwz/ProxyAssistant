@@ -93,6 +93,32 @@ function loadPopupContext() {
 
   vm.createContext(context);
   vm.runInContext(source, context);
+  vm.runInContext(`
+    this.__popupTestApi = {
+      setState: function (nextState) {
+        if (Object.prototype.hasOwnProperty.call(nextState, 'scenarios')) {
+          scenarios = nextState.scenarios;
+        }
+        if (Object.prototype.hasOwnProperty.call(nextState, 'currentScenarioId')) {
+          currentScenarioId = nextState.currentScenarioId;
+        }
+        if (Object.prototype.hasOwnProperty.call(nextState, 'list')) {
+          list = nextState.list;
+        }
+        if (Object.prototype.hasOwnProperty.call(nextState, 'themeMode')) {
+          themeMode = nextState.themeMode;
+        }
+      },
+      getState: function () {
+        return {
+          scenarios: scenarios,
+          currentScenarioId: currentScenarioId,
+          list: list,
+          themeMode: themeMode
+        };
+      }
+    };
+  `, context);
   context.__jqueryMocks = {
     proxyList,
     proxyListContainer,
@@ -118,7 +144,7 @@ describe('popup scenario switching', () => {
       }
     };
 
-    context.list = [fallbackProxy];
+    context.__popupTestApi.setState({ list: [fallbackProxy] });
     context.list_init = jest.fn();
     context.updateBypassButton = jest.fn();
     context.updateCurrentSiteDisplay = jest.fn();
@@ -172,12 +198,10 @@ describe('popup scenario switching', () => {
       }
     };
 
-    context.scenarios = [
+    context.__popupTestApi.setState({ scenarios: [
       { id: 'scenario-a', name: 'Scenario A', proxies: [] },
       { id: 'scenario-b', name: 'Scenario B', proxies: [] }
-    ];
-    context.currentScenarioId = 'scenario-a';
-    context.list = [];
+    ], currentScenarioId: 'scenario-a', list: [] });
     context.list_init = jest.fn();
     context.chrome.storage.local.get.mockImplementation((keys, callback) => {
       callback({ config, state: existingState });
@@ -210,12 +234,10 @@ describe('popup scenario switching', () => {
       }
     };
 
-    context.scenarios = [
+    context.__popupTestApi.setState({ scenarios: [
       { id: 'scenario-a', name: 'Scenario A', proxies: [] },
       { id: 'scenario-b', name: 'Scenario B', proxies: [] }
-    ];
-    context.currentScenarioId = 'scenario-a';
-    context.list = [];
+    ], currentScenarioId: 'scenario-a', list: [] });
     context.list_init = jest.fn();
     context.chrome.storage.local.get.mockImplementation((keys, callback) => {
       callback({ config, state: existingState });
@@ -233,6 +255,58 @@ describe('popup scenario switching', () => {
 
     expect(context.chrome.runtime.sendMessage).toHaveBeenCalledWith(
       { action: 'refreshProxy' },
+      expect.any(Function)
+    );
+  });
+
+  test('turns off proxy when switching to a manual scenario without selectable proxies', () => {
+    const context = loadPopupContext();
+    const existingState = {
+      proxy: {
+        mode: 'manual',
+        current: { name: 'Previous', ip: '127.0.0.1', port: '8080' }
+      }
+    };
+    const config = {
+      scenarios: {
+        current: 'scenario-a',
+        lists: []
+      }
+    };
+
+    context.__popupTestApi.setState({ scenarios: [
+      { id: 'scenario-a', name: 'Scenario A', proxies: [{ name: 'Old', ip: '127.0.0.1', port: '8080' }] },
+      { id: 'scenario-b', name: 'Scenario B', proxies: [{ name: 'Disabled', ip: '10.0.0.1', port: '3128', enabled: false }] }
+    ], currentScenarioId: 'scenario-a', list: [{ name: 'Old', ip: '127.0.0.1', port: '8080' }] });
+    context.list_init = jest.fn();
+    context.chrome.storage.local.get.mockImplementation((keys, callback) => {
+      callback({ config, state: existingState });
+    });
+    context.chrome.storage.local.set.mockImplementation((payload, callback) => {
+      callback();
+    });
+    context.chrome.runtime.sendMessage.mockImplementation((message, callback) => {
+      if (callback) {
+        callback({ success: true });
+      }
+    });
+
+    context.switchScenario('scenario-b');
+
+    expect(context.chrome.storage.local.set).toHaveBeenCalledWith(
+      {
+        config,
+        state: {
+          proxy: {
+            mode: 'manual',
+            current: null
+          }
+        }
+      },
+      expect.any(Function)
+    );
+    expect(context.chrome.runtime.sendMessage).toHaveBeenCalledWith(
+      { action: 'turnOffProxy' },
       expect.any(Function)
     );
   });
@@ -354,7 +428,7 @@ describe('popup scenario switching', () => {
     };
     let applyProxyCallback = null;
 
-    context.list = [info];
+    context.__popupTestApi.setState({ list: [info] });
     context.list_init = jest.fn();
     context.updateBypassButton = jest.fn();
     context.chrome.runtime.sendMessage.mockImplementation((message, callback) => {
@@ -378,5 +452,36 @@ describe('popup scenario switching', () => {
     applyProxyCallback({ success: true });
 
     expect(context.list_init).toHaveBeenCalled();
+  });
+
+  test('matches auto proxy from subscription include rules', () => {
+    const context = loadPopupContext();
+    const proxy = {
+      name: 'Subscription Proxy',
+      ip: '127.0.0.1',
+      port: '8080',
+      include_rules: '',
+      subscription: {
+        enabled: true,
+        current: 'autoproxy',
+        lists: {
+          autoproxy: {
+            include_rules: 'service.example.com'
+          }
+        }
+      }
+    };
+
+    expect(context.getAutoProxy([proxy], 'service.example.com')).toBe(proxy);
+  });
+
+  test('declares popup state variables explicitly', () => {
+    const popupPath = path.join(__dirname, '../../src/js/popup.js');
+    const source = fs.readFileSync(popupPath, 'utf8');
+
+    expect(source).toMatch(/let scenarios = \[\];/);
+    expect(source).toMatch(/let currentScenarioId = null;/);
+    expect(source).toMatch(/let list = \[\];/);
+    expect(source).toMatch(/let themeMode = 'light';/);
   });
 });
