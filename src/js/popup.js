@@ -306,7 +306,18 @@ function switchScenario(id) {
             if (chrome.runtime.lastError) {
               console.log('Error applying proxy after scenario switch:', chrome.runtime.lastError);
             }
+            list_init();
           });
+          return;
+        }
+        if (currentMode === 'auto') {
+          chrome.runtime.sendMessage({ action: 'refreshProxy' }, function () {
+            if (chrome.runtime.lastError) {
+              console.log('Error refreshing proxy after scenario switch:', chrome.runtime.lastError);
+            }
+            list_init();
+          });
+          return;
         }
         list_init();
       });
