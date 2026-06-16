@@ -1022,7 +1022,10 @@ function handleAddToBypass(hostname, $btn) {
     }
 
     // Save to local storage
-    chrome.storage.local.set({ state: { proxy: { mode: mode, current: proxy } } }, function () {
+    chrome.storage.local.set({
+      config: config,
+      state: { proxy: { mode: mode, current: proxy } }
+    }, function () {
       if (chrome.runtime.lastError) {
         console.log('Error saving settings:', chrome.runtime.lastError);
         $btn.prop('disabled', false).removeClass('btn-processing');
@@ -1119,7 +1122,10 @@ function handleRemoveFromBypass(hostname, $btn) {
     }
 
     // Save to local storage
-    chrome.storage.local.set({ state: { proxy: { mode: mode, current: proxy } } }, function () {
+    chrome.storage.local.set({
+      config: config,
+      state: { proxy: { mode: mode, current: proxy } }
+    }, function () {
       if (chrome.runtime.lastError) {
         console.log('Error saving settings:', chrome.runtime.lastError);
         $btn.prop('disabled', false).removeClass('btn-processing');
