@@ -7,8 +7,10 @@
 // Module Callbacks
 // ==========================================
 window.onScenarioSwitch = function (id, list) {
-  ProxyModule.setList(list);
-  ProxyModule.renderList();
+  refreshMainView({
+    list: list,
+    parseSubscriptions: true
+  });
 };
 
 window.onScenarioAdd = function (id, name) {
@@ -20,9 +22,7 @@ window.onScenarioRename = function (id, newName) {
 };
 
 window.onScenarioDelete = function (id, isOnlyScenario) {
-  const list = StorageModule.getProxies();
-  ProxyModule.setList(list);
-  ProxyModule.renderList();
+  refreshMainView();
   saveConfig();
 };
 
@@ -32,9 +32,7 @@ window.onScenariosReorder = function (scenarios) {
 };
 
 window.onProxyMove = function (proxyIndex, targetScenarioId, proxy) {
-  const list = StorageModule.getProxies();
-  ProxyModule.setList(list);
-  ProxyModule.renderList();
+  refreshMainView();
 };
 
 // ==========================================
@@ -90,15 +88,32 @@ function loadSettings() {
     }
   }
 
-  // Load proxy list
-  const list = StorageModule.getProxies();
-  SubscriptionModule.parseProxyListSubscriptions(list);
-  ProxyModule.setList(list);
-
   // Update UI (but don't re-init theme UI since ThemeModule.initTheme() already did it)
   SyncModule.updateSyncUI();
+  refreshMainView();
+}
+
+function refreshMainView(options) {
+  options = options || {};
+
+  const list = options.list || StorageModule.getProxies();
+  const shouldParseSubscriptions = options.parseSubscriptions !== false;
+  const shouldRenderScenarios = options.renderScenarios !== false;
+
+  if (shouldParseSubscriptions && SubscriptionModule && typeof SubscriptionModule.parseProxyListSubscriptions === 'function') {
+    SubscriptionModule.parseProxyListSubscriptions(list);
+  }
+
+  ProxyModule.setList(list);
   ProxyModule.renderList();
-  ScenariosModule.renderScenarioSelector();
+
+  if (shouldRenderScenarios && ScenariosModule) {
+    if (typeof ScenariosModule.renderScenarioViews === 'function') {
+      ScenariosModule.renderScenarioViews();
+    } else if (typeof ScenariosModule.renderScenarioSelector === 'function') {
+      ScenariosModule.renderScenarioSelector();
+    }
+  }
 }
 
 function saveConfig(options) {
@@ -234,9 +249,7 @@ function initDropdowns() {
   chrome.storage.onChanged.addListener(function (changes, namespace) {
     if (namespace === 'local' && changes.config) {
       StorageModule.reload().then(() => {
-        ProxyModule.setList(StorageModule.getProxies());
-        ProxyModule.renderList();
-        ScenariosModule.renderScenarioSelector();
+        refreshMainView();
       });
     }
   });

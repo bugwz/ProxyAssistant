@@ -36,6 +36,13 @@ const ScenariosModule = (function () {
     return StorageModule ? StorageModule.getCurrentScenario() : null;
   }
 
+  function renderScenarioViews() {
+    renderScenarioSelector();
+    if ($(".scenario-manage-tip").hasClass("show")) {
+      renderScenarioManagementList();
+    }
+  }
+
   function renderScenarioSelector() {
     const scenarios = getScenarios();
     const currentScenarioId = getCurrentScenarioId();
@@ -61,7 +68,7 @@ const ScenariosModule = (function () {
     $("#current-scenario-indicator").text(currentScenarioName || I18n.t('scenario_default'));
   }
 
-  function switchScenario(id) {
+  async function switchScenario(id) {
     const currentId = getCurrentScenarioId();
     if (currentId === id) return;
 
@@ -70,8 +77,18 @@ const ScenariosModule = (function () {
     if (scenario) {
       setCurrentScenarioId(id);
 
-      if (StorageModule) {
-        StorageModule.save();
+      try {
+        if (StorageModule) {
+          await StorageModule.save();
+        }
+      } catch (err) {
+        setCurrentScenarioId(currentId);
+        console.info('Switch scenario failed:', err);
+        if (typeof UtilsModule !== 'undefined' && UtilsModule.showTip) {
+          UtilsModule.showTip(I18n.t('save_failed'), true);
+        }
+        renderScenarioViews();
+        return false;
       }
 
       if (typeof onScenarioSwitch === 'function') {
@@ -83,8 +100,11 @@ const ScenariosModule = (function () {
         }
       }
 
-      renderScenarioSelector();
+      renderScenarioViews();
+      return true;
     }
+
+    return false;
   }
 
   function renderScenarioManagementList() {
@@ -294,8 +314,7 @@ const ScenariosModule = (function () {
       onScenarioAdd(newId, name);
     }
 
-    renderScenarioManagementList();
-    renderScenarioSelector();
+    renderScenarioViews();
     if (callback) callback();
     return true;
   }
@@ -325,8 +344,7 @@ const ScenariosModule = (function () {
       onScenarioRename(id, newName);
     }
 
-    renderScenarioManagementList();
-    renderScenarioSelector();
+    renderScenarioViews();
   }
 
   function doDeleteScenario(id) {
@@ -348,8 +366,7 @@ const ScenariosModule = (function () {
           if (typeof onScenarioDelete === 'function') {
             onScenarioDelete(id, true);
           }
-          renderScenarioManagementList();
-          renderScenarioSelector();
+          renderScenarioViews();
           return;
         } else {
           switchScenario(nextScenario.id);
@@ -367,8 +384,7 @@ const ScenariosModule = (function () {
       onScenarioDelete(id, false);
     }
 
-    renderScenarioManagementList();
-    renderScenarioSelector();
+    renderScenarioViews();
   }
 
   function showAlertScenario(message) {
@@ -568,6 +584,7 @@ const ScenariosModule = (function () {
     setCurrentScenarioId: setCurrentScenarioId,
     getCurrentScenario: getCurrentScenario,
     renderScenarioSelector: renderScenarioSelector,
+    renderScenarioViews: renderScenarioViews,
     switchScenario: switchScenario,
     renderScenarioManagementList: renderScenarioManagementList,
     addScenario: addScenario,
