@@ -401,7 +401,27 @@ build/
 └── ProxyAssistant_{VERSION}_firefox.xpi     # Firefox 공식 확장 패키지
 ```
 
-### 5.4 로컬 개발
+### 5.4 GitHub CI
+
+이 저장소에는 `.github/workflows/ci.yml`의 GitHub Actions CI 워크플로가 포함되어 있습니다.
+
+- `main` 브랜치로의 `push`에서 CI가 실행됩니다
+- 모든 `pull_request`에서 CI가 실행됩니다
+- CI는 `unit`, `integration`, `e2e`, `build`의 네 개 독립 job으로 나뉩니다
+- 저장소에 아직 `integration` 또는 `e2e` 테스트 파일이 없으면 해당 job은 실패하지 않고 명시적으로 건너뜁니다
+
+현재 CI는 다음 명령을 사용합니다.
+
+```bash
+npm run test:unit -- --no-cache
+npm run test:integration -- --no-cache
+npm run test:e2e -- --no-cache
+make build VERSION=ci-<run-number>
+```
+
+`build` job은 `web-ext`를 설치하고 Ubuntu에서 확장 프로그램을 빌드한 뒤 `build/` 아래 생성된 패키지를 workflow artifacts로 업로드합니다.
+
+### 5.5 로컬 개발
 
 **Chrome 로컬 설치**:
 1. `src/manifest_chrome.json`을 `manifest.json`으로 이름 변경
@@ -416,7 +436,7 @@ build/
 3. **톱니바퀴 아이콘** → **파일에서 애드온 설치** 클릭
 4. 생성된 `.xpi` 파일 선택
 
-### 5.5 코드 스타일
+### 5.6 코드 스타일
 
 - **들여쓰기**: 2 공백
 - **따옴표**: 작은따옴표
