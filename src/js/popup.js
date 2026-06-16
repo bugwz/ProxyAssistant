@@ -568,23 +568,6 @@ function bindListEvents() {
 
     if (!info) return;
 
-    // Update UI immediately for responsiveness
-    $(".proxy-item-card").removeClass("selected");
-    $this.addClass("selected");
-
-    const proxyName = info.name || "Proxy";
-    $('#status-display').text(proxyName);
-
-    // Save current proxy selection
-    chrome.storage.local.set({ state: { proxy: { mode: 'manual', current: info } } }, function () {
-      if (chrome.runtime.lastError) {
-        console.log('Error saving state:', chrome.runtime.lastError);
-        return;
-      }
-      // Update bypass button status
-      updateBypassButton();
-    });
-
     // Log bypass URLs (不使用代理的地址) for manual mode
     let bypassOutput = '';
     const proxyBypassUrls = info.bypass_rules || '';
@@ -620,10 +603,13 @@ function bindListEvents() {
           list_init();
           return;
         }
-        // Refresh only on success, or revert UI if not successful
         if (!response || !response.success) {
           list_init();
+          return;
         }
+        list_init();
+        updateBypassButton();
+        updateCurrentSiteDisplay();
       }
     );
   });

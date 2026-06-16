@@ -1087,7 +1087,8 @@ function updateBadge() {
 
 // Handle different types of proxy settings
 function applyProxySettings(proxyInfo) {
-  chrome.storage.local.get(['state'], (result) => {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['state'], async (result) => {
     const mode = result.state?.proxy?.mode || 'manual';
 
     if (isFirefox) {
@@ -1112,27 +1113,31 @@ function applyProxySettings(proxyInfo) {
       }, () => {
         updateBadge();
         setupFirefoxProxy(); // Activate the proxy logic
+        resolve({ success: true });
       });
     } else {
       // Chrome
       const chromeMode = result.state?.proxy?.mode || 'manual';
 
       if (chromeMode === 'auto') {
-        applyAutoProxySettings();
+        resolve(await applyAutoProxySettings());
       } else if (chromeMode === 'disabled') {
         // If mode is disabled, always turn off proxy regardless of proxyInfo
-        turnOffProxy();
+        await turnOffProxy();
+        resolve({ success: true });
       } else {
         // Manual mode
         // If manual mode and no proxyInfo provided (e.g. from refreshProxy), use the one from storage
         const infoToApply = proxyInfo || result.state?.proxy?.current;
         if (infoToApply) {
-          applyManualProxySettings(infoToApply);
+          resolve(await applyManualProxySettings(infoToApply));
         } else {
-          turnOffProxy();
+          await turnOffProxy();
+          resolve({ success: false, error: "No proxy information provided" });
         }
       }
     }
+    });
   });
 }
 
@@ -1312,17 +1317,6 @@ async function applyManualProxySettings(proxyInfo) {
     }
   }
 
-  currentProxyAuth = { username: username || '', password: password || '' };
-  updateSessionAuth(currentProxyAuth);
-
-  chrome.storage.local.set({
-    state: { proxy: { mode: 'manual', current: { ...proxyInfo, type: type, ip: ip, port: port, name: proxyName } } }
-  }, () => {
-    updateBadge();
-  });
-
-  setupAuthListener();
-
   const config = {
     mode: "fixed_servers",
     rules: {
@@ -1342,13 +1336,37 @@ async function applyManualProxySettings(proxyInfo) {
     };
   }
 
-  chrome.proxy.settings.set({ value: config, scope: "regular" }, async () => {
-    if (chrome.runtime.lastError) {
-      console.log("Error setting proxy:", chrome.runtime.lastError);
-    } else {
+  currentProxyAuth = { username: username || '', password: password || '' };
+  updateSessionAuth(currentProxyAuth);
+  setupAuthListener();
+
+  const storedProxyInfo = { ...proxyInfo, type: type, ip: ip, port: port, name: proxyName };
+
+  const applyResult = await new Promise((resolve) => {
+    chrome.proxy.settings.set({ value: config, scope: "regular" }, async () => {
+      if (chrome.runtime.lastError) {
+        console.log("Error setting proxy:", chrome.runtime.lastError);
+        resolve({ success: false, error: chrome.runtime.lastError.message || "Failed to apply proxy settings" });
+        return;
+      }
+
       console.log("Manual proxy enabled:", proxyName);
       preconnectToTestUrls();
-    }
+      resolve({ success: true });
+    });
+  });
+
+  if (!applyResult.success) {
+    return applyResult;
+  }
+
+  await new Promise((resolve) => {
+    chrome.storage.local.set({
+      state: { proxy: { mode: 'manual', current: storedProxyInfo } }
+    }, () => {
+      updateBadge();
+      resolve();
+    });
   });
 
   return { success: true };
@@ -1383,15 +1401,19 @@ async function applyAutoProxySettings() {
 
   setupAuthListener();
 
-  chrome.proxy.settings.set({ value: pacConfig, scope: "regular" }, () => {
-    if (chrome.runtime.lastError) {
-      console.log("Error setting auto proxy:", chrome.runtime.lastError);
-    } else {
-      console.log("Auto proxy (PAC) enabled");
-      chrome.storage.local.set({ state: { proxy: { mode: 'auto', current: null } } }, () => {
-        updateBadge();
-      });
-    }
+  return new Promise((resolve) => {
+    chrome.proxy.settings.set({ value: pacConfig, scope: "regular" }, () => {
+      if (chrome.runtime.lastError) {
+        console.log("Error setting auto proxy:", chrome.runtime.lastError);
+        resolve({ success: false, error: chrome.runtime.lastError.message || "Failed to apply auto proxy settings" });
+      } else {
+        console.log("Auto proxy (PAC) enabled");
+        chrome.storage.local.set({ state: { proxy: { mode: 'auto', current: null } } }, () => {
+          updateBadge();
+          resolve({ success: true });
+        });
+      }
+    });
   });
 }
 
@@ -1901,14 +1923,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   try {
     if (message.action === "applyProxy") {
-      applyProxySettings(message.proxyInfo);
-      sendResponse({ success: true });
+      applyProxySettings(message.proxyInfo)
+        .then(sendResponse)
+        .catch((error) => {
+          sendResponse({ success: false, error: error.message });
+        });
+      return true;
     } else if (message.action === "refreshProxy") {
-      applyProxySettings();
-      sendResponse({ success: true });
+      applyProxySettings()
+        .then(sendResponse)
+        .catch((error) => {
+          sendResponse({ success: false, error: error.message });
+        });
+      return true;
     } else if (message.action === "turnOffProxy") {
-      turnOffProxy();
-      sendResponse({ success: true });
+      turnOffProxy()
+        .then(() => {
+          sendResponse({ success: true });
+        })
+        .catch((error) => {
+          sendResponse({ success: false, error: error.message });
+        });
+      return true;
     } else if (message.action === "getProxyStatus") {
       chrome.storage.local.get(['state'], (result) => {
         sendResponse({

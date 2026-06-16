@@ -6,15 +6,39 @@ function loadPopupContext() {
   const popupPath = path.join(__dirname, '../../src/js/popup.js');
   const source = fs.readFileSync(popupPath, 'utf8');
 
-  const chainableJquery = {
+  const proxyList = {
     attr: jest.fn().mockReturnThis(),
     html: jest.fn().mockReturnThis(),
     show: jest.fn().mockReturnThis(),
+    hide: jest.fn().mockReturnThis(),
     removeClass: jest.fn().mockReturnThis(),
     addClass: jest.fn().mockReturnThis(),
     text: jest.fn().mockReturnThis(),
     data: jest.fn(),
-    on: jest.fn().mockReturnThis()
+    on: jest.fn().mockReturnThis(),
+    off: jest.fn().mockReturnThis()
+  };
+  const proxyListContainer = {
+    hasClass: jest.fn(() => false)
+  };
+  const proxyItemCards = {
+    removeClass: jest.fn().mockReturnThis()
+  };
+  const statusDisplay = {
+    text: jest.fn().mockReturnThis()
+  };
+  const defaultChainableJquery = {
+    attr: jest.fn().mockReturnThis(),
+    html: jest.fn().mockReturnThis(),
+    show: jest.fn().mockReturnThis(),
+    hide: jest.fn().mockReturnThis(),
+    removeClass: jest.fn().mockReturnThis(),
+    addClass: jest.fn().mockReturnThis(),
+    text: jest.fn().mockReturnThis(),
+    data: jest.fn(),
+    on: jest.fn().mockReturnThis(),
+    off: jest.fn().mockReturnThis(),
+    hasClass: jest.fn(() => false)
   };
 
   const context = {
@@ -51,11 +75,25 @@ function loadPopupContext() {
         query: jest.fn()
       }
     },
-    $: jest.fn(() => chainableJquery)
+    $: jest.fn((selector) => {
+      if (selector === '.proxy-list') return proxyList;
+      if (selector === '.proxy-list-container') return proxyListContainer;
+      if (selector === '.proxy-item-card') return proxyItemCards;
+      if (selector === '#status-display') return statusDisplay;
+      if (selector && typeof selector === 'object') return selector;
+      return defaultChainableJquery;
+    })
   };
 
   vm.createContext(context);
   vm.runInContext(source, context);
+  context.__jqueryMocks = {
+    proxyList,
+    proxyListContainer,
+    proxyItemCards,
+    statusDisplay,
+    defaultChainableJquery
+  };
   return context;
 }
 
@@ -246,5 +284,40 @@ describe('popup scenario switching', () => {
       expect.any(Function)
     );
     expect(config.scenarios.lists[0].proxies[0].bypass_rules).toBe('keep.com');
+  });
+
+  test('does not update popup selection before applyProxy succeeds', () => {
+    const context = loadPopupContext();
+    const info = { name: 'Proxy A', ip: '127.0.0.1', port: '8080' };
+    const clickedItem = {
+      data: jest.fn((key) => (key === 'index' ? 0 : undefined)),
+      addClass: jest.fn().mockReturnThis()
+    };
+    let applyProxyCallback = null;
+
+    context.list = [info];
+    context.list_init = jest.fn();
+    context.updateBypassButton = jest.fn();
+    context.chrome.runtime.sendMessage.mockImplementation((message, callback) => {
+      applyProxyCallback = callback;
+    });
+
+    context.bindListEvents();
+
+    const clickHandler = context.__jqueryMocks.proxyList.on.mock.calls[0][2];
+    clickHandler.call(clickedItem, {});
+
+    expect(context.__jqueryMocks.proxyItemCards.removeClass).not.toHaveBeenCalled();
+    expect(clickedItem.addClass).not.toHaveBeenCalled();
+    expect(context.__jqueryMocks.statusDisplay.text).not.toHaveBeenCalled();
+    expect(context.chrome.storage.local.set).not.toHaveBeenCalled();
+    expect(context.chrome.runtime.sendMessage).toHaveBeenCalledWith(
+      { action: 'applyProxy', proxyInfo: info },
+      expect.any(Function)
+    );
+
+    applyProxyCallback({ success: true });
+
+    expect(context.list_init).toHaveBeenCalled();
   });
 });
