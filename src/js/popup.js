@@ -291,7 +291,12 @@ function switchScenario(id) {
         }
       }
 
-      chrome.storage.local.set({ config: config, state: stateUpdate }, function () {
+      const storagePayload = { config: config };
+      if (stateUpdate) {
+        storagePayload.state = stateUpdate;
+      }
+
+      chrome.storage.local.set(storagePayload, function () {
         if (chrome.runtime.lastError) {
           console.log('Error switching scenario:', chrome.runtime.lastError);
           return;
