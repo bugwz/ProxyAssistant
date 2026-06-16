@@ -7,6 +7,7 @@ const ProxyModule = (function () {
   // Local cache reference to proxy list (direct reference to data in storage)
   let list = [];
   let del_index = -1;
+  let expansionMode = 'auto';
 
   function init() {
     // Load data from storage
@@ -163,6 +164,41 @@ const ProxyModule = (function () {
     saveData();
   }
 
+  function syncExpandCollapseButton() {
+    const $btn = $("#expand-collapse-btn");
+    if (!$btn.length) return;
+
+    if (expansionMode === 'expanded') {
+      $btn.addClass("expanded");
+      $btn.html(`<svg class="icon-collapse" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg> <span data-i18n="collapse_all">${I18n.t('collapse_all')}</span>`);
+      return;
+    }
+
+    $btn.removeClass("expanded");
+    $btn.html(`<svg class="icon-expand" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg> <span data-i18n="expand_all">${I18n.t('expand_all')}</span>`);
+  }
+
+  function updateExpansionModeFromCardStates() {
+    const total = $(".proxy-card").length;
+    const collapsed = $(".proxy-card.collapsed").length;
+
+    if (!total) {
+      expansionMode = 'auto';
+      syncExpandCollapseButton();
+      return;
+    }
+
+    if (collapsed === 0) {
+      expansionMode = 'expanded';
+    } else if (collapsed === total) {
+      expansionMode = 'collapsed';
+    } else {
+      expansionMode = 'auto';
+    }
+
+    syncExpandCollapseButton();
+  }
+
   function renderList() {
     const expansionState = {};
     $(".proxy-card").each(function () {
@@ -197,7 +233,11 @@ const ProxyModule = (function () {
       const previewText = UtilsModule.escapeHtml(rawPreviewText);
 
       let isExpanded = false;
-      if (info.is_new) {
+      if (expansionMode === 'expanded') {
+        isExpanded = true;
+      } else if (expansionMode === 'collapsed') {
+        isExpanded = false;
+      } else if (info.is_new) {
         isExpanded = true;
       } else if (info.name && expansionState[info.name]) {
         isExpanded = true;
@@ -366,6 +406,7 @@ const ProxyModule = (function () {
     bindItemEvents();
 
     updateSubscriptionLinesDisplay();
+    syncExpandCollapseButton();
 
     $(".move-proxy-btn").on("click", function () {
       const index = $(this).data("index");
@@ -464,18 +505,17 @@ const ProxyModule = (function () {
     });
 
     $("#expand-collapse-btn").on("click", function () {
-      const $btn = $(this);
-      const isExpanded = $btn.hasClass("expanded");
+      const isExpanded = expansionMode === 'expanded';
 
       if (isExpanded) {
+        expansionMode = 'collapsed';
         $(".proxy-card").addClass("collapsed");
-        $btn.removeClass("expanded");
-        $btn.html(`<svg class="icon-expand" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg> <span data-i18n="expand_all">${I18n.t('expand_all')}</span>`);
       } else {
+        expansionMode = 'expanded';
         $(".proxy-card").removeClass("collapsed");
-        $btn.addClass("expanded");
-        $btn.html(`<svg class="icon-collapse" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg> <span data-i18n="collapse_all">${I18n.t('collapse_all')}</span>`);
       }
+
+      syncExpandCollapseButton();
     });
   }
 
@@ -534,7 +574,7 @@ const ProxyModule = (function () {
       }
     });
 
-    $(document).on('click', '.subscription-badge[data-type][data-mode]', function (e) {
+    $(document).off('click', '.subscription-badge[data-type][data-mode]').on('click', '.subscription-badge[data-type][data-mode]', function (e) {
       const $badge = $(this);
       const type = $badge.data('type');
       const mode = $badge.data('mode');
@@ -638,6 +678,7 @@ const ProxyModule = (function () {
     $(document).off("click", ".proxy-header").on("click", ".proxy-header", function (e) {
       if ($(e.target).closest('.switch-modern, .action-btn-delete, input').length) return;
       $(this).closest('.proxy-card').toggleClass("collapsed");
+      updateExpansionModeFromCardStates();
     });
   }
 
