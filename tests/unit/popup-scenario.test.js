@@ -97,4 +97,46 @@ describe('popup scenario switching', () => {
     );
     expect(context.chrome.storage.local.set.mock.calls[0][0]).not.toHaveProperty('state');
   });
+
+  test('refreshes PAC when switching scenario in auto mode', () => {
+    const context = loadPopupContext();
+    const existingState = {
+      proxy: {
+        mode: 'auto',
+        current: { name: 'Previous', ip: '127.0.0.1', port: '8080' }
+      }
+    };
+    const config = {
+      scenarios: {
+        current: 'scenario-a',
+        lists: []
+      }
+    };
+
+    context.scenarios = [
+      { id: 'scenario-a', name: 'Scenario A', proxies: [] },
+      { id: 'scenario-b', name: 'Scenario B', proxies: [] }
+    ];
+    context.currentScenarioId = 'scenario-a';
+    context.list = [];
+    context.list_init = jest.fn();
+    context.chrome.storage.local.get.mockImplementation((keys, callback) => {
+      callback({ config, state: existingState });
+    });
+    context.chrome.storage.local.set.mockImplementation((payload, callback) => {
+      callback();
+    });
+    context.chrome.runtime.sendMessage.mockImplementation((message, callback) => {
+      if (callback) {
+        callback({ success: true });
+      }
+    });
+
+    context.switchScenario('scenario-b');
+
+    expect(context.chrome.runtime.sendMessage).toHaveBeenCalledWith(
+      { action: 'refreshProxy' },
+      expect.any(Function)
+    );
+  });
 });
