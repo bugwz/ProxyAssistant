@@ -3,6 +3,7 @@ const path = require('path');
 
 const popupHtmlPath = path.join(__dirname, '../../src/popup.html');
 const jqueryPath = path.join(__dirname, '../../src/js/jquery.js');
+const iconsJsPath = path.join(__dirname, '../../src/js/icons.js');
 const popupJsPath = path.join(__dirname, '../../src/js/popup.js');
 
 function setupPopupDom({ config, state, tabUrl = 'https://example.com/' }) {
@@ -10,8 +11,10 @@ function setupPopupDom({ config, state, tabUrl = 'https://example.com/' }) {
   document.documentElement.innerHTML = fs.readFileSync(popupHtmlPath, 'utf8');
 
   window.eval(fs.readFileSync(jqueryPath, 'utf8'));
+  window.eval(fs.readFileSync(iconsJsPath, 'utf8'));
   global.$ = window.$;
   global.jQuery = window.jQuery;
+  global.MainIcons = window.MainIcons;
 
   global.I18n = {
     init: jest.fn((callback) => callback()),
@@ -90,6 +93,7 @@ describe('popup DOM interactions', () => {
     delete global.I18n;
     delete global.UtilsModule;
     delete global.ConfigModule;
+    delete global.MainIcons;
   });
 
   test('clicking an empty manual scenario clears the browser proxy', () => {
@@ -174,5 +178,35 @@ describe('popup DOM interactions', () => {
 
     expect($('.proxy-item-card.selected')).toHaveLength(1);
     expect($('#status-display').text()).toBe('Subscription Proxy');
+  });
+
+  test('scenario switch button reuses the main page shared icon', () => {
+    const config = {
+      scenarios: {
+        current: 'scenario-a',
+        lists: [
+          {
+            id: 'scenario-a',
+            name: 'Scenario A',
+            proxies: []
+          }
+        ]
+      },
+      system: {
+        theme_mode: 'light'
+      }
+    };
+    const state = {
+      proxy: {
+        mode: 'disabled',
+        current: null
+      }
+    };
+
+    setupPopupDom({ config, state });
+
+    expect($('.scenario-btn').html()).toContain('M12 3 4 7l8 4 8-4-8-4Z');
+    expect($('.scenario-btn').html()).toContain('m4 12 8 4 8-4');
+    expect($('.scenario-btn').html()).toContain('m4 17 8 4 8-4');
   });
 });

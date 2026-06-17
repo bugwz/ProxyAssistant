@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const jqueryPath = path.join(__dirname, '../../src/js/jquery.js');
+const iconsJsPath = path.join(__dirname, '../../src/js/icons.js');
 const mainJsPath = path.join(__dirname, '../../src/js/main.js');
 const scenariosJsPath = path.join(__dirname, '../../src/js/scenarios.js');
 const proxyJsPath = path.join(__dirname, '../../src/js/proxy.js');
@@ -10,6 +11,11 @@ function loadJQuery() {
   window.eval(fs.readFileSync(jqueryPath, 'utf8'));
   global.$ = window.$;
   global.jQuery = window.jQuery;
+}
+
+function loadMainIcons() {
+  window.eval(fs.readFileSync(iconsJsPath, 'utf8'));
+  global.MainIcons = window.MainIcons;
 }
 
 function resetGlobals() {
@@ -28,6 +34,7 @@ function resetGlobals() {
   delete global.ThemeModule;
   delete global.ConfigModule;
   delete global.ValidatorModule;
+  delete global.MainIcons;
   delete global.isFirefox;
   delete global.generateProxyId;
   delete global.onScenarioSwitch;
@@ -179,6 +186,7 @@ describe('main UI state flow', () => {
     resetGlobals();
     setupBaseDom();
     loadJQuery();
+    loadMainIcons();
 
     global.I18n = {
       t: jest.fn((key) => key),
@@ -523,6 +531,9 @@ describe('main UI state flow', () => {
     proxyModule.renderList();
 
     expect($('#expand-collapse-btn').hasClass('expanded')).toBe(true);
+    expect($('#expand-collapse-btn').html()).toContain('icon-collapse');
+    expect($('#expand-collapse-btn').html()).toContain('data-i18n="collapse_all"');
+    expect($('#expand-collapse-btn').html()).toContain('M9 4v5H4');
     expect($('.proxy-card.collapsed')).toHaveLength(0);
   });
 });

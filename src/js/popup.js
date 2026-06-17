@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', function () {
 function initApp() {
   const currentVersion = chrome.runtime.getManifest().version;
   $('#version-display').text('v' + currentVersion);
+  renderScenarioButtonIcon();
 
   chrome.storage.local.get(['config', 'state'], function (result) {
     if (chrome.runtime.lastError) {
@@ -65,6 +66,14 @@ function initApp() {
   });
 
   bindGlobalEvents();
+}
+
+function renderScenarioButtonIcon() {
+  if (typeof MainIcons === 'undefined' || typeof MainIcons.render !== 'function') {
+    return;
+  }
+
+  $('.scenario-btn').html(MainIcons.render('scenarioSwitch'));
 }
 
 function isSelectableProxy(proxy) {

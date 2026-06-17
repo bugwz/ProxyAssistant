@@ -972,13 +972,23 @@ input:checked+.slider-modern:before {
   color: #93c5fd;
 }
 
-.iconfont {
-  width: 0;
-  height: 0;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-top: 5px solid #64748b;
+.select-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-left: 8px;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .select-icon {
+  color: #94a3b8;
+}
+
+.select-icon svg,
+.select-icon {
+  width: 14px;
+  height: 14px;
 }
 
 /* URL Config Section */
@@ -3395,32 +3405,13 @@ input:checked+.slider-modern:before {
   background-color: #22c55e;
 }
 
-.save-success-toast .icon::before {
-  content: '✓';
-}
-
 .save-success-toast.processing .icon {
   background-color: #ffffff;
-}
-
-.save-success-toast.processing .icon::before {
-  content: '';
-}
-
-.save-success-toast.processing .icon svg circle {
-  fill: #ffffff;
-}
-
-.save-success-toast.processing .icon svg path {
-  fill: #3b82f6;
+  color: #3b82f6;
 }
 
 .save-success-toast.error .icon {
   background-color: #ef4444;
-}
-
-.save-success-toast.error .icon::before {
-  content: '✗';
 }
 
 /* Eye Icon Toggle */
@@ -3431,26 +3422,26 @@ input:checked+.slider-modern:before {
   position: absolute;
   right: 8px;
   cursor: pointer;
-  font-size: 20px;
+  font-size: 16px;
   user-select: none;
-  fill: #a5a5b0;
-  width: 30px;
-  height: 30px;
+  color: #a5a5b0;
+  width: 26px;
+  height: 26px;
 }
 
 .eye-toggle .eye-icon {
   position: absolute;
   animation: keyframes-fill .5s;
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   display: none;
 }
 
 .eye-toggle .eye-slash-icon {
   position: absolute;
   animation: keyframes-fill .5s;
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   display: none;
 }
 
@@ -3482,7 +3473,7 @@ input:checked+.slider-modern:before {
 }
 
 .eye-toggle:hover {
-  fill: #4164f5;
+  color: #4164f5;
 }
 
 /* Expand/Collapse Icon */
