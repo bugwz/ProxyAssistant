@@ -170,12 +170,12 @@ const ProxyModule = (function () {
 
     if (expansionMode === 'expanded') {
       $btn.addClass("expanded");
-      $btn.html(`<svg class="icon-collapse" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg> <span data-i18n="collapse_all">${I18n.t('collapse_all')}</span>`);
+      $btn.html(`${MainIcons.render('collapse', { width: 16, height: 16, className: 'icon-collapse' })} <span data-i18n="collapse_all">${I18n.t('collapse_all')}</span>`);
       return;
     }
 
     $btn.removeClass("expanded");
-    $btn.html(`<svg class="icon-expand" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg> <span data-i18n="expand_all">${I18n.t('expand_all')}</span>`);
+    $btn.html(`${MainIcons.render('expand', { width: 16, height: 16, className: 'icon-expand' })} <span data-i18n="expand_all">${I18n.t('expand_all')}</span>`);
   }
 
   function updateExpansionModeFromCardStates() {
@@ -263,7 +263,7 @@ const ProxyModule = (function () {
         <div class="proxy-header" data-index="${i}">
             <div class="header-left">
                 <div class="drag-handle" title="${I18n.t('drag_sort')}">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"></path></svg>
+                    ${MainIcons.render('dragHandle', { width: 20, height: 20 })}
                 </div>
                 <span class="proxy-index">#${i + 1}</span>
                 <div class="proxy-type-badge ${protocolClass}">${displayProtocol}</div>
@@ -294,7 +294,7 @@ const ProxyModule = (function () {
                             <div class="lh-select" data-type="protocol" tabindex="${i * 100 + 2}">
                                 <div class="lh-select-k">
                                     <span class="lh-select-value" data-index="${i}">${displayProtocol}</span>
-                                    <span class="iconfont"></span>
+                                    ${MainIcons.render('chevronDown', { width: 14, height: 14, className: 'select-icon' })}
                                 </div>
                                 <ul class="lh-select-op">
                                     <li data-value="HTTP">HTTP</li>
@@ -307,7 +307,7 @@ const ProxyModule = (function () {
                             <label>
                                 ${I18n.t('username_optional')}
                                 <span class="info-icon" data-tooltip="${I18n.t('socks5_auth_not_supported')}">
-                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                                    ${MainIcons.render('info', { width: 14, height: 14 })}
                                 </span>
                             </label>
                             <input data-index="${i}" class="username" type="text" placeholder="${I18n.t('username_placeholder')}" value="${UtilsModule.escapeHtml(info.username)}" tabindex="${i * 100 + 5}" ${disabledAttr}>
@@ -316,15 +316,15 @@ const ProxyModule = (function () {
                             <label>
                                 ${I18n.t('password_optional')}
                                 <span class="info-icon" data-tooltip="${I18n.t('socks5_auth_not_supported')}">
-                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                                    ${MainIcons.render('info', { width: 14, height: 14 })}
                                 </span>
                             </label>
                             <div style="position: relative; display: flex; align-items: center; width: 100%;">
                                 <input data-index="${i}" class="password" type="${info.show_password ? "text" : "password"}" placeholder="${I18n.t('password_placeholder')}" value="${UtilsModule.escapeHtml(info.password)}" style="padding-right: 35px; width: 100%;" tabindex="${i * 100 + 6}" ${disabledAttr}>
                                 <label class="container eye-toggle ${info.show_password ? 'show-password' : 'hide-password'}" data-index="${i}" style="position: absolute; right: 8px; margin: 0; cursor: pointer;">
                                     <input type="checkbox" ${info.show_password ? "checked" : ""}>
-                                    <svg class="eye" xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 576 512"><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM144 256a144 144 0 1 1 288 0 144 144 0 1 1 -288 0zm144-64c0 35.3-28.7 64-64 64c-7.1 0-13.9-1.2-20.3-3.3c-5.5-1.8-11.9 1.6-11.7 7.4c.3 6.9 1.3 13.8 3.2 20.7c13.7 51.2 66.4 81.6 117.6 67.9s81.6-66.4 67.9-117.6c-11.1-41.5-47.8-69.4-88.6-71.1c-5.8-.2-9.2 6.1-7.4 11.7c2.1 6.4 3.3 13.2 3.3 20.3c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zM373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5L373 389.9z"></path></svg>
-                                    <svg class="eye-slash" xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 640 512"><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c8.4-19.3 10.6-41.4 4.8-63.3c-11.1-41.5-47.8-69.4-88.6-71.1c-5.8-.2-9.2 6.1-7.4 11.7c2.1 6.4 3.3 13.2 3.3 20.3c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zM373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5L373 389.9z"></path></svg>
+                                    ${MainIcons.render('eye', { width: 20, height: 20, className: 'eye-icon' })}
+                                    ${MainIcons.render('eyeOff', { width: 20, height: 20, className: 'eye-slash-icon' })}
                                 </label>
                             </div>
                         </div>
@@ -344,7 +344,7 @@ const ProxyModule = (function () {
                             <div class="lh-select" data-type="fallback" tabindex="${i * 100 + 7}">
                                 <div class="lh-select-k">
                                     <span class="lh-select-value" data-index="${i}">${displayFallback}</span>
-                                    <span class="iconfont"></span>
+                                    ${MainIcons.render('chevronDown', { width: 14, height: 14, className: 'select-icon' })}
                                 </div>
                                 <ul class="lh-select-op">
                                     <li data-value="direct">${I18n.t('fallback_direct')}</li>
@@ -357,7 +357,7 @@ const ProxyModule = (function () {
                      <div class="url-config-section">
                           <div class="form-item">
                               <div class="url-config-header">
-                                   <label>${I18n.t('bypass_rules')}<span class="info-icon" data-i18n-tooltip="bypass_rules_tooltip" data-tooltip="${I18n.t('bypass_rules_tooltip')}"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></span></label>
+                                   <label>${I18n.t('bypass_rules')}<span class="info-icon" data-i18n-tooltip="bypass_rules_tooltip" data-tooltip="${I18n.t('bypass_rules_tooltip')}">${MainIcons.render('info', { width: 14, height: 14 })}</span></label>
                                   <div class="url-config-actions">
                                       ${subscriptionBadgeBypass}
                                   </div>
@@ -367,7 +367,7 @@ const ProxyModule = (function () {
                           </div>
                           <div class="form-item">
                               <div class="url-config-header">
-                                   <label>${I18n.t('include_rules')}<span class="info-icon" data-i18n-tooltip="include_rules_tooltip" data-tooltip="${I18n.t('include_rules_tooltip')}"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></span></label>
+                                   <label>${I18n.t('include_rules')}<span class="info-icon" data-i18n-tooltip="include_rules_tooltip" data-tooltip="${I18n.t('include_rules_tooltip')}">${MainIcons.render('info', { width: 14, height: 14 })}</span></label>
                                   <div class="url-config-actions">
                                       ${subscriptionBadgeInclude}
                                   </div>

@@ -3,11 +3,11 @@
 // ==========================================
 
 const versionIcons = {
-  loading: '<svg class="spin" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>',
-  success: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
-  update: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
-  error: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
-  link: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>'
+  loading: MainIcons.render('loading', { width: 16, height: 16, className: 'spin' }),
+  success: MainIcons.render('successCircle', { width: 16, height: 16, style: 'color:#22c55e' }),
+  update: MainIcons.render('syncPull', { width: 16, height: 16, style: 'color:#f97316' }),
+  error: MainIcons.render('errorCircle', { width: 16, height: 16, style: 'color:#ef4444' }),
+  link: MainIcons.render('externalLink', { width: 16, height: 16 })
 };
 
 async function showVersionCheck() {
@@ -141,11 +141,7 @@ async function checkGitHubVersion(currentVersion) {
     await fetchWithRetry();
   } catch (e) {
     console.info("GitHub version check failed after retries:", e);
-    const refreshBtn = `<button class="version-row-retry-btn github-refresh-btn" data-source="github">
-      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-      </svg>
-    </button>`;
+    const refreshBtn = `<button class="version-row-retry-btn github-refresh-btn" data-source="github">${MainIcons.render('refresh', { width: 14, height: 14 })}</button>`;
     const errorHtml = `<span class="version-status-icon">${versionIcons.error}</span>
       <span style="color: #ef4444; font-size: 12px;">${I18n.t('version_error') || 'Failed'}</span>`;
     $el.html(errorHtml + refreshBtn);
@@ -168,11 +164,7 @@ function updateVersionUI($el, remoteVersion, currentVersion, url) {
 
   $el.html(html);
 
-  const refreshBtn = `<button class="version-row-retry-btn github-refresh-btn" data-source="github">
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-    </svg>
-  </button>`;
+  const refreshBtn = `<button class="version-row-retry-btn github-refresh-btn" data-source="github">${MainIcons.render('refresh', { width: 14, height: 14 })}</button>`;
   $el.append(refreshBtn);
 }
 

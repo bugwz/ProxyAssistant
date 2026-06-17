@@ -14,7 +14,7 @@ function showTip(msg, isError) {
   var $tip = $(".save-success-toast");
   $tip.removeClass("error processing");
   if (isError) $tip.addClass("error");
-  $tip.find('.icon').html('');
+  $tip.find('.icon').html(isError ? MainIcons.render('close', { width: 12, height: 12 }) : MainIcons.render('check', { width: 12, height: 12 }));
   $tip.find('.message').text(msg);
   $tip.stop(true, true).fadeIn("slow").delay(1000).fadeOut("slow");
 }
@@ -23,7 +23,7 @@ function showProcessingTip(msg) {
   console.log("Show Processing Tip:", msg);
   var $tip = $(".save-success-toast");
   $tip.removeClass("error").addClass("processing");
-  $tip.find('.icon').html('<svg class="spin" viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="10" fill="#22c55e"/><path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8z" fill="#3b82f6"/></svg>');
+  $tip.find('.icon').html(MainIcons.render('loading', { width: 16, height: 16, className: 'spin' }));
   $tip.find('.message').text(msg);
   $tip.stop(true, true).show();
 }

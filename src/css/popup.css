@@ -155,6 +155,7 @@ body {
 .header-filter-btn svg {
   height: 16px;
   fill: white;
+  stroke: white;
 }
 
 .header-filter-btn:hover {
