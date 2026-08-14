@@ -37,6 +37,7 @@ jobs:
           
           # Use Chrome manifest
           cp src-chrome/manifest_chrome.json src-chrome/manifest.json
+          node script/prepare_chrome_manifest.js src-chrome/manifest.json
           
           # Remove extra manifest files (we use unified worker.js)
           rm src-chrome/manifest_chrome.json src-chrome/manifest_firefox.json
