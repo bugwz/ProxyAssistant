@@ -127,6 +127,44 @@ const StorageModule = (function () {
     configCache = newConfig;
   }
 
+  function stripSubscriptions(config) {
+    if (!config) return config;
+
+    const copy = JSON.parse(JSON.stringify(config));
+    const scenarios = copy.scenarios?.lists || [];
+    scenarios.forEach(scenario => {
+      (scenario.proxies || []).forEach(proxy => {
+        delete proxy.subscription;
+      });
+    });
+    return copy;
+  }
+
+  function isSubscriptionOnlyChange(oldConfig, newConfig) {
+    if (!oldConfig || !newConfig) return false;
+    return JSON.stringify(stripSubscriptions(oldConfig)) === JSON.stringify(stripSubscriptions(newConfig));
+  }
+
+  function mergeSubscriptionChanges(newConfig) {
+    if (!configCache || !newConfig) return;
+
+    const incomingProxies = new Map();
+    (newConfig.scenarios?.lists || []).forEach(scenario => {
+      (scenario.proxies || []).forEach(proxy => {
+        if (proxy.id) incomingProxies.set(proxy.id, proxy);
+      });
+    });
+
+    (configCache.scenarios?.lists || []).forEach(scenario => {
+      (scenario.proxies || []).forEach(proxy => {
+        const incomingProxy = proxy.id ? incomingProxies.get(proxy.id) : null;
+        if (incomingProxy) {
+          proxy.subscription = incomingProxy.subscription;
+        }
+      });
+    });
+  }
+
   // ==========================================
   // Scenarios Operations
   // ==========================================
@@ -307,6 +345,8 @@ const StorageModule = (function () {
     save,
     getConfig,
     setConfig,
+    isSubscriptionOnlyChange,
+    mergeSubscriptionChanges,
     getScenarios,
     getCurrentScenarioId,
     setCurrentScenarioId,

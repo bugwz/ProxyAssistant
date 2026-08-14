@@ -248,6 +248,12 @@ function initDropdowns() {
   // Listen for storage changes
   chrome.storage.onChanged.addListener(function (changes, namespace) {
     if (namespace === 'local' && changes.config) {
+      if (StorageModule.isSubscriptionOnlyChange(changes.config.oldValue, changes.config.newValue)) {
+        StorageModule.mergeSubscriptionChanges(changes.config.newValue);
+        ProxyModule.updateSubscriptionLinesDisplay();
+        return;
+      }
+
       StorageModule.reload().then(() => {
         refreshMainView();
       });
