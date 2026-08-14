@@ -1453,7 +1453,7 @@ function generatePacScript(list) {
 
     // Determine fallback behavior based on fallback_policy
     const fallback = proxy.fallback_policy === "reject" ? "" : "; DIRECT";
-    const returnVal = `"${proxyStr}${fallback}"`;
+    const returnVal = JSON.stringify(proxyStr + fallback);
 
     // Only process include_rules, ignore bypass_rules in auto mode
     const allIncludeUrls = [];
@@ -1486,7 +1486,7 @@ function generatePacScript(list) {
           const flags = potentialFlags;
           try {
             new RegExp(regexContent, flags); // validate before embedding
-            script += `  if (/${regexContent}/${flags}.test(host)) return ${returnVal};\n`;
+            script += `  if (new RegExp(${JSON.stringify(regexContent)}, ${JSON.stringify(flags)}).test(url)) return ${returnVal};\n`;
           } catch (e) {
             console.warn('Invalid regex pattern skipped in PAC generation:', pattern);
           }
@@ -1494,22 +1494,20 @@ function generatePacScript(list) {
         }
       }
       if (pattern.includes('*')) {
-        const regexPattern = pattern
-          .replace(/[+?^${}()|[\]\\]/g, '\\$&')
-          .replace(/\./g, '\\.')
-          .replace(/\*/g, '.*');
-        script += `  if (/${regexPattern}/.test(host)) return ${returnVal};\n`;
+        const matchTarget = pattern.includes('/') ? 'url' : 'host';
+        script += `  if (shExpMatch(${matchTarget}, ${JSON.stringify(pattern)})) return ${returnVal};\n`;
       } else if (isIpPattern(pattern)) {
         // IP address or CIDR range
         if (pattern.includes('/')) {
           // CIDR format: 192.168.1.0/24
-          script += `  if (isInCidrRange(host, "${pattern}")) return ${returnVal};\n`;
+          script += `  if (isInCidrRange(host, ${JSON.stringify(pattern)})) return ${returnVal};\n`;
         } else {
           // Single IP address
-          script += `  if (host === "${pattern}") return ${returnVal};\n`;
+          script += `  if (host === ${JSON.stringify(pattern)}) return ${returnVal};\n`;
         }
       } else {
-        script += `  if (dnsDomainIs(host, "${pattern}") || host === "${pattern}") return ${returnVal};\n`;
+        const domainPattern = JSON.stringify(pattern);
+        script += `  if (dnsDomainIs(host, ${domainPattern}) || host === ${domainPattern}) return ${returnVal};\n`;
       }
     }
   }
