@@ -3,7 +3,7 @@ name: release
 description: 自动化处理项目版本发布流程，包括收集版本号、提取变更日志、生成 Release Notes、更新版本、提交、创建并推送 Git 标签，以及使用对应版本日志更新 GitHub Release 描述。用户要求发版、发布新版本、创建发布标签或更新 Release 描述时使用。
 ---
 
-## What I do
+## 功能说明
 
 自动化处理项目版本发布流程：
 
@@ -11,14 +11,14 @@ description: 自动化处理项目版本发布流程，包括收集版本号、�
 2. **获取变更记录** - 提取自上次标签以来的所有 Git 提交
 3. **智能分类** - 将变更归类为：特性、问题修复、其他
 4. **翻译总结** - 将英文 commit message 转化为中文描述
-5. **生成 Release Notes** - 在 release/ 目录创建版本日志文件
+5. **生成发布说明** - 在 `release/` 目录创建版本日志文件
 6. **更新版本号** - 更新 manifest、package.json 和 package-lock.json 中的版本号
 7. **提交代码** - **必须经用户确认后才能提交本地变更**
 8. **创建标签** - **必须经用户确认后才能创建 Git 标签**
 9. **发布到远端** - **必须经用户确认后才能推送分支与标签**
 10. **更新 Release 描述** - 使用 `release/{VERSION}.md` 更新并校验对应 GitHub Release
 
-## Critical Rules (必须严格遵守)
+## 关键规则（必须严格遵守）
 
 ### 绝对禁止自动操作
 - **禁止在未获得用户明确确认前执行任何 git commit 命令**
@@ -31,17 +31,19 @@ description: 自动化处理项目版本发布流程，包括收集版本号、�
 1. 展示完整的操作信息
 2. 明确列出所有将被修改的文件
 3. 明确询问用户是否确认执行
-4. **必须等待用户明确回复**（回复必须是 "yes"、"y"、"confirm" 等明确表示同意的词汇）
+4. **必须等待用户明确回复**（优先引导用户回复“确认”或“取消”，同时兼容 `yes`、`y`、`confirm`、`no`、`n`、`cancel`）
 5. 只有在用户明确确认后才能执行 git commit、git tag 和 git push 命令
-6. 如果用户未回复、回复不明确、或回复 "no"，必须取消操作
+6. 如果用户未回复、回复不明确或明确回复“取消”，必须取消操作
+7. 有效确认词包括“确认”、“是”、“提交”、“发布”；兼容 `yes`、`y`、`confirm`
+8. 拒绝词包括“取消”、“否”；兼容 `no`、`n`、`cancel`
 
 ### 错误处理
-- 如果用户回复不明确（如 "ok"、"sure"、"I think so" 等），必须再次询问直到获得明确回复
-- 如果用户拒绝或未确认，回复用户说明操作已取消，并不执行任何 git 操作
+- 如果用户回复不明确，必须回复：“您的回复不明确。请回复‘确认’继续，或回复‘取消’终止。”
+- 如果用户拒绝或未确认，使用中文说明操作已取消，并不执行任何 Git 操作
 
-## When to use me
+## 适用场景
 
-当用户要求执行发布操作时使用此技能。会自动分析变更内容并生成规范的 Release Notes。
+当用户要求执行发布操作时使用此技能。自动分析变更内容并生成规范的发布说明。
 
 ## 操作流程
 
@@ -62,15 +64,15 @@ description: 自动化处理项目版本发布流程，包括收集版本号、�
 
 根据前缀和语义将变更归类：
 
-- **特性 (Features)**
+- **特性 (`Feat:`)**
   - 前缀：`Feat:`
   - 语义：新增功能、添加文件、主要逻辑变更
 
-- **问题修复 (Bug Fixes)**
+- **问题修复 (`Fix:`)**
   - 前缀：`Fix:`
   - 语义：修复错误、解决崩溃
 
-- **其他变更 (Other Changes)**
+- **其他变更**
   - 前缀：`Chore:`、`Refactor:`、`Docs:`、`Style:`、`Test:` 等
   - 语义：文档更新、格式调整、依赖升级、重构、测试、代码优化
 
@@ -84,7 +86,7 @@ description: 自动化处理项目版本发布流程，包括收集版本号、�
 6. 确保文件名与无 `v` 前缀的版本号完全一致
 7. 文件内保留历史格式的 `# {VERSION} Release Notes` 标题；写入 GitHub Release 描述时必须移除首个 H1 标题和后续前导空行，避免与 Release 页面标题重复
 
-**Release Notes 文件格式示例：**
+**发布说明文件格式示例：**
 
 ```markdown
 # 1.0.0 Release Notes
@@ -120,26 +122,29 @@ description: 自动化处理项目版本发布流程，包括收集版本号、�
 
 **警告：此阶段是强制性的，任何跳过此阶段直接提交的行为都是严重错误。**
 
-1. 展示将被提交的文件列表
+1. 将完整提交信息单独放入 `text` 代码块，再展示将被提交的文件列表
 2. 征求用户明确确认
-3. **必须等待用户明确回复**（如 "yes"、"y"、"confirm" 等）
+3. **必须等待用户明确回复**（优先使用“确认”）
 4. 如果用户明确同意提交，执行 `git add . && git commit -m "Release {VERSION}"`
 5. 如果用户拒绝或未明确确认，**禁止提交**，并告知用户提交已取消
 
 **确认提示格式：**
 
+````markdown
+=== 需要确认发布提交 ===
+
+本操作将提交以下文件：
+- [文件 1]
+- [文件 2]
+- [文件 3]
+
+提交信息：
+```text
+Release {VERSION}
 ```
-=== Commit Confirmation Required ===
 
-This operation will commit the following files:
-- [File 1]
-- [File 2]
-- [File 3]
-
-Commit message: Release {VERSION}
-
-Do you confirm this commit? Please reply with "yes" to confirm or "no" to cancel.
-```
+确认创建发布提交吗？请回复“确认”继续，或回复“取消”终止。
+````
 
 ### 阶段六：Git 标记（必须确认）
 
@@ -147,18 +152,18 @@ Do you confirm this commit? Please reply with "yes" to confirm or "no" to cancel
 
 1. 展示将执行的操作
 2. 征求用户明确确认
-3. **必须等待用户明确回复**（如 "yes"、"y"、"confirm" 等）
+3. **必须等待用户明确回复**（优先使用“确认”）
 4. 如果用户明确确认，执行 `git tag {VERSION}` 创建标签
 5. 如果用户拒绝或未明确确认，**禁止打标签**，并告知用户操作已取消
 
 **确认提示格式：**
 
 ```
-=== Tag Confirmation Required ===
+=== 需要确认创建标签 ===
 
-This operation will create a git tag: {VERSION}
+本操作将创建 Git 标签：{VERSION}
 
-Do you confirm this tag creation? Please reply with "yes" to confirm or "no" to cancel.
+确认创建该标签吗？请回复“确认”继续，或回复“取消”终止。
 ```
 
 ### 阶段七：推送并发布到 GitHub（必须确认）
@@ -166,7 +171,7 @@ Do you confirm this tag creation? Please reply with "yes" to confirm or "no" to 
 **警告：推送分支、标签和修改 GitHub Release 都会改变远端状态，必须先获得明确确认。**
 
 1. 确认 `release/{VERSION}.md` 已存在且内容完整
-2. 展示当前分支、待推送标签、Release Notes 路径和远端仓库
+2. 展示当前分支、待推送标签、发布说明路径和远端仓库
 3. 征求用户明确确认
 4. 用户确认后执行 `git push origin {CURRENT_BRANCH} {VERSION}`
 5. 等待标签触发的 GitHub Release 工作流完成；若失败，报告失败原因并停止
@@ -182,17 +187,17 @@ awk 'NR == 1 && /^# / { next } NF { started = 1 } started { print }' release/{VE
 **确认提示格式：**
 
 ```
-=== Publish Confirmation Required ===
+=== 需要确认发布到远端 ===
 
-This operation will push:
-- Branch: {CURRENT_BRANCH}
-- Tag: {VERSION}
-- Release notes: release/{VERSION}.md
-- Remote: origin
+本操作将推送以下内容：
+- 分支：{CURRENT_BRANCH}
+- 标签：{VERSION}
+- 发布说明：release/{VERSION}.md
+- 远端仓库：origin
 
-The GitHub Release description will be updated from release/{VERSION}.md.
+GitHub Release 描述将使用 `release/{VERSION}.md` 更新，并移除重复的 H1 标题。
 
-Do you confirm this publish? Please reply with "yes" to confirm or "no" to cancel.
+确认发布吗？请回复“确认”继续，或回复“取消”终止。
 ```
 
 ## 注意事项
@@ -207,13 +212,14 @@ Do you confirm this publish? Please reply with "yes" to confirm or "no" to cance
 - **【绝对禁止】在用户未明确确认前执行任何 git tag 命令**
 - **【绝对禁止】在用户未明确确认前执行任何 git push 命令**
 - 版本号不使用 v 前缀
-- Commit message 必须翻译为中文描述
+- 发布说明中的英文提交信息必须转化为中文描述
+- 发布提交确认中的完整提交信息必须使用独立的 `text` 代码块展示
 - 所有变更内容必须为中文
-- 不要直接使用原始 commit message，需进行语义总结
+- 不要在发布说明中直接使用原始提交信息，需进行语义总结
 - 每次发版必须更新 `src/manifest_chrome.json`、`src/manifest_firefox.json` 中的版本号
 - 每次发版必须更新 `package.json`、`package-lock.json` 中的版本号
 - 每次发版必须使用 `release/{VERSION}.md` 生成对应 GitHub Release 的描述，并移除文件首个 H1 标题及前导空行
-- 如果某项没有匹配的变动，在 Release Notes 中设置一个为空的列表（如：`- 无`）
+- 如果某项没有匹配的变动，在发布说明中设置一个空列表项（如：`- 无`）
 
 ### 错误处理
 - 如果用户回复不明确，必须反复询问直到获得明确回复
