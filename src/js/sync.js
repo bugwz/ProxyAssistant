@@ -154,12 +154,12 @@ async function nativePush(data) {
     toWrite['data.' + index] = chunk;
   });
 
-  await new Promise((resolve, reject) => {
-    chrome.storage.sync.clear(function () {
+  const existingItems = await new Promise((resolve, reject) => {
+    chrome.storage.sync.get(null, function (items) {
       if (chrome.runtime.lastError) {
-        reject(new Error('Clear failed: ' + chrome.runtime.lastError.message));
+        reject(new Error('Read existing data failed: ' + chrome.runtime.lastError.message));
       } else {
-        resolve();
+        resolve(items || {});
       }
     });
   });
@@ -173,6 +173,21 @@ async function nativePush(data) {
       }
     });
   });
+
+  const staleChunkKeys = Object.keys(existingItems).filter(key => {
+    return /^data\.\d+$/.test(key) && !Object.prototype.hasOwnProperty.call(toWrite, key);
+  });
+
+  if (staleChunkKeys.length > 0) {
+    await new Promise((resolve) => {
+      chrome.storage.sync.remove(staleChunkKeys, function () {
+        if (chrome.runtime.lastError) {
+          console.info('Stale sync chunk cleanup failed:', chrome.runtime.lastError.message);
+        }
+        resolve();
+      });
+    });
+  }
 
   return {
     chunks: chunks.length,
