@@ -198,7 +198,12 @@ describe('main UI state flow', () => {
       showTip: jest.fn(),
       showProcessingTip: jest.fn(),
       cleanProtocol: jest.fn((value) => String(value).toLowerCase()),
-      escapeHtml: jest.fn((value) => String(value))
+      escapeHtml: jest.fn((value) => String(value)),
+      normalizeProxyColor: jest.fn((value) => {
+        if (typeof value !== 'string') return '';
+        const normalized = value.trim().toUpperCase();
+        return /^#[0-9A-F]{6}$/.test(normalized) ? normalized : '';
+      })
     };
     global.SyncModule = {
       setSyncConfig: jest.fn(),
@@ -472,7 +477,8 @@ describe('main UI state flow', () => {
         password: '',
         bypass_rules: 'localhost',
         include_rules: 'example.com',
-        fallback_policy: 'direct'
+        fallback_policy: 'direct',
+        color: '#ff0000'
       }
     ];
 
@@ -526,6 +532,30 @@ describe('main UI state flow', () => {
 
     proxyModule.init();
     proxyModule.renderList();
+
+    expect($('.proxy-index').hasClass('has-proxy-color')).toBe(true);
+    expect($('.proxy-index').css('--proxy-color')).toBe('#FF0000');
+    expect($('.proxy-color-input').val()).toBe('#FF0000');
+
+    $('.proxy-color-input').val('#00aaee').trigger('input');
+    expect($('.proxy-color-input').val()).toBe('#00AAEE');
+    expect(proxies[0].color).toBe('#00AAEE');
+
+    $('.proxy-color-input').val('00AAEE').trigger('blur');
+    expect($('.proxy-color-input').hasClass('input-error')).toBe(true);
+    expect(proxies[0].color).toBe('#00AAEE');
+
+    $('.item-save-btn').trigger('click');
+    expect(global.StorageModule.save).not.toHaveBeenCalled();
+    expect(global.UtilsModule.showTip).toHaveBeenCalledWith(
+      'save_failedproxy_color_invalid',
+      true
+    );
+
+    $('.proxy-color-option[data-value="#8B5CF6"]').trigger('click');
+    expect($('.proxy-color-input').val()).toBe('#8B5CF6');
+    expect($('.proxy-color-input').hasClass('input-error')).toBe(false);
+    expect(proxies[0].color).toBe('#8B5CF6');
 
     $('#expand-collapse-btn').trigger('click');
     proxyModule.renderList();

@@ -6,6 +6,15 @@ let currentScenarioId = null;
 let list = [];
 let themeMode = 'light';
 
+function getProxyDisplayColor(color) {
+  if (typeof UtilsModule !== 'undefined' && typeof UtilsModule.normalizeProxyColor === 'function') {
+    return UtilsModule.normalizeProxyColor(color);
+  }
+  if (typeof color !== 'string') return '';
+  const normalized = color.trim().toUpperCase();
+  return /^#[0-9A-F]{6}$/.test(normalized) ? normalized : '';
+}
+
 document.addEventListener('DOMContentLoaded', function () {
   I18n.init(function () {
     // Initialize theme mode first
@@ -572,8 +581,11 @@ function list_init() {
           const protocolClass = (info.protocol || "HTTP").toLowerCase();
           const displayProtocol = (info.protocol || "HTTP").toUpperCase();
           const hasAuth = info.username || info.password;
+          const proxyColor = getProxyDisplayColor(info.color);
+          const colorClass = proxyColor ? " has-proxy-color" : "";
+          const colorStyle = proxyColor ? ` style="--proxy-color:${proxyColor}"` : "";
 
-          html += `<div class="proxy-item-card ${selectedClass}" data-index="${i}">
+          html += `<div class="proxy-item-card ${selectedClass}${colorClass}" data-index="${i}"${colorStyle}>
               <div style="flex: 1; overflow: hidden; pointer-events: none;">
                 <div class="proxy-name">${UtilsModule.escapeHtml(info.name || I18n.t('unnamed_proxy'))}</div>
                 <div class="proxy-details">

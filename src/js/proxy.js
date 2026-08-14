@@ -8,6 +8,10 @@ const ProxyModule = (function () {
   let list = [];
   let del_index = -1;
   let expansionMode = 'auto';
+  const PROXY_COLOR_PRESETS = [
+    '#FF0000', '#FF8C00', '#FFD700', '#00B050',
+    '#00AEEF', '#4164F5', '#8B5CF6', '#EC4899'
+  ];
 
   function init() {
     // Load data from storage
@@ -88,6 +92,65 @@ const ProxyModule = (function () {
     }
   }
 
+  function getProxyColor(color) {
+    return UtilsModule.normalizeProxyColor(color);
+  }
+
+  function renderProxyColorOptions(selectedColor) {
+    const noneClass = selectedColor ? '' : ' selected-option';
+    let html = `<li class="proxy-color-option${noneClass}" data-value="">
+      <span class="proxy-color-swatch no-color"></span>
+      <span>${I18n.t('proxy_color_none')}</span>
+    </li>`;
+
+    PROXY_COLOR_PRESETS.forEach(color => {
+      const selectedClass = color === selectedColor ? ' selected-option' : '';
+      html += `<li class="proxy-color-option${selectedClass}" data-value="${color}">
+        <span class="proxy-color-swatch" style="background-color:${color}"></span>
+        <span>${color}</span>
+      </li>`;
+    });
+
+    return html;
+  }
+
+  function updateProxyColorUI(index, color) {
+    const normalized = getProxyColor(color);
+    const $card = $(`.proxy-card[data-id="${index}"]`);
+    const $index = $card.find('.proxy-index');
+    const $preview = $card.find('.proxy-color-preview');
+
+    $index.toggleClass('has-proxy-color', Boolean(normalized));
+    $preview.toggleClass('has-color', Boolean(normalized));
+
+    if (normalized) {
+      $index.css('--proxy-color', normalized);
+      $preview.css('background-color', normalized);
+    } else {
+      if ($index[0]) $index[0].style.removeProperty('--proxy-color');
+      if ($preview[0]) $preview[0].style.removeProperty('background-color');
+    }
+
+    $card.find('.proxy-color-option').removeClass('selected-option')
+      .filter(`[data-value="${normalized}"]`).addClass('selected-option');
+  }
+
+  function setProxyColor(index, value, $input) {
+    const rawValue = typeof value === 'string' ? value.trim().toUpperCase() : '';
+    const normalized = getProxyColor(rawValue);
+    const isValid = rawValue === '' || Boolean(normalized);
+
+    if ($input && $input.length) {
+      $input.val(rawValue).toggleClass('input-error', !isValid);
+    }
+
+    if (!isValid || !list[index]) return false;
+
+    list[index].color = normalized;
+    updateProxyColorUI(index, normalized);
+    return true;
+  }
+
   function saveData(options) {
     options = options || {};
 
@@ -140,13 +203,20 @@ const ProxyModule = (function () {
     if (includeUrlsCheck.hasConflict) { isIncludeUrlsValid = false; includeUrlsErrorMsg = includeUrlsCheck.error; }
 
     var $item = $(`.proxy-card[data-id="${i}"]`);
+    var $colorInput = $item.find('.proxy-color-input');
+    var rawColor = $colorInput.length ? $colorInput.val().trim().toUpperCase() : (info.color || '');
+    var normalizedColor = getProxyColor(rawColor);
+    var isColorValid = rawColor === '' || Boolean(normalizedColor);
+
+    if (isColorValid) info.color = normalizedColor;
 
     if (isNameValid) $item.find('.name').removeClass('input-error'); else $item.find('.name').addClass('input-error');
     if (isIpValid) $item.find('.ip').removeClass('input-error'); else $item.find('.ip').addClass('input-error');
     if (isPortValid) $item.find('.port').removeClass('input-error'); else $item.find('.port').addClass('input-error');
     if (isIncludeUrlsValid) $item.find('.include_rules').removeClass('input-error'); else $item.find('.include_rules').addClass('input-error');
+    $colorInput.toggleClass('input-error', !isColorValid);
 
-    if (!isNameValid || !isIpValid || !isPortValid || !isIncludeUrlsValid) {
+    if (!isNameValid || !isIpValid || !isPortValid || !isIncludeUrlsValid || !isColorValid) {
       var failMsg = I18n.t('save_failed');
       if (!isNameValid) {
         if (conflict.isDuplicate) {
@@ -158,6 +228,7 @@ const ProxyModule = (function () {
       else if (!isIpValid) UtilsModule.showTip(failMsg + (ipErrorMsg || I18n.t('alert_ip_invalid')), true);
       else if (!isPortValid) UtilsModule.showTip(failMsg + I18n.t('alert_port_invalid'), true);
       else if (!isIncludeUrlsValid) UtilsModule.showTip(failMsg + includeUrlsErrorMsg, true);
+      else if (!isColorValid) UtilsModule.showTip(failMsg + I18n.t('proxy_color_invalid'), true);
       return;
     }
 
@@ -229,6 +300,9 @@ const ProxyModule = (function () {
 
       const fallbackPolicy = info.fallback_policy || "direct";
       const displayFallback = fallbackPolicy === "reject" ? I18n.t('fallback_reject') : I18n.t('fallback_direct');
+      const proxyColor = getProxyColor(info.color);
+      const proxyColorClass = proxyColor ? ' has-proxy-color' : '';
+      const proxyColorStyle = proxyColor ? ` style="--proxy-color:${proxyColor}"` : '';
       const rawPreviewText = `${info.name || I18n.t('unnamed_proxy')} · ${info.ip || "0.0.0.0"}:${info.port || "0"}`;
       const previewText = UtilsModule.escapeHtml(rawPreviewText);
 
@@ -265,7 +339,7 @@ const ProxyModule = (function () {
                 <div class="drag-handle" title="${I18n.t('drag_sort')}">
                     ${MainIcons.render('dragHandle', { width: 20, height: 20 })}
                 </div>
-                <span class="proxy-index">#${i + 1}</span>
+                <span class="proxy-index${proxyColorClass}"${proxyColorStyle}>#${i + 1}</span>
                 <div class="proxy-type-badge ${protocolClass}">${displayProtocol}</div>
                 <div class="proxy-title-preview" title="${previewText}">${previewText}</div>
             </div>
@@ -339,7 +413,7 @@ const ProxyModule = (function () {
                             <label>${I18n.t('port')}</label>
                             <input data-index="${i}" class="port" type="text" placeholder="8080" value="${UtilsModule.escapeHtml(info.port)}" tabindex="${i * 100 + 4}">
                         </div>
-                        <div class="form-item" style="grid-column: span 6;">
+                        <div class="form-item" style="grid-column: span 3;">
                             <label>${I18n.t('fallback_policy')}</label>
                             <div class="lh-select" data-type="fallback" tabindex="${i * 100 + 7}">
                                 <div class="lh-select-k">
@@ -349,6 +423,21 @@ const ProxyModule = (function () {
                                 <ul class="lh-select-op">
                                     <li data-value="direct">${I18n.t('fallback_direct')}</li>
                                     <li data-value="reject">${I18n.t('fallback_reject')}</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="form-item proxy-color-form-item" style="grid-column: span 3;">
+                            <label>${I18n.t('proxy_color')}</label>
+                            <div class="proxy-color-picker">
+                                <div class="proxy-color-input-wrapper">
+                                    <span class="proxy-color-preview ${proxyColor ? 'has-color' : ''}"${proxyColor ? ` style="background-color:${proxyColor}"` : ''}></span>
+                                    <input data-index="${i}" class="proxy-color-input" type="text" maxlength="7" placeholder="#RRGGBB" value="${proxyColor}" autocomplete="off" spellcheck="false" tabindex="${i * 100 + 8}">
+                                    <button type="button" class="proxy-color-dropdown-btn" title="${I18n.t('proxy_color_presets')}" aria-label="${I18n.t('proxy_color_presets')}" tabindex="${i * 100 + 9}">
+                                        ${MainIcons.render('chevronDown', { width: 14, height: 14 })}
+                                    </button>
+                                </div>
+                                <ul class="proxy-color-options">
+                                    ${renderProxyColorOptions(proxyColor)}
                                 </ul>
                             </div>
                         </div>
@@ -362,7 +451,7 @@ const ProxyModule = (function () {
                                       ${subscriptionBadgeBypass}
                                   </div>
                               </div>
-                               <textarea data-index="${i}" class="bypass_rules url-config-textarea subscription-content" data-type="bypass" data-mode="local" placeholder="${I18n.t('bypass_rules_placeholder')}" tabindex="${i * 100 + 8}">${UtilsModule.escapeHtml(info.bypass_rules || "")}</textarea>
+                               <textarea data-index="${i}" class="bypass_rules url-config-textarea subscription-content" data-type="bypass" data-mode="local" placeholder="${I18n.t('bypass_rules_placeholder')}" tabindex="${i * 100 + 10}">${UtilsModule.escapeHtml(info.bypass_rules || "")}</textarea>
                               <textarea class="bypass_rules url-config-textarea subscription-content" data-type="bypass" data-mode="subscription" readonly style="display: none;" placeholder=""></textarea>
                           </div>
                           <div class="form-item">
@@ -372,7 +461,7 @@ const ProxyModule = (function () {
                                       ${subscriptionBadgeInclude}
                                   </div>
                               </div>
-                               <textarea data-index="${i}" class="include_rules url-config-textarea subscription-content" data-type="include" data-mode="local" placeholder="${I18n.t('include_rules_placeholder')}" tabindex="${i * 100 + 9}">${UtilsModule.escapeHtml(info.include_rules || "")}</textarea>
+                               <textarea data-index="${i}" class="include_rules url-config-textarea subscription-content" data-type="include" data-mode="local" placeholder="${I18n.t('include_rules_placeholder')}" tabindex="${i * 100 + 11}">${UtilsModule.escapeHtml(info.include_rules || "")}</textarea>
                               <textarea class="include_rules url-config-textarea subscription-content" data-type="include" data-mode="subscription" readonly style="display: none;" placeholder=""></textarea>
                           </div>
                        </div>
@@ -389,10 +478,10 @@ const ProxyModule = (function () {
                            ${I18n.t('subscription_btn')}
                       </button>
                      <div class="test-result-display test-result" data-index="${i}"></div>
-                     <button class="right-panel-btn btn-save item-save-btn" data-index="${i}" tabindex="${i * 100 + 10}">
+                     <button class="right-panel-btn btn-save item-save-btn" data-index="${i}" tabindex="${i * 100 + 12}">
                           ${I18n.t('save')}
                      </button>
-                     <button class="right-panel-btn btn-delete del" data-index="${i}" title="${I18n.t('delete_proxy_title')}" tabindex="${i * 100 + 11}">
+                     <button class="right-panel-btn btn-delete del" data-index="${i}" title="${I18n.t('delete_proxy_title')}" tabindex="${i * 100 + 13}">
                           ${I18n.t('delete')}
                      </button>
                  </div>
@@ -526,6 +615,39 @@ const ProxyModule = (function () {
       let name = $(this).attr("class");
       if (name && name.indexOf(" ") !== -1) name = name.split(" ")[0];
       input_blur(i, name, val);
+    });
+
+    $(".proxy-color-input").on("input", function () {
+      const $input = $(this);
+      const index = $input.data('index');
+      const upperValue = $input.val().toUpperCase();
+      $input.val(upperValue).removeClass('input-error');
+
+      if (upperValue === '' || getProxyColor(upperValue)) {
+        setProxyColor(index, upperValue, $input);
+      }
+    });
+
+    $(".proxy-color-dropdown-btn").on("click", function (e) {
+      e.stopPropagation();
+      const $options = $(this).closest('.proxy-color-picker').find('.proxy-color-options');
+      $('.proxy-color-options').not($options).hide();
+      $options.toggle();
+    });
+
+    $(".proxy-color-option").on("click", function (e) {
+      e.stopPropagation();
+      const $option = $(this);
+      const $picker = $option.closest('.proxy-color-picker');
+      const $input = $picker.find('.proxy-color-input');
+      setProxyColor($input.data('index'), $option.data('value') || '', $input);
+      $picker.find('.proxy-color-options').hide();
+    });
+
+    $(document).off('click.proxyColorPicker').on('click.proxyColorPicker', function (e) {
+      if (!$(e.target).closest('.proxy-color-picker').length) {
+        $('.proxy-color-options').hide();
+      }
     });
 
     $("input.ip").on("paste", function () {
@@ -684,6 +806,11 @@ const ProxyModule = (function () {
 
   function input_blur(i, name, val) {
     if (i !== undefined && name && list[i]) {
+      if (name === 'proxy-color-input') {
+        setProxyColor(i, val, $(`.proxy-card[data-id="${i}"] .proxy-color-input`));
+        return;
+      }
+
       var validProperties = ["name", "ip", "port", "username", "password", "include_rules", "bypass_rules"];
       if (validProperties.includes(name)) {
         list[i][name] = val;

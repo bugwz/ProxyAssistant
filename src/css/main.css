@@ -554,6 +554,14 @@ body {
   font-size: 14px;
 }
 
+.proxy-index.has-proxy-color {
+  color: var(--proxy-color);
+}
+
+body[data-theme="dark"] .proxy-index.has-proxy-color {
+  color: var(--proxy-color);
+}
+
 .proxy-type-badge {
   background-color: #4164f5;
   color: white;
@@ -796,6 +804,160 @@ input:checked+.slider-modern:before {
 .form-item textarea.input-error {
   border-color: #ef4444 !important;
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+/* Proxy color picker */
+.proxy-color-picker {
+  position: relative;
+  width: 100%;
+}
+
+.proxy-color-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.form-item .proxy-color-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 38px;
+  padding-left: 36px;
+  padding-right: 34px;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  text-transform: uppercase;
+}
+
+.proxy-color-preview {
+  position: absolute;
+  left: 10px;
+  z-index: 1;
+  width: 16px;
+  height: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background-color: transparent;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.proxy-color-preview:not(.has-color)::after,
+.proxy-color-swatch.no-color::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  right: 2px;
+  height: 1px;
+  background-color: #94a3b8;
+  transform: rotate(-45deg);
+}
+
+.proxy-color-dropdown-btn {
+  position: absolute;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  color: #64748b;
+  background: transparent;
+  cursor: pointer;
+}
+
+.proxy-color-dropdown-btn:hover {
+  color: #4164f5;
+  background-color: #f1f5f9;
+}
+
+.proxy-color-options {
+  display: none;
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  z-index: 120;
+  box-sizing: border-box;
+  width: 100%;
+  max-height: 220px;
+  padding: 5px 0;
+  margin: 0;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background-color: #ffffff;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.proxy-color-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  color: #1e293b;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.proxy-color-option:hover {
+  color: #4164f5;
+  background-color: #f1f5f9;
+}
+
+.proxy-color-option.selected-option {
+  color: #4164f5;
+  background-color: #f0f5ff;
+  font-weight: 600;
+}
+
+.proxy-color-swatch {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+[data-theme="dark"] .proxy-color-preview,
+[data-theme="dark"] .proxy-color-swatch {
+  border-color: #64748b;
+}
+
+[data-theme="dark"] .proxy-color-dropdown-btn {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .proxy-color-dropdown-btn:hover {
+  color: #818cf8;
+  background-color: #334155;
+}
+
+[data-theme="dark"] .proxy-color-options {
+  border-color: #334155;
+  background-color: #1e293b;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .proxy-color-option {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .proxy-color-option:hover {
+  color: #818cf8;
+  background-color: #334155;
+}
+
+[data-theme="dark"] .proxy-color-option.selected-option {
+  color: #93c5fd;
+  background-color: #1e3a8a;
 }
 
 /* Tooltip Icon */

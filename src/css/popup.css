@@ -462,6 +462,8 @@ body {
 
 /* List Item Card */
 .proxy-item-card {
+  position: relative;
+  overflow: hidden;
   background-color: var(--bg-primary);
   border-radius: 10px;
   border: 1px solid var(--border-color);
@@ -473,6 +475,17 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: var(--shadow-sm);
+}
+
+.proxy-item-card.has-proxy-color::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background-color: var(--proxy-color);
 }
 
 [data-theme="dark"] .proxy-item-card {

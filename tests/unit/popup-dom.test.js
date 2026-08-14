@@ -21,7 +21,12 @@ function setupPopupDom({ config, state, tabUrl = 'https://example.com/' }) {
     t: jest.fn((key) => key)
   };
   global.UtilsModule = {
-    escapeHtml: jest.fn((value) => String(value))
+    escapeHtml: jest.fn((value) => String(value)),
+    normalizeProxyColor: jest.fn((value) => {
+      if (typeof value !== 'string') return '';
+      const normalized = value.trim().toUpperCase();
+      return /^#[0-9A-F]{6}$/.test(normalized) ? normalized : '';
+    })
   };
   global.ConfigModule = {
     generateScenarioId: jest.fn(() => 'generated-scenario')
@@ -126,6 +131,8 @@ describe('popup DOM interactions', () => {
 
     const { chrome } = setupPopupDom({ config, state });
 
+    expect($('.proxy-item-card').hasClass('has-proxy-color')).toBe(false);
+
     $('#popup-scenario-options li[data-value="scenario-b"]').trigger('click');
 
     expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
@@ -148,6 +155,7 @@ describe('popup DOM interactions', () => {
                 ip: '127.0.0.1',
                 port: '8080',
                 enabled: true,
+                color: '#ff0000',
                 include_rules: '',
                 subscription: {
                   enabled: true,
@@ -177,6 +185,8 @@ describe('popup DOM interactions', () => {
     setupPopupDom({ config, state, tabUrl: 'https://service.example.com/path' });
 
     expect($('.proxy-item-card.selected')).toHaveLength(1);
+    expect($('.proxy-item-card.selected').hasClass('has-proxy-color')).toBe(true);
+    expect($('.proxy-item-card.selected').css('--proxy-color')).toBe('#FF0000');
     expect($('#status-display').text()).toBe('Subscription Proxy');
   });
 
