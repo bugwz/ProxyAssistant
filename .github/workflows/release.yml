@@ -82,9 +82,15 @@ jobs:
           # Cleanup
           rm -rf src-firefox
 
+      - name: Prepare Release Notes
+        run: |
+          awk 'NR == 1 && /^# / { next } NF { started = 1 } started { print }' \
+            "release/${{ steps.get_version.outputs.VERSION }}.md" > release-notes.md
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
+          body_path: release-notes.md
           files: |
             ProxyAssistant_${{ steps.get_version.outputs.VERSION }}_chrome.zip
             ProxyAssistant_${{ steps.get_version.outputs.VERSION }}_chrome.tar.gz
