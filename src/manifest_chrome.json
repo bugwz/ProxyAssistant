@@ -14,6 +14,9 @@
       "service_worker": "js/worker.js",
       "type": "module"
    },
+   "content_security_policy": {
+      "extension_pages": "default-src 'self'; script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https: http:;"
+   },
    "action": {
       "default_icon": {
          "16": "images/icon-16.png",
