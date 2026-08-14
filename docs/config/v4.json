@@ -33,6 +33,7 @@
                         "bypass_rules": "1212.com",
                         "include_rules": "1212.com.com.cn",
                         "fallback_policy": "direct",
+                        "color": "#FF0000",
                         "subscription": {
                             "enabled": true,
                             "current": "autoproxy",

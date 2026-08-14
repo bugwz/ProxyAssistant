@@ -55,6 +55,16 @@ function cleanProtocol(protocol) {
 }
 
 // ==========================================
+// Proxy Color
+// ==========================================
+
+function normalizeProxyColor(color) {
+  if (typeof color !== 'string') return '';
+  const normalized = color.trim().toUpperCase();
+  return /^#[0-9A-F]{6}$/.test(normalized) ? normalized : '';
+}
+
+// ==========================================
 // Initialization
 // ==========================================
 
@@ -69,5 +79,6 @@ window.UtilsModule = {
   showTip,
   showProcessingTip,
   escapeHtml,
-  cleanProtocol
+  cleanProtocol,
+  normalizeProxyColor
 };

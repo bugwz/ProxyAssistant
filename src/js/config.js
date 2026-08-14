@@ -9,8 +9,17 @@
 const PROXY_STATE_KEYS = ['show_password', 'is_new', 'open'];
 const PROXY_EXPORT_KEYS = [
   'enabled', 'id', 'name', 'protocol', 'ip', 'port', 'username', 'password',
-  'bypass_rules', 'include_rules', 'fallback_policy', 'subscription'
+  'bypass_rules', 'include_rules', 'fallback_policy', 'color', 'subscription'
 ];
+
+function normalizeConfigProxyColor(color) {
+  if (window.UtilsModule && typeof window.UtilsModule.normalizeProxyColor === 'function') {
+    return window.UtilsModule.normalizeProxyColor(color);
+  }
+  if (typeof color !== 'string') return '';
+  const normalized = color.trim().toUpperCase();
+  return /^#[0-9A-F]{6}$/.test(normalized) ? normalized : '';
+}
 
 // ==========================================
 // Config Migration
@@ -79,6 +88,7 @@ function migrateConfig(config) {
       bypass_rules: p.bypass_rules || p.bypass_urls || "",
       include_rules: p.include_rules || p.include_urls || "",
       fallback_policy: p.fallback_policy || "direct",
+      color: normalizeConfigProxyColor(p.color),
       subscription: subscription
     };
   };
@@ -214,6 +224,7 @@ function normalizeConfig(config) {
         if (!proxy.id) {
           proxy.id = generateProxyId();
         }
+        proxy.color = normalizeConfigProxyColor(proxy.color);
       });
     }
   });
