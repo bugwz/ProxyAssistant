@@ -235,13 +235,17 @@ describe('main UI state flow', () => {
       init: jest.fn(() => Promise.resolve()),
       getConfig: jest.fn(() => ({ system: { app_language: 'zh-CN', sync: { type: 'native', gist: {} } } })),
       getProxies: jest.fn(() => []),
-      save: jest.fn(() => Promise.resolve())
+      save: jest.fn(() => Promise.resolve()),
+      reload: jest.fn(() => Promise.resolve()),
+      isSubscriptionOnlyChange: jest.fn(() => false),
+      mergeSubscriptionChanges: jest.fn()
     };
     global.ProxyModule = {
       setList: jest.fn(),
       renderList: jest.fn(),
       init: jest.fn(),
-      confirmDelete: jest.fn()
+      confirmDelete: jest.fn(),
+      updateSubscriptionLinesDisplay: jest.fn()
     };
     global.ScenariosModule = {
       init: jest.fn(),
@@ -330,6 +334,21 @@ describe('main UI state flow', () => {
     expect(global.ProxyModule.setList).toHaveBeenCalledWith([{ name: 'moved-proxy' }]);
     expect(global.ProxyModule.renderList).toHaveBeenCalledTimes(1);
     expect(global.ScenariosModule.renderScenarioSelector).toHaveBeenCalledTimes(1);
+  });
+
+  test('subscription-only storage updates merge without reloading the form', () => {
+    global.StorageModule.isSubscriptionOnlyChange.mockReturnValue(true);
+    window.eval(fs.readFileSync(mainJsPath, 'utf8'));
+    window.initDropdowns();
+
+    const listener = global.chrome.storage.onChanged.addListener.mock.calls[0][0];
+    const oldConfig = { version: 4, scenarios: { lists: [] } };
+    const newConfig = { version: 4, scenarios: { lists: [] } };
+    listener({ config: { oldValue: oldConfig, newValue: newConfig } }, 'local');
+
+    expect(global.StorageModule.mergeSubscriptionChanges).toHaveBeenCalledWith(newConfig);
+    expect(global.ProxyModule.updateSubscriptionLinesDisplay).toHaveBeenCalledTimes(1);
+    expect(global.StorageModule.reload).not.toHaveBeenCalled();
   });
 
   test('switchScenario rolls back when saving current scenario fails', async () => {
