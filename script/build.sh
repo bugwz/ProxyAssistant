@@ -29,7 +29,6 @@ cp -r "${SRC_DIR}" "${BUILD_DIR}/src-chrome"
 
 # Use Chrome manifest
 cp "${BUILD_DIR}/src-chrome/manifest_chrome.json" "${BUILD_DIR}/src-chrome/manifest.json"
-node "${PROJECT_DIR}/script/prepare_chrome_manifest.js" "${BUILD_DIR}/src-chrome/manifest.json"
 
 # Remove extra manifest files (we use unified worker.js)
 rm -f "${BUILD_DIR}/src-chrome/manifest_chrome.json" \
