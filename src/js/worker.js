@@ -2012,6 +2012,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 async function testProxyConnection(proxyInfo, sendResponse) {
+  // Validate before replacing the active proxy credentials or listeners.
+  const ipValidation = validateProxyConfig(proxyInfo?.ip, proxyInfo?.port);
+  if (!ipValidation.valid) {
+    sendResponse({ success: false, error: `Invalid proxy configuration: ${ipValidation.error}` });
+    return;
+  }
+
   const previousAuth = { ...currentProxyAuth };
 
   // Set test auth
@@ -2026,13 +2033,6 @@ async function testProxyConnection(proxyInfo, sendResponse) {
 
   // Clean protocol field to prevent corruption
   const type = cleanProtocol(proxyInfo.protocol || "http");
-
-  // Validate IP format
-  const ipValidation = validateProxyConfig(proxyInfo.ip, proxyInfo.port);
-  if (!ipValidation.valid) {
-    sendResponse({ success: false, error: `Invalid proxy configuration: ${ipValidation.error}` });
-    return;
-  }
 
   if (isFirefox) {
     // -------------------------
