@@ -3,7 +3,7 @@
 # Variables
 VERSION ?= dev
 BUILD_DIR := build
-COVERAGE_DIR := coverage
+COVERAGE_DIR := tests/coverage
 
 # Default target
 help:
@@ -39,13 +39,13 @@ test:
 	@echo "Running all tests (unit + integration + e2e)..."
 	@echo "----------------------------------------"
 	@echo "Running unit tests..."
-	-npm run test:unit -- --no-cache 2>/dev/null || echo "No unit tests found"
+	npm run test:unit -- --no-cache
 	@echo "----------------------------------------"
 	@echo "Running integration tests..."
-	-npm run test:integration -- --no-cache 2>/dev/null || echo "No integration tests found"
+	npm run test:integration -- --no-cache
 	@echo "----------------------------------------"
 	@echo "Running e2e tests..."
-	-npm run test:e2e -- --no-cache 2>/dev/null || echo "No e2e tests found"
+	npm run test:e2e -- --no-cache
 	@echo "----------------------------------------"
 	@echo "All tests completed!"
 
@@ -59,25 +59,20 @@ test_unit:
 
 test_integration:
 	@echo "Running integration tests..."
-	@if [ ! -d tests/integration ]; then \
-		echo "No integration tests found (tests/integration/ directory does not exist)"; \
-		exit 0; \
-	fi
-	-npm run test:integration -- --no-cache 2>/dev/null || echo "No integration tests found"
+	npm run test:integration -- --no-cache
 
 test_e2e:
 	@echo "Running e2e tests..."
-	@if [ ! -d tests/e2e ]; then \
-		echo "No e2e tests found (tests/e2e/ directory does not exist)"; \
-		exit 0; \
-	fi
-	-npm run test:e2e -- --no-cache 2>/dev/null || echo "No e2e tests found"
+	npm run test:e2e -- --no-cache
 
 test_watch_nocache:
 	@echo "Running tests in watch mode without cache..."
 	npm run test:watch -- --no-cache
 
 test_cov_nocache:
+	@echo "Running tests with coverage and no cache..."
+	npm run test:coverage -- --no-cache
+
 test_init:
 	@echo "Initializing test environment..."
 	@echo "----------------------------------------"

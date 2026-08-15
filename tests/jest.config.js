@@ -1,12 +1,14 @@
 module.exports = {
+  rootDir: '..',
   testEnvironment: 'jsdom',
   testMatch: [
-    '**/tests/**/*.test.js'
+    '<rootDir>/tests/**/*.test.js'
   ],
   collectCoverageFrom: [
-    'tests/**/*.test.js'
+    '<rootDir>/src/js/**/*.js',
+    '!<rootDir>/src/js/jquery.js'
   ],
-  coverageDirectory: 'coverage',
+  coverageDirectory: '<rootDir>/tests/coverage',
   coverageReporters: ['text', 'lcov', 'html', 'json'],
   testTimeout: 10000,
   verbose: true
