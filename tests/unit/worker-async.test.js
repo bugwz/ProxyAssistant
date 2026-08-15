@@ -160,6 +160,33 @@ describe('Worker applyProxy async handling', () => {
     expect(sendResponse).toHaveBeenCalledWith(response);
   });
 
+  test('applies an explicitly requested proxy mode before responding', async () => {
+    const context = loadWorkerContext();
+    const response = { success: true };
+    const proxyInfo = { ip: '127.0.0.1', port: '8080' };
+    const sendResponse = jest.fn();
+    let resolveApply;
+
+    context.applyProxySettings = jest.fn(() => new Promise((resolve) => {
+      resolveApply = () => resolve(response);
+    }));
+
+    const returnValue = context.__onMessageListener(
+      { action: 'setProxyMode', mode: 'manual', proxyInfo },
+      {},
+      sendResponse
+    );
+
+    expect(returnValue).toBe(true);
+    expect(context.applyProxySettings).toHaveBeenCalledWith(proxyInfo, 'manual');
+    expect(sendResponse).not.toHaveBeenCalled();
+
+    resolveApply();
+    await Promise.resolve();
+
+    expect(sendResponse).toHaveBeenCalledWith(response);
+  });
+
   test('waits for proxy.settings.set before persisting manual state', async () => {
     let applySettingsCallback = null;
     const storageSet = jest.fn((payload, callback) => {
