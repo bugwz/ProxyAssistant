@@ -602,9 +602,19 @@ const SubscriptionModule = (function () {
   }
 
   function disableBackgroundRefresh(proxyId, format) {
-    const alarmName = `subscription_${proxyId}_${format}`;
-    chrome.alarms.clear(alarmName, () => {
-      console.log(`[Subscription] Alarm cleared: ${alarmName}`);
+    chrome.runtime.sendMessage({
+      action: 'scheduleSubscriptionRefresh',
+      proxyId: proxyId,
+      format: format,
+      refreshInterval: 0,
+      url: null
+    }, (response) => {
+      if (chrome.runtime.lastError || !response?.success) {
+        const error = chrome.runtime.lastError?.message || response?.error || 'Unknown error';
+        console.info(`[Subscription] Failed to clear refresh alarm: ${error}`);
+        return;
+      }
+      console.log(`[Subscription] Refresh alarm cleared: ${proxyId}, format: ${format}`);
     });
   }
 

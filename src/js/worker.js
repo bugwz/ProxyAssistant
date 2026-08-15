@@ -13,6 +13,9 @@ let currentProxyAuth = {
 
 // Track in-progress subscription fetches to prevent duplicates
 const inProgressFetches = new Set();
+const SUBSCRIPTION_ALARM_PREFIX = 'subscription___';
+const LEGACY_SUBSCRIPTION_ALARM_PREFIX = 'subscription_';
+const SUBSCRIPTION_FORMATS = ['autoproxy', 'switchy_omega', 'switchy_legacy', 'pac'];
 
 // Helper to sync auth to session storage (MV3 state safety)
 function updateSessionAuth(auth) {
@@ -768,22 +771,37 @@ async function fetchSubscriptionBackground(proxyId, format, url, maxRetries = 3)
 }
 
 // Unified function to schedule or clear subscription alarm
-function scheduleOrClearSubscriptionAlarm(proxyId, format, refreshInterval, url) {
-  const alarmName = `subscription___${proxyId}___${format}`;
+function getSubscriptionAlarmName(proxyId, format) {
+  return `${SUBSCRIPTION_ALARM_PREFIX}${proxyId}___${format}`;
+}
 
-  if (!refreshInterval || refreshInterval <= 0 || !url) {
-    chrome.alarms.clear(alarmName);
+function getLegacySubscriptionAlarmName(proxyId, format) {
+  return `${LEGACY_SUBSCRIPTION_ALARM_PREFIX}${proxyId}_${format}`;
+}
+
+function isSubscriptionAlarmName(alarmName) {
+  if (alarmName.startsWith(SUBSCRIPTION_ALARM_PREFIX)) return true;
+
+  return alarmName.startsWith(LEGACY_SUBSCRIPTION_ALARM_PREFIX) &&
+    SUBSCRIPTION_FORMATS.some(format => alarmName.endsWith(`_${format}`));
+}
+
+function scheduleOrClearSubscriptionAlarm(proxyId, format, refreshInterval, url) {
+  const alarmName = getSubscriptionAlarmName(proxyId, format);
+  const shouldSchedule = refreshInterval > 0 && !!url;
+
+  SUBSCRIPTION_FORMATS.forEach(oldFormat => {
+    const oldAlarmName = getSubscriptionAlarmName(proxyId, oldFormat);
+    if (!shouldSchedule || oldAlarmName !== alarmName) {
+      chrome.alarms.clear(oldAlarmName);
+    }
+    chrome.alarms.clear(getLegacySubscriptionAlarmName(proxyId, oldFormat));
+  });
+
+  if (!shouldSchedule) {
     console.log(`[Worker] Alarm cleared: ${alarmName}`);
     return;
   }
-
-  // Clear all old subscription alarms for this proxy before creating new one
-  const knownFormats = ['autoproxy', 'switchy_omega', 'switchy_legacy', 'pac'];
-  knownFormats.forEach(oldFormat => {
-    if (oldFormat !== format) {
-      chrome.alarms.clear(`subscription___${proxyId}___${oldFormat}`);
-    }
-  });
 
   chrome.alarms.get(alarmName, (existingAlarm) => {
     if (existingAlarm) {
@@ -811,33 +829,37 @@ function scheduleOrClearSubscriptionAlarm(proxyId, format, refreshInterval, url)
 
 // Schedule background refresh for all subscriptions
 function scheduleAllBackgroundRefreshes(config) {
-  if (!config?.scenarios?.lists) return;
-
   console.log('[Worker] Scheduling subscription alarms for all enabled subscriptions');
+  const desiredAlarmNames = new Set();
+  const scenarios = config?.scenarios?.lists || [];
 
-  config.scenarios.lists.forEach(scenario => {
+  scenarios.forEach(scenario => {
     if (!scenario.proxies) return;
 
     scenario.proxies.forEach(proxy => {
       if (!proxy.id || !proxy.subscription) return;
 
-      // Clear all old subscription alarms for this proxy first
-      if (proxy.subscription.lists) {
-        Object.keys(proxy.subscription.lists).forEach(format => {
-          const oldAlarmName = `subscription___${proxy.id}___${format}`;
-          chrome.alarms.clear(oldAlarmName);
-        });
-      }
-
       if (proxy.subscription.enabled !== false) {
         const format = proxy.subscription.current;
         const subConfig = proxy.subscription.lists?.[format];
+        if (subConfig?.refresh_interval > 0 && subConfig?.url) {
+          desiredAlarmNames.add(getSubscriptionAlarmName(proxy.id, format));
+        }
         scheduleOrClearSubscriptionAlarm(
           proxy.id,
           format,
           subConfig?.refresh_interval,
           subConfig?.url
         );
+      }
+    });
+  });
+
+  chrome.alarms.getAll((alarms) => {
+    (alarms || []).forEach(alarm => {
+      if (isSubscriptionAlarmName(alarm.name) && !desiredAlarmNames.has(alarm.name)) {
+        chrome.alarms.clear(alarm.name);
+        console.log(`[Worker] Removed stale alarm: ${alarm.name}`);
       }
     });
   });
@@ -850,8 +872,8 @@ function scheduleSubscriptionRefresh(proxyId, format, refreshInterval, url) {
 
 // Alarm listener for subscription refresh
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name.startsWith('subscription___')) {
-    const alarmName = alarm.name.replace('subscription___', '');
+  if (alarm.name.startsWith(SUBSCRIPTION_ALARM_PREFIX)) {
+    const alarmName = alarm.name.replace(SUBSCRIPTION_ALARM_PREFIX, '');
     const lastSeparatorIndex = alarmName.lastIndexOf('___');
     const proxyId = alarmName.substring(0, lastSeparatorIndex);
     const format = alarmName.substring(lastSeparatorIndex + 3);
