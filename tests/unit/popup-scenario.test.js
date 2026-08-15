@@ -130,14 +130,14 @@ function loadPopupContext() {
 }
 
 describe('popup scenario switching', () => {
-  test('restores previous manual proxy when switching back to manual mode', () => {
+  test('applies the previous manual proxy without prewriting state', () => {
     const context = loadPopupContext();
     const previousManualProxy = { name: 'Previous', ip: '127.0.0.1', port: '8080' };
     const fallbackProxy = { name: 'Fallback', ip: '10.0.0.2', port: '3128' };
     const clickedModeButton = {
       data: jest.fn((key) => (key === 'mode' ? 'manual' : undefined))
     };
-    let storedState = {
+    const storedState = {
       proxy: {
         mode: 'auto',
         current: previousManualProxy
@@ -152,12 +152,6 @@ describe('popup scenario switching', () => {
     context.chrome.storage.local.get.mockImplementation((keys, callback) => {
       callback({ state: storedState });
     });
-    context.chrome.storage.local.set.mockImplementation((payload, callback) => {
-      if (payload.state) {
-        storedState = payload.state;
-      }
-      callback();
-    });
     context.chrome.runtime.sendMessage.mockImplementation((message, callback) => {
       if (callback) {
         callback({ success: true });
@@ -169,18 +163,42 @@ describe('popup scenario switching', () => {
     const modeClickHandler = context.__jqueryMocks.defaultChainableJquery.on.mock.calls[2][1];
     modeClickHandler.call(clickedModeButton);
 
-    expect(context.chrome.storage.local.set).toHaveBeenCalledWith(
-      { state: { proxy: { mode: 'manual', current: previousManualProxy } } },
-      expect.any(Function)
-    );
+    expect(context.chrome.storage.local.set).not.toHaveBeenCalled();
     expect(context.chrome.runtime.sendMessage).toHaveBeenCalledWith(
-      { action: 'applyProxy', proxyInfo: previousManualProxy },
+      { action: 'setProxyMode', mode: 'manual', proxyInfo: previousManualProxy },
       expect.any(Function)
     );
     expect(context.chrome.runtime.sendMessage).not.toHaveBeenCalledWith(
-      { action: 'applyProxy', proxyInfo: fallbackProxy },
+      { action: 'setProxyMode', mode: 'manual', proxyInfo: fallbackProxy },
       expect.any(Function)
     );
+  });
+
+  test('restores the previous popup mode when applying a new mode fails', () => {
+    const context = loadPopupContext();
+    const fallbackProxy = { name: 'Fallback', ip: '10.0.0.2', port: '3128' };
+    const clickedModeButton = {
+      data: jest.fn((key) => (key === 'mode' ? 'manual' : undefined))
+    };
+
+    context.__popupTestApi.setState({ list: [fallbackProxy] });
+    context.updateModeUI = jest.fn();
+    context.refreshPopupForMode = jest.fn();
+    context.chrome.storage.local.get.mockImplementation((keys, callback) => {
+      callback({ state: { proxy: { mode: 'disabled', current: null } } });
+    });
+    context.chrome.runtime.sendMessage.mockImplementation((message, callback) => {
+      callback({ success: false, error: 'Proxy settings rejected' });
+    });
+
+    context.bindGlobalEvents();
+
+    const modeClickHandler = context.__jqueryMocks.defaultChainableJquery.on.mock.calls[2][1];
+    modeClickHandler.call(clickedModeButton);
+
+    expect(context.chrome.storage.local.set).not.toHaveBeenCalled();
+    expect(context.updateModeUI).toHaveBeenCalledWith('disabled');
+    expect(context.refreshPopupForMode).toHaveBeenCalledWith('disabled', null);
   });
 
   test('does not write null state when switching scenario outside manual mode', () => {

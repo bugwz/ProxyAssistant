@@ -1086,10 +1086,15 @@ function updateBadge() {
 }
 
 // Handle different types of proxy settings
-function applyProxySettings(proxyInfo) {
+function applyProxySettings(proxyInfo, requestedMode) {
   return new Promise((resolve) => {
     chrome.storage.local.get(['state'], async (result) => {
-    const mode = result.state?.proxy?.mode || 'manual';
+    const mode = requestedMode || result.state?.proxy?.mode || 'manual';
+
+    if (!['disabled', 'manual', 'auto'].includes(mode)) {
+      resolve({ success: false, error: "Invalid proxy mode" });
+      return;
+    }
 
     if (isFirefox) {
       // Update Firefox state
@@ -1117,7 +1122,7 @@ function applyProxySettings(proxyInfo) {
       });
     } else {
       // Chrome
-      const chromeMode = result.state?.proxy?.mode || 'manual';
+      const chromeMode = mode;
 
       if (chromeMode === 'auto') {
         resolve(await applyAutoProxySettings());
@@ -1922,6 +1927,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   try {
     if (message.action === "applyProxy") {
       applyProxySettings(message.proxyInfo)
+        .then(sendResponse)
+        .catch((error) => {
+          sendResponse({ success: false, error: error.message });
+        });
+      return true;
+    } else if (message.action === "setProxyMode") {
+      applyProxySettings(message.proxyInfo, message.mode)
         .then(sendResponse)
         .catch((error) => {
           sendResponse({ success: false, error: error.message });

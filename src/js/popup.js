@@ -149,60 +149,38 @@ function bindGlobalEvents() {
   // Mode switch button click event
   $('.mode-btn').on('click', function () {
     const mode = $(this).data('mode');
-    updateModeUI(mode);
-
     chrome.storage.local.get(['state'], function (result) {
       if (chrome.runtime.lastError) {
         console.log('Error getting state:', chrome.runtime.lastError);
         return;
       }
 
+      const previousMode = result.state?.proxy?.mode || 'disabled';
       const previousCurrent = result.state?.proxy?.current || null;
       const nextCurrent = mode === 'manual'
         ? (isSelectableProxy(previousCurrent) ? previousCurrent : getFirstSelectableProxy(list))
-        : previousCurrent;
+        : null;
 
-      chrome.storage.local.set({ state: { proxy: { mode: mode, current: nextCurrent } } }, function () {
-        if (chrome.runtime.lastError) {
-          console.log('Error setting proxy mode:', chrome.runtime.lastError);
+      if (mode === 'manual' && !nextCurrent) {
+        console.log('Cannot enable manual mode without an available proxy');
+        return;
+      }
+
+      chrome.runtime.sendMessage({
+        action: 'setProxyMode',
+        mode: mode,
+        proxyInfo: mode === 'manual' ? nextCurrent : null
+      }, function (response) {
+        if (chrome.runtime.lastError || !response?.success) {
+          const error = chrome.runtime.lastError?.message || response?.error || 'Failed to change proxy mode';
+          console.log('Error changing proxy mode:', error);
+          updateModeUI(previousMode);
+          refreshPopupForMode(previousMode, previousCurrent);
           return;
         }
 
-        if (mode === 'auto') {
-          // Auto mode
-          chrome.runtime.sendMessage({ action: "refreshProxy" }, function () {
-            if (chrome.runtime.lastError) {
-              console.log('Error sending refreshProxy:', chrome.runtime.lastError);
-            }
-          });
-          updateStatusDisplay('auto');
-          // Re-render list to apply auto-match highlighting
-          list_init();
-          updateBypassButton();
-          updateCurrentSiteDisplay(); updateScenarioVisibility();
-        } else if (mode === 'disabled') {
-          // Disabled mode
-          chrome.runtime.sendMessage({ action: "turnOffProxy" }, function () {
-            if (chrome.runtime.lastError) {
-              console.log('Error sending turnOffProxy message:', chrome.runtime.lastError);
-            }
-            list_init();
-            updateStatusDisplay('disabled', null);
-            updateBypassButton();
-            updateCurrentSiteDisplay(); updateScenarioVisibility();
-          });
-        } else {
-          // Manual mode - restore previous selection or auto-select first proxy
-          if (nextCurrent) {
-            chrome.runtime.sendMessage({ action: "applyProxy", proxyInfo: nextCurrent }, function () {
-              if (chrome.runtime.lastError) {
-                console.log('Error applying restored proxy:', chrome.runtime.lastError);
-              }
-            });
-          }
-
-          refreshPopupForMode('manual', nextCurrent);
-        }
+        updateModeUI(mode);
+        refreshPopupForMode(mode, mode === 'manual' ? nextCurrent : null);
       });
     });
   });
