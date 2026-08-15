@@ -187,6 +187,50 @@ describe('Worker applyProxy async handling', () => {
     expect(sendResponse).toHaveBeenCalledWith(response);
   });
 
+  test('rejects invalid proxy tests without replacing active authentication', async () => {
+    const context = loadWorkerContext();
+    const existingAuth = { username: 'existing-user', password: 'existing-password' };
+    const initialAuthCallback = jest.fn();
+
+    context.chrome.storage.session.get.mockImplementation((keys, callback) => {
+      callback({ currentProxyAuth: existingAuth });
+    });
+    context.handleAuthRequest(
+      { isProxy: true, url: 'https://example.com' },
+      initialAuthCallback
+    );
+    expect(initialAuthCallback).toHaveBeenCalledWith({ authCredentials: existingAuth });
+
+    context.chrome.storage.session.set.mockClear();
+    context.chrome.webRequest.onAuthRequired.addListener.mockClear();
+    context.chrome.webRequest.onAuthRequired.removeListener.mockClear();
+    context.chrome.proxy.settings.set.mockClear();
+
+    const sendResponse = jest.fn();
+    await context.testProxyConnection({
+      ip: 'invalid host',
+      port: '8080',
+      username: 'test-user',
+      password: 'test-password'
+    }, sendResponse);
+
+    const authCallback = jest.fn();
+    context.handleAuthRequest(
+      { isProxy: true, url: 'https://example.com' },
+      authCallback
+    );
+
+    expect(sendResponse).toHaveBeenCalledWith({
+      success: false,
+      error: 'Invalid proxy configuration: Invalid IP address or hostname format'
+    });
+    expect(authCallback).toHaveBeenCalledWith({ authCredentials: existingAuth });
+    expect(context.chrome.storage.session.set).not.toHaveBeenCalled();
+    expect(context.chrome.webRequest.onAuthRequired.addListener).not.toHaveBeenCalled();
+    expect(context.chrome.webRequest.onAuthRequired.removeListener).not.toHaveBeenCalled();
+    expect(context.chrome.proxy.settings.set).not.toHaveBeenCalled();
+  });
+
   test('waits for proxy.settings.set before persisting manual state', async () => {
     let applySettingsCallback = null;
     const storageSet = jest.fn((payload, callback) => {
