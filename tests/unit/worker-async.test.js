@@ -74,6 +74,7 @@ function loadWorkerContext(overrides = {}) {
       alarms: {
         create: jest.fn(),
         clear: jest.fn(),
+        get: jest.fn((name, callback) => callback(null)),
         getAll: jest.fn((callback) => callback([])),
         onAlarm: { addListener: jest.fn() }
       },
@@ -229,6 +230,22 @@ describe('Worker applyProxy async handling', () => {
     expect(context.chrome.webRequest.onAuthRequired.addListener).not.toHaveBeenCalled();
     expect(context.chrome.webRequest.onAuthRequired.removeListener).not.toHaveBeenCalled();
     expect(context.chrome.proxy.settings.set).not.toHaveBeenCalled();
+  });
+
+  test('removes stale and legacy subscription alarms after config changes', () => {
+    const context = loadWorkerContext();
+    context.chrome.alarms.clear.mockClear();
+    context.chrome.alarms.getAll.mockImplementation((callback) => callback([
+      { name: 'subscription___deleted-proxy___pac' },
+      { name: 'subscription_deleted-proxy_pac' },
+      { name: 'unrelated_alarm' }
+    ]));
+
+    context.scheduleAllBackgroundRefreshes({ scenarios: { lists: [] } });
+
+    expect(context.chrome.alarms.clear).toHaveBeenCalledWith('subscription___deleted-proxy___pac');
+    expect(context.chrome.alarms.clear).toHaveBeenCalledWith('subscription_deleted-proxy_pac');
+    expect(context.chrome.alarms.clear).not.toHaveBeenCalledWith('unrelated_alarm');
   });
 
   test('waits for proxy.settings.set before persisting manual state', async () => {
