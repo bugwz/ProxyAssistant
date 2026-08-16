@@ -683,7 +683,8 @@ const ProxyModule = (function () {
       if (index !== undefined && list[index]) {
         const info = list[index];
         const previewText = `${info.name || I18n.t('unnamed_proxy')} (${info.ip || "0.0.0.0"}:${info.port || "0"})`;
-        $(".delete-tip-content").html(`${I18n.t('delete_proxy_confirm')}<br><span style="color: #e11d48; font-weight: 600; margin-top: 10px; display: block;">${previewText}</span>`);
+        const safePreviewText = UtilsModule.escapeHtml(previewText);
+        $(".delete-tip-content").html(`${I18n.t('delete_proxy_confirm')}<br><span style="color: #e11d48; font-weight: 600; margin-top: 10px; display: block;">${safePreviewText}</span>`);
         $(".delete-tip").show().addClass("show");
         del_index = index;
       }
