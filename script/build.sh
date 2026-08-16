@@ -26,6 +26,7 @@ echo "Building Chrome Artifacts..."
 # Prepare source for Chrome
 echo "Preparing Chrome source..."
 cp -r "${SRC_DIR}" "${BUILD_DIR}/src-chrome"
+find "${BUILD_DIR}/src-chrome" -name ".DS_Store" -delete
 
 # Use Chrome manifest
 cp "${BUILD_DIR}/src-chrome/manifest_chrome.json" "${BUILD_DIR}/src-chrome/manifest.json"
@@ -54,6 +55,7 @@ echo "Building Firefox Artifacts..."
 # Prepare source for Firefox
 echo "Preparing Firefox source..."
 cp -r "${SRC_DIR}" "${BUILD_DIR}/src-firefox"
+find "${BUILD_DIR}/src-firefox" -name ".DS_Store" -delete
 
 # Use Firefox manifest
 cp "${BUILD_DIR}/src-firefox/manifest_firefox.json" "${BUILD_DIR}/src-firefox/manifest.json"
