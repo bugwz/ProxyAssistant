@@ -5,7 +5,7 @@
   "scripts": {
     "test": "jest --config tests/jest.config.js",
     "test:watch": "jest --config tests/jest.config.js --watch",
-    "test:coverage": "jest --config tests/jest.config.js --coverage",
+    "test:coverage": "jest --config tests/jest.coverage.config.js --coverage",
     "test:unit": "jest --config tests/jest.config.js tests/unit",
     "test:integration": "jest --config tests/jest.config.js tests/integration",
     "test:e2e": "jest --config tests/jest.config.js tests/e2e"
