@@ -1627,8 +1627,11 @@ async function handleFirefoxRequest(details) {
 function checkBypass(bypassUrls, url) {
   if (!bypassUrls) return false;
 
+  const urlParts = getUrlParts(url);
+  if (!urlParts) return false;
+
   // Standard bypass for localhost
-  const host = new URL(url).hostname;
+  const host = urlParts.host;
   if (host === "localhost" || host === "127.0.0.1" || host === "::1") return true;
 
   const patterns = bypassUrls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
@@ -1641,7 +1644,8 @@ function checkBypass(bypassUrls, url) {
 }
 
 function findProxyForRequestFirefox(url) {
-  const host = new URL(url).hostname;
+  const urlParts = getUrlParts(url);
+  if (!urlParts) return { type: "direct" };
 
   // Get proxy list from config
   const config = currentConfig || {};
@@ -1696,9 +1700,29 @@ function isInCidrRange(ip, cidr) {
   return (ipNum & mask) === (rangeNum & mask);
 }
 
+function getUrlParts(url) {
+  try {
+    const parsed = new URL(url);
+    if (!parsed.hostname) return null;
+    return {
+      host: parsed.hostname,
+      port: parsed.port
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+function isIPv4Address(value) {
+  return /^(\d{1,3}\.){3}\d{1,3}$/.test(value);
+}
+
 function matchesPattern(url, pattern) {
-  const host = new URL(url).hostname;
-  const port = new URL(url).port;
+  const urlParts = getUrlParts(url);
+  if (!urlParts) return false;
+
+  const host = urlParts.host;
+  const port = urlParts.port;
 
   // Handle regex pattern: /pattern/ or /pattern/flags
   if (pattern.startsWith('/') && pattern.length > 2) {
@@ -1717,7 +1741,7 @@ function matchesPattern(url, pattern) {
   }
 
   if (pattern.includes('/')) {
-    return isInCidrRange(host, pattern);
+    return isIPv4Address(host) && isInCidrRange(host, pattern);
   }
 
   if (pattern.includes('*')) {
