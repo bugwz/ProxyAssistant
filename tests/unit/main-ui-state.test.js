@@ -53,6 +53,7 @@ function setupBaseDom() {
     <button id="add-proxy-btn"></button>
     <button id="test-all-btn"></button>
     <div class="delete-tip"></div>
+    <div class="delete-tip-content"></div>
     <div class="delete-tip-close-btn"></div>
     <div class="delete-tip-cancel-btn"></div>
     <div class="delete-tip-confirm-btn"></div>
@@ -584,5 +585,79 @@ describe('main UI state flow', () => {
     expect($('#expand-collapse-btn').html()).toContain('data-i18n="collapse_all"');
     expect($('#expand-collapse-btn').html()).toContain('M9 4v5H4');
     expect($('.proxy-card.collapsed')).toHaveLength(0);
+  });
+
+  test('delete confirmation escapes proxy preview text', () => {
+    global.isFirefox = false;
+    const proxies = [
+      {
+        id: 'proxy-1',
+        enabled: true,
+        name: '<img src=x onerror=alert(1)>',
+        protocol: 'http',
+        ip: '127.0.0.1',
+        port: '8080',
+        username: '',
+        password: '',
+        bypass_rules: '',
+        include_rules: '',
+        fallback_policy: 'direct'
+      }
+    ];
+
+    global.UtilsModule.escapeHtml = jest.fn((value) => String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;'));
+    global.StorageModule = {
+      getProxies: jest.fn(() => proxies),
+      addProxy: jest.fn(),
+      updateProxy: jest.fn(),
+      deleteProxy: jest.fn(),
+      reorderProxies: jest.fn(),
+      save: jest.fn(() => Promise.resolve())
+    };
+    global.ConfigModule = {
+      generateProxyId: jest.fn(() => 'proxy-new')
+    };
+    global.ValidatorModule = {
+      validateIPAddress: jest.fn(() => ({ isValid: true })),
+      isValidHost: jest.fn(() => true),
+      checkIncludeUrlsConflict: jest.fn(() => ({ hasConflict: false })),
+      validateProxy: jest.fn()
+    };
+    global.ScenariosModule = {
+      checkNameGlobalUniqueness: jest.fn(() => ({ isDuplicate: false })),
+      getCurrentScenarioId: jest.fn(() => 'scenario-a'),
+      getCurrentScenario: jest.fn(() => ({ id: 'scenario-a', name: 'Scenario A' })),
+      showMoveProxyDialog: jest.fn()
+    };
+    global.SubscriptionModule = {
+      getSubscriptionLineCounts: jest.fn(() => ({ include_lines: 0, bypass_lines: 0 })),
+      openModal: jest.fn()
+    };
+
+    const proxyModule = loadProxyModule({
+      StorageModule: global.StorageModule,
+      ConfigModule: global.ConfigModule,
+      ValidatorModule: global.ValidatorModule,
+      ScenariosModule: global.ScenariosModule,
+      SubscriptionModule: global.SubscriptionModule,
+      UtilsModule: global.UtilsModule,
+      I18n: global.I18n,
+      SyncModule: global.SyncModule,
+      chrome: global.chrome,
+      isFirefox: global.isFirefox,
+      generateProxyId: global.generateProxyId
+    });
+
+    proxyModule.init();
+    proxyModule.renderList();
+    $('.del[data-index="0"]').trigger('click');
+
+    expect($('.delete-tip-content').html()).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect($('.delete-tip-content').html()).not.toContain('<img src=x onerror=alert(1)>');
   });
 });
