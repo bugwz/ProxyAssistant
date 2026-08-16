@@ -82,7 +82,7 @@ function loadWorkerContext(overrides = {}) {
         query: jest.fn((query, callback) => callback([]))
       }
     },
-    browser: undefined,
+    browser: overrides.browser || undefined,
     self: {}
   };
 
@@ -322,5 +322,35 @@ describe('Worker applyProxy async handling', () => {
 
     expect(result.success).toBe(false);
     expect(storageSet).not.toHaveBeenCalled();
+  });
+
+  test('handles Firefox special URLs without throwing', async () => {
+    const context = loadWorkerContext({
+      browser: {
+        runtime: { getBrowserInfo: jest.fn() },
+        proxy: {
+          settings: { clear: jest.fn() },
+          onRequest: {
+            addListener: jest.fn(),
+            hasListener: jest.fn(() => false)
+          }
+        }
+      }
+    });
+
+    await context.applyProxySettings({
+      protocol: 'http',
+      ip: '127.0.0.1',
+      port: '8080',
+      bypass_rules: 'example.com'
+    }, 'manual');
+
+    await expect(context.handleFirefoxRequest({ url: 'about:config' }))
+      .resolves.toBe(null);
+
+    await context.applyProxySettings(null, 'auto');
+
+    await expect(context.handleFirefoxRequest({ url: 'moz-extension://extension-id/page.html' }))
+      .resolves.toEqual({ type: 'direct' });
   });
 });
