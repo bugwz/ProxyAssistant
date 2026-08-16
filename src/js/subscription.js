@@ -1206,26 +1206,32 @@ const SubscriptionModule = (function () {
 
   function convertIPRangeToCIDR(pattern) {
     const parts = pattern.split('.');
-    const segments = parts.map(seg => seg === '*' ? 0 : parseInt(seg, 10));
-    const [s0, s1, s2, s3] = segments;
+    if (parts.length !== 4) return null;
 
-    const isFullRange = (s, e) => s === 0 && e === 255;
-    const isSingle = (seg, idx) => seg === segments[idx];
+    const firstWildcard = parts.indexOf('*');
+    const hasWildcard = firstWildcard !== -1;
 
-    if (isFullRange(s0) && isFullRange(s1) && isFullRange(s2) && isFullRange(s3)) {
-      return s0 === s1 && s1 === s2 && s2 === s3 ? pattern : `${s0}.0.0.0/8`;
+    if (!hasWildcard) {
+      const isValidIp = parts.every(part => {
+        const value = parseInt(part, 10);
+        return /^\d{1,3}$/.test(part) && value >= 0 && value <= 255;
+      });
+      return isValidIp ? pattern : null;
     }
-    if (s0 === s1 && s1 === s2 && isFullRange(s3)) {
-      return `${s0}.${s1}.0.0/16`;
-    }
-    if (s0 === s1 && s2 === s3 && isFullRange(s3)) {
-      return `${s0}.${s1}.${s2}.0/24`;
-    }
-    if (s0 === 10 && s1 === 0 && s2 === 0 && s3 === 0) return '10.0.0.0/8';
-    if (s0 === 172 && s1 === 16 && s2 === 0 && s3 === 0) return '172.16.0.0/12';
-    if (s0 === 192 && s1 === 168 && s2 === 0 && s3 === 0) return '192.168.0.0/16';
 
-    return s0 === s1 && s1 === s2 && s2 === s3 ? pattern : null;
+    const hasNonTrailingWildcard = parts
+      .slice(firstWildcard)
+      .some(part => part !== '*');
+    if (hasNonTrailingWildcard) return null;
+
+    const cidrParts = parts.map(part => part === '*' ? '0' : part);
+    const hasInvalidOctet = cidrParts.some(part => {
+      const value = parseInt(part, 10);
+      return !/^\d{1,3}$/.test(part) || value < 0 || value > 255;
+    });
+    if (hasInvalidOctet) return null;
+
+    return `${cidrParts.join('.')}/${firstWildcard * 8}`;
   }
 
   function escapeRegExp(string) {
