@@ -33,6 +33,7 @@ beforeAll(() => {
   temporaryProject = fs.mkdtempSync(path.join(os.tmpdir(), 'proxy-assistant-e2e-'));
   buildDirectory = path.join(temporaryProject, 'build');
   fs.cpSync(path.join(PROJECT_ROOT, 'src'), path.join(temporaryProject, 'src'), { recursive: true });
+  fs.writeFileSync(path.join(temporaryProject, 'src', '.DS_Store'), 'metadata');
   fs.mkdirSync(path.join(temporaryProject, 'script'));
   fs.copyFileSync(
     path.join(PROJECT_ROOT, 'script/build.sh'),
@@ -71,5 +72,6 @@ describe('extension package build', () => {
     ]));
     expect(entries).not.toContain('manifest_chrome.json');
     expect(entries).not.toContain('manifest_firefox.json');
+    expect(entries).not.toContain('.DS_Store');
   });
 });
