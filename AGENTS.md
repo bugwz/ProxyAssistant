@@ -159,6 +159,23 @@ describe('模块名', () => {
 });
 ```
 
+### 测试用例设计
+- 测试名称和断言应描述项目当前存在的功能、结构与行为，优先验证用户可见结果或稳定接口。
+- 删除或替换旧实现后，不要在新测试中引用已经不存在的旧按钮、旧类名、旧文案或旧实现细节来证明它们已被移除。
+- 避免 `expect(html).not.toContain('旧实现标识')` 这类带有历史背景的断言；应改为验证新结构包含所需元素、数据和行为。
+- 仅当“不存在”本身是明确的产品、安全或构建契约时使用负向断言，例如防止 XSS、排除错误打包文件、禁止生成无效规则。
+- DOM 测试优先通过选择器解析当前结构并验证元素关系，不要依赖与功能无关的大段 HTML 字符串或已废弃实现。
+
+```javascript
+test('关于页面展示完整版本信息', () => {
+  const panel = pageDocument.querySelector('.about-version-panel');
+  const values = panel.querySelectorAll('.version-value');
+
+  expect(panel).toBeTruthy();
+  expect(values).toHaveLength(3);
+});
+```
+
 ### 浏览器特定代码
 ```javascript
 // Firefox 检测和 polyfill

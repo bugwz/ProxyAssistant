@@ -38,7 +38,7 @@ const ScenariosModule = (function () {
 
   function renderScenarioViews() {
     renderScenarioSelector();
-    if ($(".scenario-manage-tip").hasClass("show")) {
+    if ($("#scenario-manage-list").length) {
       renderScenarioManagementList();
     }
   }
@@ -110,27 +110,40 @@ const ScenariosModule = (function () {
   function renderScenarioManagementList() {
     const scenarios = getScenarios();
     const currentScenarioId = getCurrentScenarioId();
+    const currentScenario = scenarios.find(scenario => scenario.id === currentScenarioId);
+    const totalProxyCount = scenarios.reduce((total, scenario) => total + (scenario.proxies || []).length, 0);
 
     let html = "";
     scenarios.forEach(function (scenario, index) {
       const isCurrent = scenario.id === currentScenarioId;
       const proxyCount = (scenario.proxies || []).length;
+      const escapedId = UtilsModule.escapeHtml(scenario.id);
+      const escapedName = UtilsModule.escapeHtml(scenario.name);
 
       html += `
-         <div class="scenario-item" data-id="${scenario.id}">
-           <div class="scenario-item-left">
-             <div class="drag-handle" title="${I18n.t('drag_sort')}">
-               <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"></path></svg>
-             </div>
-             <span class="scenario-name">${UtilsModule.escapeHtml(scenario.name)}</span>
-             <span class="scenario-proxy-count">${proxyCount}</span>
-             ${isCurrent ? '<span class="scenario-current-indicator">(' + I18n.t('status_current') + ')</span>' : ''}
-           </div>
+         <div class="scenario-item${isCurrent ? ' is-current' : ''}" data-id="${escapedId}">
+           <button type="button" class="drag-handle" title="${I18n.t('drag_sort')}" aria-label="${I18n.t('drag_sort')}">
+             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1"></circle><circle cx="15" cy="6" r="1"></circle><circle cx="9" cy="12" r="1"></circle><circle cx="15" cy="12" r="1"></circle><circle cx="9" cy="18" r="1"></circle><circle cx="15" cy="18" r="1"></circle></svg>
+           </button>
+           <button type="button" class="scenario-item-main" data-id="${escapedId}"${isCurrent ? ' aria-current="true"' : ''} title="${I18n.t('switch_scenario_tooltip')}">
+             <span class="scenario-item-icon" aria-hidden="true">
+               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7l8 4 8-4-8-4Z"></path><path d="m4 12 8 4 8-4"></path><path d="m4 17 8 4 8-4"></path></svg>
+             </span>
+             <span class="scenario-item-copy">
+               <span class="scenario-name">${escapedName}</span>
+               <span class="scenario-item-meta">
+                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="6" rx="2"></rect><rect x="4" y="14" width="16" height="6" rx="2"></rect><path d="M8 7h.01M8 17h.01"></path></svg>
+                 <span class="scenario-proxy-count">${proxyCount}</span>
+                 <span>${I18n.t('scenario_proxy_unit')}</span>
+               </span>
+             </span>
+           </button>
+           ${isCurrent ? `<span class="scenario-current-indicator"><span class="scenario-current-dot"></span>${I18n.t('status_current')}</span>` : ''}
            <div class="scenario-actions">
-             <button class="edit-scenario-btn" data-id="${scenario.id}" data-name="${UtilsModule.escapeHtml(scenario.name)}" title="${I18n.t('scenario_edit')}">
+             <button type="button" class="edit-scenario-btn" data-id="${escapedId}" data-name="${escapedName}" title="${I18n.t('scenario_edit')}">
                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
              </button>
-             <button class="delete-scenario-btn" data-id="${scenario.id}" title="${I18n.t('delete')}">
+             <button type="button" class="delete-scenario-btn" data-id="${escapedId}" title="${I18n.t('delete')}">
                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
              </button>
            </div>
@@ -138,6 +151,9 @@ const ScenariosModule = (function () {
        `;
     });
     $("#scenario-manage-list").html(html);
+    $("#scenario-management-current").text(currentScenario ? currentScenario.name : I18n.t('scenario_default'));
+    $("#scenario-total-count, #scenario-list-count").text(scenarios.length);
+    $("#scenario-proxy-total-count").text(totalProxyCount);
 
     initScenarioSortable();
   }
@@ -185,12 +201,7 @@ const ScenariosModule = (function () {
         margin: 0,
         transform: "scale(1.02)",
         transition: "none",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "4px",
-        border: "1px solid var(--border-color)",
-        borderRadius: "6px"
+        display: "grid"
       });
 
       $("body").append($clone);
@@ -322,18 +333,18 @@ const ScenariosModule = (function () {
   function renameScenario(id, newName) {
     if (!newName) {
       showAlertScenario(I18n.t('scenario_name_required'));
-      return;
+      return false;
     }
 
     if (/\s/.test(newName)) {
       showAlertScenario(I18n.t('alert_scenario_name_spaces'));
-      return;
+      return false;
     }
 
     const scenarios = getScenarios();
     if (scenarios.some(s => s.name === newName && s.id !== id)) {
       showAlertScenario(I18n.t('scenario_name_duplicate'));
-      return;
+      return false;
     }
 
     if (StorageModule) {
@@ -345,6 +356,7 @@ const ScenariosModule = (function () {
     }
 
     renderScenarioViews();
+    return true;
   }
 
   function doDeleteScenario(id) {
@@ -471,10 +483,34 @@ const ScenariosModule = (function () {
   }
 
   function bindEvents() {
+    $("#open-add-scenario-btn").on("click", function () {
+      $("#new-scenario-name").val("").removeClass('input-error');
+      $(".add-scenario-tip").show().addClass("show");
+      setTimeout(() => $("#new-scenario-name").focus(), 100);
+    });
+
+    $(".add-scenario-close-btn, .add-scenario-cancel-btn, .add-scenario-tip").on("click", function (e) {
+      if (this === e.target || $(this).hasClass('add-scenario-close-btn') || $(this).hasClass('add-scenario-cancel-btn')) {
+        $(".add-scenario-tip").removeClass("show");
+        setTimeout(function () { $(".add-scenario-tip").hide(); }, 200);
+        $("#open-add-scenario-btn").trigger("focus");
+      }
+    });
+
     $("#add-scenario-btn").on("click", function () {
       const name = $("#new-scenario-name").val().trim();
-      if (addScenario(name)) {
+      addScenario(name, function () {
         $("#new-scenario-name").val("");
+        $(".add-scenario-tip").removeClass("show");
+        setTimeout(function () { $(".add-scenario-tip").hide(); }, 200);
+        $("#open-add-scenario-btn").trigger("focus");
+      });
+    });
+
+    $("#new-scenario-name").on("keydown", function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        $("#add-scenario-btn").trigger("click");
       }
     });
 
@@ -489,11 +525,19 @@ const ScenariosModule = (function () {
     $("#confirm-edit-scenario-btn").on("click", function () {
       const newName = $("#edit-scenario-name").val().trim();
       if (editingScenarioId) {
-        UtilsModule.showProcessingTip(I18n.t('processing'));
-        renameScenario(editingScenarioId, newName);
-        $(".edit-scenario-tip").removeClass("show");
-        setTimeout(function () { $(".edit-scenario-tip").hide(); }, 300);
-        editingScenarioId = null;
+        if (renameScenario(editingScenarioId, newName)) {
+          UtilsModule.showProcessingTip(I18n.t('processing'));
+          $(".edit-scenario-tip").removeClass("show");
+          setTimeout(function () { $(".edit-scenario-tip").hide(); }, 300);
+          editingScenarioId = null;
+        }
+      }
+    });
+
+    $("#edit-scenario-name").on("keydown", function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        $("#confirm-edit-scenario-btn").trigger("click");
       }
     });
 
@@ -531,15 +575,20 @@ const ScenariosModule = (function () {
         return;
       }
       deletingScenarioId = id;
-      $("#delete-scenario-message").html(`${I18n.t('scenario_delete_confirm')}<br><span style="color: #ef4444; font-weight: 600; margin-top: 10px; display: block; text-align: center; font-size: 16px;">${UtilsModule.escapeHtml(scenario.name)}</span>`);
+      $("#delete-scenario-message").text(I18n.t('scenario_delete_confirm'));
+      $("#delete-scenario-name").text(scenario.name);
       $(".delete-scenario-tip").show().addClass("show");
+    });
+
+    $("#scenario-manage-list").on("click", ".scenario-item-main", function () {
+      switchScenario($(this).data("id"));
     });
 
     $("#scenario-manage-list").on("click", ".edit-scenario-btn", function () {
       const id = $(this).data("id");
       const oldName = $(this).data("name");
       editingScenarioId = id;
-      $("#edit-scenario-oldname").text(UtilsModule.escapeHtml(oldName));
+      $("#edit-scenario-oldname").text(oldName);
       $("#edit-scenario-name").val(oldName);
       $("#edit-scenario-name").removeClass('input-error');
       $(".edit-scenario-tip").show().addClass("show");
@@ -563,17 +612,6 @@ const ScenariosModule = (function () {
       }
     });
 
-    $("#scenario-manage-btn").on("click", function () {
-      renderScenarioManagementList();
-      $(".scenario-manage-tip").show().addClass("show");
-    });
-
-    $(".scenario-manage-close-btn, .scenario-manage-tip").on("click", function (e) {
-      if (this === e.target || $(this).hasClass('scenario-manage-close-btn')) {
-        $(".scenario-manage-tip").removeClass("show");
-        setTimeout(function () { $(".scenario-manage-tip").hide(); }, 300);
-      }
-    });
   }
 
   return {

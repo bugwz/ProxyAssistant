@@ -10,17 +10,27 @@ const versionIcons = {
   link: MainIcons.render('externalLink', { width: 16, height: 16 })
 };
 
-async function showVersionCheck() {
-  $(".version-check-tip").show().addClass("show");
+let loadedLanguage = null;
+let versionInfoPromise = null;
 
+async function loadVersionInfo() {
+  const currentLanguage = I18n.getCurrentLanguage();
+  if (versionInfoPromise && loadedLanguage === currentLanguage) {
+    return versionInfoPromise;
+  }
+
+  loadedLanguage = currentLanguage;
   const currentVersion = chrome.runtime.getManifest().version;
   $("#current-version-value").text(currentVersion);
 
   $("#store-version-value").html(`<span data-i18n="version_checking">${I18n.t('version_checking')}</span>`);
   $("#github-version-value").html(`<span data-i18n="version_checking">${I18n.t('version_checking')}</span>`);
 
-  checkStoreVersion(currentVersion);
-  checkGitHubVersion(currentVersion);
+  versionInfoPromise = Promise.allSettled([
+    checkStoreVersion(currentVersion),
+    checkGitHubVersion(currentVersion)
+  ]);
+  return versionInfoPromise;
 }
 
 async function checkStoreVersion(currentVersion, isRetry = false) {
@@ -184,7 +194,7 @@ function compareVersions(v1, v2) {
 
 // Export for use
 window.VersionModule = {
-  showVersionCheck,
+  loadVersionInfo,
   checkStoreVersion,
   checkGitHubVersion,
   updateVersionUI,

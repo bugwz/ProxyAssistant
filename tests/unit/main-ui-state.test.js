@@ -66,8 +66,6 @@ function setupBaseDom() {
     <div id="pac-toggle-btn"></div>
     <div id="pac-script-content"></div>
     <div id="pac-script-wrapper"></div>
-    <div class="version-check-tip"></div>
-    <div class="version-check-close-btn"></div>
     <div class="sync-config-tip"></div>
     <div class="sync-config-close-btn"></div>
     <button id="save-sync-config"></button>
@@ -83,7 +81,6 @@ function setupBaseDom() {
     <input id="json-file-input" />
     <button id="detect-proxy-btn"></button>
     <button id="pac-details-btn"></button>
-    <button id="check-version-btn"></button>
     <div id="language-options"><li data-value="zh-CN">简体中文</li></div>
     <div id="current-language-display"></div>
     <div id="current-scenario-indicator"></div>
@@ -221,7 +218,7 @@ describe('main UI state flow', () => {
       closePacDetails: jest.fn()
     };
     global.VersionModule = {
-      showVersionCheck: jest.fn(),
+      loadVersionInfo: jest.fn(() => Promise.resolve()),
       checkGitHubVersion: jest.fn(() => Promise.resolve()),
       checkStoreVersion: jest.fn(() => Promise.resolve())
     };
@@ -392,6 +389,89 @@ describe('main UI state flow', () => {
     expect(global.StorageModule.setCurrentScenarioId).toHaveBeenNthCalledWith(2, 'scenario-a');
     expect(global.onScenarioSwitch).not.toHaveBeenCalled();
     expect(currentScenarioId).toBe('scenario-a');
+  });
+
+  test('scenario management summarizes, switches, and adds scenarios from the dialog', async () => {
+    document.body.innerHTML = `
+      <button id="open-add-scenario-btn"></button>
+      <div id="scenario-management-current"></div>
+      <div id="scenario-total-count"></div>
+      <div id="scenario-proxy-total-count"></div>
+      <div id="scenario-list-count"></div>
+      <div id="scenario-manage-list"></div>
+      <ul class="main-scenario-dropdown"></ul>
+      <button class="main-scenario-btn"></button>
+      <div id="current-scenario-indicator"></div>
+      <div class="add-scenario-tip">
+        <button class="add-scenario-close-btn"></button>
+        <button class="add-scenario-cancel-btn"></button>
+        <input id="new-scenario-name">
+        <button id="add-scenario-btn"></button>
+      </div>
+      <div class="edit-scenario-tip"></div>
+      <div class="delete-scenario-tip"></div>
+      <div class="alert-scenario-tip"></div>
+    `;
+
+    const scenarios = [
+      { id: 'scenario-a', name: 'Home', proxies: [{ name: 'Proxy A' }] },
+      { id: 'scenario-b', name: 'Work', proxies: [{ name: 'Proxy B' }, { name: 'Proxy C' }] }
+    ];
+    let currentScenarioId = 'scenario-a';
+    const onScenarioSwitch = jest.fn();
+    const onScenarioAdd = jest.fn();
+
+    global.StorageModule = {
+      getScenarios: jest.fn(() => scenarios),
+      getCurrentScenarioId: jest.fn(() => currentScenarioId),
+      setCurrentScenarioId: jest.fn((id) => {
+        currentScenarioId = id;
+      }),
+      getCurrentScenario: jest.fn(() => scenarios.find(scenario => scenario.id === currentScenarioId)),
+      addScenario: jest.fn((scenario) => scenarios.push(scenario)),
+      save: jest.fn(() => Promise.resolve())
+    };
+    global.ConfigModule = {
+      generateScenarioId: jest.fn(() => 'scenario-new')
+    };
+
+    const scenariosModule = loadScenariosModule({
+      StorageModule: global.StorageModule,
+      ProxyModule: global.ProxyModule,
+      UtilsModule: global.UtilsModule,
+      I18n: global.I18n,
+      ConfigModule: global.ConfigModule,
+      onScenarioSwitch,
+      onScenarioAdd
+    });
+
+    scenariosModule.init();
+    scenariosModule.renderScenarioManagementList();
+
+    expect($('#scenario-management-current').text()).toBe('Home');
+    expect($('#scenario-total-count').text()).toBe('2');
+    expect($('#scenario-proxy-total-count').text()).toBe('3');
+    expect($('.scenario-item.is-current').data('id')).toBe('scenario-a');
+
+    $('.scenario-item-main[data-id="scenario-b"]').trigger('click');
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(onScenarioSwitch).toHaveBeenCalledWith('scenario-b', scenarios[1].proxies);
+    expect($('.scenario-item.is-current').data('id')).toBe('scenario-b');
+
+    $('#open-add-scenario-btn').trigger('click');
+    expect($('.add-scenario-tip').hasClass('show')).toBe(true);
+    $('#new-scenario-name').val('Travel').trigger($.Event('keydown', { key: 'Enter' }));
+
+    expect(global.StorageModule.addScenario).toHaveBeenCalledWith({
+      id: 'scenario-new',
+      name: 'Travel',
+      proxies: []
+    });
+    expect(onScenarioAdd).toHaveBeenCalledWith('scenario-new', 'Travel');
+    expect($('#scenario-total-count').text()).toBe('3');
+    expect($('.add-scenario-tip').hasClass('show')).toBe(false);
   });
 
   test('subscription badge delegated click handler is not duplicated across renders', () => {
