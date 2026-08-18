@@ -2,12 +2,23 @@ const fs = require('fs');
 const path = require('path');
 
 describe('main header icon markup', () => {
-  test('scenario manage and test buttons should use the updated semantic svg paths', () => {
+  test('scenario navigation should reuse the popup scenario switch icon', () => {
+    const mainHtmlPath = path.join(__dirname, '../../src/main.html');
+    const iconsPath = path.join(__dirname, '../../src/js/icons.js');
+    const pageDocument = new DOMParser().parseFromString(fs.readFileSync(mainHtmlPath, 'utf8'), 'text/html');
+    const MainIcons = require(iconsPath);
+    const sharedIconDocument = new DOMParser().parseFromString(MainIcons.render('scenarioSwitch'), 'text/html');
+    const scenarioNavigation = pageDocument.querySelector('[data-main-page="scenarios"] svg');
+
+    const getPaths = root => Array.from(root.querySelectorAll('path')).map(path => path.getAttribute('d'));
+
+    expect(getPaths(scenarioNavigation)).toEqual(getPaths(sharedIconDocument));
+  });
+
+  test('test button should use the updated semantic svg paths', () => {
     const mainHtmlPath = path.join(__dirname, '../../src/main.html');
     const html = fs.readFileSync(mainHtmlPath, 'utf8');
 
-    expect(html).toContain('M12 3H5a2 2 0 0 0-2 2');
-    expect(html).toContain('M18.375 2.625a2.121 2.121 0 1 1 3 3');
     expect(html).toContain('circle cx="11" cy="11" r="6"');
     expect(html).toContain('m20 20-4.2-4.2');
   });
@@ -41,12 +52,17 @@ describe('main header icon markup', () => {
     expect(html).toContain('m10 14 2-2-2-2');
   });
 
-  test('version check button should use the compact status info icon', () => {
+  test('about page displays complete version information', () => {
     const mainHtmlPath = path.join(__dirname, '../../src/main.html');
-    const html = fs.readFileSync(mainHtmlPath, 'utf8');
+    const pageDocument = new DOMParser().parseFromString(fs.readFileSync(mainHtmlPath, 'utf8'), 'text/html');
+    const panel = pageDocument.querySelector('.about-version-panel');
 
-    expect(html).toContain('M12 4a8 8 0 1 0 8 8');
-    expect(html).toContain('M12 8v5');
-    expect(html).toContain('M15 15h.01');
+    expect(panel).toBeTruthy();
+    expect(panel.querySelector('.about-version-header')).toBeTruthy();
+    expect(Array.from(panel.querySelectorAll('.version-value')).map(element => element.id)).toEqual([
+      'current-version-value',
+      'store-version-value',
+      'github-version-value'
+    ]);
   });
 });

@@ -630,9 +630,21 @@ const ProxyModule = (function () {
 
     $(".proxy-color-dropdown-btn").on("click", function (e) {
       e.stopPropagation();
-      const $options = $(this).closest('.proxy-color-picker').find('.proxy-color-options');
-      $('.proxy-color-options').not($options).hide();
-      $options.toggle();
+      const $picker = $(this).closest('.proxy-color-picker');
+      const $options = $picker.find('.proxy-color-options');
+      const shouldOpen = $options.css('display') === 'none';
+      $('.proxy-color-options').not($options).hide().removeClass('drop-up')
+        .closest('.proxy-color-picker').removeClass('dropdown-open');
+      $options.toggle(shouldOpen).removeClass('drop-up');
+      $picker.toggleClass('dropdown-open', shouldOpen);
+
+      if (shouldOpen) {
+        const triggerRect = this.getBoundingClientRect();
+        const availableBelow = window.innerHeight - triggerRect.bottom;
+        if (availableBelow < $options.outerHeight() + 8 && triggerRect.top > availableBelow) {
+          $options.addClass('drop-up');
+        }
+      }
     });
 
     $(".proxy-color-option").on("click", function (e) {
@@ -641,12 +653,13 @@ const ProxyModule = (function () {
       const $picker = $option.closest('.proxy-color-picker');
       const $input = $picker.find('.proxy-color-input');
       setProxyColor($input.data('index'), $option.data('value') || '', $input);
-      $picker.find('.proxy-color-options').hide();
+      $picker.removeClass('dropdown-open').find('.proxy-color-options').hide().removeClass('drop-up');
     });
 
     $(document).off('click.proxyColorPicker').on('click.proxyColorPicker', function (e) {
       if (!$(e.target).closest('.proxy-color-picker').length) {
-        $('.proxy-color-options').hide();
+        $('.proxy-color-options').hide().removeClass('drop-up')
+          .closest('.proxy-color-picker').removeClass('dropdown-open');
       }
     });
 

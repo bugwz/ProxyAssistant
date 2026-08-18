@@ -70,6 +70,78 @@ body[data-theme="dark"] .theme-btn {
   color: #e4e4e7;
 }
 
+body[data-theme="dark"] {
+  background-color: #15181d;
+}
+
+body[data-theme="dark"] .main-sidebar {
+  background-color: #1d2127;
+  border-right-color: #353a43;
+}
+
+body[data-theme="dark"] .sidebar-logo-text,
+body[data-theme="dark"] .page-heading h1 {
+  color: #f1f5f9;
+}
+
+body[data-theme="dark"] .main-nav-item {
+  color: #b7bfca;
+}
+
+body[data-theme="dark"] .main-nav-item:hover {
+  background-color: #282d35;
+  color: #ffffff;
+}
+
+body[data-theme="dark"] .main-nav-item.active {
+  background-color: #293250;
+  color: #aab8ff;
+}
+
+body[data-theme="dark"] .sidebar-footer {
+  border-top-color: #353a43;
+  color: #88919e;
+}
+
+body[data-theme="dark"] .sidebar-github-link {
+  color: #aab2bf;
+}
+
+body[data-theme="dark"] .sidebar-github-link:hover {
+  color: #ffffff;
+  background-color: #282d35;
+}
+
+body[data-theme="dark"] .main-content {
+  background-color: #15181d;
+}
+
+body[data-theme="dark"] .page-heading p {
+  color: #9ca5b2;
+}
+
+body[data-theme="dark"] .proxy-toolbar,
+body[data-theme="dark"] .scenario-manage-panel {
+  background-color: #1f242b;
+  border-color: #383f49;
+}
+
+body[data-theme="dark"] .scenario-manage-panel {
+  background-color: transparent;
+  border: 0;
+}
+
+body[data-theme="dark"] .current-scenario-summary strong {
+  color: #e5e9ef;
+}
+
+body[data-theme="dark"] .primary-control-btn,
+body[data-theme="dark"] .control-btn.primary-control-btn {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+  color: #ffffff;
+}
+
 /* Logo text color in dark mode */
 body[data-theme="dark"] .logo-text {
   color: #e4e4e7;

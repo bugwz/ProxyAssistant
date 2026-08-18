@@ -45,6 +45,9 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function initApp() {
+  initMainNavigation();
+  updateAppVersion();
+
   // Initialize storage module
   StorageModule.init().then(() => {
     LanguageModule.initLanguage();
@@ -58,6 +61,55 @@ function initApp() {
   }).catch(err => {
     console.info('Failed to initialize storage:', err);
   });
+}
+
+function initMainNavigation() {
+  $('.main-nav-item').off('click.mainNavigation').on('click.mainNavigation', function () {
+    switchMainPage($(this).data('main-page'));
+  });
+
+  switchMainPage('proxies');
+}
+
+function switchMainPage(pageId) {
+  const $targetPage = $(`.main-page[data-page="${pageId}"]`);
+  const $targetNav = $(`.main-nav-item[data-main-page="${pageId}"]`);
+
+  if (!$targetPage.length || !$targetNav.length) return false;
+
+  $('.main-nav-item')
+    .removeClass('active')
+    .removeAttr('aria-current');
+  $targetNav
+    .addClass('active')
+    .attr('aria-current', 'page');
+
+  $('.main-page')
+    .removeClass('active')
+    .prop('hidden', true);
+  $targetPage
+    .addClass('active')
+    .prop('hidden', false);
+
+  if (pageId === 'scenarios' && typeof ScenariosModule !== 'undefined' && ScenariosModule.renderScenarioManagementList) {
+    ScenariosModule.renderScenarioManagementList();
+  }
+
+  if (pageId === 'about' && typeof VersionModule !== 'undefined' && VersionModule.loadVersionInfo) {
+    VersionModule.loadVersionInfo().catch(error => {
+      console.info('Failed to load version information:', error);
+    });
+  }
+
+  return true;
+}
+
+function updateAppVersion() {
+  if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.getManifest) return;
+
+  const version = chrome.runtime.getManifest().version;
+  $('#sidebar-version').text(`v${version}`);
+  $('#current-version-value').text(version);
 }
 
 function loadSettings() {
@@ -142,8 +194,30 @@ function saveConfig(options) {
 // UI Components
 // ==========================================
 function initDropdowns() {
-  $("html").on("click", function () {
-    $(".lh-select-op").hide();
+  function closeDropdowns($except) {
+    const $menus = $except ? $('.lh-select-op').not($except) : $('.lh-select-op');
+    $menus.hide().removeClass('drop-up');
+    $menus.each(function () {
+      $(this).closest('.lh-select, .header-left-controls').removeClass('dropdown-open');
+    });
+  }
+
+  function positionDropdown($menu, $trigger) {
+    $menu.removeClass('drop-up');
+    const trigger = $trigger && $trigger[0];
+    if (!trigger) return;
+
+    const triggerRect = trigger.getBoundingClientRect();
+    const menuHeight = $menu.outerHeight();
+    const availableBelow = window.innerHeight - triggerRect.bottom;
+    const availableAbove = triggerRect.top;
+    if (availableBelow < menuHeight + 8 && availableAbove > availableBelow) {
+      $menu.addClass('drop-up');
+    }
+  }
+
+  $("html").off("click.dropdownMenus").on("click.dropdownMenus", function () {
+    closeDropdowns();
   });
 
   $(document).off("click", ".lh-select-k").on("click", ".lh-select-k", function (e) {
@@ -152,15 +226,19 @@ function initDropdowns() {
     const $op = $(that).next();
     const display = $op.css('display');
 
-    $(".lh-select-op").not($op).hide();
+    closeDropdowns($op);
 
     if (display != 'none') {
-      $op.hide();
+      $op.hide().removeClass('drop-up');
+      $(that).closest('.lh-select').removeClass('dropdown-open');
       return;
     }
 
     setTimeout(function () {
-      $op.toggle();
+      const $select = $(that).closest('.lh-select');
+      $select.addClass('dropdown-open');
+      $op.show();
+      positionDropdown($op, $(that));
     }, 50);
   });
 
@@ -170,15 +248,18 @@ function initDropdowns() {
     const $op = $btn.siblings('.main-scenario-dropdown');
     const display = $op.css('display');
 
-    $(".lh-select-op").not($op).hide();
+    closeDropdowns($op);
 
     if (display !== 'none') {
-      $op.hide();
+      $op.hide().removeClass('drop-up');
+      $btn.closest('.header-left-controls').removeClass('dropdown-open');
       return;
     }
 
     setTimeout(function () {
+      $btn.closest('.header-left-controls').addClass('dropdown-open');
       $op.show();
+      positionDropdown($op, $btn);
     }, 50);
   });
 
@@ -187,6 +268,9 @@ function initDropdowns() {
     const $li = $(this);
     const $container = $li.closest('.lh-select');
     const type = $container.data("type");
+    $li.parent().removeClass('drop-up');
+    $container.removeClass('dropdown-open');
+    $li.closest('.header-left-controls').removeClass('dropdown-open');
 
     if (type === 'main_scenario') {
       const scenarioId = $li.data('value');
@@ -353,14 +437,6 @@ function bindGlobalEvents() {
   $("#detect-proxy-btn").on("click", DetectionModule.detectProxy);
   $("#pac-details-btn").on("click", DetectionModule.showPacDetails);
 
-  $("#check-version-btn").on("click", VersionModule.showVersionCheck);
-  $(".version-check-close-btn, .version-check-tip").on("click", function (e) {
-    if (this === e.target || $(this).hasClass('version-check-close-btn')) {
-      $(".version-check-tip").removeClass("show");
-      setTimeout(function () { $(".version-check-tip").hide(); }, 300);
-    }
-  });
-
   $(document).on("click", ".version-row-retry-btn", function () {
     const source = $(this).data("source");
     const currentVersion = chrome.runtime.getManifest().version;
@@ -380,16 +456,15 @@ function bindGlobalEvents() {
   $(document).on("keydown", function (e) {
     if (e.key === "Escape") {
       const popupOrder = [
+        '.alert-scenario-tip',
+        '.add-scenario-tip',
         '.edit-scenario-tip',
         '.delete-scenario-tip',
         '.move-proxy-tip',
-        '.alert-scenario-tip',
-        '.scenario-manage-tip',
         '.sync-config-tip',
         '.subscription-config-tip',
         '.pac-details-tip',
         '.proxy-detection-tip',
-        '.version-check-tip',
         '.delete-tip'
       ];
 
@@ -400,6 +475,9 @@ function bindGlobalEvents() {
           setTimeout(function (popup) {
             return function () { popup.hide(); };
           }($popup), 300);
+          if ($popup.hasClass('add-scenario-tip')) {
+            $("#open-add-scenario-btn").trigger("focus");
+          }
           return;
         }
       }

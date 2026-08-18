@@ -17,7 +17,8 @@ function initLanguage() {
     const text = $(this).text();
 
     $currentLangDisplay.text(text);
-    $(this).closest('.lh-select').find('.lh-select-op').hide();
+    $(this).closest('.lh-select').removeClass('dropdown-open')
+      .find('.lh-select-op').hide().removeClass('drop-up');
 
     I18n.setLanguage(lang);
 

@@ -14,62 +14,233 @@
 
 <body>
   <div class="main-container">
-    <div class="logo">
-      <img src="./images/icon-128.png" alt="logo" />
-      <span class="logo-text" data-i18n="app_name">代理助手</span>
-    </div>
-
-    <div class="section-title" data-i18n="manage_proxies">管理代理</div>
-    <div class="header-container">
-      <div class="header-left-controls">
-          <div class="main-scenario-btn" data-type="main_scenario" title="切换场景" data-i18n-title="switch_scenario_tooltip">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 3 4 7l8 4 8-4-8-4Z"/>
-                  <path d="m4 12 8 4 8-4"/>
-                  <path d="m4 17 8 4 8-4"/>
-              </svg>
-          </div>
-          <button id="scenario-manage-btn" class="control-btn">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.375 2.625a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"></path></svg>
-              <span data-i18n="scenario_manage">场景管理</span>
-          </button>
-          <ul class="lh-select-op main-scenario-dropdown" id="main-scenario-options">
-              <!-- Scenarios injected here -->
-          </ul>
+    <aside class="main-sidebar">
+      <div class="sidebar-logo">
+        <img src="./images/icon-128.png" alt="" />
+        <span class="sidebar-logo-text" data-i18n="app_name">代理助手</span>
       </div>
-      <div class="list-controls">
-          <button id="add-proxy-btn" class="control-btn">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-              <span data-i18n="add_new">新增</span>
-          </button>
-          <button id="test-all-btn" class="control-btn">
+
+      <nav class="main-nav" aria-label="Main navigation">
+        <button type="button" class="main-nav-item" data-main-page="scenarios" aria-controls="page-scenarios" title="场景管理" data-i18n-title="nav_scenarios">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7l8 4 8-4-8-4Z"></path><path d="m4 12 8 4 8-4"></path><path d="m4 17 8 4 8-4"></path></svg>
+          <span data-i18n="nav_scenarios">场景管理</span>
+        </button>
+        <button type="button" class="main-nav-item active" data-main-page="proxies" aria-controls="page-proxies" aria-current="page" title="代理管理" data-i18n-title="nav_proxies">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="6" rx="2"></rect><rect x="4" y="14" width="16" height="6" rx="2"></rect><path d="M8 7h.01M8 17h.01"></path></svg>
+          <span data-i18n="nav_proxies">代理管理</span>
+        </button>
+        <button type="button" class="main-nav-item" data-main-page="sync" aria-controls="page-sync" title="云同步" data-i18n-title="nav_sync">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17.5A4.5 4.5 0 1 1 8 8.6a5.5 5.5 0 0 1 10.5 1.9A3.5 3.5 0 1 1 18 17.5H7Z"></path></svg>
+          <span data-i18n="nav_sync">云同步</span>
+        </button>
+        <button type="button" class="main-nav-item" data-main-page="config" aria-controls="page-config" title="配置管理" data-i18n-title="nav_config">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h6l2 2h8v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z"></path><path d="M12 12v5m-2-2 2 2 2-2"></path></svg>
+          <span data-i18n="nav_config">配置管理</span>
+        </button>
+        <button type="button" class="main-nav-item" data-main-page="diagnostics" aria-controls="page-diagnostics" title="代理诊断" data-i18n-title="nav_diagnostics">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="4.5"></circle><path d="m14 14 4 4"></path><path d="M10.5 8v2.5l1.5 1"></path></svg>
+          <span data-i18n="nav_diagnostics">代理诊断</span>
+        </button>
+        <button type="button" class="main-nav-item" data-main-page="appearance" aria-controls="page-appearance" title="外观与语言" data-i18n-title="nav_appearance">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18h1.5a1.5 1.5 0 0 0 0-3H12a2 2 0 0 1 0-4h2a7 7 0 0 0-2-11Z"></path><circle cx="7.5" cy="10.5" r=".5" fill="currentColor"></circle><circle cx="10" cy="7" r=".5" fill="currentColor"></circle><circle cx="15" cy="7.5" r=".5" fill="currentColor"></circle></svg>
+          <span data-i18n="nav_appearance">外观与语言</span>
+        </button>
+        <button type="button" class="main-nav-item" data-main-page="about" aria-controls="page-about" title="关于" data-i18n-title="nav_about">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+          <span data-i18n="nav_about">关于</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span id="sidebar-version"></span>
+        <a class="sidebar-github-link" href="https://github.com/bugwz/ProxyAssistant" target="_blank" rel="noopener noreferrer" title="GitHub" aria-label="GitHub">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.48 2 2 6.59 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.09.68-.22.68-.49 0-.24-.01-1.05-.01-1.9-2.78.62-3.37-1.21-3.37-1.21-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.89 1.57 2.34 1.12 2.91.85.09-.66.35-1.12.64-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.32 9.32 0 0 1 12 7.02c.85 0 1.7.12 2.5.35 1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.8-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.59.69.49A10.23 10.23 0 0 0 22 12.25C22 6.59 17.52 2 12 2Z"></path></svg>
+        </a>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <section class="main-page active" id="page-proxies" data-page="proxies">
+        <div class="page-heading">
+          <div>
+            <h1 data-i18n="nav_proxies">代理管理</h1>
+          </div>
+          <div class="list-controls">
+            <button id="test-all-btn" class="control-btn">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"></circle><path d="m20 20-4.2-4.2"></path></svg>
               <span data-i18n="test_all">测试</span>
-          </button>
-          <button id="expand-collapse-btn" class="control-btn">
-              <svg class="icon-expand" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4H4v4"/><path d="m4 4 6 6"/><path d="M16 20h4v-4"/><path d="m20 20-6-6"/><path d="M20 8V4h-4"/><path d="m20 4-6 6"/><path d="M4 16v4h4"/><path d="m4 20 6-6"/></svg>
+            </button>
+            <button id="expand-collapse-btn" class="control-btn">
+              <svg class="icon-expand" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4H4v4"></path><path d="m4 4 6 6"></path><path d="M16 20h4v-4"></path><path d="m20 20-6-6"></path><path d="M20 8V4h-4"></path><path d="m20 4-6 6"></path><path d="M4 16v4h4"></path><path d="m4 20 6-6"></path></svg>
               <span data-i18n="expand_all">展开</span>
-          </button>
-      </div>
-    </div>
-
-    <div class="scenario-indicator">
-        <div class="scenario-indicator-line-left"></div>
-        <div class="scenario-indicator-gap">
-            <span class="scenario-indicator-text" id="current-scenario-indicator">默认场景</span>
+            </button>
+            <button id="add-proxy-btn" class="control-btn primary-control-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+              <span data-i18n="add_new">新增</span>
+            </button>
+          </div>
         </div>
-        <div class="scenario-indicator-line-right"></div>
-    </div>
 
-    <div id="proxy-list">
+        <div class="header-container proxy-toolbar">
+          <div class="header-left-controls">
+            <button type="button" class="main-scenario-btn" data-type="main_scenario" title="切换场景" data-i18n-title="switch_scenario_tooltip">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7l8 4 8-4-8-4Z"></path><path d="m4 12 8 4 8-4"></path><path d="m4 17 8 4 8-4"></path></svg>
+            </button>
+            <div class="current-scenario-summary">
+              <span class="current-scenario-label" data-i18n="current_scenario">当前场景:</span>
+              <strong id="current-scenario-indicator">默认场景</strong>
+            </div>
+            <ul class="lh-select-op main-scenario-dropdown" id="main-scenario-options">
+              <!-- Scenarios injected here -->
+            </ul>
+          </div>
+        </div>
 
-    </div>
+        <div id="proxy-list"></div>
+      </section>
 
-    <div class="section-title system-config-title" data-i18n="system_config">系统设置</div>
+      <section class="main-page" id="page-scenarios" data-page="scenarios" hidden>
+        <div class="page-heading">
+          <div>
+            <h1 data-i18n="nav_scenarios">场景管理</h1>
+          </div>
+          <button type="button" id="open-add-scenario-btn" class="control-btn primary-control-btn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+            <span data-i18n="scenario_add">新增场景</span>
+          </button>
+        </div>
+        <div class="scenario-manage-panel">
+          <div class="scenario-overview">
+            <div class="scenario-overview-current">
+              <span class="scenario-overview-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7l8 4 8-4-8-4Z"></path><path d="m4 12 8 4 8-4"></path><path d="m4 17 8 4 8-4"></path></svg>
+              </span>
+              <span class="scenario-overview-copy">
+                <span data-i18n="current_scenario">当前场景:</span>
+                <strong id="scenario-management-current">-</strong>
+              </span>
+            </div>
+            <div class="scenario-overview-stats">
+              <div class="scenario-overview-stat">
+                <strong id="scenario-total-count">0</strong>
+                <span data-i18n="scenario_total">场景数</span>
+              </div>
+              <div class="scenario-overview-stat">
+                <strong id="scenario-proxy-total-count">0</strong>
+                <span data-i18n="scenario_proxy_total">代理数</span>
+              </div>
+            </div>
+          </div>
+          <div class="scenario-list-heading">
+            <h2 data-i18n="scenario_list">场景列表</h2>
+            <span class="scenario-list-count" id="scenario-list-count">0</span>
+          </div>
+          <div class="scenario-list" id="scenario-manage-list">
+            <!-- Scenario items injected here -->
+          </div>
+        </div>
+      </section>
 
-    <div class="system-config-list">
-      <!-- Language Setting -->
-      <div class="config-row">
+      <section class="main-page" id="page-sync" data-page="sync" hidden>
+        <div class="page-heading">
+          <div>
+            <h1 data-i18n="nav_sync">云同步</h1>
+            <p data-i18n="cloud_sync_desc">选择您的云同步方式</p>
+          </div>
+        </div>
+        <div class="system-config-list">
+          <div class="config-row">
+            <div class="config-row-left">
+              <div class="config-row-title" data-i18n="cloud_sync_settings">云同步方式</div>
+              <div class="config-row-desc">
+                <span data-i18n="cloud_sync_desc">选择您的云同步方式，当前云同步方式: </span>
+                <span id="sync-status-badge" class="sync-status-badge"></span>
+              </div>
+            </div>
+            <div class="config-row-right">
+              <button id="open-sync-config-btn" class="control-btn">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17.5A4.5 4.5 0 1 1 8 8.6a5.5 5.5 0 0 1 10.5 1.9A3.5 3.5 0 1 1 18 17.5H7Z"></path></svg>
+                <span data-i18n="config_sync_btn">配置</span>
+              </button>
+              <button id="sync-push-btn" class="control-btn">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5A4.5 4.5 0 1 1 8 9.6a5.5 5.5 0 0 1 10.5 1.9A3.5 3.5 0 1 1 18 18.5H7Z"></path><path d="M12 15V9"></path><path d="m9.5 11.5 2.5-2.5 2.5 2.5"></path></svg>
+                <span data-i18n="sync_push">推送</span>
+              </button>
+              <button id="sync-pull-btn" class="control-btn">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5A4.5 4.5 0 1 1 8 9.6a5.5 5.5 0 0 1 10.5 1.9A3.5 3.5 0 1 1 18 18.5H7Z"></path><path d="M12 9v6"></path><path d="m14.5 12.5-2.5 2.5-2.5-2.5"></path></svg>
+                <span data-i18n="sync_pull">拉取</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="main-page" id="page-config" data-page="config" hidden>
+        <div class="page-heading">
+          <div>
+            <h1 data-i18n="nav_config">配置管理</h1>
+            <p data-i18n="config_desc">管理系统配置</p>
+          </div>
+        </div>
+        <div class="system-config-list">
+          <div class="config-row">
+            <div class="config-row-left">
+              <div class="config-row-title" data-i18n="config_management">配置管理</div>
+              <div class="config-row-desc" data-i18n="config_desc">管理系统配置</div>
+            </div>
+            <div class="config-row-right">
+              <div class="config-actions">
+                <button type="button" class="export-btn">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14V5"></path><path d="m9.5 8.5 2.5-2.5 2.5 2.5"></path><path d="M5 15.5v2A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5v-2"></path></svg>
+                  <span data-i18n="export_config">导出</span>
+                </button>
+                <button type="button" class="import-json-btn">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v9"></path><path d="m15 10-3 3-3-3"></path><path d="M5 15.5v2A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5v-2"></path></svg>
+                  <span data-i18n="import_config">导入</span>
+                </button>
+                <input type="file" id="json-file-input" accept=".json" class="json-file-input" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="main-page" id="page-diagnostics" data-page="diagnostics" hidden>
+        <div class="page-heading">
+          <div>
+            <h1 data-i18n="nav_diagnostics">代理诊断</h1>
+            <p data-i18n="proxy_detection_desc">检测当前系统代理配置</p>
+          </div>
+        </div>
+        <div class="system-config-list">
+          <div class="config-row">
+            <div class="config-row-left">
+              <div class="config-row-title" data-i18n="proxy_detection">代理状态</div>
+              <div class="config-row-desc" data-i18n="proxy_detection_desc">检测当前系统代理配置，判断是否使用本插件</div>
+            </div>
+            <div class="config-row-right">
+              <button id="detect-proxy-btn" class="control-btn primary-control-btn">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="4.5"></circle><path d="m14 14 4 4"></path></svg>
+                <span data-i18n="proxy_detection_button">检测</span>
+              </button>
+              <button id="pac-details-btn" class="control-btn">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h5l4 4v14H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path><path d="M13 3v5h4"></path><path d="m10 14 2-2-2-2"></path></svg>
+                <span data-i18n="view_pac_button">查看 PAC</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="main-page" id="page-appearance" data-page="appearance" hidden>
+        <div class="page-heading">
+          <div>
+            <h1 data-i18n="nav_appearance">外观与语言</h1>
+            <p data-i18n="theme_settings_desc">选择白天模式、夜间模式或自动切换</p>
+          </div>
+        </div>
+        <div class="system-config-list">
+          <div class="config-row">
           <div class="config-row-left">
               <div class="config-row-title" data-i18n="language_settings">语言设置</div>
               <div class="config-row-desc" data-i18n="select_language">选择语言</div>
@@ -96,8 +267,7 @@
           </div>
       </div>
 
-      <!-- Theme Setting -->
-      <div class="config-row">
+          <div class="config-row">
           <div class="config-row-left">
               <div class="config-row-title" data-i18n="theme_settings">主题模式</div>
               <div class="config-row-desc" data-i18n="theme_settings_desc">选择白天模式、夜间模式或自动切换</div>
@@ -111,8 +281,7 @@
           </div>
       </div>
 
-      <!-- Auto Mode Time Settings -->
-      <div class="config-row auto-mode-time-row">
+          <div class="config-row auto-mode-time-row">
           <div class="config-row-left">
               <div class="config-row-title" data-i18n="dark_mode_schedule">自动切换时间</div>
               <div class="config-row-desc" data-i18n="dark_mode_schedule_desc">设置夜间模式的起止时间</div>
@@ -127,85 +296,45 @@
           </div>
       </div>
 
-      <!-- Sync Setting -->
-      <div class="config-row">
-          <div class="config-row-left">
-              <div class="config-row-title" data-i18n="cloud_sync_settings">云同步方式</div>
-              <div class="config-row-desc">
-                  <span data-i18n="cloud_sync_desc">选择您的云同步方式，当前云同步方式: </span>
-                  <span id="sync-status-badge" class="sync-status-badge"></span>
+        </div>
+      </section>
+
+      <section class="main-page" id="page-about" data-page="about" hidden>
+        <div class="page-heading">
+          <div>
+            <h1 data-i18n="nav_about">关于</h1>
+            <p data-i18n="version_check_desc">检测当前版本及更新信息</p>
+          </div>
+        </div>
+        <div class="about-version-panel">
+          <div class="about-version-header">
+            <img src="./images/icon-128.png" alt="" aria-hidden="true">
+            <div>
+              <h2 data-i18n="app_name">代理助手</h2>
+              <p data-i18n="version_check_title">版本信息</p>
+            </div>
+          </div>
+          <div class="about-version-list">
+            <div class="version-info-row">
+              <div class="version-label" data-i18n="current_version">当前版本</div>
+              <div class="version-value" id="current-version-value">-</div>
+            </div>
+            <div class="version-info-row">
+              <div class="version-label" data-i18n="store_version">应用商店版本</div>
+              <div class="version-value" id="store-version-value">
+                <span data-i18n="version_checking">检测中...</span>
               </div>
-          </div>
-          <div class="config-row-right">
-	               <button id="open-sync-config-btn" class="control-btn has-margin-right">
-	                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17.5A4.5 4.5 0 1 1 8 8.6a5.5 5.5 0 0 1 10.5 1.9A3.5 3.5 0 1 1 18 17.5H7Z"></path></svg>
-	                   <span data-i18n="config_sync_btn">配置</span>
-	               </button>
-	               <button id="sync-push-btn" class="control-btn has-margin-right">
-	                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5A4.5 4.5 0 1 1 8 9.6a5.5 5.5 0 0 1 10.5 1.9A3.5 3.5 0 1 1 18 18.5H7Z"/><path d="M12 15V9"/><path d="m9.5 11.5 2.5-2.5 2.5 2.5"/></svg>
-	                  <span data-i18n="sync_push">推送</span>
-	              </button>
-	               <button id="sync-pull-btn" class="control-btn">
-	                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5A4.5 4.5 0 1 1 8 9.6a5.5 5.5 0 0 1 10.5 1.9A3.5 3.5 0 1 1 18 18.5H7Z"/><path d="M12 9v6"/><path d="m14.5 12.5-2.5 2.5-2.5-2.5"/></svg>
-	                   <span data-i18n="sync_pull">拉取</span>
-	               </button>
-          </div>
-      </div>
-
-      <!-- Config Management -->
-      <div class="config-row">
-          <div class="config-row-left">
-              <div class="config-row-title" data-i18n="config_management">配置管理</div>
-              <div class="config-row-desc" data-i18n="config_desc">管理系统配置</div>
-          </div>
-          <div class="config-row-right">
-              <div class="config-actions">
-	                  <div class="export-btn">
-	                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14V5"/><path d="m9.5 8.5 2.5-2.5 2.5 2.5"/><path d="M5 15.5v2A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>
-	                      <span data-i18n="export_config">导出</span>
-	                  </div>
-	                  <div class="import-json-btn">
-	                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v9"/><path d="m15 10-3 3-3-3"/><path d="M5 15.5v2A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>
-	                      <span data-i18n="import_config">导入</span>
-	                  </div>
-                   <input type="file" id="json-file-input" accept=".json" class="json-file-input" />
+            </div>
+            <div class="version-info-row">
+              <div class="version-label" data-i18n="github_version">GitHub 版本</div>
+              <div class="version-value" id="github-version-value">
+                <span data-i18n="version_checking">检测中...</span>
               </div>
+            </div>
           </div>
-      </div>
-
-      <!-- Proxy Detection -->
-      <div class="config-row">
-          <div class="config-row-left">
-              <div class="config-row-title" data-i18n="proxy_detection">代理状态</div>
-              <div class="config-row-desc" data-i18n="proxy_detection_desc">检测当前系统代理配置，判断是否使用本插件</div>
-          </div>
-          <div class="config-row-right">
-	              <button id="detect-proxy-btn" class="control-btn">
-	                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="4.5"></circle><path d="m14 14 4 4"></path></svg>
-	                  <span data-i18n="proxy_detection_button">检测</span>
-	              </button>
-	               <button id="pac-details-btn" class="control-btn has-margin-left">
-	                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h5l4 4v14H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path><path d="M13 3v5h4"></path><path d="m10 14 2-2-2-2"></path></svg>
-	                   <span data-i18n="view_pac_button">查看PAC</span>
-	               </button>
-          </div>
-      </div>
-
-      <!-- Version Check -->
-      <div class="config-row">
-          <div class="config-row-left">
-              <div class="config-row-title" data-i18n="version_check">版本信息</div>
-              <div class="config-row-desc" data-i18n="version_check_desc">检测当前版本及更新信息</div>
-          </div>
-          <div class="config-row-right">
-              <button id="check-version-btn" class="control-btn">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a8 8 0 1 0 8 8"></path><path d="M12 8v5"></path><path d="M15 15h.01"></path></svg>
-                  <span data-i18n="version_check_btn">查看</span>
-              </button>
-          </div>
-      </div>
-    </div>
-
+        </div>
+      </section>
+    </main>
   </div>
 
    <div class="delete-tip">
@@ -254,36 +383,6 @@
           </div>
       </div>
   </div>
-
-  <!-- Version Check Result Popup -->
-  <div class="version-check-tip">
-      <div class="version-check-box">
-           <div class="version-check-header">
-                   <span data-i18n="version_check_title">版本信息</span>
-               <div class="version-check-close-btn">
-                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
-               </div>
-           </div>
-           <div class="version-check-content">
-               <div class="version-info-row">
-                   <div class="version-label" data-i18n="current_version">当前版本</div>
-                   <div class="version-value" id="current-version-value">-</div>
-               </div>
-               <div class="version-info-row">
-                   <div class="version-label" data-i18n="store_version">应用商店版本</div>
-                   <div class="version-value" id="store-version-value">
-                       <span data-i18n="version_checking">检测中...</span>
-                   </div>
-               </div>
-               <div class="version-info-row">
-                   <div class="version-label" data-i18n="github_version">GitHub 版本</div>
-                   <div class="version-value" id="github-version-value">
-                       <span data-i18n="version_checking">检测中...</span>
-                   </div>
-               </div>
-           </div>
-       </div>
-   </div>
 
   <!-- Sync Config Popup -->
   <div class="sync-config-tip">
@@ -377,96 +476,113 @@
       </div>
   </div>
 
-   <!-- Scenario Management Modal -->
-    <div class="scenario-manage-tip">
-        <div class="scenario-manage-box">
-            <div class="scenario-manage-header">
-                <span data-i18n="scenario_manage">场景管理</span>
-                <div class="scenario-manage-close-btn">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
-                </div>
-            </div>
-            <div class="scenario-manage-content">
-                 <div class="add-scenario-form">
-                     <input type="text" id="new-scenario-name" class="form-control" data-i18n-placeholder="scenario_name_placeholder" placeholder="例如: 家庭, 公司">
-                     <button id="add-scenario-btn" class="control-btn">
-                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon-vertical-align"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
-                         <span data-i18n="add_new">新增</span>
-                     </button>
-                 </div>
-
-                 <div class="scenario-list" id="scenario-manage-list">
-                     <!-- Scenario items injected here -->
-                 </div>
-            </div>
-       </div>
+    <!-- Add Scenario Modal -->
+    <div class="scenario-dialog-tip add-scenario-tip" role="dialog" aria-modal="true" aria-labelledby="add-scenario-dialog-title">
+      <div class="scenario-dialog-box add-scenario-box">
+        <div class="scenario-dialog-header">
+          <div class="scenario-dialog-title-group">
+            <span class="scenario-dialog-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+            </span>
+            <span id="add-scenario-dialog-title" data-i18n="scenario_add">新增场景</span>
+          </div>
+          <button type="button" class="scenario-dialog-close add-scenario-close-btn" data-i18n-title="cancel" title="取消">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+          </button>
+        </div>
+        <div class="scenario-dialog-content add-scenario-content">
+          <label class="scenario-field-label" for="new-scenario-name" data-i18n="scenario_name">场景名称</label>
+          <input type="text" id="new-scenario-name" class="form-control scenario-dialog-input" data-i18n-placeholder="scenario_name_placeholder" placeholder="例如: 家庭, 公司" autocomplete="off">
+        </div>
+        <div class="scenario-dialog-footer">
+          <button type="button" class="control-btn scenario-secondary-btn add-scenario-cancel-btn" data-i18n="cancel">取消</button>
+          <button type="button" id="add-scenario-btn" class="control-btn primary-control-btn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+            <span data-i18n="scenario_add">新增场景</span>
+          </button>
+        </div>
+      </div>
     </div>
 
-     <!-- Edit Scenario Name Modal -->
-    <div class="edit-scenario-tip">
-        <div class="edit-scenario-box">
-            <div class="edit-scenario-header">
-                <span data-i18n="scenario_edit">编辑场景</span>
-                <div class="edit-scenario-close-btn">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"><path d="M18 6L6 18M6 6l12 12"></path></svg>
-                </div>
-            </div>
-              <div class="edit-scenario-content">
-                  <div class="current-scenario-row">
-                      <span class="current-scenario-label" data-i18n="scenario_old_name">原名称:</span>
-                      <span id="edit-scenario-oldname" class="current-scenario-value"></span>
-                  </div>
-                  <div class="target-scenario-row">
-                      <label class="target-scenario-label" data-i18n="scenario_new_name">新名称:</label>
-                      <input type="text" id="edit-scenario-name" class="form-control edit-scenario-input">
-                  </div>
-                  <div class="edit-scenario-footer">
-                    <button class="control-btn edit-scenario-cancel-btn" data-i18n="cancel">取消</button>
-                    <button class="control-btn confirm-edit-btn" id="confirm-edit-scenario-btn">
-                        <span data-i18n="save">保存</span>
-                    </button>
-                  </div>
-              </div>
+    <!-- Edit Scenario Name Modal -->
+    <div class="scenario-dialog-tip edit-scenario-tip" role="dialog" aria-modal="true" aria-labelledby="edit-scenario-dialog-title">
+      <div class="scenario-dialog-box edit-scenario-box">
+        <div class="scenario-dialog-header edit-scenario-header">
+          <div class="scenario-dialog-title-group">
+            <span class="scenario-dialog-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+            </span>
+            <span id="edit-scenario-dialog-title" data-i18n="scenario_edit">编辑场景</span>
+          </div>
+          <button type="button" class="scenario-dialog-close edit-scenario-close-btn" data-i18n-title="cancel" title="取消">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+          </button>
         </div>
+        <div class="scenario-dialog-content edit-scenario-content">
+          <div class="scenario-current-name-row">
+            <span data-i18n="scenario_old_name">原名称:</span>
+            <strong id="edit-scenario-oldname"></strong>
+          </div>
+          <label class="scenario-field-label" for="edit-scenario-name" data-i18n="scenario_new_name">新名称:</label>
+          <input type="text" id="edit-scenario-name" class="form-control scenario-dialog-input edit-scenario-input" autocomplete="off">
+        </div>
+        <div class="scenario-dialog-footer edit-scenario-footer">
+          <button type="button" class="control-btn scenario-secondary-btn edit-scenario-cancel-btn" data-i18n="cancel">取消</button>
+          <button type="button" class="control-btn primary-control-btn confirm-edit-btn" id="confirm-edit-scenario-btn">
+            <span data-i18n="save">保存</span>
+          </button>
+        </div>
+      </div>
     </div>
 
-     <!-- Delete Scenario Confirm Modal -->
-    <div class="delete-scenario-tip">
-        <div class="delete-scenario-box">
-            <div class="delete-scenario-header">
-                <span data-i18n="delete_scenario_title">删除场景</span>
-                <div class="delete-scenario-close-btn">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width:2><path d="M18 6L6 18M6 6l12 12"></path></svg>
-                </div>
-            </div>
-            <div class="delete-scenario-content">
-                <p id="delete-scenario-message" class="modal-message"></p>
-                <div class="delete-scenario-footer">
-                    <button class="control-btn delete-scenario-cancel-btn" data-i18n="cancel">取消</button>
-                    <button class="control-btn confirm-delete-btn" id="confirm-delete-scenario-btn">
-                        <span data-i18n="delete">删除</span>
-                    </button>
-                </div>
-            </div>
+    <!-- Delete Scenario Confirm Modal -->
+    <div class="scenario-dialog-tip delete-scenario-tip" role="dialog" aria-modal="true" aria-labelledby="delete-scenario-dialog-title">
+      <div class="scenario-dialog-box delete-scenario-box">
+        <div class="scenario-dialog-header delete-scenario-header">
+          <div class="scenario-dialog-title-group">
+            <span class="scenario-dialog-icon danger" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path><path d="M10 11v5M14 11v5"></path></svg>
+            </span>
+            <span id="delete-scenario-dialog-title" data-i18n="delete_scenario_title">删除场景</span>
+          </div>
+          <button type="button" class="scenario-dialog-close delete-scenario-close-btn" data-i18n-title="cancel" title="取消">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+          </button>
         </div>
+        <div class="scenario-dialog-content delete-scenario-content">
+          <p id="delete-scenario-message" class="modal-message" data-i18n="scenario_delete_confirm">确定要删除该场景吗？</p>
+          <strong id="delete-scenario-name" class="scenario-delete-name"></strong>
+        </div>
+        <div class="scenario-dialog-footer delete-scenario-footer">
+          <button type="button" class="control-btn scenario-secondary-btn delete-scenario-cancel-btn" data-i18n="cancel">取消</button>
+          <button type="button" class="control-btn confirm-delete-btn" id="confirm-delete-scenario-btn">
+            <span data-i18n="delete">删除</span>
+          </button>
+        </div>
+      </div>
     </div>
 
-     <!-- Alert Modal -->
-    <div class="alert-scenario-tip">
-        <div class="alert-scenario-box">
-            <div class="alert-scenario-header">
-                <span data-i18n="alert">提示</span>
-                <div class="alert-scenario-close-btn">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width:2><path d="M18 6L6 18M6 6l12 12"></path></svg>
-                </div>
-            </div>
-            <div class="alert-scenario-content">
-                <p id="alert-scenario-message" class="modal-message"></p>
-                <div class="modal-footer">
-                    <button class="control-btn alert-ok-btn" id="alert-scenario-ok-btn" data-i18n="ok">确定</button>
-                </div>
-            </div>
+    <!-- Alert Modal -->
+    <div class="scenario-dialog-tip alert-scenario-tip" role="alertdialog" aria-modal="true" aria-labelledby="alert-scenario-dialog-title">
+      <div class="scenario-dialog-box alert-scenario-box">
+        <div class="scenario-dialog-header alert-scenario-header">
+          <div class="scenario-dialog-title-group">
+            <span class="scenario-dialog-icon warning" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path></svg>
+            </span>
+            <span id="alert-scenario-dialog-title" data-i18n="alert">提示</span>
+          </div>
+          <button type="button" class="scenario-dialog-close alert-scenario-close-btn" data-i18n-title="cancel" title="取消">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+          </button>
         </div>
+        <div class="scenario-dialog-content alert-scenario-content">
+          <p id="alert-scenario-message" class="modal-message"></p>
+        </div>
+        <div class="scenario-dialog-footer modal-footer">
+          <button type="button" class="control-btn primary-control-btn alert-ok-btn" id="alert-scenario-ok-btn" data-i18n="ok">确定</button>
+        </div>
+      </div>
     </div>
 
     <div class="move-proxy-tip">
