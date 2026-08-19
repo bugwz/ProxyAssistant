@@ -9,7 +9,7 @@ description: 规范化的代码提交工具，自动生成符合 Conventional Co
 
 1. **获取变更文件** - 执行 `git status` 和 `git diff` 获取所有待提交的变更
 2. **分析变更内容** - 分析暂存区和未追踪文件的变更详情
-3. **智能分类** - 根据变更内容自动分类为：Feature、Fix、Chore
+3. **智能分类** - 根据变更内容自动分类为：feat、fix、chore
 4. **生成提交信息** - 按规范格式生成英文 Commit Message
 5. **执行提交** - **重要：必须明确等待用户的确认后才能执行提交**
 
@@ -79,24 +79,24 @@ description: 规范化的代码提交工具，自动生成符合 Conventional Co
 
 根据变更内容和文件类型自动分类：
 
-- **特性 (`Feat:`)**
+- **特性 (`feat:`)**
   - 新增功能文件
   - 主要功能实现
   - 新增模块或组件
 
-- **问题修复 (`Fix:`)**
+- **问题修复 (`fix:`)**
   - 修复已知问题
   - 解决崩溃或错误
   - 修复逻辑缺陷
 
-- **其他变更 (`Chore:`)**
+- **其他变更 (`chore:`)**
   - 文档更新
   - 代码格式调整
   - 依赖更新
   - 重构和优化
   - 测试相关
 
-- **版本发布 (`Release VERSION`)**
+- **版本发布 (`release: VERSION`)**
   - 版本发布
   - 版本号更新
 
@@ -113,47 +113,48 @@ description: 规范化的代码提交工具，自动生成符合 Conventional Co
 ```
 
 **Prefix 规则：**
-- `Feat:` - 新功能
-- `Fix:` - 修复问题
-- `Chore:` - 其他变更
-- `Release {VERSION}` - 版本发布
+- `feat:` - 新功能
+- `fix:` - 修复问题
+- `chore:` - 其他变更
+- `release: {VERSION}` - 版本发布
 
 **Description 规则：**
 - 使用英文
-- `Feat:`、`Fix:` 或 `Chore:` 后的描述首字母必须小写
+- `feat:`、`fix:` 或 `chore:` 后的描述首字母必须小写
 - 简洁明了，不超过 50 字符
 
 **变更列表规则：**
 - 使用 `- ` 开头
 - 英文描述
 - 每条变更一行
+- 每条变更的首字母必须小写
 
 **格式示例：**
 
 ```markdown
-Feat: add user authentication module
+feat: add user authentication module
 
-- Implement login functionality
-- Add session management
-- Create user profile page
+- implement login functionality
+- add session management
+- create user profile page
 
-Fix: resolve memory leak issue
+fix: resolve memory leak issue
 
-- Fix connection pool not releasing properly
-- Add proper resource cleanup
-- Update error handling logic
+- fix connection pool not releasing properly
+- add proper resource cleanup
+- update error handling logic
 
-Chore: update project dependencies
+chore: update project dependencies
 
-- Upgrade React to version 18.2
-- Update build configuration
-- Fix linting errors in utils module
+- upgrade React to version 18.2
+- update build configuration
+- fix linting errors in utils module
 
-Release 1.0.0
+release: 1.0.0
 
-- Prepare initial release
-- Complete core functionality
-- Add documentation
+- prepare initial release
+- complete core functionality
+- add documentation
 ```
 
 ### 阶段四：用户确认（关键步骤，必须严格执行）
@@ -237,8 +238,9 @@ Release 1.0.0
 ### 格式规则
 - 所有提交信息必须使用英文
 - 确认提示中的完整提交信息必须使用独立的 `text` 代码块展示，说明文字不得混入该代码块
-- `Feat:`、`Fix:` 或 `Chore:` 后的 Description 首字母必须小写
-- 变更列表使用 `- ` 格式
+- `feat:`、`fix:`、`chore:` 和 `release:` 等类型前缀必须使用小写
+- `feat:`、`fix:` 或 `chore:` 后的 Description 首字母必须小写
+- 变更列表使用 `- ` 格式，且每条变更的首字母必须小写
 - 可以根据需要调整提交信息的措辞
 - 优先使用更具体的描述而非泛泛之词
 - **必须获取并总结所有 git 差异，包括未追踪文件**
@@ -254,7 +256,7 @@ Release 1.0.0
 
 1. 用户要求提交新功能代码
 2. 展示变更的文件和内容
-3. 生成 `Feat:` 开头的提交信息
+3. 生成 `feat:` 开头的提交信息
 4. **使用标准格式询问用户确认**
 5. **等待用户明确回复“确认”**
 6. 确认后执行提交
@@ -264,7 +266,7 @@ Release 1.0.0
 
 1. 用户要求提交问题修复
 2. 展示变更的文件和内容
-3. 生成 `Fix:` 开头的提交信息
+3. 生成 `fix:` 开头的提交信息
 4. **使用标准格式询问用户确认**
 5. **等待用户明确回复“确认”**
 6. 确认后执行提交
@@ -274,7 +276,7 @@ Release 1.0.0
 
 1. 用户要求发布新版本
 2. 收集所有待提交的变更
-3. 生成 `Release {VERSION}` 开头的提交信息
+3. 生成 `release: {VERSION}` 开头的提交信息
 4. **使用标准格式询问用户确认**
 5. **等待用户明确回复“确认”**
 6. 确认后执行提交
