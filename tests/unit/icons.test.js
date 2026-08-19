@@ -11,8 +11,9 @@ describe('MainIcons', () => {
     const chevronDownIcon = MainIcons.render('chevronDown');
     const eyeOffIcon = MainIcons.render('eyeOff');
     const scenarioSwitchIcon = MainIcons.render('scenarioSwitch');
+    const tagIcon = MainIcons.render('tag');
 
-    [testAllIcon, chevronDownIcon, eyeOffIcon, scenarioSwitchIcon].forEach((svg) => {
+    [testAllIcon, chevronDownIcon, eyeOffIcon, scenarioSwitchIcon, tagIcon].forEach((svg) => {
       expect(svg).toContain('<svg');
       expect(svg).toContain('viewBox="0 0 24 24"');
       expect(svg).toContain('stroke="currentColor"');
@@ -22,5 +23,7 @@ describe('MainIcons', () => {
     });
 
     expect(scenarioSwitchIcon).toContain('M12 3 4 7l8 4 8-4-8-4Z');
+    expect(tagIcon).toContain('M6 3h12v18l-6-4-6 4V3Z');
+    expect(tagIcon).toContain('M6 7h12');
   });
 });

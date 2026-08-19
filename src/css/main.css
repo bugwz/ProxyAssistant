@@ -794,14 +794,6 @@ body {
   font-size: 14px;
 }
 
-.proxy-index.has-proxy-color {
-  color: var(--proxy-color);
-}
-
-body[data-theme="dark"] .proxy-index.has-proxy-color {
-  color: var(--proxy-color);
-}
-
 .proxy-type-badge {
   background-color: #4164f5;
   color: white;
@@ -846,6 +838,21 @@ body[data-theme="dark"] .proxy-index.has-proxy-color {
   display: flex;
   align-items: center;
   gap: 20px;
+}
+
+.proxy-color-tag {
+  width: 24px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  color: var(--proxy-color);
+}
+
+.proxy-color-tag svg {
+  width: 18px;
+  height: 18px;
 }
 
 /* Status Switch */
@@ -5671,6 +5678,17 @@ body[data-theme="dark"] .scenario-secondary-btn {
   .proxy-header .header-right {
     flex: 0 0 auto;
     gap: 4px;
+  }
+
+  .proxy-header .proxy-color-tag {
+    width: 20px;
+    height: 18px;
+    flex-basis: 20px;
+  }
+
+  .proxy-header .proxy-color-tag svg {
+    width: 16px;
+    height: 16px;
   }
 
   .proxy-header .status-container {

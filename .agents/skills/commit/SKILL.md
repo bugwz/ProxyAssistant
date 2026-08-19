@@ -120,7 +120,7 @@ description: 规范化的代码提交工具，自动生成符合 Conventional Co
 
 **Description 规则：**
 - 使用英文
-- 除 Prefix 外，第一个单词的首字母大写
+- `Feat:`、`Fix:` 或 `Chore:` 后的描述首字母必须小写
 - 简洁明了，不超过 50 字符
 
 **变更列表规则：**
@@ -131,19 +131,19 @@ description: 规范化的代码提交工具，自动生成符合 Conventional Co
 **格式示例：**
 
 ```markdown
-Feat: Add user authentication module
+Feat: add user authentication module
 
 - Implement login functionality
 - Add session management
 - Create user profile page
 
-Fix: Resolve memory leak issue
+Fix: resolve memory leak issue
 
 - Fix connection pool not releasing properly
 - Add proper resource cleanup
 - Update error handling logic
 
-Chore: Update project dependencies
+Chore: update project dependencies
 
 - Upgrade React to version 18.2
 - Update build configuration
@@ -237,7 +237,7 @@ Release 1.0.0
 ### 格式规则
 - 所有提交信息必须使用英文
 - 确认提示中的完整提交信息必须使用独立的 `text` 代码块展示，说明文字不得混入该代码块
-- Description 除 Prefix 外，首字母必须大写
+- `Feat:`、`Fix:` 或 `Chore:` 后的 Description 首字母必须小写
 - 变更列表使用 `- ` 格式
 - 可以根据需要调整提交信息的措辞
 - 优先使用更具体的描述而非泛泛之词

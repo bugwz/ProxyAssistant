@@ -633,13 +633,15 @@ describe('main UI state flow', () => {
     proxyModule.init();
     proxyModule.renderList();
 
-    expect($('.proxy-index').hasClass('has-proxy-color')).toBe(true);
-    expect($('.proxy-index').css('--proxy-color')).toBe('#FF0000');
+    expect($('.proxy-color-tag')).toHaveLength(1);
+    expect($('.proxy-color-tag').css('--proxy-color')).toBe('#FF0000');
+    expect($('.proxy-color-tag svg')).toHaveLength(1);
     expect($('.proxy-color-input').val()).toBe('#FF0000');
 
     $('.proxy-color-input').val('#00aaee').trigger('input');
     expect($('.proxy-color-input').val()).toBe('#00AAEE');
     expect(proxies[0].color).toBe('#00AAEE');
+    expect($('.proxy-color-tag').css('--proxy-color')).toBe('#00AAEE');
 
     $('.proxy-color-input').val('00AAEE').trigger('blur');
     expect($('.proxy-color-input').hasClass('input-error')).toBe(true);
@@ -656,11 +658,17 @@ describe('main UI state flow', () => {
     expect($('.proxy-color-input').val()).toBe('#8B5CF6');
     expect($('.proxy-color-input').hasClass('input-error')).toBe(false);
     expect(proxies[0].color).toBe('#8B5CF6');
+    expect($('.proxy-color-tag').css('--proxy-color')).toBe('#8B5CF6');
+
+    $('.proxy-color-input').val('').trigger('input');
+    expect(proxies[0].color).toBe('');
+    expect($('.proxy-color-tag')).toHaveLength(0);
 
     $('#expand-collapse-btn').trigger('click');
     proxyModule.renderList();
 
     expect($('#expand-collapse-btn').hasClass('expanded')).toBe(true);
+    expect($('.proxy-color-tag')).toHaveLength(0);
     expect($('#expand-collapse-btn').html()).toContain('icon-collapse');
     expect($('#expand-collapse-btn').html()).toContain('data-i18n="collapse_all"');
     expect($('#expand-collapse-btn').html()).toContain('M9 4v5H4');

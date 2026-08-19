@@ -114,20 +114,32 @@ const ProxyModule = (function () {
     return html;
   }
 
+  function renderProxyColorTag(color) {
+    if (!color) return '';
+
+    return `<span class="proxy-color-tag" style="--proxy-color:${color}" title="${I18n.t('proxy_color')}" aria-label="${I18n.t('proxy_color')}">
+      ${MainIcons.render('tag', { width: 18, height: 18 })}
+    </span>`;
+  }
+
   function updateProxyColorUI(index, color) {
     const normalized = getProxyColor(color);
     const $card = $(`.proxy-card[data-id="${index}"]`);
-    const $index = $card.find('.proxy-index');
+    const $headerRight = $card.find('.header-right');
+    let $tag = $headerRight.find('.proxy-color-tag');
     const $preview = $card.find('.proxy-color-preview');
 
-    $index.toggleClass('has-proxy-color', Boolean(normalized));
     $preview.toggleClass('has-color', Boolean(normalized));
 
     if (normalized) {
-      $index.css('--proxy-color', normalized);
+      if (!$tag.length) {
+        $headerRight.find('.status-container').before(renderProxyColorTag(normalized));
+        $tag = $headerRight.find('.proxy-color-tag');
+      }
+      $tag.css('--proxy-color', normalized);
       $preview.css('background-color', normalized);
     } else {
-      if ($index[0]) $index[0].style.removeProperty('--proxy-color');
+      $tag.remove();
       if ($preview[0]) $preview[0].style.removeProperty('background-color');
     }
 
@@ -301,8 +313,7 @@ const ProxyModule = (function () {
       const fallbackPolicy = info.fallback_policy || "direct";
       const displayFallback = fallbackPolicy === "reject" ? I18n.t('fallback_reject') : I18n.t('fallback_direct');
       const proxyColor = getProxyColor(info.color);
-      const proxyColorClass = proxyColor ? ' has-proxy-color' : '';
-      const proxyColorStyle = proxyColor ? ` style="--proxy-color:${proxyColor}"` : '';
+      const proxyColorTag = renderProxyColorTag(proxyColor);
       const rawPreviewText = `${info.name || I18n.t('unnamed_proxy')} · ${info.ip || "0.0.0.0"}:${info.port || "0"}`;
       const previewText = UtilsModule.escapeHtml(rawPreviewText);
 
@@ -339,12 +350,13 @@ const ProxyModule = (function () {
                 <div class="drag-handle" title="${I18n.t('drag_sort')}">
                     ${MainIcons.render('dragHandle', { width: 20, height: 20 })}
                 </div>
-                <span class="proxy-index${proxyColorClass}"${proxyColorStyle}>#${i + 1}</span>
+                <span class="proxy-index">#${i + 1}</span>
                 <div class="proxy-type-badge ${protocolClass}">${displayProtocol}</div>
                 <div class="proxy-title-preview" title="${previewText}">${previewText}</div>
             </div>
             <div class="header-right">
                 <div class="proxy-header-test-result" data-index="${i}"></div>
+                ${proxyColorTag}
                 <div class="status-container">
                     <span class="status-text">${is_enabled ? I18n.t('status_enabled') : I18n.t('status_disabled')}</span>
                     <label class="switch-modern">
