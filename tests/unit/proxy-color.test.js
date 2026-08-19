@@ -94,6 +94,37 @@ describe('proxy color configuration', () => {
     ]);
   });
 
+  test('extracts embedded proxy subscriptions into the shared collection', () => {
+    const config = {
+      version: 4,
+      system: {},
+      scenarios: {
+        current: 'scenario-a',
+        lists: [{
+          id: 'scenario-a',
+          name: 'Scenario A',
+          proxies: [{
+            id: 'proxy-a',
+            name: 'Proxy A',
+            subscription: {
+              enabled: true,
+              current: 'autoproxy',
+              lists: { autoproxy: { url: 'https://example.com/rules.txt' } }
+            }
+          }]
+        }]
+      }
+    };
+    const { ConfigModule } = setupModules(config);
+
+    const migrated = ConfigModule.migrateConfig(config);
+    const proxy = migrated.scenarios.lists[0].proxies[0];
+
+    expect(migrated.subscriptions).toHaveLength(1);
+    expect(migrated.subscriptions[0].id).toBe('subscription-proxy-a');
+    expect(proxy.subscription_ids).toEqual(['subscription-proxy-a']);
+  });
+
   test('preserves color when building export and sync data', () => {
     const config = {
       version: 4,

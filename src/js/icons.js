@@ -106,6 +106,10 @@
       '<path d="M12 10v5"/>',
       '<path d="M12 7h.01"/>'
     ].join(''),
+    search: [
+      '<circle cx="11" cy="11" r="7"/>',
+      '<path d="m20 20-4-4"/>'
+    ].join(''),
     refresh: [
       '<path d="M20 5v5h-5"/>',
       '<path d="M4 19v-5h5"/>',

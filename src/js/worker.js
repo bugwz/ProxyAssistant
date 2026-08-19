@@ -15,6 +15,37 @@ let currentProxyAuth = {
 const inProgressFetches = new Set();
 const SUBSCRIPTION_ALARM_PREFIX = 'subscription___';
 const LEGACY_SUBSCRIPTION_ALARM_PREFIX = 'subscription_';
+
+function getProxySubscriptions(proxy, config = currentConfig) {
+  const ids = Array.isArray(proxy?.subscription_ids) ? proxy.subscription_ids : [];
+  const subscriptions = config?.subscriptions || [];
+  return ids.map(id => subscriptions.find(item => item.id === id))
+    .filter(subscription => subscription && subscription.enabled !== false);
+}
+
+function getMergedProxySubscription(proxy, config = currentConfig) {
+  const subscriptions = getProxySubscriptions(proxy, config);
+  if (!subscriptions.length) return null;
+
+  const includeRules = [];
+  const bypassRules = [];
+  subscriptions.forEach(subscription => {
+    const item = subscription.lists?.[subscription.current];
+    if (item?.include_rules) includeRules.push(item.include_rules);
+    if (item?.bypass_rules) bypassRules.push(item.bypass_rules);
+  });
+
+  return {
+    enabled: true,
+    current: 'autoproxy',
+    lists: {
+      autoproxy: {
+        include_rules: includeRules.join('\n'),
+        bypass_rules: bypassRules.join('\n')
+      }
+    }
+  };
+}
 const SUBSCRIPTION_FORMATS = ['autoproxy', 'switchy_omega', 'switchy_legacy', 'pac'];
 
 // Helper to sync auth to session storage (MV3 state safety)
@@ -687,23 +718,15 @@ async function fetchSubscriptionBackground(proxyId, format, url, maxRetries = 3)
       });
 
       const config = result.config;
-      if (!config?.scenarios?.lists) {
-        console.warn(`[Worker] No config found for proxy: ${proxyId}`);
+      if (!config?.subscriptions) {
+        console.warn(`[Worker] No subscriptions found for: ${proxyId}`);
         return;
       }
 
-      let proxyFound = false;
-
-      for (const scenario of config.scenarios.lists) {
-        if (!scenario.proxies) continue;
-
-        for (const proxy of scenario.proxies) {
-          if (proxy.id === proxyId &&
-            proxy.subscription?.current === format &&
-            proxy.subscription?.lists?.[format]) {
-
-            proxyFound = true;
-            const listConfig = proxy.subscription.lists[format];
+      const subscription = config.subscriptions.find(item => item.id === proxyId);
+      const proxyFound = subscription?.current === format && subscription?.lists?.[format];
+      if (proxyFound) {
+            const listConfig = subscription.lists[format];
             const oldContent = listConfig.content;
 
             if (oldContent !== content) {
@@ -720,13 +743,11 @@ async function fetchSubscriptionBackground(proxyId, format, url, maxRetries = 3)
               listConfig.bypass_lines = parsed.bypass_rules ? parsed.bypass_rules.split(/\r\n|\r|\n/).length : 0;
 
               updated = true;
-              console.log(`[Worker] Updated subscription for proxy: ${proxy.name || proxyId}`);
+              console.log(`[Worker] Updated subscription: ${subscription.name || proxyId}`);
             } else {
               listConfig.last_fetch_time = Date.now();
-              console.log(`[Worker] No changes for proxy: ${proxy.name || proxyId}, content unchanged`);
+              console.log(`[Worker] No changes for subscription: ${subscription.name || proxyId}, content unchanged`);
             }
-          }
-        }
       }
 
       if (!proxyFound) {
@@ -837,28 +858,24 @@ function scheduleOrClearSubscriptionAlarm(proxyId, format, refreshInterval, url)
 function scheduleAllBackgroundRefreshes(config) {
   console.log('[Worker] Scheduling subscription alarms for all enabled subscriptions');
   const desiredAlarmNames = new Set();
-  const scenarios = config?.scenarios?.lists || [];
+  const subscriptions = config?.subscriptions || [];
 
-  scenarios.forEach(scenario => {
-    if (!scenario.proxies) return;
+  subscriptions.forEach(subscription => {
+      if (!subscription.id) return;
 
-    scenario.proxies.forEach(proxy => {
-      if (!proxy.id || !proxy.subscription) return;
-
-      if (proxy.subscription.enabled !== false) {
-        const format = proxy.subscription.current;
-        const subConfig = proxy.subscription.lists?.[format];
+      if (subscription.enabled !== false) {
+        const format = subscription.current;
+        const subConfig = subscription.lists?.[format];
         if (subConfig?.refresh_interval > 0 && subConfig?.url) {
-          desiredAlarmNames.add(getSubscriptionAlarmName(proxy.id, format));
+          desiredAlarmNames.add(getSubscriptionAlarmName(subscription.id, format));
         }
         scheduleOrClearSubscriptionAlarm(
-          proxy.id,
+          subscription.id,
           format,
           subConfig?.refresh_interval,
           subConfig?.url
         );
       }
-    });
   });
 
   chrome.alarms.getAll((alarms) => {
@@ -894,17 +911,14 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
     chrome.storage.local.get(['config'], (result) => {
       const config = result.config;
-      if (!config?.scenarios?.lists) return;
+      if (!config?.subscriptions) return;
 
-      for (const scenario of config.scenarios.lists) {
-        if (!scenario.proxies) continue;
+      for (const subscription of config.subscriptions) {
+          if (subscription.id === proxyId &&
+            subscription.current === format &&
+            subscription.enabled !== false) {
 
-        for (const proxy of scenario.proxies) {
-          if (proxy.id === proxyId &&
-            proxy.subscription?.current === format &&
-            proxy.subscription?.enabled !== false) {
-
-            const subConfig = proxy.subscription.lists?.[format];
+            const subConfig = subscription.lists?.[format];
             if (subConfig?.url) {
               inProgressFetches.add(fetchKey);
               fetchSubscriptionBackground(proxyId, format, subConfig.url).finally(() => {
@@ -913,7 +927,6 @@ chrome.alarms.onAlarm.addListener((alarm) => {
             }
             return;
           }
-        }
       }
     });
   }
@@ -1270,10 +1283,13 @@ async function applyManualProxySettings(proxyInfo) {
   }
 
   // Merge subscription bypass rules (DIRECT) for Manual Mode
-  if (proxyInfo.subscription && proxyInfo.subscription.enabled !== false && proxyInfo.subscription.current) {
+  const proxySubscription = typeof getMergedProxySubscription === 'function'
+    ? getMergedProxySubscription(proxyInfo)
+    : proxyInfo.subscription;
+  if (proxySubscription) {
     try {
-      const format = proxyInfo.subscription.current;
-      const subConfig = proxyInfo.subscription.lists ? proxyInfo.subscription.lists[format] : null;
+      const format = proxySubscription.current;
+      const subConfig = proxySubscription.lists[format];
 
       if (subConfig && subConfig.bypass_rules) {
         const reverse = subConfig.reverse || false;
@@ -1496,10 +1512,13 @@ function generatePacScript(list) {
     }
 
     // Merge subscription include_rules (with deduplication)
-    if (proxy.subscription && proxy.subscription.enabled !== false && proxy.subscription.current) {
+    const proxySubscription = typeof getMergedProxySubscription === 'function'
+      ? getMergedProxySubscription(proxy)
+      : proxy.subscription;
+    if (proxySubscription) {
       try {
-        const format = proxy.subscription.current;
-        const subConfig = proxy.subscription.lists ? proxy.subscription.lists[format] : null;
+        const format = proxySubscription.current;
+        const subConfig = proxySubscription.lists[format];
         if (subConfig && subConfig.include_rules) {
           const subRules = subConfig.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
           subRules.forEach(r => { if (!allIncludeUrls.includes(r)) allIncludeUrls.push(r); });
@@ -1599,9 +1618,12 @@ async function handleFirefoxRequest(details) {
       let bypassAll = proxy.bypass_rules || '';
 
       // Merge subscription bypass_rules
-      if (proxy.subscription && proxy.subscription.enabled !== false && proxy.subscription.current) {
-        const format = proxy.subscription.current;
-        const subConfig = proxy.subscription.lists ? proxy.subscription.lists[format] : null;
+      const proxySubscription = typeof getMergedProxySubscription === 'function'
+        ? getMergedProxySubscription(proxy)
+        : proxy.subscription;
+      if (proxySubscription) {
+        const format = proxySubscription.current;
+        const subConfig = proxySubscription.lists[format];
         if (subConfig && subConfig.bypass_rules) {
           bypassAll = bypassAll + '\n' + subConfig.bypass_rules;
         }
@@ -1668,9 +1690,12 @@ function findProxyForRequestFirefox(url) {
     }
 
     // Merge subscription include_rules
-    if (proxy.subscription && proxy.subscription.enabled !== false && proxy.subscription.current) {
-      const format = proxy.subscription.current;
-      const subConfig = proxy.subscription.lists ? proxy.subscription.lists[format] : null;
+    const proxySubscription = typeof getMergedProxySubscription === 'function'
+      ? getMergedProxySubscription(proxy)
+      : proxy.subscription;
+    if (proxySubscription) {
+      const format = proxySubscription.current;
+      const subConfig = proxySubscription.lists[format];
       if (subConfig && subConfig.include_rules) {
         const subRules = subConfig.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
         includeUrlsList.push(...subRules);

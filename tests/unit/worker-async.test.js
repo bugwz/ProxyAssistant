@@ -248,6 +248,30 @@ describe('Worker applyProxy async handling', () => {
     expect(context.chrome.alarms.clear).not.toHaveBeenCalledWith('unrelated_alarm');
   });
 
+  test('schedules refreshes from the shared subscription collection', () => {
+    const context = loadWorkerContext();
+    context.chrome.alarms.create.mockClear();
+
+    context.scheduleAllBackgroundRefreshes({
+      subscriptions: [{
+        id: 'subscription-1',
+        enabled: true,
+        current: 'autoproxy',
+        lists: {
+          autoproxy: {
+            url: 'https://example.com/rules.txt',
+            refresh_interval: 360
+          }
+        }
+      }]
+    });
+
+    expect(context.chrome.alarms.create).toHaveBeenCalledWith(
+      'subscription___subscription-1___autoproxy',
+      { delayInMinutes: 360, periodInMinutes: 360 }
+    );
+  });
+
   test('waits for proxy.settings.set before persisting manual state', async () => {
     let applySettingsCallback = null;
     const storageSet = jest.fn((payload, callback) => {

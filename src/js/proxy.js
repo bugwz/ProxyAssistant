@@ -6,8 +6,10 @@
 const ProxyModule = (function () {
   // Local cache reference to proxy list (direct reference to data in storage)
   let list = [];
+  let proxyLocations = [];
   let del_index = -1;
   let expansionMode = 'auto';
+  let newProxyId = null;
   const PROXY_COLOR_PRESETS = [
     '#FF0000', '#FF8C00', '#FFD700', '#00B050',
     '#00AEEF', '#4164F5', '#8B5CF6', '#EC4899'
@@ -15,20 +17,66 @@ const ProxyModule = (function () {
 
   function init() {
     // Load data from storage
-    list = StorageModule ? StorageModule.getProxies() : [];
+    refreshProxyIndex();
     bindGlobalEvents();
   }
 
   function getList() {
-    // Always get latest data from storage
-    if (StorageModule) {
-      list = StorageModule.getProxies();
-    }
+    refreshProxyIndex();
     return list;
   }
 
   function setList(newList) {
     list = newList;
+    proxyLocations = newList.map((proxy, index) => ({
+      scenarioId: getCurrentScenarioId(),
+      proxyIndex: index
+    }));
+  }
+
+  function getCurrentScenarioId() {
+    if (StorageModule && typeof StorageModule.getCurrentScenarioId === 'function') {
+      return StorageModule.getCurrentScenarioId();
+    }
+    if (typeof ScenariosModule !== 'undefined' && typeof ScenariosModule.getCurrentScenarioId === 'function') {
+      return ScenariosModule.getCurrentScenarioId();
+    }
+    return 'default';
+  }
+
+  function getProxyScenarios() {
+    if (StorageModule && typeof StorageModule.getScenarios === 'function') {
+      const scenarios = StorageModule.getScenarios();
+      if (scenarios.length) return scenarios;
+    }
+
+    const proxies = StorageModule && typeof StorageModule.getProxies === 'function'
+      ? StorageModule.getProxies()
+      : list;
+    return [{
+      id: getCurrentScenarioId(),
+      name: I18n.t('scenario_default'),
+      proxies: proxies
+    }];
+  }
+
+  function refreshProxyIndex(scenarios) {
+    const sourceScenarios = scenarios || getProxyScenarios();
+    list = [];
+    proxyLocations = [];
+
+    sourceScenarios.forEach(scenario => {
+      (scenario.proxies || []).forEach((proxy, proxyIndex) => {
+        ensureProxyId(proxy);
+        list.push(proxy);
+        proxyLocations.push({
+          scenarioId: scenario.id,
+          proxyIndex: proxyIndex
+        });
+      });
+    });
+
+    return sourceScenarios;
   }
 
   function addProxy() {
@@ -44,14 +92,14 @@ const ProxyModule = (function () {
       bypass_rules: "",
       include_rules: "",
       fallback_policy: "direct",
-      is_new: true,
       show_password: false
     };
+    newProxyId = newProxy.id;
 
     if (StorageModule) {
-      const index = StorageModule.addProxy(newProxy);
-      list = StorageModule.getProxies();
-      return index;
+      StorageModule.addProxy(newProxy);
+      refreshProxyIndex();
+      return list.findIndex(proxy => proxy.id === newProxy.id);
     } else {
       list.push(newProxy);
       return list.length - 1;
@@ -68,8 +116,9 @@ const ProxyModule = (function () {
   function deleteProxy(index) {
     if (index !== undefined && index >= 0 && list[index]) {
       if (StorageModule) {
-        StorageModule.deleteProxy(index);
-        list = StorageModule.getProxies();
+        const location = proxyLocations[index];
+        StorageModule.deleteProxy(location.proxyIndex, location.scenarioId);
+        refreshProxyIndex();
       } else {
         list.splice(index, 1);
       }
@@ -87,7 +136,8 @@ const ProxyModule = (function () {
       Object.assign(list[index], data);
       // Sync to storage
       if (StorageModule) {
-        StorageModule.updateProxy(index, data);
+        const location = proxyLocations[index];
+        StorageModule.updateProxy(location.proxyIndex, data, location.scenarioId);
       }
     }
   }
@@ -124,7 +174,7 @@ const ProxyModule = (function () {
 
   function updateProxyColorUI(index, color) {
     const normalized = getProxyColor(color);
-    const $card = $(`.proxy-card[data-id="${index}"]`);
+    const $card = $(`#proxy-list .proxy-card[data-id="${index}"]`);
     const $headerRight = $card.find('.header-right');
     let $tag = $headerRight.find('.proxy-color-tag');
     const $preview = $card.find('.proxy-color-preview');
@@ -188,10 +238,14 @@ const ProxyModule = (function () {
   function saveSingleProxy(i) {
     var info = list[i];
     if (!info) return;
+    const location = proxyLocations[i] || {
+      scenarioId: getCurrentScenarioId(),
+      proxyIndex: i
+    };
 
     var isNameValid = info.name.trim() !== '';
 
-    const conflict = ScenariosModule.checkNameGlobalUniqueness(info.name, i, ScenariosModule.getCurrentScenarioId());
+    const conflict = ScenariosModule.checkNameGlobalUniqueness(info.name, location.proxyIndex, location.scenarioId);
     if (conflict.isDuplicate) {
       isNameValid = false;
     }
@@ -211,10 +265,13 @@ const ProxyModule = (function () {
     var isPortValid = !isNaN(port) && port >= 1 && port <= 65535 && info.port.toString() === port.toString();
 
     var isIncludeUrlsValid = true, includeUrlsErrorMsg = '';
-    var includeUrlsCheck = ValidatorModule.checkIncludeUrlsConflict(list, i, info.include_rules);
+    const scenarioProxies = StorageModule && typeof StorageModule.getProxies === 'function'
+      ? StorageModule.getProxies(location.scenarioId)
+      : list;
+    var includeUrlsCheck = ValidatorModule.checkIncludeUrlsConflict(scenarioProxies, location.proxyIndex, info.include_rules);
     if (includeUrlsCheck.hasConflict) { isIncludeUrlsValid = false; includeUrlsErrorMsg = includeUrlsCheck.error; }
 
-    var $item = $(`.proxy-card[data-id="${i}"]`);
+    var $item = $(`#proxy-list .proxy-card[data-id="${i}"]`);
     var $colorInput = $item.find('.proxy-color-input');
     var rawColor = $colorInput.length ? $colorInput.val().trim().toUpperCase() : (info.color || '');
     var normalizedColor = getProxyColor(rawColor);
@@ -262,8 +319,8 @@ const ProxyModule = (function () {
   }
 
   function updateExpansionModeFromCardStates() {
-    const total = $(".proxy-card").length;
-    const collapsed = $(".proxy-card.collapsed").length;
+    const total = $("#proxy-list .proxy-card").length;
+    const collapsed = $("#proxy-list .proxy-card.collapsed").length;
 
     if (!total) {
       expansionMode = 'auto';
@@ -282,24 +339,95 @@ const ProxyModule = (function () {
     syncExpandCollapseButton();
   }
 
+  function toggleProxyCard($card) {
+    const isCollapsed = $card.toggleClass('collapsed').hasClass('collapsed');
+    $card.find('.proxy-card-collapse')
+      .attr('aria-expanded', String(!isCollapsed))
+      .attr('title', I18n.t(isCollapsed ? 'expand_all' : 'collapse_all'));
+    updateExpansionModeFromCardStates();
+  }
+
+  function renderSubscriptionSelector(proxy, index) {
+    const selectedIds = Array.isArray(proxy.subscription_ids) ? proxy.subscription_ids : [];
+    const subscriptions = typeof StorageModule.getSubscriptions === 'function' ? StorageModule.getSubscriptions() : [];
+    const selectedNames = subscriptions
+      .filter(item => selectedIds.includes(item.id))
+      .map(item => item.name);
+    const summary = selectedNames.length ? selectedNames.join(', ') : I18n.t('subscription_select_empty');
+    const options = subscriptions.map(item => {
+      const checked = selectedIds.includes(item.id) ? ' checked' : '';
+      return `<label class="proxy-subscription-option" data-search="${UtilsModule.escapeHtml(item.name.toLowerCase())}">
+        <input type="checkbox" value="${UtilsModule.escapeHtml(item.id)}"${checked}>
+        <span>${UtilsModule.escapeHtml(item.name)}</span>
+      </label>`;
+    }).join('');
+
+    return `<div class="proxy-subscription-select" data-index="${index}">
+      <button type="button" class="proxy-subscription-trigger" aria-expanded="false">
+        <span class="proxy-subscription-value" title="${UtilsModule.escapeHtml(summary)}">${UtilsModule.escapeHtml(summary)}</span>
+        ${MainIcons.render('chevronDown', { width: 14, height: 14 })}
+      </button>
+      <div class="proxy-subscription-menu">
+        <div class="proxy-subscription-search-row">
+          ${MainIcons.render('search', { width: 15, height: 15 })}
+          <input type="search" class="proxy-subscription-search" placeholder="${I18n.t('subscription_search_placeholder')}">
+        </div>
+        <div class="proxy-subscription-options">${options || `<div class="proxy-subscription-no-options">${I18n.t('subscription_empty_list')}</div>`}</div>
+      </div>
+    </div>`;
+  }
+
+  function getSubscriptionsForProxy(proxy) {
+    if (SubscriptionModule && typeof SubscriptionModule.getProxySubscriptions === 'function') {
+      return SubscriptionModule.getProxySubscriptions(proxy);
+    }
+    return proxy?.subscription ? [proxy.subscription] : [];
+  }
+
+  function getSubscriptionCountsForProxy(proxy) {
+    if (SubscriptionModule && typeof SubscriptionModule.getProxySubscriptionLineCounts === 'function') {
+      return SubscriptionModule.getProxySubscriptionLineCounts(proxy);
+    }
+    return getSubscriptionsForProxy(proxy).reduce((totals, subscription) => {
+      const counts = SubscriptionModule.getSubscriptionLineCounts(subscription);
+      totals.include_lines += counts.include_lines;
+      totals.bypass_lines += counts.bypass_lines;
+      return totals;
+    }, { include_lines: 0, bypass_lines: 0 });
+  }
+
+  function renderScenarioAssociationOptions(scenarios, selectedScenarioId) {
+    return scenarios.map(scenario => {
+      const escapedId = UtilsModule.escapeHtml(scenario.id);
+      const escapedName = UtilsModule.escapeHtml(scenario.name || I18n.t('scenario_default'));
+      const selected = scenario.id === selectedScenarioId ? ' selected' : '';
+      return `<option value="${escapedId}"${selected}>${escapedName}</option>`;
+    }).join('');
+  }
+
   function renderList() {
     const expansionState = {};
-    $(".proxy-card").each(function () {
+    $("#proxy-list .proxy-card").each(function () {
       const $item = $(this);
-      const name = $item.find('.name').val();
-      if (!$item.hasClass("collapsed") && name) {
-        expansionState[name] = true;
+      const proxyId = $item.data('proxy-id');
+      if (!$item.hasClass("collapsed") && proxyId) {
+        expansionState[proxyId] = true;
       }
     });
 
-    // Get latest data from storage
-    if (StorageModule) {
-      list = StorageModule.getProxies();
-    }
+    const scenarios = refreshProxyIndex();
 
     let html = "";
-    for (let i = 0; i < list.length; i++) {
-      const info = list[i];
+    let i = 0;
+    scenarios.forEach(function (scenario) {
+      const escapedScenarioId = UtilsModule.escapeHtml(scenario.id);
+      const escapedScenarioName = UtilsModule.escapeHtml(scenario.name || I18n.t('scenario_default'));
+      html += `<section class="proxy-scenario-group" data-scenario-id="${escapedScenarioId}">
+        <div class="proxy-scenario-divider"><span>${escapedScenarioName}</span></div>
+        <div class="proxy-scenario-cards" data-scenario-id="${escapedScenarioId}">`;
+
+      (scenario.proxies || []).forEach(function (info, proxyIndex) {
+      const proxyId = ensureProxyId(info).id;
 
       const is_enabled = info.enabled;
 
@@ -322,14 +450,13 @@ const ProxyModule = (function () {
         isExpanded = true;
       } else if (expansionMode === 'collapsed') {
         isExpanded = false;
-      } else if (info.is_new) {
+      } else if (proxyId === newProxyId) {
         isExpanded = true;
-      } else if (info.name && expansionState[info.name]) {
+      } else if (expansionState[proxyId]) {
         isExpanded = true;
       }
 
       const collapsedClass = isExpanded ? "" : "collapsed";
-      delete info.is_new;
 
       const bypassLines = info.bypass_rules ? info.bypass_rules.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
       const includeLines = info.include_rules ? info.include_rules.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0;
@@ -337,20 +464,21 @@ const ProxyModule = (function () {
       let subscriptionBadgeBypass = `<span class="subscription-badge active" data-type="bypass" data-mode="local" title="${I18n.t('current_rules_count')}">${bypassLines}</span>`;
       let subscriptionBadgeInclude = `<span class="subscription-badge active" data-type="include" data-mode="local" title="${I18n.t('current_rules_count')}">${includeLines}</span>`;
 
-      if (info.subscription && info.subscription.enabled !== false) {
-        const counts = SubscriptionModule.getSubscriptionLineCounts(info.subscription);
+      const selectedSubscriptions = getSubscriptionsForProxy(info);
+      if (selectedSubscriptions.some(subscription => subscription.enabled !== false)) {
+        const counts = getSubscriptionCountsForProxy(info);
 
         subscriptionBadgeBypass += `<span class="subscription-badge subscription-lines-badge visible" data-type="bypass" data-mode="subscription" title="${I18n.t('subscription_rules_count')}">${counts.bypass_lines >= 0 ? '+' : ''}${counts.bypass_lines}</span>`;
         subscriptionBadgeInclude += `<span class="subscription-badge subscription-lines-badge visible" data-type="include" data-mode="subscription" title="${I18n.t('subscription_rules_count')}">${counts.include_lines >= 0 ? '+' : ''}${counts.include_lines}</span>`;
       }
 
-      html += `<div class="proxy-card ${collapsedClass} ${is_enabled ? "" : "disabled"}" data-id="${i}">
+      html += `<div class="proxy-card ${collapsedClass} ${is_enabled ? "" : "disabled"}" data-id="${i}" data-proxy-id="${UtilsModule.escapeHtml(proxyId)}" data-scenario-id="${escapedScenarioId}" data-proxy-index="${proxyIndex}">
         <div class="proxy-header" data-index="${i}">
             <div class="header-left">
                 <div class="drag-handle" title="${I18n.t('drag_sort')}">
                     ${MainIcons.render('dragHandle', { width: 20, height: 20 })}
                 </div>
-                <span class="proxy-index">#${i + 1}</span>
+                <span class="proxy-index">#${proxyIndex + 1}</span>
                 <div class="proxy-type-badge ${protocolClass}">${displayProtocol}</div>
                 <div class="proxy-title-preview" title="${previewText}">${previewText}</div>
             </div>
@@ -364,6 +492,9 @@ const ProxyModule = (function () {
                         <span class="slider-modern"></span>
                     </label>
                 </div>
+                <button type="button" class="proxy-card-collapse" title="${I18n.t(isExpanded ? 'collapse_all' : 'expand_all')}" aria-expanded="${isExpanded}">
+                    ${MainIcons.render('chevronDown', { width: 16, height: 16 })}
+                </button>
             </div>
         </div>
 
@@ -455,6 +586,19 @@ const ProxyModule = (function () {
                         </div>
                     </div>
 
+                    <div class="form-grid" style="margin-top: 15px;">
+                      <div class="form-item" style="grid-column: span 4;">
+                        <label>${I18n.t('proxy_associated_scenario')}</label>
+                        <select class="subscription-card-select proxy-scenario-association" data-index="${i}" tabindex="${i * 100 + 9}">
+                          ${renderScenarioAssociationOptions(scenarios, scenario.id)}
+                        </select>
+                      </div>
+                      <div class="form-item" style="grid-column: span 8;">
+                        <label>${I18n.t('proxy_subscriptions')}</label>
+                        ${renderSubscriptionSelector(info, i)}
+                      </div>
+                    </div>
+
                      <div class="url-config-section">
                           <div class="form-item">
                               <div class="url-config-header">
@@ -483,12 +627,6 @@ const ProxyModule = (function () {
                      <button class="right-panel-btn btn-test test-proxy-btn" data-index="${i}" tabindex="-1">
                           ${I18n.t('link_test')}
                      </button>
-                     <button class="right-panel-btn btn-move move-proxy-btn" data-index="${i}" title="${I18n.t('move_proxy_title')}" tabindex="-1">
-                          ${I18n.t('move_proxy')}
-                     </button>
-                      <button class="right-panel-btn btn-subscription subscription-btn" data-index="${i}" title="${I18n.t('subscription_config_title')}" tabindex="-1">
-                           ${I18n.t('subscription_btn')}
-                      </button>
                      <div class="test-result-display test-result" data-index="${i}"></div>
                      <button class="right-panel-btn btn-save item-save-btn" data-index="${i}" tabindex="${i * 100 + 12}">
                           ${I18n.t('save')}
@@ -500,7 +638,11 @@ const ProxyModule = (function () {
             </div>
         </div>
       </div>`;
-    }
+      i += 1;
+      });
+      html += '</div></section>';
+    });
+    newProxyId = null;
     $("#proxy-list").html(html);
 
     initSortable();
@@ -508,12 +650,26 @@ const ProxyModule = (function () {
 
     updateSubscriptionLinesDisplay();
     syncExpandCollapseButton();
+  }
 
-    $(".move-proxy-btn").on("click", function () {
-      const index = $(this).data("index");
-      const currentScenario = ScenariosModule.getCurrentScenario();
-      ScenariosModule.showMoveProxyDialog(index, currentScenario ? currentScenario.name : I18n.t('scenario_default'));
+  function moveProxyToScenario(index, targetScenarioId) {
+    const location = proxyLocations[index];
+    if (!location || !targetScenarioId || location.scenarioId === targetScenarioId) return false;
+
+    if (!StorageModule || typeof StorageModule.moveProxy !== 'function') return false;
+    if (!StorageModule.moveProxy(location.proxyIndex, location.scenarioId, targetScenarioId)) return false;
+
+    renderList();
+    if (typeof ScenariosModule !== 'undefined' && typeof ScenariosModule.renderScenarioViews === 'function') {
+      ScenariosModule.renderScenarioViews();
+    }
+    saveData({
+      successMsg: I18n.t('save_success'),
+      callback: success => {
+        if (success) chrome.runtime.sendMessage({ action: 'refreshProxy' });
+      }
     });
+    return true;
   }
 
   function updateSubscriptionLinesDisplay() {
@@ -534,8 +690,8 @@ const ProxyModule = (function () {
       if (mode === 'local') {
         $badge.text(type === 'bypass' ? bypassLines : includeLines);
       } else if (mode === 'subscription') {
-        if (info.subscription && info.subscription.enabled !== false) {
-          const lineCounts = SubscriptionModule.getSubscriptionLineCounts(info.subscription);
+        if (getSubscriptionsForProxy(info).length) {
+          const lineCounts = getSubscriptionCountsForProxy(info);
           const count = type === 'bypass' ? lineCounts.bypass_lines : lineCounts.include_lines;
           $badge.text(`${count >= 0 ? '+' : ''}${count}`);
         }
@@ -544,12 +700,17 @@ const ProxyModule = (function () {
   }
 
   function bindGlobalEvents() {
+    $(document).on('click.proxySubscriptionSelect', function () {
+      $('.proxy-subscription-select').removeClass('open')
+        .find('.proxy-subscription-trigger').attr('aria-expanded', 'false');
+    });
+
     $("#add-proxy-btn").on("click", function () {
       const newIndex = addProxy();
       renderList();
 
       setTimeout(function () {
-        const $newItem = $(".proxy-card").last();
+        const $newItem = $(`#proxy-list .proxy-card[data-id="${newIndex}"]`);
         if ($newItem.length) {
           $("html, body").animate({ scrollTop: $newItem.offset().top - 100 }, 500);
         }
@@ -563,12 +724,11 @@ const ProxyModule = (function () {
 
       $(".proxy-header-test-result").text("").removeClass("text-green text-orange text-red text-blue");
 
-      // Refresh list reference
-      list = StorageModule ? StorageModule.getProxies() : list;
+      refreshProxyIndex();
 
       for (let index = 0; index < list.length; index++) {
         const proxy = list[index];
-        const $item = $(`.proxy-card[data-id="${index}"]`);
+        const $item = $(`#proxy-list .proxy-card[data-id="${index}"]`);
 
         proxy.name = $item.find('.name').val();
         proxy.protocol = UtilsModule.cleanProtocol($item.find('.lh-select-value[data-index="' + index + '"]').closest('.lh-select[data-type="protocol"]').find('.lh-select-op li.selected-option').data('value') || proxy.protocol);
@@ -610,10 +770,10 @@ const ProxyModule = (function () {
 
       if (isExpanded) {
         expansionMode = 'collapsed';
-        $(".proxy-card").addClass("collapsed");
+        $("#proxy-list .proxy-card").addClass("collapsed");
       } else {
         expansionMode = 'expanded';
-        $(".proxy-card").removeClass("collapsed");
+        $("#proxy-list .proxy-card").removeClass("collapsed");
       }
 
       syncExpandCollapseButton();
@@ -715,11 +875,39 @@ const ProxyModule = (function () {
       }
     });
 
-    $(".subscription-btn").on("click", function () {
-      const index = $(this).data("index");
-      if (index !== undefined) {
-        SubscriptionModule.openModal(index);
-      }
+    $('.proxy-scenario-association').on('change', function () {
+      moveProxyToScenario($(this).data('index'), $(this).val());
+    });
+
+    $('.proxy-subscription-trigger').on('click', function (e) {
+      e.stopPropagation();
+      const $select = $(this).closest('.proxy-subscription-select');
+      const isOpen = $select.hasClass('open');
+      $('.proxy-subscription-select').removeClass('open').find('.proxy-subscription-trigger').attr('aria-expanded', 'false');
+      $select.toggleClass('open', !isOpen);
+      $(this).attr('aria-expanded', String(!isOpen));
+      if (!isOpen) $select.find('.proxy-subscription-search').trigger('focus');
+    });
+
+    $('.proxy-subscription-menu').on('click', function (e) {
+      e.stopPropagation();
+    });
+
+    $('.proxy-subscription-search').on('input', function () {
+      const query = $(this).val().trim().toLowerCase();
+      $(this).closest('.proxy-subscription-menu').find('.proxy-subscription-option').each(function () {
+        $(this).toggle($(this).data('search').includes(query));
+      });
+    });
+
+    $('.proxy-subscription-option input').on('change', function () {
+      const $select = $(this).closest('.proxy-subscription-select');
+      const index = $select.data('index');
+      const ids = $select.find('.proxy-subscription-option input:checked').map(function () { return this.value; }).get();
+      list[index].subscription_ids = ids;
+      const names = ids.map(id => typeof StorageModule.getSubscription === 'function' ? StorageModule.getSubscription(id)?.name : null).filter(Boolean);
+      const summary = names.length ? names.join(', ') : I18n.t('subscription_select_empty');
+      $select.find('.proxy-subscription-value').text(summary).attr('title', summary);
     });
 
     $(document).off('click', '.subscription-badge[data-type][data-mode]').on('click', '.subscription-badge[data-type][data-mode]', function (e) {
@@ -741,10 +929,13 @@ const ProxyModule = (function () {
 
       if (mode === 'subscription') {
         const info = list[index];
-        if (info.subscription && info.subscription.lists) {
-          const currentFormat = info.subscription.current || 'autoproxy';
-          const subConfig = info.subscription.lists[currentFormat];
-          const content = type === 'bypass' ? subConfig.bypass_rules : subConfig.include_rules;
+        const subscriptions = getSubscriptionsForProxy(info).filter(subscription => subscription.enabled !== false);
+        if (subscriptions.length) {
+          const content = subscriptions.map(subscription => {
+            const currentFormat = subscription.current || 'autoproxy';
+            const subConfig = subscription.lists?.[currentFormat] || {};
+            return type === 'bypass' ? subConfig.bypass_rules : subConfig.include_rules;
+          }).filter(Boolean).join('\n');
 
           $localTextarea.removeClass('textarea-fade-in').addClass('textarea-fade-out');
           setTimeout(() => {
@@ -772,7 +963,7 @@ const ProxyModule = (function () {
       const $headerResultSpan = $(`.proxy-header-test-result[data-index="${i}"]`);
 
       if (i !== undefined && list[i]) {
-        const $item = $(`.proxy-card[data-id="${i}"]`);
+        const $item = $(`#proxy-list .proxy-card[data-id="${i}"]`);
         list[i].name = $item.find('.name').val();
         list[i].protocol = UtilsModule.cleanProtocol($item.find('.lh-select-value').text());
         list[i].ip = $item.find('.ip').val();
@@ -823,17 +1014,22 @@ const ProxyModule = (function () {
       }
     });
 
-    $(document).off("click", ".proxy-header").on("click", ".proxy-header", function (e) {
-      if ($(e.target).closest('.switch-modern, .action-btn-delete, input').length) return;
-      $(this).closest('.proxy-card').toggleClass("collapsed");
-      updateExpansionModeFromCardStates();
+    $('.proxy-card-collapse').off('click.proxyCardCollapse')
+      .on('click.proxyCardCollapse', function (e) {
+        e.stopPropagation();
+        toggleProxyCard($(this).closest('.proxy-card'));
+      });
+
+    $(document).off("click", "#proxy-list .proxy-header").on("click", "#proxy-list .proxy-header", function (e) {
+      if ($(e.target).closest('.switch-modern, .action-btn-delete, .proxy-card-collapse, input').length) return;
+      toggleProxyCard($(this).closest('.proxy-card'));
     });
   }
 
   function input_blur(i, name, val) {
     if (i !== undefined && name && list[i]) {
       if (name === 'proxy-color-input') {
-        setProxyColor(i, val, $(`.proxy-card[data-id="${i}"] .proxy-color-input`));
+        setProxyColor(i, val, $(`#proxy-list .proxy-card[data-id="${i}"] .proxy-color-input`));
         return;
       }
 
@@ -849,7 +1045,7 @@ const ProxyModule = (function () {
         if (["name", "ip", "port"].includes(name)) {
           var info = list[i];
           var previewText = `${info.name || I18n.t('unnamed_proxy')} · ${info.ip || "0.0.0.0"}:${info.port || "0"}`;
-          $(`.proxy-card[data-id="${i}"] .proxy-title-preview`).text(previewText).attr('title', previewText);
+          $(`#proxy-list .proxy-card[data-id="${i}"] .proxy-title-preview`).text(previewText).attr('title', previewText);
         }
       }
     }
@@ -945,7 +1141,20 @@ const ProxyModule = (function () {
           });
         }
 
-        const $siblings = $container.find(".proxy-card:not(:hidden)");
+        const $groups = $container.find('.proxy-scenario-group');
+        let $targetGroup = $groups.last();
+        $groups.each(function () {
+          if (clientY < this.getBoundingClientRect().bottom) {
+            $targetGroup = $(this);
+            return false;
+          }
+        });
+
+        const $targetList = $targetGroup.find('.proxy-scenario-cards');
+        $container.find('.proxy-scenario-cards').removeClass('drag-target');
+        $targetList.addClass('drag-target');
+
+        const $siblings = $targetList.find(".proxy-card:not(:hidden)");
         let $target = null;
 
         $siblings.each(function () {
@@ -962,7 +1171,7 @@ const ProxyModule = (function () {
             $target.before($placeholder);
           }
         } else {
-          $container.append($placeholder);
+          $targetList.append($placeholder);
         }
       };
 
@@ -981,6 +1190,7 @@ const ProxyModule = (function () {
         isDragging = false;
         if (rafId) cancelAnimationFrame(rafId);
         if (scrollInterval) clearInterval(scrollInterval);
+        $container.find('.proxy-scenario-cards').removeClass('drag-target');
 
         $(document).off("mousemove", onMouseMove);
         $(document).off("mouseup", onMouseUp);
@@ -993,30 +1203,61 @@ const ProxyModule = (function () {
           $placeholder.replaceWith($item);
           $item.show();
 
-          const newItems = $container.find(".proxy-card").toArray();
-          const newList = newItems.map(node => {
-            const oldIdx = parseInt($(node).attr("data-id"), 10);
-            return list[oldIdx];
+          const scenarios = getProxyScenarios();
+          const proxyById = new Map();
+          scenarios.forEach(scenario => {
+            (scenario.proxies || []).forEach(proxy => proxyById.set(String(proxy.id), proxy));
+          });
+          let changed = false;
+          $container.find('.proxy-scenario-group').each(function () {
+            const scenarioId = String($(this).data('scenario-id'));
+            const scenario = scenarios.find(item => String(item.id) === scenarioId);
+            if (!scenario) return;
+
+            const newOrder = $(this).find('.proxy-card').toArray().map(node => {
+              return proxyById.get(String($(node).data('proxy-id')));
+            }).filter(Boolean);
+            const oldOrder = scenario.proxies || [];
+
+            if (newOrder.length !== oldOrder.length) {
+              changed = true;
+            } else {
+              for (let index = 0; index < newOrder.length; index++) {
+                if (newOrder[index] !== oldOrder[index]) {
+                  changed = true;
+                  break;
+                }
+              }
+            }
+
+            if (StorageModule && typeof StorageModule.reorderProxies === 'function') {
+              StorageModule.reorderProxies(newOrder, scenario.id);
+            } else {
+              scenario.proxies = newOrder;
+            }
           });
 
-          let changed = false;
-          if (newList.length !== list.length) changed = true;
-          else {
-            for (let i = 0; i < newList.length; i++) {
-              if (newList[i] !== list[i]) {
+          if (changed) {
+            refreshProxyIndex(scenarios);
+            renderList();
+            if (typeof ScenariosModule !== 'undefined' && typeof ScenariosModule.renderScenarioViews === 'function') {
+              ScenariosModule.renderScenarioViews();
+            }
+            saveData({
+              successMsg: I18n.t('sort_success'),
+              callback: success => {
+                if (success) chrome.runtime.sendMessage({ action: 'refreshProxy' });
+              }
+            });
+          } else {
+            const currentOrder = $container.find('.proxy-card').toArray();
+            for (let index = 0; index < currentOrder.length; index++) {
+              if (parseInt($(currentOrder[index]).attr('data-id'), 10) !== index) {
+                renderList();
                 changed = true;
                 break;
               }
             }
-          }
-
-          if (changed) {
-            list = newList;
-            if (StorageModule) {
-              StorageModule.reorderProxies(newList);
-            }
-            renderList();
-            saveData({ successMsg: I18n.t('sort_success') });
           }
         });
       };
@@ -1056,6 +1297,7 @@ const ProxyModule = (function () {
     saveData: saveData,
     saveSingleProxy: saveSingleProxy,
     renderList: renderList,
+    moveProxyToScenario: moveProxyToScenario,
     confirmDelete: confirmDelete,
     updateSubscriptionLinesDisplay: updateSubscriptionLinesDisplay,
     ensureProxyId: ensureProxyId,

@@ -31,13 +31,11 @@ window.onScenariosReorder = function (scenarios) {
   saveConfig();
 };
 
-window.onProxyMove = function (proxyIndex, targetScenarioId, proxy) {
-  refreshMainView();
-};
-
 // ==========================================
 // Initialization
 // ==========================================
+const MAIN_NAVIGATION_STORAGE_KEY = 'proxyAssistant.activeMainPage';
+
 document.addEventListener('DOMContentLoaded', function () {
   I18n.init(function () {
     initApp();
@@ -65,10 +63,33 @@ function initApp() {
 
 function initMainNavigation() {
   $('.main-nav-item').off('click.mainNavigation').on('click.mainNavigation', function () {
-    switchMainPage($(this).data('main-page'));
+    const pageId = $(this).data('main-page');
+    if (switchMainPage(pageId)) {
+      saveActiveMainPage(pageId);
+    }
   });
 
-  switchMainPage('proxies');
+  const savedPageId = getSavedActiveMainPage();
+  if (!switchMainPage(savedPageId)) {
+    switchMainPage('proxies');
+    saveActiveMainPage('proxies');
+  }
+}
+
+function getSavedActiveMainPage() {
+  try {
+    return window.localStorage.getItem(MAIN_NAVIGATION_STORAGE_KEY) || 'proxies';
+  } catch (error) {
+    return 'proxies';
+  }
+}
+
+function saveActiveMainPage(pageId) {
+  try {
+    window.localStorage.setItem(MAIN_NAVIGATION_STORAGE_KEY, pageId);
+  } catch (error) {
+    // Navigation still works when browser storage is unavailable.
+  }
 }
 
 function switchMainPage(pageId) {
@@ -93,6 +114,10 @@ function switchMainPage(pageId) {
 
   if (pageId === 'scenarios' && typeof ScenariosModule !== 'undefined' && ScenariosModule.renderScenarioManagementList) {
     ScenariosModule.renderScenarioManagementList();
+  }
+
+  if (pageId === 'subscriptions' && typeof SubscriptionModule !== 'undefined') {
+    SubscriptionModule.renderManagementList();
   }
 
   if (pageId === 'about' && typeof VersionModule !== 'undefined' && VersionModule.loadVersionInfo) {
@@ -148,7 +173,9 @@ function loadSettings() {
 function refreshMainView(options) {
   options = options || {};
 
-  const list = options.list || StorageModule.getProxies();
+  const list = options.list || (typeof StorageModule.getScenarios === 'function'
+    ? StorageModule.getScenarios().flatMap(scenario => scenario.proxies || [])
+    : StorageModule.getProxies());
   const shouldParseSubscriptions = options.parseSubscriptions !== false;
   const shouldRenderScenarios = options.renderScenarios !== false;
 
@@ -242,27 +269,6 @@ function initDropdowns() {
     }, 50);
   });
 
-  $(document).off("click", ".main-scenario-btn").on("click", ".main-scenario-btn", function (e) {
-    e.stopPropagation();
-    const $btn = $(this);
-    const $op = $btn.siblings('.main-scenario-dropdown');
-    const display = $op.css('display');
-
-    closeDropdowns($op);
-
-    if (display !== 'none') {
-      $op.hide().removeClass('drop-up');
-      $btn.closest('.header-left-controls').removeClass('dropdown-open');
-      return;
-    }
-
-    setTimeout(function () {
-      $btn.closest('.header-left-controls').addClass('dropdown-open');
-      $op.show();
-      positionDropdown($op, $btn);
-    }, 50);
-  });
-
   $(document).off("click", ".lh-select-op li").on("click", ".lh-select-op li", function (e) {
     e.stopPropagation();
     const $li = $(this);
@@ -271,26 +277,6 @@ function initDropdowns() {
     $li.parent().removeClass('drop-up');
     $container.removeClass('dropdown-open');
     $li.closest('.header-left-controls').removeClass('dropdown-open');
-
-    if (type === 'main_scenario') {
-      const scenarioId = $li.data('value');
-      ScenariosModule.switchScenario(scenarioId);
-      $li.parent().hide();
-      return;
-    }
-
-    if ($li.parent().hasClass('main-scenario-dropdown')) {
-      const scenarioId = $li.data('value');
-      ScenariosModule.switchScenario(scenarioId);
-      $li.parent().hide();
-      return;
-    }
-
-    if ($container.hasClass('target-scenario-selector')) {
-      $('#target-scenario-display').text($li.text()).data('value', $li.data('value'));
-      $li.parent().hide();
-      return;
-    }
 
     $li.siblings().removeClass("selected-option");
     $li.addClass("selected-option");
@@ -305,11 +291,13 @@ function initDropdowns() {
     const i = $selectVal.data("index");
 
     if (typeof i !== 'undefined') {
-      const list = StorageModule.getProxies();
-      if (list[i]) {
+      const proxy = typeof ProxyModule.getProxy === 'function'
+        ? ProxyModule.getProxy(i)
+        : StorageModule.getProxies()[i];
+      if (proxy) {
         if (type === 'protocol') {
           const cleanVal = UtilsModule.cleanProtocol(val);
-          list[i].protocol = cleanVal;
+          proxy.protocol = cleanVal;
           const $badge = $li.closest('.proxy-card').find('.proxy-type-badge');
           $badge.text(cleanVal.toUpperCase()).removeClass('http https socks5').addClass(cleanVal);
 
@@ -323,7 +311,7 @@ function initDropdowns() {
             $authInputs.removeAttr('title');
           }
         } else if (type === 'fallback') {
-          list[i].fallback_policy = val;
+          proxy.fallback_policy = val;
         }
       }
     }
@@ -460,7 +448,6 @@ function bindGlobalEvents() {
         '.add-scenario-tip',
         '.edit-scenario-tip',
         '.delete-scenario-tip',
-        '.move-proxy-tip',
         '.sync-config-tip',
         '.subscription-config-tip',
         '.pac-details-tip',

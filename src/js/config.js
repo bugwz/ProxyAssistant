@@ -9,7 +9,7 @@
 const PROXY_STATE_KEYS = ['show_password', 'is_new', 'open'];
 const PROXY_EXPORT_KEYS = [
   'enabled', 'id', 'name', 'protocol', 'ip', 'port', 'username', 'password',
-  'bypass_rules', 'include_rules', 'fallback_policy', 'color', 'subscription'
+  'bypass_rules', 'include_rules', 'fallback_policy', 'color', 'subscription_ids'
 ];
 
 function normalizeConfigProxyColor(color) {
@@ -177,7 +177,7 @@ function migrateConfig(config) {
     applyIf(sourceSystem.settings.nightModeEnd || sourceSystem.settings.night_mode_end, v4.system, 'night_mode_end');
   }
 
-  return v4;
+  return normalizeConfig(v4);
 }
 
 function getDefaultConfig() {
@@ -201,7 +201,8 @@ function getDefaultConfig() {
         name: I18n.t('scenario_default'),
         proxies: []
       }]
-    }
+    },
+    subscriptions: []
   };
 }
 
@@ -216,6 +217,11 @@ function normalizeConfig(config) {
   if (!config.system) {
     config.system = getDefaultConfig().system;
   }
+  if (!Array.isArray(config.subscriptions)) {
+    config.subscriptions = [];
+  }
+
+  const knownSubscriptionIds = new Set(config.subscriptions.map(item => item.id));
 
   // Ensure all proxies have unique IDs
   config.scenarios.lists.forEach(scenario => {
@@ -225,6 +231,20 @@ function normalizeConfig(config) {
           proxy.id = generateProxyId();
         }
         proxy.color = normalizeConfigProxyColor(proxy.color);
+        if (!Array.isArray(proxy.subscription_ids)) proxy.subscription_ids = [];
+        if (proxy.subscription) {
+          const subscriptionId = `subscription-${proxy.id}`;
+          if (!knownSubscriptionIds.has(subscriptionId)) {
+            config.subscriptions.push({
+              ...proxy.subscription,
+              id: subscriptionId,
+              name: proxy.name || I18n.t('subscription_config_title')
+            });
+            knownSubscriptionIds.add(subscriptionId);
+          }
+          if (!proxy.subscription_ids.includes(subscriptionId)) proxy.subscription_ids.push(subscriptionId);
+          delete proxy.subscription;
+        }
       });
     }
   });
@@ -336,7 +356,8 @@ function buildConfigData(includeInternalState = false) {
     scenarios: {
       current: config.scenarios.current,
       lists: formattedScenarios
-    }
+    },
+    subscriptions: config.subscriptions || []
   };
 }
 

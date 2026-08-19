@@ -6,7 +6,8 @@
 const ScenariosModule = (function () {
   let editingScenarioId = null;
   let deletingScenarioId = null;
-  let move_proxy_index = -1;
+  let managementExpansionMode = 'auto';
+  let newManagementScenarioId = null;
 
   function init() {
     bindEvents();
@@ -107,54 +108,109 @@ const ScenariosModule = (function () {
     return false;
   }
 
+  function syncManagementExpandCollapseButton() {
+    const $button = $('#scenario-expand-collapse-btn');
+    if (!$button.length) return;
+
+    if (managementExpansionMode === 'expanded') {
+      $button.addClass('expanded');
+      $button.html(`${MainIcons.render('collapse', { width: 16, height: 16, className: 'icon-collapse' })} <span data-i18n="collapse_all">${I18n.t('collapse_all')}</span>`);
+      return;
+    }
+
+    $button.removeClass('expanded');
+    $button.html(`${MainIcons.render('expand', { width: 16, height: 16, className: 'icon-expand' })} <span data-i18n="expand_all">${I18n.t('expand_all')}</span>`);
+  }
+
+  function updateManagementExpansionModeFromCards() {
+    const $cards = $('#scenario-manage-list .scenario-card');
+    const collapsedCount = $cards.filter('.collapsed').length;
+
+    if (!$cards.length) {
+      managementExpansionMode = 'auto';
+    } else if (collapsedCount === 0) {
+      managementExpansionMode = 'expanded';
+    } else if (collapsedCount === $cards.length) {
+      managementExpansionMode = 'collapsed';
+    } else {
+      managementExpansionMode = 'auto';
+    }
+    syncManagementExpandCollapseButton();
+  }
+
+  function updateManagementCardToggleState() {
+    $('#scenario-manage-list .scenario-card').each(function () {
+      const $card = $(this);
+      const isExpanded = !$card.hasClass('collapsed');
+      $card.find('.scenario-card-collapse')
+        .attr('aria-expanded', String(isExpanded))
+        .attr('title', I18n.t(isExpanded ? 'collapse_all' : 'expand_all'));
+    });
+  }
+
+  function toggleManagementCard($card) {
+    $card.toggleClass('collapsed');
+    updateManagementCardToggleState();
+    updateManagementExpansionModeFromCards();
+  }
+
   function renderScenarioManagementList() {
+    const $list = $('#scenario-manage-list');
+    const expandedIds = new Set();
+    $list.find('.scenario-card:not(.collapsed)').each(function () {
+      expandedIds.add(String($(this).data('id')));
+    });
+
     const scenarios = getScenarios();
     const currentScenarioId = getCurrentScenarioId();
-    const currentScenario = scenarios.find(scenario => scenario.id === currentScenarioId);
-    const totalProxyCount = scenarios.reduce((total, scenario) => total + (scenario.proxies || []).length, 0);
-
-    let html = "";
-    scenarios.forEach(function (scenario, index) {
+    const html = scenarios.map(function (scenario, index) {
       const isCurrent = scenario.id === currentScenarioId;
       const proxyCount = (scenario.proxies || []).length;
       const escapedId = UtilsModule.escapeHtml(scenario.id);
       const escapedName = UtilsModule.escapeHtml(scenario.name);
+      const isExpanded = managementExpansionMode === 'expanded'
+        || (managementExpansionMode === 'auto' && (scenario.id === newManagementScenarioId || expandedIds.has(String(scenario.id))));
+      const collapsed = isExpanded ? '' : ' collapsed';
 
-      html += `
-         <div class="scenario-item${isCurrent ? ' is-current' : ''}" data-id="${escapedId}">
-           <button type="button" class="drag-handle" title="${I18n.t('drag_sort')}" aria-label="${I18n.t('drag_sort')}">
-             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1"></circle><circle cx="15" cy="6" r="1"></circle><circle cx="9" cy="12" r="1"></circle><circle cx="15" cy="12" r="1"></circle><circle cx="9" cy="18" r="1"></circle><circle cx="15" cy="18" r="1"></circle></svg>
-           </button>
-           <button type="button" class="scenario-item-main" data-id="${escapedId}"${isCurrent ? ' aria-current="true"' : ''} title="${I18n.t('switch_scenario_tooltip')}">
-             <span class="scenario-item-icon" aria-hidden="true">
-               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7l8 4 8-4-8-4Z"></path><path d="m4 12 8 4 8-4"></path><path d="m4 17 8 4 8-4"></path></svg>
-             </span>
-             <span class="scenario-item-copy">
-               <span class="scenario-name">${escapedName}</span>
-               <span class="scenario-item-meta">
-                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="6" rx="2"></rect><rect x="4" y="14" width="16" height="6" rx="2"></rect><path d="M8 7h.01M8 17h.01"></path></svg>
-                 <span class="scenario-proxy-count">${proxyCount}</span>
-                 <span>${I18n.t('scenario_proxy_unit')}</span>
-               </span>
-             </span>
-           </button>
-           ${isCurrent ? `<span class="scenario-current-indicator"><span class="scenario-current-dot"></span>${I18n.t('status_current')}</span>` : ''}
-           <div class="scenario-actions">
-             <button type="button" class="edit-scenario-btn" data-id="${escapedId}" data-name="${escapedName}" title="${I18n.t('scenario_edit')}">
-               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-             </button>
-             <button type="button" class="delete-scenario-btn" data-id="${escapedId}" title="${I18n.t('delete')}">
-               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-             </button>
-           </div>
-         </div>
-       `;
-    });
-    $("#scenario-manage-list").html(html);
-    $("#scenario-management-current").text(currentScenario ? currentScenario.name : I18n.t('scenario_default'));
-    $("#scenario-total-count, #scenario-list-count").text(scenarios.length);
-    $("#scenario-proxy-total-count").text(totalProxyCount);
+      return `<div class="proxy-card scenario-card${collapsed}${isCurrent ? ' is-current' : ''}" data-id="${escapedId}">
+        <div class="proxy-header scenario-card-header">
+          <div class="header-left">
+            <button type="button" class="drag-handle scenario-drag-handle" title="${I18n.t('drag_sort')}" aria-label="${I18n.t('drag_sort')}">
+              ${MainIcons.render('dragHandle', { width: 20, height: 20 })}
+            </button>
+            <span class="proxy-index">#${index + 1}</span>
+            <div class="scenario-card-title" title="${escapedName}">${escapedName}</div>
+          </div>
+          <div class="header-right">
+            <span class="scenario-proxy-summary">${proxyCount} ${I18n.t('scenario_proxy_unit')}</span>
+            ${isCurrent ? `<span class="scenario-current-indicator"><span class="scenario-current-dot"></span>${I18n.t('status_current')}</span>` : ''}
+            <button type="button" class="scenario-card-collapse" title="${I18n.t(isExpanded ? 'collapse_all' : 'expand_all')}" aria-expanded="${isExpanded}">${MainIcons.render('chevronDown', { width: 16, height: 16 })}</button>
+          </div>
+        </div>
+        <div class="proxy-body">
+          <div class="proxy-body-container">
+            <div class="proxy-content-left scenario-card-content">
+              <div class="form-grid scenario-card-form">
+                <div class="form-item" style="grid-column: span 12;">
+                  <label>${I18n.t('scenario_name')}</label>
+                  <input type="text" class="scenario-card-name-input" data-id="${escapedId}" value="${escapedName}" placeholder="${I18n.t('scenario_name_placeholder')}">
+                </div>
+              </div>
+            </div>
+            <div class="proxy-content-right scenario-card-actions">
+              ${isCurrent ? '' : `<button type="button" class="right-panel-btn btn-test scenario-switch-btn" data-id="${escapedId}">${I18n.t('switch_scenario_tooltip')}</button>`}
+              <button type="button" class="right-panel-btn btn-save scenario-card-save" data-id="${escapedId}">${I18n.t('save')}</button>
+              <button type="button" class="right-panel-btn btn-delete delete-scenario-btn" data-id="${escapedId}" title="${I18n.t('delete')}">${I18n.t('delete')}</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
 
+    $list.html(html);
+    newManagementScenarioId = null;
+    updateManagementCardToggleState();
+    updateManagementExpansionModeFromCards();
     initScenarioSortable();
   }
 
@@ -168,7 +224,7 @@ const ScenariosModule = (function () {
 
       e.preventDefault();
       const $handle = $(this);
-      const $item = $handle.closest(".scenario-item");
+      const $item = $handle.closest(".scenario-card");
       if ($item.length === 0) return;
 
       const itemEl = $item[0];
@@ -201,7 +257,7 @@ const ScenariosModule = (function () {
         margin: 0,
         transform: "scale(1.02)",
         transition: "none",
-        display: "grid"
+        display: "block"
       });
 
       $("body").append($clone);
@@ -222,7 +278,7 @@ const ScenariosModule = (function () {
             left: startLeft + (clientX - startX)
           });
 
-          const $siblings = $container.find(".scenario-item:not(:hidden)");
+          const $siblings = $container.find(".scenario-card:not(:hidden)");
           let $target = null;
 
           $siblings.each(function () {
@@ -260,7 +316,7 @@ const ScenariosModule = (function () {
           $item.show();
 
           const scenarios = getScenarios();
-          const newItems = $container.find(".scenario-item").toArray();
+          const newItems = $container.find(".scenario-card").toArray();
           const newScenarioList = newItems.map(node => {
             const id = $(node).attr("data-id");
             return scenarios.find(s => s.id === id);
@@ -282,6 +338,7 @@ const ScenariosModule = (function () {
             if (typeof onScenariosReorder === 'function') {
               onScenariosReorder(newScenarioList);
             }
+            renderScenarioViews();
           }
         });
       };
@@ -314,6 +371,9 @@ const ScenariosModule = (function () {
       name: name,
       proxies: []
     };
+
+    managementExpansionMode = 'auto';
+    newManagementScenarioId = newId;
 
     if (StorageModule) {
       StorageModule.addScenario(newScenario);
@@ -404,38 +464,6 @@ const ScenariosModule = (function () {
     $(".alert-scenario-tip").show().addClass("show");
   }
 
-  function moveProxy(proxyIndex, targetScenarioId) {
-    if (proxyIndex === -1) return;
-
-    const currentId = getCurrentScenarioId();
-    if (targetScenarioId === currentId) return;
-
-    const scenarios = getScenarios();
-    const targetScenario = scenarios.find(s => s.id === targetScenarioId);
-    if (!targetScenario) return;
-
-    const currentScenario = scenarios.find(s => s.id === currentId);
-    if (!currentScenario || !currentScenario.proxies || !currentScenario.proxies[proxyIndex]) return;
-
-    const proxy = currentScenario.proxies[proxyIndex];
-
-    if (StorageModule) {
-      const success = StorageModule.moveProxy(proxyIndex, currentId, targetScenarioId);
-      if (success) {
-        StorageModule.save().then(() => {
-          if (typeof onProxyMove === 'function') {
-            onProxyMove(proxyIndex, targetScenarioId, proxy);
-          }
-          UtilsModule.showTip(I18n.t('move_success'), false);
-          chrome.runtime.sendMessage({ action: "refreshProxy" });
-        }).catch(err => {
-          console.info("Move proxy failed:", err);
-          UtilsModule.showTip(I18n.t('move_failed') + ': ' + err.message, true);
-        });
-      }
-    }
-  }
-
   function checkNameGlobalUniqueness(name, excludeProxyIndex, excludeScenarioId) {
     const scenarios = getScenarios();
 
@@ -457,32 +485,15 @@ const ScenariosModule = (function () {
     return { isDuplicate: false };
   }
 
-  function showMoveProxyDialog(proxyIndex, currentScenarioName) {
-    move_proxy_index = proxyIndex;
-    $("#current-scenario-display").text(currentScenarioName || I18n.t('scenario_default'));
-
-    const scenarios = getScenarios();
-    const currentId = getCurrentScenarioId();
-
-    let html = "";
-    let hasOptions = false;
-    scenarios.forEach(function (scenario) {
-      if (scenario.id !== currentId) {
-        html += `<li data-value="${scenario.id}">${UtilsModule.escapeHtml(scenario.name)}</li>`;
-        hasOptions = true;
-      }
+  function bindEvents() {
+    $('#scenario-expand-collapse-btn').on('click', function () {
+      const shouldCollapse = managementExpansionMode === 'expanded';
+      managementExpansionMode = shouldCollapse ? 'collapsed' : 'expanded';
+      $('#scenario-manage-list .scenario-card').toggleClass('collapsed', shouldCollapse);
+      updateManagementCardToggleState();
+      syncManagementExpandCollapseButton();
     });
 
-    if (!hasOptions) {
-      html = `<li class="disabled" style="color: var(--text-secondary); cursor: not-allowed; font-style: italic; padding: 8px 12px;">无其他场景可用</li>`;
-    }
-
-    $("#target-scenario-options").html(html);
-    $("#target-scenario-display").text("请选择").removeData("value");
-    $(".move-proxy-tip").show().addClass("show");
-  }
-
-  function bindEvents() {
     $("#open-add-scenario-btn").on("click", function () {
       $("#new-scenario-name").val("").removeClass('input-error');
       $(".add-scenario-tip").show().addClass("show");
@@ -580,8 +591,31 @@ const ScenariosModule = (function () {
       $(".delete-scenario-tip").show().addClass("show");
     });
 
-    $("#scenario-manage-list").on("click", ".scenario-item-main", function () {
+    $("#scenario-manage-list").on("click", ".scenario-switch-btn", function () {
       switchScenario($(this).data("id"));
+    });
+
+    $('#scenario-manage-list').on('click', '.scenario-card-header', function (event) {
+      if ($(event.target).closest('button, input, label, .drag-handle').length) return;
+      toggleManagementCard($(this).closest('.scenario-card'));
+    });
+
+    $('#scenario-manage-list').on('click', '.scenario-card-collapse', function () {
+      toggleManagementCard($(this).closest('.scenario-card'));
+    });
+
+    $('#scenario-manage-list').on('input', '.scenario-card-name-input', function () {
+      const name = $(this).val().trim() || I18n.t('scenario_default');
+      $(this).closest('.scenario-card').find('.scenario-card-title').text(name).attr('title', name);
+    });
+
+    $('#scenario-manage-list').on('click', '.scenario-card-save', function () {
+      const $card = $(this).closest('.scenario-card');
+      const id = $(this).data('id');
+      const name = $card.find('.scenario-card-name-input').val().trim();
+      if (renameScenario(id, name)) {
+        UtilsModule.showTip(I18n.t('save_success'), false);
+      }
     });
 
     $("#scenario-manage-list").on("click", ".edit-scenario-btn", function () {
@@ -593,23 +627,6 @@ const ScenariosModule = (function () {
       $("#edit-scenario-name").removeClass('input-error');
       $(".edit-scenario-tip").show().addClass("show");
       setTimeout(() => $("#edit-scenario-name").focus(), 100);
-    });
-
-    $(".move-proxy-close-btn, .move-proxy-cancel-btn, .move-proxy-tip").on("click", function (e) {
-      if (this === e.target || $(this).hasClass('move-proxy-close-btn') || $(this).hasClass('move-proxy-cancel-btn')) {
-        $(".move-proxy-tip").removeClass("show");
-        setTimeout(function () { $(".move-proxy-tip").hide(); }, 300);
-      }
-    });
-
-    $("#confirm-move-proxy-btn").on("click", function () {
-      const targetScenarioId = $("#target-scenario-display").data("value");
-      if (targetScenarioId && move_proxy_index !== -1) {
-        UtilsModule.showProcessingTip(I18n.t('processing'));
-        moveProxy(move_proxy_index, targetScenarioId);
-        $(".move-proxy-tip").removeClass("show");
-        setTimeout(function () { $(".move-proxy-tip").hide(); }, 300);
-      }
     });
 
   }
@@ -629,8 +646,6 @@ const ScenariosModule = (function () {
     renameScenario: renameScenario,
     doDeleteScenario: doDeleteScenario,
     showAlertScenario: showAlertScenario,
-    moveProxy: moveProxy,
-    checkNameGlobalUniqueness: checkNameGlobalUniqueness,
-    showMoveProxyDialog: showMoveProxyDialog
+    checkNameGlobalUniqueness: checkNameGlobalUniqueness
   };
 })();

@@ -38,7 +38,6 @@ function resetGlobals() {
   delete global.isFirefox;
   delete global.generateProxyId;
   delete global.onScenarioSwitch;
-  delete global.onProxyMove;
   delete global.window.ProxyModule;
   delete global.window.ScenariosModule;
   delete global.window.SubscriptionModule;
@@ -104,7 +103,6 @@ function loadScenariosModule(deps) {
     'onScenarioRename',
     'onScenarioDelete',
     'onScenariosReorder',
-    'onProxyMove',
     'console',
     `${source}; return ScenariosModule;`
   );
@@ -123,7 +121,6 @@ function loadScenariosModule(deps) {
     deps.onScenarioRename,
     deps.onScenarioDelete,
     deps.onScenariosReorder,
-    deps.onProxyMove,
     console
   );
 }
@@ -323,17 +320,6 @@ describe('main UI state flow', () => {
     expect(global.ProxyModule.renderList).toHaveBeenCalledTimes(1);
   });
 
-  test('proxy move refreshes scenario selector counts', () => {
-    global.StorageModule.getProxies.mockReturnValue([{ name: 'moved-proxy' }]);
-    window.eval(fs.readFileSync(mainJsPath, 'utf8'));
-
-    window.onProxyMove(0, 'scenario-b', { name: 'moved-proxy' });
-
-    expect(global.ProxyModule.setList).toHaveBeenCalledWith([{ name: 'moved-proxy' }]);
-    expect(global.ProxyModule.renderList).toHaveBeenCalledTimes(1);
-    expect(global.ScenariosModule.renderScenarioSelector).toHaveBeenCalledTimes(1);
-  });
-
   test('subscription-only storage updates merge without reloading the form', () => {
     global.StorageModule.isSubscriptionOnlyChange.mockReturnValue(true);
     window.eval(fs.readFileSync(mainJsPath, 'utf8'));
@@ -391,13 +377,10 @@ describe('main UI state flow', () => {
     expect(currentScenarioId).toBe('scenario-a');
   });
 
-  test('scenario management summarizes, switches, and adds scenarios from the dialog', async () => {
+  test('scenario management expands, edits, switches, and adds scenario cards', async () => {
     document.body.innerHTML = `
       <button id="open-add-scenario-btn"></button>
-      <div id="scenario-management-current"></div>
-      <div id="scenario-total-count"></div>
-      <div id="scenario-proxy-total-count"></div>
-      <div id="scenario-list-count"></div>
+      <button id="scenario-expand-collapse-btn"></button>
       <div id="scenario-manage-list"></div>
       <ul class="main-scenario-dropdown"></ul>
       <button class="main-scenario-btn"></button>
@@ -420,6 +403,7 @@ describe('main UI state flow', () => {
     let currentScenarioId = 'scenario-a';
     const onScenarioSwitch = jest.fn();
     const onScenarioAdd = jest.fn();
+    const onScenarioRename = jest.fn();
 
     global.StorageModule = {
       getScenarios: jest.fn(() => scenarios),
@@ -429,6 +413,9 @@ describe('main UI state flow', () => {
       }),
       getCurrentScenario: jest.fn(() => scenarios.find(scenario => scenario.id === currentScenarioId)),
       addScenario: jest.fn((scenario) => scenarios.push(scenario)),
+      updateScenario: jest.fn((id, updates) => {
+        Object.assign(scenarios.find(scenario => scenario.id === id), updates);
+      }),
       save: jest.fn(() => Promise.resolve())
     };
     global.ConfigModule = {
@@ -442,23 +429,31 @@ describe('main UI state flow', () => {
       I18n: global.I18n,
       ConfigModule: global.ConfigModule,
       onScenarioSwitch,
-      onScenarioAdd
+      onScenarioAdd,
+      onScenarioRename
     });
 
     scenariosModule.init();
     scenariosModule.renderScenarioManagementList();
 
-    expect($('#scenario-management-current').text()).toBe('Home');
-    expect($('#scenario-total-count').text()).toBe('2');
-    expect($('#scenario-proxy-total-count').text()).toBe('3');
-    expect($('.scenario-item.is-current').data('id')).toBe('scenario-a');
+    expect($('.scenario-card')).toHaveLength(2);
+    expect($('.scenario-card.collapsed')).toHaveLength(2);
+    expect($('.scenario-card .proxy-index').map((index, node) => $(node).text()).get()).toEqual(['#1', '#2']);
+    expect($('.scenario-card.is-current').data('id')).toBe('scenario-a');
 
-    $('.scenario-item-main[data-id="scenario-b"]').trigger('click');
+    $('#scenario-expand-collapse-btn').trigger('click');
+    expect($('.scenario-card.collapsed')).toHaveLength(0);
+
+    $('.scenario-card[data-id="scenario-a"] .scenario-card-name-input').val('HomeOffice');
+    $('.scenario-card[data-id="scenario-a"] .scenario-card-save').trigger('click');
+    expect(onScenarioRename).toHaveBeenCalledWith('scenario-a', 'HomeOffice');
+
+    $('.scenario-switch-btn[data-id="scenario-b"]').trigger('click');
     await Promise.resolve();
     await Promise.resolve();
 
     expect(onScenarioSwitch).toHaveBeenCalledWith('scenario-b', scenarios[1].proxies);
-    expect($('.scenario-item.is-current').data('id')).toBe('scenario-b');
+    expect($('.scenario-card.is-current').data('id')).toBe('scenario-b');
 
     $('#open-add-scenario-btn').trigger('click');
     expect($('.add-scenario-tip').hasClass('show')).toBe(true);
@@ -470,38 +465,45 @@ describe('main UI state flow', () => {
       proxies: []
     });
     expect(onScenarioAdd).toHaveBeenCalledWith('scenario-new', 'Travel');
-    expect($('#scenario-total-count').text()).toBe('3');
+    expect($('.scenario-card')).toHaveLength(3);
+    expect($('.scenario-card[data-id="scenario-new"]').hasClass('collapsed')).toBe(false);
     expect($('.add-scenario-tip').hasClass('show')).toBe(false);
   });
 
   test('subscription badge delegated click handler is not duplicated across renders', () => {
     global.isFirefox = false;
-    global.StorageModule = {
-      getProxies: jest.fn(() => [
-        {
-          id: 'proxy-1',
-          enabled: true,
-          name: 'Proxy 1',
-          protocol: 'http',
-          ip: '127.0.0.1',
-          port: '8080',
-          username: '',
-          password: '',
-          bypass_rules: 'localhost',
-          include_rules: 'example.com',
-          fallback_policy: 'direct',
-          subscription: {
-            enabled: true,
-            current: 'autoproxy',
-            lists: {
-              autoproxy: {
-                include_rules: 'sub.example.com',
-                bypass_rules: '127.0.0.1'
-              }
-            }
-          }
+    const subscriptions = [{
+      id: 'subscription-1',
+      name: 'Shared Rules',
+      enabled: true,
+      current: 'autoproxy',
+      lists: {
+        autoproxy: {
+          include_rules: 'sub.example.com',
+          bypass_rules: '127.0.0.1'
         }
-      ]),
+      }
+    }];
+    const proxies = [
+      {
+        id: 'proxy-1',
+        enabled: true,
+        name: 'Proxy 1',
+        protocol: 'http',
+        ip: '127.0.0.1',
+        port: '8080',
+        username: '',
+        password: '',
+        bypass_rules: 'localhost',
+        include_rules: 'example.com',
+        fallback_policy: 'direct',
+        subscription_ids: ['subscription-1']
+      }
+    ];
+    global.StorageModule = {
+      getProxies: jest.fn(() => proxies),
+      getSubscriptions: jest.fn(() => subscriptions),
+      getSubscription: jest.fn(id => subscriptions.find(item => item.id === id)),
       addProxy: jest.fn(),
       updateProxy: jest.fn(),
       deleteProxy: jest.fn(),
@@ -520,11 +522,12 @@ describe('main UI state flow', () => {
     global.ScenariosModule = {
       checkNameGlobalUniqueness: jest.fn(() => ({ isDuplicate: false })),
       getCurrentScenarioId: jest.fn(() => 'scenario-a'),
-      getCurrentScenario: jest.fn(() => ({ id: 'scenario-a', name: 'Scenario A' })),
-      showMoveProxyDialog: jest.fn()
+      getCurrentScenario: jest.fn(() => ({ id: 'scenario-a', name: 'Scenario A' }))
     };
     global.SubscriptionModule = {
       getSubscriptionLineCounts: jest.fn(() => ({ include_lines: 1, bypass_lines: 1 })),
+      getProxySubscriptions: jest.fn(proxy => proxy.subscription_ids.map(id => subscriptions.find(item => item.id === id))),
+      getProxySubscriptionLineCounts: jest.fn(() => ({ include_lines: 1, bypass_lines: 1 })),
       openModal: jest.fn()
     };
     global.chrome.runtime.sendMessage = jest.fn((message, callback) => {
@@ -556,6 +559,16 @@ describe('main UI state flow', () => {
     proxyModule.renderList();
     proxyModule.renderList();
     proxyModule.renderList();
+
+    expect($('.proxy-subscription-search')).toHaveLength(1);
+    expect($('.proxy-subscription-option input:checked').val()).toBe('subscription-1');
+    $('.proxy-subscription-trigger').trigger('click');
+    $('.proxy-subscription-search').val('missing').trigger('input');
+    expect($('.proxy-subscription-option').css('display')).toBe('none');
+    $('.proxy-subscription-search').val('shared').trigger('input');
+    expect($('.proxy-subscription-option').css('display')).not.toBe('none');
+    $('.proxy-subscription-option input').prop('checked', false).trigger('change');
+    expect(proxies[0].subscription_ids).toEqual([]);
 
     const clickHandlers = window.jQuery._data(document, 'events').click
       .filter((handler) => handler.selector === '.subscription-badge[data-type][data-mode]');
@@ -602,8 +615,7 @@ describe('main UI state flow', () => {
     global.ScenariosModule = {
       checkNameGlobalUniqueness: jest.fn(() => ({ isDuplicate: false })),
       getCurrentScenarioId: jest.fn(() => 'scenario-a'),
-      getCurrentScenario: jest.fn(() => ({ id: 'scenario-a', name: 'Scenario A' })),
-      showMoveProxyDialog: jest.fn()
+      getCurrentScenario: jest.fn(() => ({ id: 'scenario-a', name: 'Scenario A' }))
     };
     global.SubscriptionModule = {
       getSubscriptionLineCounts: jest.fn(() => ({ include_lines: 0, bypass_lines: 0 })),
@@ -632,6 +644,21 @@ describe('main UI state flow', () => {
 
     proxyModule.init();
     proxyModule.renderList();
+
+    expect($('.proxy-card').hasClass('collapsed')).toBe(true);
+    expect($('.proxy-card-collapse')).toHaveLength(1);
+    expect($('.proxy-card-collapse').attr('aria-expanded')).toBe('false');
+    expect($('.proxy-card-collapse svg')).toHaveLength(1);
+
+    $('.proxy-card-collapse').trigger('click');
+
+    expect($('.proxy-card').hasClass('collapsed')).toBe(false);
+    expect($('.proxy-card-collapse').attr('aria-expanded')).toBe('true');
+
+    $('.proxy-card-collapse').trigger('click');
+
+    expect($('.proxy-card').hasClass('collapsed')).toBe(true);
+    expect($('.proxy-card-collapse').attr('aria-expanded')).toBe('false');
 
     expect($('.proxy-color-tag')).toHaveLength(1);
     expect($('.proxy-color-tag').css('--proxy-color')).toBe('#FF0000');
@@ -664,6 +691,12 @@ describe('main UI state flow', () => {
     expect(proxies[0].color).toBe('');
     expect($('.proxy-color-tag')).toHaveLength(0);
 
+    $('#proxy-list').after(`
+      <div id="subscription-manage-list">
+        <div class="proxy-card subscription-card collapsed"></div>
+      </div>
+    `);
+
     $('#expand-collapse-btn').trigger('click');
     proxyModule.renderList();
 
@@ -672,7 +705,138 @@ describe('main UI state flow', () => {
     expect($('#expand-collapse-btn').html()).toContain('icon-collapse');
     expect($('#expand-collapse-btn').html()).toContain('data-i18n="collapse_all"');
     expect($('#expand-collapse-btn').html()).toContain('M9 4v5H4');
-    expect($('.proxy-card.collapsed')).toHaveLength(0);
+    expect($('#proxy-list .proxy-card.collapsed')).toHaveLength(0);
+    expect($('#subscription-manage-list .subscription-card').hasClass('collapsed')).toBe(true);
+
+    $('#subscription-manage-list .subscription-card').removeClass('collapsed');
+    $('#expand-collapse-btn').trigger('click');
+
+    expect($('#proxy-list .proxy-card').hasClass('collapsed')).toBe(true);
+    expect($('#subscription-manage-list .subscription-card').hasClass('collapsed')).toBe(false);
+  });
+
+  test('groups every proxy by scenario and moves proxies with the association field or dragging', async () => {
+    global.isFirefox = false;
+    const createProxy = (id, name) => ({
+      id: id,
+      enabled: true,
+      name: name,
+      protocol: 'http',
+      ip: '127.0.0.1',
+      port: '8080',
+      username: '',
+      password: '',
+      bypass_rules: '',
+      include_rules: '',
+      fallback_policy: 'direct'
+    });
+    const scenarios = [
+      { id: 'scenario-a', name: 'Home', proxies: [createProxy('proxy-a', 'Proxy A')] },
+      { id: 'scenario-b', name: 'Office', proxies: [createProxy('proxy-b', 'Proxy B')] }
+    ];
+
+    global.StorageModule = {
+      getScenarios: jest.fn(() => scenarios),
+      getCurrentScenarioId: jest.fn(() => 'scenario-a'),
+      getProxies: jest.fn(id => scenarios.find(scenario => scenario.id === (id || 'scenario-a')).proxies),
+      getSubscriptions: jest.fn(() => []),
+      moveProxy: jest.fn((proxyIndex, fromId, toId) => {
+        const from = scenarios.find(scenario => scenario.id === fromId);
+        const to = scenarios.find(scenario => scenario.id === toId);
+        to.proxies.push(from.proxies.splice(proxyIndex, 1)[0]);
+        return true;
+      }),
+      reorderProxies: jest.fn((proxies, scenarioId) => {
+        scenarios.find(scenario => scenario.id === scenarioId).proxies = proxies;
+      }),
+      addProxy: jest.fn(),
+      updateProxy: jest.fn(),
+      deleteProxy: jest.fn(),
+      save: jest.fn(() => Promise.resolve())
+    };
+    global.ConfigModule = { generateProxyId: jest.fn(() => 'proxy-new') };
+    global.ValidatorModule = {
+      validateIPAddress: jest.fn(() => ({ isValid: true })),
+      isValidHost: jest.fn(() => true),
+      checkIncludeUrlsConflict: jest.fn(() => ({ hasConflict: false })),
+      validateProxy: jest.fn()
+    };
+    global.ScenariosModule = {
+      checkNameGlobalUniqueness: jest.fn(() => ({ isDuplicate: false })),
+      getCurrentScenarioId: jest.fn(() => 'scenario-a'),
+      renderScenarioViews: jest.fn()
+    };
+    global.SubscriptionModule = {
+      getSubscriptionLineCounts: jest.fn(() => ({ include_lines: 0, bypass_lines: 0 }))
+    };
+    window.StorageModule = global.StorageModule;
+    window.ConfigModule = global.ConfigModule;
+    window.ValidatorModule = global.ValidatorModule;
+    window.ScenariosModule = global.ScenariosModule;
+    window.SubscriptionModule = global.SubscriptionModule;
+    window.isFirefox = global.isFirefox;
+
+    const proxyModule = loadProxyModule({
+      StorageModule: global.StorageModule,
+      ConfigModule: global.ConfigModule,
+      ValidatorModule: global.ValidatorModule,
+      ScenariosModule: global.ScenariosModule,
+      SubscriptionModule: global.SubscriptionModule,
+      UtilsModule: global.UtilsModule,
+      I18n: global.I18n,
+      SyncModule: global.SyncModule,
+      chrome: global.chrome,
+      isFirefox: global.isFirefox,
+      generateProxyId: global.generateProxyId
+    });
+
+    proxyModule.init();
+    proxyModule.renderList();
+
+    expect($('.proxy-scenario-divider span').map((index, node) => $(node).text()).get()).toEqual(['Home', 'Office']);
+    expect($('.proxy-scenario-group').map((index, group) => $(group).find('.proxy-card').length).get()).toEqual([1, 1]);
+    expect($('.proxy-card .proxy-index').map((index, node) => $(node).text()).get()).toEqual(['#1', '#1']);
+    expect($('.proxy-scenario-association').map((index, node) => $(node).val()).get()).toEqual(['scenario-a', 'scenario-b']);
+    expect($('.move-proxy-btn')).toHaveLength(0);
+
+    $('.proxy-card[data-proxy-id="proxy-a"] .proxy-scenario-association').val('scenario-b').trigger('change');
+    await Promise.resolve();
+
+    expect(scenarios[0].proxies).toHaveLength(0);
+    expect(scenarios[1].proxies.map(proxy => proxy.id)).toEqual(['proxy-b', 'proxy-a']);
+    expect($('.proxy-scenario-group[data-scenario-id="scenario-b"] .proxy-index').map((index, node) => $(node).text()).get()).toEqual(['#1', '#2']);
+    expect($('.proxy-card[data-proxy-id="proxy-a"] .proxy-scenario-association').val()).toBe('scenario-b');
+    expect(global.chrome.runtime.sendMessage).toHaveBeenCalledWith({ action: 'refreshProxy' });
+
+    const originalAnimate = $.fn.animate;
+    $.fn.animate = function (properties, duration, callback) {
+      if (callback) callback.call(this);
+      return this;
+    };
+    const groups = $('.proxy-scenario-group').toArray();
+    groups[0].getBoundingClientRect = () => ({ bottom: 200 });
+    groups[1].getBoundingClientRect = () => ({ bottom: 400 });
+    global.StorageModule.save.mockClear();
+    global.StorageModule.reorderProxies.mockClear();
+    global.chrome.runtime.sendMessage.mockClear();
+
+    $('.proxy-card[data-proxy-id="proxy-b"] .drag-handle').trigger($.Event('mousedown', {
+      button: 0,
+      clientX: 100,
+      clientY: 250
+    }));
+    $(document).trigger($.Event('mousemove', { clientX: 100, clientY: 100 }));
+    await new Promise(resolve => setTimeout(resolve, 20));
+    $(document).trigger('mouseup');
+    await Promise.resolve();
+    $.fn.animate = originalAnimate;
+
+    expect(scenarios[0].proxies.map(proxy => proxy.id)).toEqual(['proxy-b']);
+    expect(scenarios[1].proxies.map(proxy => proxy.id)).toEqual(['proxy-a']);
+    expect($('.proxy-card[data-proxy-id="proxy-b"] .proxy-scenario-association').val()).toBe('scenario-a');
+    expect(global.StorageModule.reorderProxies).toHaveBeenCalledTimes(2);
+    expect(global.StorageModule.save).toHaveBeenCalledTimes(1);
+    expect(global.chrome.runtime.sendMessage).toHaveBeenCalledWith({ action: 'refreshProxy' });
   });
 
   test('delete confirmation escapes proxy preview text', () => {
@@ -719,8 +883,7 @@ describe('main UI state flow', () => {
     global.ScenariosModule = {
       checkNameGlobalUniqueness: jest.fn(() => ({ isDuplicate: false })),
       getCurrentScenarioId: jest.fn(() => 'scenario-a'),
-      getCurrentScenario: jest.fn(() => ({ id: 'scenario-a', name: 'Scenario A' })),
-      showMoveProxyDialog: jest.fn()
+      getCurrentScenario: jest.fn(() => ({ id: 'scenario-a', name: 'Scenario A' }))
     };
     global.SubscriptionModule = {
       getSubscriptionLineCounts: jest.fn(() => ({ include_lines: 0, bypass_lines: 0 })),

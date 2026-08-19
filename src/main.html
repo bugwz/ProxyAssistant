@@ -21,13 +21,17 @@
       </div>
 
       <nav class="main-nav" aria-label="Main navigation">
+        <button type="button" class="main-nav-item active" data-main-page="proxies" aria-controls="page-proxies" aria-current="page" title="代理管理" data-i18n-title="nav_proxies">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="6" rx="2"></rect><rect x="4" y="14" width="16" height="6" rx="2"></rect><path d="M8 7h.01M8 17h.01"></path></svg>
+          <span data-i18n="nav_proxies">代理管理</span>
+        </button>
         <button type="button" class="main-nav-item" data-main-page="scenarios" aria-controls="page-scenarios" title="场景管理" data-i18n-title="nav_scenarios">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7l8 4 8-4-8-4Z"></path><path d="m4 12 8 4 8-4"></path><path d="m4 17 8 4 8-4"></path></svg>
           <span data-i18n="nav_scenarios">场景管理</span>
         </button>
-        <button type="button" class="main-nav-item active" data-main-page="proxies" aria-controls="page-proxies" aria-current="page" title="代理管理" data-i18n-title="nav_proxies">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="6" rx="2"></rect><rect x="4" y="14" width="16" height="6" rx="2"></rect><path d="M8 7h.01M8 17h.01"></path></svg>
-          <span data-i18n="nav_proxies">代理管理</span>
+        <button type="button" class="main-nav-item" data-main-page="subscriptions" aria-controls="page-subscriptions" title="订阅管理" data-i18n-title="nav_subscriptions">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg>
+          <span data-i18n="nav_subscriptions">订阅管理</span>
         </button>
         <button type="button" class="main-nav-item" data-main-page="sync" aria-controls="page-sync" title="云同步" data-i18n-title="nav_sync">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17.5A4.5 4.5 0 1 1 8 8.6a5.5 5.5 0 0 1 10.5 1.9A3.5 3.5 0 1 1 18 17.5H7Z"></path></svg>
@@ -64,6 +68,7 @@
         <div class="page-heading">
           <div>
             <h1 data-i18n="nav_proxies">代理管理</h1>
+            <p data-i18n="proxy_management_desc">管理代理服务器配置及其关联订阅</p>
           </div>
           <div class="list-controls">
             <button id="test-all-btn" class="control-btn">
@@ -81,21 +86,6 @@
           </div>
         </div>
 
-        <div class="header-container proxy-toolbar">
-          <div class="header-left-controls">
-            <button type="button" class="main-scenario-btn" data-type="main_scenario" title="切换场景" data-i18n-title="switch_scenario_tooltip">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7l8 4 8-4-8-4Z"></path><path d="m4 12 8 4 8-4"></path><path d="m4 17 8 4 8-4"></path></svg>
-            </button>
-            <div class="current-scenario-summary">
-              <span class="current-scenario-label" data-i18n="current_scenario">当前场景:</span>
-              <strong id="current-scenario-indicator">默认场景</strong>
-            </div>
-            <ul class="lh-select-op main-scenario-dropdown" id="main-scenario-options">
-              <!-- Scenarios injected here -->
-            </ul>
-          </div>
-        </div>
-
         <div id="proxy-list"></div>
       </section>
 
@@ -103,42 +93,44 @@
         <div class="page-heading">
           <div>
             <h1 data-i18n="nav_scenarios">场景管理</h1>
+            <p data-i18n="scenario_management_desc">管理不同使用场景下的代理组合</p>
           </div>
-          <button type="button" id="open-add-scenario-btn" class="control-btn primary-control-btn">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
-            <span data-i18n="scenario_add">新增场景</span>
-          </button>
+          <div class="list-controls">
+            <button type="button" id="scenario-expand-collapse-btn" class="control-btn">
+              <svg class="icon-expand" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4H4v4"></path><path d="m4 4 6 6"></path><path d="M16 20h4v-4"></path><path d="m20 20-6-6"></path><path d="M20 8V4h-4"></path><path d="m20 4-6 6"></path><path d="M4 16v4h4"></path><path d="m4 20 6-6"></path></svg>
+              <span data-i18n="expand_all">展开</span>
+            </button>
+            <button type="button" id="open-add-scenario-btn" class="control-btn primary-control-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+              <span data-i18n="scenario_add">新增场景</span>
+            </button>
+          </div>
         </div>
         <div class="scenario-manage-panel">
-          <div class="scenario-overview">
-            <div class="scenario-overview-current">
-              <span class="scenario-overview-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7l8 4 8-4-8-4Z"></path><path d="m4 12 8 4 8-4"></path><path d="m4 17 8 4 8-4"></path></svg>
-              </span>
-              <span class="scenario-overview-copy">
-                <span data-i18n="current_scenario">当前场景:</span>
-                <strong id="scenario-management-current">-</strong>
-              </span>
-            </div>
-            <div class="scenario-overview-stats">
-              <div class="scenario-overview-stat">
-                <strong id="scenario-total-count">0</strong>
-                <span data-i18n="scenario_total">场景数</span>
-              </div>
-              <div class="scenario-overview-stat">
-                <strong id="scenario-proxy-total-count">0</strong>
-                <span data-i18n="scenario_proxy_total">代理数</span>
-              </div>
-            </div>
-          </div>
-          <div class="scenario-list-heading">
-            <h2 data-i18n="scenario_list">场景列表</h2>
-            <span class="scenario-list-count" id="scenario-list-count">0</span>
-          </div>
           <div class="scenario-list" id="scenario-manage-list">
             <!-- Scenario items injected here -->
           </div>
         </div>
+      </section>
+
+      <section class="main-page" id="page-subscriptions" data-page="subscriptions" hidden>
+        <div class="page-heading">
+          <div>
+            <h1 data-i18n="nav_subscriptions">订阅管理</h1>
+            <p data-i18n="subscription_management_desc">统一管理可供多个代理使用的规则订阅</p>
+          </div>
+          <div class="list-controls">
+            <button type="button" id="subscription-expand-collapse-btn" class="control-btn">
+              <svg class="icon-expand" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4H4v4"></path><path d="m4 4 6 6"></path><path d="M16 20h4v-4"></path><path d="m20 20-6-6"></path><path d="M20 8V4h-4"></path><path d="m20 4-6 6"></path><path d="M4 16v4h4"></path><path d="m4 20 6-6"></path></svg>
+              <span data-i18n="expand_all">展开</span>
+            </button>
+            <button type="button" id="add-subscription-btn" class="control-btn primary-control-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+              <span data-i18n="add_new">新增</span>
+            </button>
+          </div>
+        </div>
+        <div id="subscription-manage-list" class="subscription-manage-list"></div>
       </section>
 
       <section class="main-page" id="page-sync" data-page="sync" hidden>
@@ -585,41 +577,6 @@
       </div>
     </div>
 
-    <div class="move-proxy-tip">
-        <div class="move-proxy-box">
-            <div class="move-proxy-header">
-                <span data-i18n="move_proxy_title">移动代理</span>
-                <div class="move-proxy-close-btn">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
-                </div>
-            </div>
-             <div class="move-proxy-content">
-                 <div class="current-scenario-row">
-                     <span class="current-scenario-label" data-i18n="current_scenario">当前场景</span>
-                     <span id="current-scenario-display" class="current-scenario-value"></span>
-                 </div>
-                 <div class="target-scenario-row">
-                     <label class="target-scenario-label" data-i18n="target_scenario">目标场景</label>
-                     <div class="lh-select target-scenario-selector">
-                         <div class="lh-select-k">
-                             <span class="lh-select-value" id="target-scenario-display">请选择</span>
-                             <svg class="select-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 10 5 5 5-5"></path></svg>
-                         </div>
-                         <ul class="lh-select-op" id="target-scenario-options">
-                         </ul>
-                     </div>
-                 </div>
-                 
-                 <div class="move-proxy-footer">
-                    <button class="control-btn move-proxy-cancel-btn" data-i18n="cancel">取消</button>
-                    <button class="control-btn" id="confirm-move-proxy-btn">
-                        <span data-i18n="move_proxy">移动</span>
-                    </button>
-                </div>
-            </div>
-    </div>
-  </div>
-
   <!-- Subscription Config Modal -->
   <div class="subscription-config-tip">
     <div class="subscription-config-box">
@@ -640,6 +597,10 @@
       </div>
       <div class="subscription-config-content">
         <div class="subscription-form-wrapper" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px;">
+          <div class="form-item full-width">
+            <label data-i18n="subscription_name">订阅名称</label>
+            <input type="text" id="subscription-name" placeholder="规则订阅" style="width: 100%; box-sizing: border-box; height: 38px;">
+          </div>
           <!-- Row 1: URL -->
           <div class="form-item full-width">
             <label data-i18n="subscription_url">订阅地址</label>
@@ -647,7 +608,7 @@
           </div>
 
           <!-- Row 2 -->
-          <div style="display: flex; gap: 15px; align-items: flex-end;">
+          <div class="subscription-settings-row" style="display: flex; gap: 15px; align-items: flex-end;">
             <!-- 30% -->
             <div class="form-item" style="flex: 3;">
               <label data-i18n="subscription_format">订阅格式</label>

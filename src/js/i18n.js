@@ -2422,6 +2422,48 @@ const translations = {
 
 let currentLang = 'zh-CN';
 
+const subscriptionManagementTranslations = {
+  'nav_subscriptions': 'Subscription Management',
+  'proxy_management_desc': 'Manage proxy server configurations and their subscriptions',
+  'scenario_management_desc': 'Manage proxy groups for different usage scenarios',
+  'proxy_associated_scenario': 'Associated scenario',
+  'subscription_management_desc': 'Manage rule subscriptions shared by multiple proxies',
+  'subscription_add': 'Add subscription',
+  'subscription_name': 'Subscription name',
+  'subscription_name_required': 'Enter a subscription name.',
+  'subscription_delete_confirm': 'Delete this subscription? It will also be removed from associated proxies.',
+  'subscription_empty_list': 'No subscriptions yet',
+  'subscription_no_url': 'No URL configured',
+  'subscription_select_empty': 'No subscriptions selected',
+  'subscription_search_placeholder': 'Search subscriptions',
+  'proxy_subscriptions': 'Subscriptions',
+  'subscription_unnamed': 'Unnamed subscription',
+  'subscription_last_updated': 'Last updated',
+  'fetch_subscription': 'Fetch',
+  'edit': 'Edit'
+};
+
+const subscriptionManagementZhTranslations = {
+  'nav_subscriptions': '订阅管理',
+  'proxy_management_desc': '管理代理服务器配置及其关联订阅',
+  'scenario_management_desc': '管理不同使用场景下的代理组合',
+  'proxy_associated_scenario': '关联场景',
+  'subscription_management_desc': '统一管理可供多个代理使用的规则订阅',
+  'subscription_add': '新增订阅',
+  'subscription_name': '订阅名称',
+  'subscription_name_required': '请输入订阅名称。',
+  'subscription_delete_confirm': '确定删除这个订阅吗？它也会从已关联的代理中移除。',
+  'subscription_empty_list': '暂无订阅',
+  'subscription_no_url': '未配置订阅地址',
+  'subscription_select_empty': '未选择订阅',
+  'subscription_search_placeholder': '搜索订阅',
+  'proxy_subscriptions': '关联订阅',
+  'subscription_unnamed': '未命名订阅',
+  'subscription_last_updated': '上次更新时间',
+  'fetch_subscription': '获取',
+  'edit': '编辑'
+};
+
 // Language mapping from browser/system language to supported languages
 const languageMap = {
   'zh-CN': 'zh-CN',
@@ -2468,6 +2510,12 @@ function getSystemLanguage() {
 
 const I18n = {
   init: function (callback) {
+    if (typeof chrome === 'undefined' || !chrome.storage?.local) {
+      currentLang = getSystemLanguage();
+      I18n.updatePage();
+      if (callback) callback();
+      return;
+    }
     chrome.storage.local.get(['config'], function (result) {
       const config = result.config || {};
       if (config.system?.app_language) {
@@ -2486,6 +2534,10 @@ const I18n = {
   setLanguage: function (lang) {
     if (translations[lang]) {
       currentLang = lang;
+      if (typeof chrome === 'undefined' || !chrome.storage?.local) {
+        I18n.updatePage();
+        return;
+      }
       chrome.storage.local.get(['config'], function (result) {
         const config = result.config || {};
         if (!config.system) config.system = {};
@@ -2497,7 +2549,8 @@ const I18n = {
   },
 
   t: function (key) {
-    return translations[currentLang][key] || key;
+    const shared = currentLang === 'zh-CN' ? subscriptionManagementZhTranslations : subscriptionManagementTranslations;
+    return translations[currentLang][key] || shared[key] || key;
   },
 
   updatePage: function () {
