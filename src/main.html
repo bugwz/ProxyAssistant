@@ -22,25 +22,21 @@
       </div>
 
       <nav class="main-nav" aria-label="Main navigation">
-        <button type="button" class="main-nav-item" data-main-page="proxies" aria-controls="page-proxies" title="代理管理" data-i18n-title="nav_proxies">
+        <button type="button" class="main-nav-item" data-main-page="proxies" aria-controls="page-proxies" title="代理节点" data-i18n-title="nav_proxies">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="6" rx="2"></rect><rect x="4" y="14" width="16" height="6" rx="2"></rect><path d="M8 7h.01M8 17h.01"></path></svg>
-          <span data-i18n="nav_proxies">代理管理</span>
+          <span data-i18n="nav_proxies">代理节点</span>
         </button>
-        <button type="button" class="main-nav-item" data-main-page="scenarios" aria-controls="page-scenarios" title="场景管理" data-i18n-title="nav_scenarios">
+        <button type="button" class="main-nav-item" data-main-page="scenarios" aria-controls="page-scenarios" title="代理场景" data-i18n-title="nav_scenarios">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7l8 4 8-4-8-4Z"></path><path d="m4 12 8 4 8-4"></path><path d="m4 17 8 4 8-4"></path></svg>
-          <span data-i18n="nav_scenarios">场景管理</span>
+          <span data-i18n="nav_scenarios">代理场景</span>
         </button>
-        <button type="button" class="main-nav-item" data-main-page="subscriptions" aria-controls="page-subscriptions" title="订阅管理" data-i18n-title="nav_subscriptions">
+        <button type="button" class="main-nav-item" data-main-page="subscriptions" aria-controls="page-subscriptions" title="规则订阅" data-i18n-title="nav_subscriptions">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg>
-          <span data-i18n="nav_subscriptions">订阅管理</span>
+          <span data-i18n="nav_subscriptions">规则订阅</span>
         </button>
-        <button type="button" class="main-nav-item" data-main-page="sync" aria-controls="page-sync" title="云同步" data-i18n-title="nav_sync">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17.5A4.5 4.5 0 1 1 8 8.6a5.5 5.5 0 0 1 10.5 1.9A3.5 3.5 0 1 1 18 17.5H7Z"></path></svg>
-          <span data-i18n="nav_sync">云同步</span>
-        </button>
-        <button type="button" class="main-nav-item" data-main-page="config" aria-controls="page-config" title="配置管理" data-i18n-title="nav_config">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h6l2 2h8v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z"></path><path d="M12 12v5m-2-2 2 2 2-2"></path></svg>
-          <span data-i18n="nav_config">配置管理</span>
+        <button type="button" class="main-nav-item" data-main-page="config" aria-controls="page-config" title="配置与同步" data-i18n-title="nav_config">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h4m4 0h7"></path><circle cx="10" cy="7" r="2"></circle><path d="m16 4 3 3-3 3"></path><path d="M20 17h-4m-4 0H5"></path><circle cx="14" cy="17" r="2"></circle><path d="m8 14-3 3 3 3"></path></svg>
+          <span data-i18n="nav_config">配置与同步</span>
         </button>
         <button type="button" class="main-nav-item" data-main-page="diagnostics" aria-controls="page-diagnostics" title="代理诊断" data-i18n-title="nav_diagnostics">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="4.5"></circle><path d="m14 14 4 4"></path><path d="M10.5 8v2.5l1.5 1"></path></svg>
@@ -68,7 +64,7 @@
       <section class="main-page active" id="page-proxies" data-page="proxies">
         <div class="page-heading">
           <div>
-            <h1 data-i18n="nav_proxies">代理管理</h1>
+            <h1 data-i18n="nav_proxies">代理节点</h1>
             <p data-i18n="proxy_management_desc">管理代理服务器配置及其关联订阅</p>
           </div>
           <div class="list-controls">
@@ -93,7 +89,7 @@
       <section class="main-page" id="page-scenarios" data-page="scenarios" hidden>
         <div class="page-heading">
           <div>
-            <h1 data-i18n="nav_scenarios">场景管理</h1>
+            <h1 data-i18n="nav_scenarios">代理场景</h1>
             <p data-i18n="scenario_management_desc">管理不同使用场景下的代理组合</p>
           </div>
           <div class="list-controls">
@@ -117,7 +113,7 @@
       <section class="main-page" id="page-subscriptions" data-page="subscriptions" hidden>
         <div class="page-heading">
           <div>
-            <h1 data-i18n="nav_subscriptions">订阅管理</h1>
+            <h1 data-i18n="nav_subscriptions">规则订阅</h1>
             <p data-i18n="subscription_management_desc">统一管理可供多个代理使用的规则订阅</p>
           </div>
           <div class="list-controls">
@@ -134,51 +130,17 @@
         <div id="subscription-manage-list" class="subscription-manage-list"></div>
       </section>
 
-      <section class="main-page" id="page-sync" data-page="sync" hidden>
-        <div class="page-heading">
-          <div>
-            <h1 data-i18n="nav_sync">云同步</h1>
-            <p data-i18n="cloud_sync_desc">选择您的云同步方式</p>
-          </div>
-        </div>
-        <div class="system-config-list">
-          <div class="config-row">
-            <div class="config-row-left">
-              <div class="config-row-title" data-i18n="cloud_sync_settings">云同步方式</div>
-              <div class="config-row-desc">
-                <span data-i18n="cloud_sync_desc">选择您的云同步方式，当前云同步方式: </span>
-                <span id="sync-status-badge" class="sync-status-badge"></span>
-              </div>
-            </div>
-            <div class="config-row-right">
-              <button id="open-sync-config-btn" class="control-btn">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17.5A4.5 4.5 0 1 1 8 8.6a5.5 5.5 0 0 1 10.5 1.9A3.5 3.5 0 1 1 18 17.5H7Z"></path></svg>
-                <span data-i18n="config_sync_btn">配置</span>
-              </button>
-              <button id="sync-push-btn" class="control-btn">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5A4.5 4.5 0 1 1 8 9.6a5.5 5.5 0 0 1 10.5 1.9A3.5 3.5 0 1 1 18 18.5H7Z"></path><path d="M12 15V9"></path><path d="m9.5 11.5 2.5-2.5 2.5 2.5"></path></svg>
-                <span data-i18n="sync_push">推送</span>
-              </button>
-              <button id="sync-pull-btn" class="control-btn">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5A4.5 4.5 0 1 1 8 9.6a5.5 5.5 0 0 1 10.5 1.9A3.5 3.5 0 1 1 18 18.5H7Z"></path><path d="M12 9v6"></path><path d="m14.5 12.5-2.5 2.5-2.5-2.5"></path></svg>
-                <span data-i18n="sync_pull">拉取</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section class="main-page" id="page-config" data-page="config" hidden>
         <div class="page-heading">
           <div>
-            <h1 data-i18n="nav_config">配置管理</h1>
+            <h1 data-i18n="nav_config">配置与同步</h1>
             <p data-i18n="config_desc">管理系统配置</p>
           </div>
         </div>
-        <div class="system-config-list">
+        <div class="system-config-list config-file-section">
           <div class="config-row">
             <div class="config-row-left">
-              <div class="config-row-title" data-i18n="config_management">配置管理</div>
+              <div class="config-row-title" data-i18n="config_management">配置文件</div>
               <div class="config-row-desc" data-i18n="config_desc">管理系统配置</div>
             </div>
             <div class="config-row-right">
@@ -193,6 +155,98 @@
                 </button>
                 <input type="file" id="json-file-input" accept=".json" class="json-file-input" />
               </div>
+            </div>
+          </div>
+        </div>
+        <div class="system-config-list cloud-sync-section">
+          <div class="config-row sync-config-summary">
+            <div class="config-row-left">
+              <div class="config-row-title" data-i18n="cloud_sync_settings">云同步方式</div>
+              <div class="config-row-desc">
+                <span data-i18n="cloud_sync_desc">选择您的云同步方式，当前云同步方式: </span>
+                <span id="sync-status-badge" class="sync-status-badge"></span>
+              </div>
+            </div>
+            <div class="config-row-right">
+              <button id="sync-push-btn" class="control-btn">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5A4.5 4.5 0 1 1 8 9.6a5.5 5.5 0 0 1 10.5 1.9A3.5 3.5 0 1 1 18 18.5H7Z"></path><path d="M12 15V9"></path><path d="m9.5 11.5 2.5-2.5 2.5 2.5"></path></svg>
+                <span data-i18n="sync_push">推送</span>
+              </button>
+              <button id="sync-pull-btn" class="control-btn">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5A4.5 4.5 0 1 1 8 9.6a5.5 5.5 0 0 1 10.5 1.9A3.5 3.5 0 1 1 18 18.5H7Z"></path><path d="M12 9v6"></path><path d="m14.5 12.5-2.5 2.5-2.5-2.5"></path></svg>
+                <span data-i18n="sync_pull">拉取</span>
+              </button>
+            </div>
+          </div>
+          <div class="sync-config-panel">
+            <div class="sync-config-content">
+              <div class="form-item with-margin-bottom">
+                <label data-i18n="sync_method">同步方式</label>
+                <div class="lh-select sync-selector" data-type="sync_mode">
+                  <div class="lh-select-k">
+                    <span class="lh-select-value" id="current-sync-display" data-i18n="sync_native">浏览器原生同步</span>
+                    <svg class="select-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 10 5 5 5-5"></path></svg>
+                  </div>
+                  <ul class="lh-select-op" id="sync-options">
+                    <li data-value="native" data-i18n="sync_native">浏览器原生同步</li>
+                    <li data-value="gist" data-i18n="sync_gist">GitHub Gist</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="sync-panel" id="gist-config">
+                <div class="gist-instruction">
+                  <div class="gist-instruction-inner">
+                    <span class="gist-instruction-text" data-i18n="gist_instruction">建议使用 Tokens (classic)，仅需勾选 'gist' 权限</span>
+                    <div class="gist-instruction-links">
+                      <a href="https://github.com/settings/tokens" target="_blank" class="gist-link no-margin">
+                        <span data-i18n="gist_link_text">去创建 Token</span>
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5"></path><path d="M10 14 19 5"></path><path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"></path></svg>
+                      </a>
+                    </div>
+                  </div>
+                  <div class="gist-instruction-footer">
+                    <span class="gist-instruction-notice" data-i18n="gist_privacy_notice">注：将自动创建私有 (Secret) Gist，他人无法访问</span>
+                    <a href="https://gist.github.com/" target="_blank" class="gist-link no-margin">
+                      <span data-i18n="view_gists_link">查看我的 Gist</span>
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5"></path><path d="M10 14 19 5"></path><path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"></path></svg>
+                    </a>
+                  </div>
+                </div>
+                <div class="form-grid">
+                  <div class="form-item full-width">
+                    <label data-i18n="access_token">Access Token</label>
+                    <div class="input-wrapper">
+                      <input type="password" id="gist-token" placeholder="ghp_xxxxxxxxxxxx">
+                      <label class="eye-toggle hide-password" id="gist-token-eye">
+                        <input type="checkbox">
+                        <svg class="eye-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <svg class="eye-slash-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 18 18"></path><path d="M10.6 6.3A12.6 12.6 0 0 1 12 6c6.5 0 10 6 10 6a17.6 17.6 0 0 1-4 4.6"></path><path d="M6.5 7.5A17.4 17.4 0 0 0 2 12s3.5 6 10 6c1.3 0 2.5-.2 3.5-.6"></path><path d="M9.9 9.9A3 3 0 0 0 12 15a3 3 0 0 0 2.1-.9"></path></svg>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="form-item full-width">
+                    <label data-i18n="gist_filename">文件名</label>
+                    <input type="text" id="gist-filename" placeholder="proxy_assistant_config.json">
+                  </div>
+                </div>
+              </div>
+
+              <div class="sync-panel" id="native-config">
+                <div class="native-sync-info">
+                  <svg viewBox="0 0 24 24" width="48" height="48" fill="#4164f5" opacity="0.8"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"></path></svg>
+                  <span data-i18n="sync_desc">在相同账户 (Google/FireFox) 的浏览器间同步代理数据</span>
+                </div>
+                <div class="quota-container">
+                  <div class="quota-text" id="quota-usage-text"></div>
+                  <div class="quota-bar"><div class="quota-bar-fill" id="quota-bar-fill"></div></div>
+                  <div class="quota-warning" id="quota-warning"></div>
+                </div>
+              </div>
+            </div>
+            <div class="sync-config-footer">
+              <button class="btn-test" id="test-sync-connection"><span data-i18n="test_connection">测试连接</span></button>
+              <button class="btn-save" id="save-sync-config"><span data-i18n="save_config">保存</span></button>
             </div>
           </div>
         </div>
@@ -374,98 +428,6 @@
                    <span id="detection-suggestion-text"></span>
                </div>
           </div>
-      </div>
-  </div>
-
-  <!-- Sync Config Popup -->
-  <div class="sync-config-tip">
-      <div class="sync-config-box">
-           <div class="sync-config-header">
-               <span data-i18n="cloud_sync_settings">云同步设置</span>
-               <div class="sync-config-close-btn">
-                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
-               </div>
-           </div>
-           <div class="sync-config-content">
-               
-               <div class="form-item with-margin-bottom">
-                   <label data-i18n="sync_method">同步方式</label>
-                   <div class="lh-select sync-selector" data-type="sync_mode">
-                       <div class="lh-select-k">
-                           <span class="lh-select-value" id="current-sync-display" data-i18n="sync_native">浏览器原生同步</span>
-                           <svg class="select-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 10 5 5 5-5"></path></svg>
-                       </div>
-                       <ul class="lh-select-op" id="sync-options">
-                           <li data-value="native" data-i18n="sync_native">浏览器原生同步</li>
-                           <li data-value="gist" data-i18n="sync_gist">GitHub Gist</li>
-                       </ul>
-                   </div>
-               </div>
-
-                <!-- Gist Config Panel -->
-                <div class="sync-panel" id="gist-config">
-                    <div class="gist-instruction">
-                        <div class="gist-instruction-inner">
-                            <span class="gist-instruction-text" data-i18n="gist_instruction">建议使用 Tokens (classic)，仅需勾选 'gist' 权限</span>
-                            <div class="gist-instruction-links">
-                                <a href="https://github.com/settings/tokens" target="_blank" class="gist-link no-margin">
-                                    <span data-i18n="gist_link_text">去创建 Token</span>
-                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5"></path><path d="M10 14 19 5"></path><path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"></path></svg>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="gist-instruction-footer">
-                            <span class="gist-instruction-notice" data-i18n="gist_privacy_notice">注：将自动创建私有 (Secret) Gist，他人无法访问</span>
-                            <a href="https://gist.github.com/" target="_blank" class="gist-link no-margin">
-                                <span data-i18n="view_gists_link">查看我的 Gist</span>
-                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5"></path><path d="M10 14 19 5"></path><path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"></path></svg>
-                            </a>
-                        </div>
-                    </div>
-                     <div class="form-grid">
-                        <div class="form-item full-width">
-                            <label data-i18n="access_token">Access Token</label>
-                            <div class="input-wrapper">
-                                <input type="password" id="gist-token" placeholder="ghp_xxxxxxxxxxxx">
-                                <label class="eye-toggle hide-password" id="gist-token-eye">
-                                    <input type="checkbox">
-                                    <svg class="eye-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                                   <svg class="eye-slash-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 18 18"></path><path d="M10.6 6.3A12.6 12.6 0 0 1 12 6c6.5 0 10 6 10 6a17.6 17.6 0 0 1-4 4.6"></path><path d="M6.5 7.5A17.4 17.4 0 0 0 2 12s3.5 6 10 6c1.3 0 2.5-.2 3.5-.6"></path><path d="M9.9 9.9A3 3 0 0 0 12 15a3 3 0 0 0 2.1-.9"></path></svg>
-                               </label>
-                           </div>
-                        </div>
-                        <div class="form-item full-width">
-                            <label data-i18n="gist_filename">文件名</label>
-                            <input type="text" id="gist-filename" placeholder="proxy_assistant_config.json">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Native Config Panel -->
-                <div class="sync-panel" id="native-config">
-                    <div class="native-sync-info">
-                        <svg viewBox="0 0 24 24" width="48" height="48" fill="#4164f5" opacity="0.8"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-                        <span data-i18n="sync_desc">在相同账户 (Google/FireFox) 的浏览器间同步代理数据</span>
-                    </div>
-                    <!-- Storage Quota Display -->
-                    <div class="quota-container">
-                        <div class="quota-text" id="quota-usage-text"></div>
-                        <div class="quota-bar">
-                            <div class="quota-bar-fill" id="quota-bar-fill"></div>
-                        </div>
-                        <div class="quota-warning" id="quota-warning"></div>
-                    </div>
-                </div>
-
-           </div>
-            <div class="sync-config-footer">
-                <button class="btn-test" id="test-sync-connection">
-                    <span data-i18n="test_connection">测试连接</span>
-                </button>
-               <button class="btn-save" id="save-sync-config">
-                   <span data-i18n="save_config">保存</span>
-               </button>
-           </div>
       </div>
   </div>
 

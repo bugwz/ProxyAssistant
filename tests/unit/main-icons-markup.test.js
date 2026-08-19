@@ -23,12 +23,28 @@ describe('main header icon markup', () => {
     expect(html).toContain('m20 20-4.2-4.2');
   });
 
-  test('cloud sync config button should use a settings-style icon', () => {
+  test('cloud sync actions should use upload and download icons', () => {
     const mainHtmlPath = path.join(__dirname, '../../src/main.html');
-    const html = fs.readFileSync(mainHtmlPath, 'utf8');
+    const pageDocument = new DOMParser().parseFromString(fs.readFileSync(mainHtmlPath, 'utf8'), 'text/html');
+    const pushButton = pageDocument.querySelector('#sync-push-btn');
+    const pullButton = pageDocument.querySelector('#sync-pull-btn');
 
-    expect(html).toContain('M7 17.5A4.5 4.5 0 1 1 8 8.6');
-    expect(html).toContain('A3.5 3.5 0 1 1 18 17.5H7Z');
+    expect(pushButton.querySelector('path:nth-child(2)').getAttribute('d')).toBe('M12 15V9');
+    expect(pullButton.querySelector('path:nth-child(2)').getAttribute('d')).toBe('M12 9v6');
+  });
+
+  test('configuration navigation combines adjustment controls with sync arrows', () => {
+    const mainHtmlPath = path.join(__dirname, '../../src/main.html');
+    const pageDocument = new DOMParser().parseFromString(fs.readFileSync(mainHtmlPath, 'utf8'), 'text/html');
+    const icon = pageDocument.querySelector('[data-main-page="config"] svg');
+
+    expect(Array.from(icon.querySelectorAll('circle')).map(circle => circle.getAttribute('cy'))).toEqual(['7', '17']);
+    expect(Array.from(icon.querySelectorAll('path')).map(path => path.getAttribute('d'))).toEqual([
+      'M4 7h4m4 0h7',
+      'm16 4 3 3-3 3',
+      'M20 17h-4m-4 0H5',
+      'm8 14-3 3 3 3'
+    ]);
   });
 
   test('config import and export buttons should use balanced mirrored tray icons', () => {

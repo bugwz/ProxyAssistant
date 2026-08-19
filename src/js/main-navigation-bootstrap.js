@@ -5,7 +5,6 @@
     'proxies',
     'scenarios',
     'subscriptions',
-    'sync',
     'config',
     'diagnostics',
     'appearance',
@@ -14,9 +13,13 @@
   let pageId = 'proxies';
 
   try {
-    const savedPageId = window.localStorage.getItem(storageKey);
+    const storedPageId = window.localStorage.getItem(storageKey);
+    const savedPageId = storedPageId === 'sync' ? 'config' : storedPageId;
     if (pageIds.includes(savedPageId)) {
       pageId = savedPageId;
+      if (storedPageId !== savedPageId) {
+        window.localStorage.setItem(storageKey, savedPageId);
+      }
     }
   } catch (error) {
     // Keep the default page when local storage is unavailable.

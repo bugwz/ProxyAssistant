@@ -38,11 +38,16 @@ describe('main sidebar layout', () => {
       'proxies',
       'scenarios',
       'subscriptions',
-      'sync',
       'config',
       'diagnostics',
       'appearance',
       'about'
+    ]);
+    expect(navItems.slice(0, 4).map(item => item.textContent.trim())).toEqual([
+      '代理节点',
+      '代理场景',
+      '规则订阅',
+      '配置与同步'
     ]);
     navItems.forEach(item => {
       expect(pageDocument.getElementById(item.getAttribute('aria-controls'))).not.toBeNull();
@@ -61,6 +66,20 @@ describe('main sidebar layout', () => {
     expect(pageDocument.querySelector('#page-proxies .proxy-toolbar')).toBeNull();
     expect(pageDocument.querySelector('#page-scenarios .page-heading p').dataset.i18n).toBe('scenario_management_desc');
     expect(pageDocument.querySelector('#page-subscriptions .page-heading p').dataset.i18n).toBe('subscription_management_desc');
+    const configPage = pageDocument.querySelector('#page-config');
+    const configSections = configPage.querySelectorAll(':scope > .system-config-list');
+    const configFileSection = configPage.querySelector('.config-file-section');
+    const cloudSyncSection = configPage.querySelector('.cloud-sync-section');
+    expect(configSections).toHaveLength(2);
+    expect(configFileSection.querySelector('.config-row-title').textContent.trim()).toBe('配置文件');
+    expect(configFileSection.querySelector('.export-btn')).not.toBeNull();
+    expect(configFileSection.querySelector('.import-json-btn')).not.toBeNull();
+    expect(cloudSyncSection.querySelector('.sync-config-panel')).not.toBeNull();
+    expect(cloudSyncSection.querySelector('#sync-options')).not.toBeNull();
+    expect(cloudSyncSection.querySelector('#sync-push-btn')).not.toBeNull();
+    expect(cloudSyncSection.querySelector('#sync-pull-btn')).not.toBeNull();
+    expect(cloudSyncSection.querySelector('#save-sync-config')).not.toBeNull();
+    expect(pageDocument.querySelector('.sync-config-tip')).toBeNull();
     expect(pageDocument.querySelector('head script').getAttribute('src')).toBe('./js/main-navigation-bootstrap.js');
     expect(pageDocument.querySelector('.main-nav-item.active')).toBeNull();
   });
@@ -71,6 +90,11 @@ describe('main sidebar layout', () => {
     window.eval(fs.readFileSync(navigationBootstrapPath, 'utf8'));
 
     expect(document.documentElement.dataset.initialMainPage).toBe('subscriptions');
+
+    window.localStorage.setItem('proxyAssistant.activeMainPage', 'sync');
+    window.eval(fs.readFileSync(navigationBootstrapPath, 'utf8'));
+
+    expect(document.documentElement.dataset.initialMainPage).toBe('config');
 
     window.localStorage.setItem('proxyAssistant.activeMainPage', 'removed-page');
     window.eval(fs.readFileSync(navigationBootstrapPath, 'utf8'));
@@ -176,6 +200,9 @@ describe('main sidebar layout', () => {
     expect(css).toMatch(/\.scenario-time-value\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1\.3fr\) minmax\(0, 1fr\) 12px minmax\(0, 1fr\);/s);
     expect(css).toMatch(/\.scenario-time-value \.scenario-time-input\s*\{[^}]*height:\s*38px;[^}]*font-family:\s*inherit;/s);
     expect(css).toMatch(/\.proxy-body \.form-grid > \.form-item:nth-child\(3\)/);
+    expect(css).toMatch(/\.proxy-subscription-trigger\s*\{[^}]*height:\s*36px;[^}]*border:\s*1px solid #e2e8f0;[^}]*border-radius:\s*6px;/s);
+    expect(css).toMatch(/\.proxy-subscription-search-row\s*\{[^}]*height:\s*38px;[^}]*border:\s*1px solid #e2e8f0;[^}]*border-radius:\s*6px;/s);
+    expect(css).toMatch(/\.proxy-subscription-search-row:focus-within\s*\{[^}]*border-color:\s*#4164f5;[^}]*box-shadow:/s);
     expect(css).toMatch(/\.proxy-body \.form-grid > \.form-item\s*\{[^}]*grid-column:\s*1 \/ -1\s*!important;/s);
   });
 

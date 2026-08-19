@@ -73,6 +73,8 @@ function initMainNavigation() {
   if (!switchMainPage(savedPageId)) {
     switchMainPage('proxies');
     saveActiveMainPage('proxies');
+  } else {
+    saveActiveMainPage(savedPageId);
   }
 
   document.documentElement.removeAttribute('data-initial-main-page');
@@ -80,7 +82,8 @@ function initMainNavigation() {
 
 function getSavedActiveMainPage() {
   try {
-    return window.localStorage.getItem(MAIN_NAVIGATION_STORAGE_KEY) || 'proxies';
+    const savedPageId = window.localStorage.getItem(MAIN_NAVIGATION_STORAGE_KEY);
+    return savedPageId === 'sync' ? 'config' : (savedPageId || 'proxies');
   } catch (error) {
     return 'proxies';
   }
@@ -205,7 +208,7 @@ function saveConfig(options) {
       UtilsModule.showTip(options.successMsg || I18n.t('save_success'), false);
     }
 
-    if ($(".sync-config-tip").hasClass("show") && SyncModule.getSyncConfig().type === 'native') {
+    if (SyncModule.getSyncConfig().type === 'native') {
       SyncModule.updateNativeQuotaInfo();
     }
 
@@ -471,11 +474,6 @@ function initDropdowns() {
 }
 
 function bindGlobalEvents() {
-  $("#open-sync-config-btn").on("click", function () {
-    SyncModule.updateSyncUI();
-    $(".sync-config-tip").show().addClass("show");
-  });
-
   $(".sync-selector .lh-select-op li").on("click", function () {
     const type = $(this).data("value");
     const config = SyncModule.getSyncConfig();
@@ -505,8 +503,6 @@ function bindGlobalEvents() {
     StorageModule.setSyncConfig(config);
     StorageModule.save().then(() => {
       UtilsModule.showTip(I18n.t('save_success'), false);
-      $(".sync-config-tip").removeClass("show");
-      setTimeout(function () { $(".sync-config-tip").hide(); }, 300);
       SyncModule.updateSyncUI();
     }).catch(() => {
       UtilsModule.showTip(I18n.t('save_failed'), true);
@@ -548,13 +544,6 @@ function bindGlobalEvents() {
     }
   });
 
-  $(".sync-config-close-btn, .sync-config-tip").on("click", function (e) {
-    if (this === e.target || $(this).hasClass('sync-config-close-btn')) {
-      $(".sync-config-tip").removeClass("show");
-      setTimeout(function () { $(".sync-config-tip").hide(); }, 300);
-    }
-  });
-
   $(".export-btn").on("click", ConfigModule.exportConfig);
   $(".import-json-btn").on("click", function () { $("#json-file-input").click(); });
   $("#json-file-input").on("change", ConfigModule.importConfig);
@@ -584,7 +573,6 @@ function bindGlobalEvents() {
         '.alert-scenario-tip',
         '.edit-scenario-tip',
         '.delete-scenario-tip',
-        '.sync-config-tip',
         '.subscription-config-tip',
         '.pac-details-tip',
         '.proxy-detection-tip',
