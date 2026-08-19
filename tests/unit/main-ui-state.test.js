@@ -65,13 +65,13 @@ function setupBaseDom() {
     <div id="pac-toggle-btn"></div>
     <div id="pac-script-content"></div>
     <div id="pac-script-wrapper"></div>
-    <div class="sync-config-tip"></div>
-    <div class="sync-config-close-btn"></div>
     <button id="save-sync-config"></button>
     <button id="sync-pull-btn"></button>
     <button id="sync-push-btn"></button>
     <button id="test-sync-connection"></button>
-    <button id="open-sync-config-btn"></button>
+    <div class="sync-selector">
+      <ul class="lh-select-op"><li data-value="gist">GitHub Gist</li></ul>
+    </div>
     <div id="gist-token-eye"><input type="checkbox"></div>
     <input id="gist-token" />
     <input id="gist-filename" />
@@ -233,7 +233,8 @@ describe('main UI state flow', () => {
       save: jest.fn(() => Promise.resolve()),
       reload: jest.fn(() => Promise.resolve()),
       isSubscriptionOnlyChange: jest.fn(() => false),
-      mergeSubscriptionChanges: jest.fn()
+      mergeSubscriptionChanges: jest.fn(),
+      setSyncConfig: jest.fn()
     };
     global.ProxyModule = {
       setList: jest.fn(),
@@ -333,6 +334,33 @@ describe('main UI state flow', () => {
     expect(global.StorageModule.mergeSubscriptionChanges).toHaveBeenCalledWith(newConfig);
     expect(global.ProxyModule.updateSubscriptionLinesDisplay).toHaveBeenCalledTimes(1);
     expect(global.StorageModule.reload).not.toHaveBeenCalled();
+  });
+
+  test('saves the inline cloud sync fields from the config page', async () => {
+    let currentSyncConfig = { type: 'native', gist: {} };
+    global.SyncModule.getSyncConfig.mockImplementation(() => currentSyncConfig);
+    global.SyncModule.setSyncConfig.mockImplementation(config => {
+      currentSyncConfig = config;
+    });
+    window.eval(fs.readFileSync(mainJsPath, 'utf8'));
+    window.bindGlobalEvents();
+
+    $('.sync-selector li[data-value="gist"]').trigger('click');
+    $('#gist-token').val('test-token');
+    $('#gist-filename').val('shared-config.json');
+    $('#save-sync-config').trigger('click');
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(global.StorageModule.setSyncConfig).toHaveBeenCalledWith({
+      type: 'gist',
+      gist: {
+        token: 'test-token',
+        filename: 'shared-config.json'
+      }
+    });
+    expect(global.StorageModule.save).toHaveBeenCalledTimes(1);
+    expect(global.SyncModule.updateSyncUI).toHaveBeenCalled();
   });
 
   test('switchScenario keeps the current scenario when worker activation fails', async () => {
@@ -895,6 +923,9 @@ describe('main UI state flow', () => {
     expect($('.proxy-scenario-group').map((index, group) => $(group).find('.proxy-card').length).get()).toEqual([1, 1]);
     expect($('.proxy-card .proxy-index').map((index, node) => $(node).text()).get()).toEqual(['#1', '#1']);
     expect($('.proxy-scenario-association').map((index, node) => $(node).val()).get()).toEqual(['scenario-a', 'scenario-b']);
+    expect($('.proxy-association-form-item').first()[0].style.gridColumn).toBe('span 6');
+    expect($('.proxy-subscriptions-form-item').first()[0].style.gridColumn).toBe('span 6');
+    expect($('.proxy-association-form-item').first().parent()[0]).toBe($('.proxy-subscriptions-form-item').first().parent()[0]);
     expect($('.move-proxy-btn')).toHaveLength(0);
 
     $('.proxy-card[data-proxy-id="proxy-a"] .proxy-scenario-association').val('scenario-b').trigger('change');

@@ -221,7 +221,7 @@ const ProxyModule = (function () {
         UtilsModule.showTip(options.successMsg || I18n.t('save_success'), false);
       }
 
-      if ($(".sync-config-tip").hasClass("show") && SyncModule.getSyncConfig().type === 'native') {
+      if (SyncModule.getSyncConfig().type === 'native') {
         SyncModule.updateNativeQuotaInfo();
       }
 
@@ -587,13 +587,13 @@ const ProxyModule = (function () {
                     </div>
 
                     <div class="form-grid" style="margin-top: 15px;">
-                      <div class="form-item" style="grid-column: span 4;">
+                      <div class="form-item proxy-association-form-item" style="grid-column: span 6;">
                         <label>${I18n.t('proxy_associated_scenario')}</label>
                         <select class="subscription-card-select proxy-scenario-association" data-index="${i}" tabindex="${i * 100 + 9}">
                           ${renderScenarioAssociationOptions(scenarios, scenario.id)}
                         </select>
                       </div>
-                      <div class="form-item" style="grid-column: span 8;">
+                      <div class="form-item proxy-subscriptions-form-item" style="grid-column: span 6;">
                         <label>${I18n.t('proxy_subscriptions')}</label>
                         ${renderSubscriptionSelector(info, i)}
                       </div>

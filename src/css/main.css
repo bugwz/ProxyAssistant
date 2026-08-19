@@ -91,7 +91,6 @@ body {
 html[data-initial-main-page="proxies"] .main-nav-item[data-main-page="proxies"],
 html[data-initial-main-page="scenarios"] .main-nav-item[data-main-page="scenarios"],
 html[data-initial-main-page="subscriptions"] .main-nav-item[data-main-page="subscriptions"],
-html[data-initial-main-page="sync"] .main-nav-item[data-main-page="sync"],
 html[data-initial-main-page="config"] .main-nav-item[data-main-page="config"],
 html[data-initial-main-page="diagnostics"] .main-nav-item[data-main-page="diagnostics"],
 html[data-initial-main-page="appearance"] .main-nav-item[data-main-page="appearance"],
@@ -185,7 +184,6 @@ html[data-initial-main-page]:not([data-initial-main-page="proxies"]) .main-page[
 
 html[data-initial-main-page="scenarios"] .main-page[data-page="scenarios"],
 html[data-initial-main-page="subscriptions"] .main-page[data-page="subscriptions"],
-html[data-initial-main-page="sync"] .main-page[data-page="sync"],
 html[data-initial-main-page="config"] .main-page[data-page="config"],
 html[data-initial-main-page="diagnostics"] .main-page[data-page="diagnostics"],
 html[data-initial-main-page="appearance"] .main-page[data-page="appearance"],
@@ -443,17 +441,34 @@ body[data-theme="dark"] .subscription-card-content-panel {
 
 .proxy-subscription-trigger {
   width: 100%;
-  height: 38px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 0 11px;
-  border: 1px solid #d7dce3;
-  border-radius: 5px;
+  padding: 0 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
   background: #fff;
-  color: inherit;
+  color: #1e293b;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
   cursor: pointer;
+}
+
+.proxy-subscription-trigger:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(65, 100, 245, 0.14);
+}
+
+.proxy-subscription-trigger svg {
+  flex: 0 0 auto;
+  transition: transform 0.2s ease;
+}
+
+.proxy-subscription-select.open .proxy-subscription-trigger svg {
+  transform: rotate(180deg);
 }
 
 .proxy-subscription-value {
@@ -470,10 +485,10 @@ body[data-theme="dark"] .subscription-card-content-panel {
   left: 0;
   display: none;
   overflow: hidden;
-  border: 1px solid #d7dce3;
+  border: 1px solid #e2e8f0;
   border-radius: 6px;
   background: #fff;
-  box-shadow: 0 8px 24px rgba(31, 41, 55, 0.14);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
 .proxy-subscription-select.open .proxy-subscription-menu {
@@ -484,20 +499,45 @@ body[data-theme="dark"] .subscription-card-content-panel {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
-  border-bottom: 1px solid #e6e9ee;
+  height: 38px;
+  box-sizing: border-box;
+  margin: 8px;
+  padding: 0 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #64748b;
+  background: #fff;
+}
+
+.proxy-subscription-search-row:focus-within {
+  border-color: #4164f5;
+  box-shadow: 0 0 0 3px rgba(65, 100, 245, 0.1);
+}
+
+.proxy-subscription-search-row svg {
+  flex: 0 0 auto;
 }
 
 .proxy-subscription-search {
   width: 100%;
+  min-width: 0;
+  height: 100% !important;
+  padding: 0 !important;
   border: 0 !important;
   outline: 0;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #1e293b !important;
+  font: inherit;
+  font-size: 13px;
 }
 
 .proxy-subscription-options {
   max-height: 210px;
   overflow-y: auto;
   padding: 5px;
+  border-top: 1px solid #f1f5f9;
 }
 
 .proxy-subscription-option {
@@ -518,6 +558,7 @@ body[data-theme="dark"] .subscription-card-content-panel {
   width: 15px !important;
   height: 15px !important;
   margin: 0;
+  accent-color: #4164f5;
 }
 
 .proxy-subscription-no-options {
@@ -531,6 +572,26 @@ body[data-theme="dark"] .proxy-subscription-trigger,
 body[data-theme="dark"] .proxy-subscription-menu {
   border-color: #3a414b;
   background: #20252b;
+}
+
+body[data-theme="dark"] .proxy-subscription-trigger,
+body[data-theme="dark"] .proxy-subscription-search {
+  color: #f1f5f9 !important;
+}
+
+body[data-theme="dark"] .proxy-subscription-search-row {
+  border-color: #334155;
+  background: #0f172a;
+  color: #94a3b8;
+}
+
+body[data-theme="dark"] .proxy-subscription-search-row:focus-within {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+}
+
+body[data-theme="dark"] .proxy-subscription-options {
+  border-top-color: #334155;
 }
 
 body[data-theme="dark"] .proxy-subscription-option:hover {
@@ -2118,6 +2179,10 @@ input:checked+.slider-modern:before {
   border-color: #334155;
 }
 
+.cloud-sync-section {
+  margin-top: 16px;
+}
+
 .config-row {
   display: flex;
   flex-wrap: nowrap;
@@ -2185,13 +2250,20 @@ input:checked+.slider-modern:before {
 /* Sync Config Panel */
 .sync-config-panel {
   background-color: #f8fafc;
-  padding: 20px 25px;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 24px;
   border-top: none;
+  border-radius: 0 0 8px 8px;
 }
 
 [data-theme="dark"] .sync-config-panel {
   background-color: #0f172a;
+}
+
+.sync-config-summary {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+[data-theme="dark"] .sync-config-summary {
   border-bottom-color: #334155;
 }
 
@@ -2615,102 +2687,6 @@ input:checked+.slider-modern:before {
 }
 
 [data-theme="dark"] .proxy-detection-close-btn-secondary:hover {
-  background-color: #475569;
-  color: #f1f5f9;
-}
-
-/* Sync Config Popup */
-.sync-config-tip {
-  width: 100%;
-  height: 100%;
-  position: fixed;
-  top: 0;
-  left: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: var(--layer-overlay);
-  display: none;
-  opacity: 0;
-  transition: opacity 0.2s ease-out;
-  will-change: opacity;
-}
-
-.sync-config-tip.show {
-  opacity: 1;
-}
-
-.sync-config-box {
-  width: 500px;
-  max-width: 90%;
-  background-color: #fff;
-  border-radius: 16px;
-  padding: 25px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
-  position: absolute;
-  top: 15%;
-  left: 50%;
-  transform: translate(-50%, 0) scale(0.95);
-  opacity: 0;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease-out;
-  will-change: transform, opacity;
-}
-
-[data-theme="dark"] .sync-config-box {
-  background-color: var(--bg-secondary, #2d2d2d);
-  border: 1px solid var(--border-color, #a0a0a0);
-}
-
-.sync-config-tip.show .sync-config-box {
-  transform: translate(-50%, 0) scale(1);
-  opacity: 1;
-}
-
-.sync-config-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-[data-theme="dark"] .sync-config-header {
-  border-bottom-color: #334155;
-}
-
-.sync-config-header span {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-[data-theme="dark"] .sync-config-header span {
-  color: #f1f5f9;
-}
-
-.sync-config-close-btn {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: #f1f5f9;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-[data-theme="dark"] .sync-config-close-btn {
-  background-color: #334155;
-  color: #cbd5e1;
-}
-
-.sync-config-close-btn:hover {
-  background-color: #e2e8f0;
-  color: #1e293b;
-}
-
-[data-theme="dark"] .sync-config-close-btn:hover {
   background-color: #475569;
   color: #f1f5f9;
 }
