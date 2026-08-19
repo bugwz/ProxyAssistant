@@ -15,6 +15,127 @@ let currentProxyAuth = {
 const inProgressFetches = new Set();
 const SUBSCRIPTION_ALARM_PREFIX = 'subscription___';
 const LEGACY_SUBSCRIPTION_ALARM_PREFIX = 'subscription_';
+const SCENARIO_AUTOMATION_ALARM = 'scenario-automation-next';
+let scenarioAutomationEvaluation = null;
+
+function getStorageValues(keys) {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.get(keys, result => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message || 'Failed to read storage'));
+        return;
+      }
+      resolve(result || {});
+    });
+  });
+}
+
+function setStorageValues(values) {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.set(values, () => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message || 'Failed to write storage'));
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
+function getTimeRules(scenario) {
+  const rules = scenario?.automation?.rules;
+  return Array.isArray(rules) ? rules.filter(rule => rule?.type === 'time') : [];
+}
+
+function parseTimeMinutes(value) {
+  if (typeof value !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return null;
+  const [hours, minutes] = value.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+function isTimeRuleActive(rule, now = new Date()) {
+  if (!rule || !Array.isArray(rule.weekdays) || !rule.weekdays.length) return false;
+  const start = parseTimeMinutes(rule.start);
+  const end = parseTimeMinutes(rule.end);
+  if (start === null || end === null || start === end) return false;
+
+  const weekdays = new Set(rule.weekdays.map(Number));
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const currentDay = now.getDay();
+
+  if (start < end) {
+    return weekdays.has(currentDay) && currentMinutes >= start && currentMinutes < end;
+  }
+
+  const previousDay = (currentDay + 6) % 7;
+  return (weekdays.has(currentDay) && currentMinutes >= start)
+    || (weekdays.has(previousDay) && currentMinutes < end);
+}
+
+function isScenarioAutomationActive(scenario, now = new Date()) {
+  const rules = getTimeRules(scenario);
+  if (!rules.length) return false;
+  const matches = rules.map(rule => isTimeRuleActive(rule, now));
+  return rules[1]?.operator === 'and' ? matches.every(Boolean) : matches.some(Boolean);
+}
+
+function findScheduledScenario(config, now = new Date()) {
+  const scenarios = config?.scenarios?.lists || [];
+  return scenarios.find(scenario => (
+    scenario?.automation?.enabled === true && isScenarioAutomationActive(scenario, now)
+  )) || null;
+}
+
+function getNextScenarioAutomationBoundary(config, now = new Date()) {
+  const scenarios = config?.scenarios?.lists || [];
+  let nextBoundary = null;
+
+  scenarios.forEach(scenario => {
+    if (scenario?.automation?.enabled !== true) return;
+    getTimeRules(scenario).forEach(rule => {
+      const startMinutes = parseTimeMinutes(rule?.start);
+      const endMinutes = parseTimeMinutes(rule?.end);
+      if (!Array.isArray(rule?.weekdays) || !rule.weekdays.length
+        || startMinutes === null || endMinutes === null || startMinutes === endMinutes) return;
+
+      const weekdays = new Set(rule.weekdays.map(Number));
+      for (let offset = -1; offset <= 7; offset += 1) {
+        const day = new Date(now);
+        day.setHours(0, 0, 0, 0);
+        day.setDate(day.getDate() + offset);
+        if (!weekdays.has(day.getDay())) continue;
+
+        const start = new Date(day);
+        start.setMinutes(startMinutes);
+        const end = new Date(day);
+        end.setMinutes(endMinutes);
+        if (endMinutes <= startMinutes) end.setDate(end.getDate() + 1);
+
+        [start, end].forEach(boundary => {
+          if (boundary.getTime() > now.getTime()
+            && (nextBoundary === null || boundary.getTime() < nextBoundary)) {
+            nextBoundary = boundary.getTime();
+          }
+        });
+      }
+    });
+  });
+
+  return nextBoundary;
+}
+
+function scheduleScenarioAutomation(config, now = new Date()) {
+  const nextBoundary = getNextScenarioAutomationBoundary(config, now);
+  if (nextBoundary === null) {
+    chrome.alarms.clear(SCENARIO_AUTOMATION_ALARM);
+    return null;
+  }
+
+  chrome.alarms.create(SCENARIO_AUTOMATION_ALARM, {
+    when: Math.max(nextBoundary + 1000, Date.now() + 1000)
+  });
+  return nextBoundary;
+}
 
 function getProxySubscriptions(proxy, config = currentConfig) {
   const ids = Array.isArray(proxy?.subscription_ids) ? proxy.subscription_ids : [];
@@ -888,6 +1009,139 @@ function scheduleAllBackgroundRefreshes(config) {
   });
 }
 
+function getScenarioDefaultProxy(scenario) {
+  const proxies = scenario?.proxies || [];
+  const isSelectable = proxy => proxy && proxy.enabled !== false && proxy.ip && proxy.port;
+  return proxies.find(proxy => proxy.id === scenario.defaultProxyId && isSelectable(proxy))
+    || proxies.find(proxy => proxy.id === scenario.lastProxyId && isSelectable(proxy))
+    || proxies.find(isSelectable)
+    || null;
+}
+
+async function rememberCurrentScenarioProxy(proxy) {
+  if (!proxy?.id) return;
+  try {
+    const stored = await getStorageValues(['config']);
+    const config = stored.config;
+    const scenario = config?.scenarios?.lists?.find(item => item.id === config.scenarios.current);
+    if (!scenario?.proxies?.some(item => item.id === proxy.id)) return;
+    scenario.lastProxyId = proxy.id;
+    await setStorageValues({ config });
+  } catch (error) {
+    console.info('Failed to remember the scenario proxy:', error);
+  }
+}
+
+async function restorePreviousProxyState(previousState) {
+  const mode = previousState?.proxy?.mode || 'disabled';
+  if (mode === 'disabled') {
+    await turnOffProxy();
+    return;
+  }
+  await applyProxySettings(previousState?.proxy?.current || null, mode);
+}
+
+async function activateScenario(scenarioId, source = 'manual') {
+  let stored;
+  try {
+    stored = await getStorageValues(['config', 'state']);
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+
+  const config = stored.config;
+  const previousState = stored.state || { proxy: { mode: 'disabled', current: null } };
+  const scenarios = config?.scenarios?.lists || [];
+  const scenario = scenarios.find(item => item.id === scenarioId);
+  if (!scenario) return { success: false, error: 'Scenario not found' };
+
+  const previousScenarioId = config.scenarios.current;
+  const previousScenario = scenarios.find(item => item.id === previousScenarioId);
+  const previousProxyId = previousState.proxy?.current?.id;
+  if (previousProxyId && previousScenario?.proxies?.some(proxy => proxy.id === previousProxyId)) {
+    previousScenario.lastProxyId = previousProxyId;
+  }
+  const defaultProxy = getScenarioDefaultProxy(scenario);
+  const activationMode = source === 'automation'
+    ? 'manual'
+    : (previousState.proxy?.mode || 'disabled');
+
+  if (source === 'automation' && !defaultProxy) {
+    return { success: false, error: 'Default proxy is unavailable' };
+  }
+
+  const persistTargetScenario = async () => {
+    config.scenarios.current = scenarioId;
+    await setStorageValues({ config });
+  };
+
+  try {
+    if (activationMode === 'auto') {
+      await persistTargetScenario();
+      const result = await applyProxySettings(null, 'auto');
+      if (!result?.success) throw new Error(result?.error || 'Failed to apply automatic proxy mode');
+    } else if (activationMode === 'manual') {
+      if (defaultProxy) {
+        const result = await applyProxySettings(defaultProxy, 'manual');
+        if (!result?.success) throw new Error(result?.error || 'Failed to apply default proxy');
+      } else {
+        await turnOffProxy();
+      }
+      await persistTargetScenario();
+      if (defaultProxy) {
+        scenario.lastProxyId = defaultProxy.id;
+        await setStorageValues({ config });
+      }
+    } else {
+      await persistTargetScenario();
+    }
+  } catch (error) {
+    config.scenarios.current = previousScenarioId;
+    try {
+      await setStorageValues({ config });
+      await restorePreviousProxyState(previousState);
+    } catch (rollbackError) {
+      console.info('Scenario activation rollback failed:', rollbackError);
+    }
+    return { success: false, error: error.message || 'Failed to activate scenario' };
+  }
+
+  const currentProxy = activationMode === 'manual' ? defaultProxy : null;
+  return {
+    success: true,
+    scenarioId,
+    source,
+    mode: defaultProxy || activationMode !== 'manual' ? activationMode : 'disabled',
+    currentProxy
+  };
+}
+
+async function evaluateScenarioAutomation(config, now = new Date()) {
+  if (scenarioAutomationEvaluation) return scenarioAutomationEvaluation;
+
+  scenarioAutomationEvaluation = (async () => {
+    const targetScenario = findScheduledScenario(config, now);
+    let result = { success: true, switched: false };
+
+    if (targetScenario && config?.scenarios?.current !== targetScenario.id) {
+      const activation = await activateScenario(targetScenario.id, 'automation');
+      result = { ...activation, switched: activation.success === true };
+      if (!activation.success) {
+        console.info('Scheduled scenario activation failed:', activation.error);
+      }
+    }
+
+    scheduleScenarioAutomation(config, now);
+    return result;
+  })();
+
+  try {
+    return await scenarioAutomationEvaluation;
+  } finally {
+    scenarioAutomationEvaluation = null;
+  }
+}
+
 // Schedule background refresh for single subscription (called from frontend)
 function scheduleSubscriptionRefresh(proxyId, format, refreshInterval, url) {
   scheduleOrClearSubscriptionAlarm(proxyId, format, refreshInterval, url);
@@ -895,7 +1149,11 @@ function scheduleSubscriptionRefresh(proxyId, format, refreshInterval, url) {
 
 // Alarm listener for subscription refresh
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name.startsWith(SUBSCRIPTION_ALARM_PREFIX)) {
+  if (alarm.name === SCENARIO_AUTOMATION_ALARM) {
+    chrome.storage.local.get(['config'], result => {
+      if (result.config) evaluateScenarioAutomation(result.config);
+    });
+  } else if (alarm.name.startsWith(SUBSCRIPTION_ALARM_PREFIX)) {
     const alarmName = alarm.name.replace(SUBSCRIPTION_ALARM_PREFIX, '');
     const lastSeparatorIndex = alarmName.lastIndexOf('___');
     const proxyId = alarmName.substring(0, lastSeparatorIndex);
@@ -942,6 +1200,7 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
       console.log('[Worker] Config changed, scheduling alarms...');
       setTimeout(() => {
         scheduleAllBackgroundRefreshes(newConfig);
+        evaluateScenarioAutomation(newConfig);
       }, 1000);
     }
   }
@@ -1026,6 +1285,7 @@ function restoreProxySettings() {
     chrome.storage.local.get(['config'], (configResult) => {
       if (configResult.config) {
         scheduleAllBackgroundRefreshes(configResult.config);
+        evaluateScenarioAutomation(configResult.config);
       }
     });
   });
@@ -2004,15 +2264,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   try {
     if (message.action === "applyProxy") {
       applyProxySettings(message.proxyInfo)
-        .then(sendResponse)
+        .then(result => {
+          sendResponse(result);
+          if (result?.success) rememberCurrentScenarioProxy(message.proxyInfo);
+        })
         .catch((error) => {
           sendResponse({ success: false, error: error.message });
         });
       return true;
     } else if (message.action === "setProxyMode") {
       applyProxySettings(message.proxyInfo, message.mode)
-        .then(sendResponse)
+        .then(result => {
+          sendResponse(result);
+          if (result?.success && message.mode === 'manual') {
+            rememberCurrentScenarioProxy(message.proxyInfo);
+          }
+        })
         .catch((error) => {
+          sendResponse({ success: false, error: error.message });
+        });
+      return true;
+    } else if (message.action === 'activateScenario') {
+      activateScenario(message.scenarioId, message.source || 'manual')
+        .then(sendResponse)
+        .catch(error => {
           sendResponse({ success: false, error: error.message });
         });
       return true;

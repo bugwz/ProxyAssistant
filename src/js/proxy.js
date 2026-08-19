@@ -645,6 +645,10 @@ const ProxyModule = (function () {
     newProxyId = null;
     $("#proxy-list").html(html);
 
+    if (typeof window.enhanceNativeSelects === 'function') {
+      window.enhanceNativeSelects(document.getElementById('proxy-list'));
+    }
+
     initSortable();
     bindItemEvents();
 

@@ -24,6 +24,13 @@
       '<path d="M12 5v14"/>',
       '<path d="M5 12h14"/>'
     ].join(''),
+    trash: [
+      '<path d="M4 7h16"/>',
+      '<path d="M9 7V4h6v3"/>',
+      '<path d="m6 7 1 14h10l1-14"/>',
+      '<path d="M10 11v6"/>',
+      '<path d="M14 11v6"/>'
+    ].join(''),
     testAll: [
       '<path d="M4 12a8 8 0 0 1 8-8"/>',
       '<path d="M20 12a8 8 0 0 1-8 8"/>',

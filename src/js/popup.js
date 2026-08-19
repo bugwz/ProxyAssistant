@@ -317,79 +317,35 @@ function switchScenario(id) {
   if (currentScenarioId === id) return;
 
   const scenario = scenarios.find(s => s.id === id);
-  if (scenario) {
+  if (!scenario) return;
+
+  chrome.runtime.sendMessage({ action: 'activateScenario', scenarioId: id, source: 'manual' }, function (response) {
+    if (chrome.runtime.lastError || !response?.success) {
+      const error = chrome.runtime.lastError?.message || response?.error || 'Failed to activate scenario';
+      console.log('Error switching scenario:', error);
+      return;
+    }
+
     chrome.storage.local.get(['config', 'state'], function (result) {
       if (chrome.runtime.lastError) {
-        console.log('Error getting config:', chrome.runtime.lastError);
+        console.log('Error reloading scenario:', chrome.runtime.lastError);
         return;
       }
-      const config = result.config || { scenarios: { current: 'default', lists: [] } };
-      const currentMode = result.state?.proxy?.mode || 'disabled';
-      const newProxies = scenario.proxies || [];
 
-      currentScenarioId = id;
-      list = newProxies;
-      const displayName = scenario.name || I18n.t("scenario_default");
-      $(".scenario-btn").attr("title", `${I18n.t("switch_scenario_tooltip")} (${displayName})`);
+      const config = result.config || {};
+      subscriptions = config.subscriptions || [];
+      scenarios = config.scenarios?.lists || scenarios;
+      currentScenarioId = config.scenarios?.current || id;
+      const currentScenario = scenarios.find(item => item.id === currentScenarioId);
+      list = currentScenario?.proxies || [];
 
-      config.scenarios = config.scenarios || { current: 'default', lists: [] };
-      config.scenarios.current = id;
-
-      let stateUpdate = null;
-      // Auto-select first proxy in manual mode
-      if (currentMode === 'manual') {
-        const firstEnabled = getFirstSelectableProxy(newProxies);
-        if (firstEnabled) {
-          stateUpdate = { proxy: { mode: 'manual', current: firstEnabled } };
-        } else {
-          stateUpdate = { proxy: { mode: 'manual', current: null } };
-        }
-      }
-
-      const storagePayload = { config: config };
-      if (stateUpdate) {
-        storagePayload.state = stateUpdate;
-      }
-
-      chrome.storage.local.set(storagePayload, function () {
-        if (chrome.runtime.lastError) {
-          console.log('Error switching scenario:', chrome.runtime.lastError);
-          return;
-        }
-        if (currentMode === 'manual' && stateUpdate?.proxy?.current) {
-          chrome.runtime.sendMessage({ action: "applyProxy", proxyInfo: stateUpdate.proxy.current }, function () {
-            if (chrome.runtime.lastError) {
-              console.log('Error applying proxy after scenario switch:', chrome.runtime.lastError);
-            }
-            list_init();
-          });
-          return;
-        }
-        if (currentMode === 'manual' && stateUpdate && !stateUpdate.proxy.current) {
-          chrome.runtime.sendMessage({ action: 'turnOffProxy' }, function () {
-            if (chrome.runtime.lastError) {
-              console.log('Error turning off proxy after scenario switch:', chrome.runtime.lastError);
-            }
-            updateStatusDisplay('manual', null);
-            list_init();
-            updateBypassButton();
-            updateCurrentSiteDisplay();
-          });
-          return;
-        }
-        if (currentMode === 'auto') {
-          chrome.runtime.sendMessage({ action: 'refreshProxy' }, function () {
-            if (chrome.runtime.lastError) {
-              console.log('Error refreshing proxy after scenario switch:', chrome.runtime.lastError);
-            }
-            list_init();
-          });
-          return;
-        }
-        list_init();
-      });
+      const mode = result.state?.proxy?.mode || response.mode || 'disabled';
+      const currentProxy = result.state?.proxy?.current || response.currentProxy || null;
+      updateModeUI(mode);
+      renderScenarioSelector();
+      refreshPopupForMode(mode, currentProxy);
     });
-  }
+  });
 }
 
 // ==========================================

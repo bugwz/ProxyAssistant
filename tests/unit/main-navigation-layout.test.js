@@ -19,6 +19,7 @@ describe('main sidebar layout', () => {
     delete window.ScenariosModule;
     delete window.VersionModule;
     delete window.chrome;
+    delete window.enhanceNativeSelects;
   });
 
   test('uses the project logo and maps navigation items to their pages', () => {
@@ -134,17 +135,30 @@ describe('main sidebar layout', () => {
     const pageDocument = new DOMParser().parseFromString(fs.readFileSync(mainHtmlPath, 'utf8'), 'text/html');
     const scenarioPage = pageDocument.querySelector('#page-scenarios');
 
-    expect(scenarioPage.querySelector('#open-add-scenario-btn')).not.toBeNull();
+    const addScenarioButton = scenarioPage.querySelector('#open-add-scenario-btn');
+    expect(addScenarioButton).not.toBeNull();
+
+    const addScenarioLabel = addScenarioButton.querySelector('[data-i18n="add_new"]');
+    expect(addScenarioLabel.textContent.trim()).toBe('新增');
     expect(scenarioPage.querySelector('#scenario-expand-collapse-btn')).not.toBeNull();
     expect(scenarioPage.querySelector('#scenario-manage-list')).not.toBeNull();
     expect(scenarioPage.querySelector('.scenario-overview')).toBeNull();
+    expect(pageDocument.querySelector('.add-scenario-tip')).toBeNull();
 
     const dialogs = Array.from(pageDocument.querySelectorAll('.scenario-dialog-tip'));
-    expect(dialogs).toHaveLength(4);
+    expect(dialogs).toHaveLength(3);
     dialogs.forEach(dialog => {
       expect(dialog.getAttribute('aria-modal')).toBe('true');
       expect(dialog.getAttribute('aria-labelledby')).toBeTruthy();
     });
+
+    const css = fs.readFileSync(mainCssPath, 'utf8');
+    expect(css).toMatch(/\.scenario-card-header \.scenario-drag-handle\s*\{[^}]*width:\s*20px;[^}]*height:\s*20px;/s);
+    expect(css).toMatch(/\.scenario-condition-row\s*\{[^}]*grid-template-columns:\s*minmax\(0, 0\.7fr\) minmax\(0, 0\.7fr\) minmax\(0, 2\.6fr\) 72px;/s);
+    expect(css).toMatch(/\.scenario-time-value\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1\.3fr\) minmax\(0, 1fr\) 12px minmax\(0, 1fr\);/s);
+    expect(css).toMatch(/\.scenario-time-value \.scenario-time-input\s*\{[^}]*height:\s*38px;[^}]*font-family:\s*inherit;/s);
+    expect(css).toMatch(/\.proxy-body \.form-grid > \.form-item:nth-child\(3\)/);
+    expect(css).toMatch(/\.proxy-body \.form-grid > \.form-item\s*\{[^}]*grid-column:\s*1 \/ -1\s*!important;/s);
   });
 
   test('keeps open form menus above surrounding content without clipping', () => {
@@ -199,5 +213,55 @@ describe('main sidebar layout', () => {
     const css = fs.readFileSync(mainCssPath, 'utf8');
     expect(css).toMatch(/\.system-config-list\s*\{[^}]*overflow:\s*visible;/s);
     expect(css).toMatch(/\.lh-select\.dropdown-open\s*\{[^}]*z-index:\s*var\(--layer-dropdown\);/s);
+  });
+
+  test('enhances native selects with the protocol dropdown menu style and preserves change events', () => {
+    document.body.innerHTML = `
+      <div class="form-item">
+        <label>默认代理</label>
+        <select class="subscription-card-select scenario-default-proxy-select">
+          <option value="">暂无可用代理</option>
+          <option value="proxy-a">公司代理</option>
+        </select>
+      </div>
+    `;
+
+    window.eval(fs.readFileSync(jqueryPath, 'utf8'));
+    global.$ = window.$;
+    global.jQuery = window.jQuery;
+    global.chrome = {
+      storage: {
+        onChanged: {
+          addListener: jest.fn()
+        }
+      }
+    };
+    window.chrome = global.chrome;
+    window.eval(fs.readFileSync(mainJsPath, 'utf8'));
+
+    const changeHandler = jest.fn();
+    $('.scenario-default-proxy-select').on('change', changeHandler);
+    window.initDropdowns();
+
+    const $container = $('.native-select-enhanced');
+    expect($container.hasClass('lh-select')).toBe(true);
+    expect($container.find('.native-select-trigger').attr('aria-label')).toBe('默认代理');
+    expect($container.find('.native-select-value').text()).toBe('暂无可用代理');
+    expect($container.find('.native-select-options li').map((index, item) => $(item).text()).get())
+      .toEqual(['暂无可用代理', '公司代理']);
+    expect($('.scenario-default-proxy-select').hasClass('native-select-source')).toBe(true);
+
+    $container.find('.native-select-options li[data-value="proxy-a"]').trigger('click');
+
+    expect($('.scenario-default-proxy-select').val()).toBe('proxy-a');
+    expect($container.find('.native-select-value').text()).toBe('公司代理');
+    expect(changeHandler).toHaveBeenCalledTimes(1);
+
+    $('.scenario-default-proxy-select').val('').trigger('change');
+    expect($container.find('.native-select-value').text()).toBe('暂无可用代理');
+
+    const css = fs.readFileSync(mainCssPath, 'utf8');
+    expect(css).toMatch(/\.native-select-source\s*\{[^}]*clip-path:\s*inset\(50%\)\s*!important;/s);
+    expect(css).toMatch(/\.native-select-enhanced\.dropdown-open \.select-icon\s*\{[^}]*transform:\s*rotate\(180deg\);/s);
   });
 });

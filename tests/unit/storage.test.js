@@ -102,4 +102,23 @@ describe('StorageModule subscription synchronization', () => {
       'subscription-1'
     ]);
   });
+
+  test('falls back to the last-used strategy when a selected proxy is deleted or moved', () => {
+    const config = createConfig('rules');
+    const scenario = config.scenarios.lists[0];
+    scenario.defaultProxyId = 'proxy-1';
+    scenario.proxies = [
+      { id: 'proxy-1', enabled: true, ip: '10.0.0.1', port: '8080' },
+      { id: 'proxy-2', enabled: true, ip: '10.0.0.2', port: '8080' }
+    ];
+    config.scenarios.lists.push({ id: 'scenario-2', name: 'Work', proxies: [], defaultProxyId: null });
+    storageModule.setConfig(config);
+
+    storageModule.deleteProxy(0, 'scenario-1');
+    expect(scenario.defaultProxyId).toBeNull();
+
+    expect(storageModule.moveProxy(0, 'scenario-1', 'scenario-2')).toBe(true);
+    expect(scenario.defaultProxyId).toBeNull();
+    expect(config.scenarios.lists[1].defaultProxyId).toBeNull();
+  });
 });

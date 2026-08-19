@@ -101,7 +101,7 @@ describe('popup DOM interactions', () => {
     delete global.MainIcons;
   });
 
-  test('clicking an empty manual scenario clears the browser proxy', () => {
+  test('clicking an empty manual scenario delegates atomic activation to the worker', () => {
     const config = {
       scenarios: {
         current: 'scenario-a',
@@ -136,7 +136,7 @@ describe('popup DOM interactions', () => {
     $('#popup-scenario-options li[data-value="scenario-b"]').trigger('click');
 
     expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
-      { action: 'turnOffProxy' },
+      { action: 'activateScenario', scenarioId: 'scenario-b', source: 'manual' },
       expect.any(Function)
     );
   });

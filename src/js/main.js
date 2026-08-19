@@ -220,12 +220,92 @@ function saveConfig(options) {
 // ==========================================
 // UI Components
 // ==========================================
+let nativeSelectId = 0;
+
+function syncNativeSelect($select) {
+  const select = $select && $select[0];
+  if (!select) return;
+
+  const $container = $select.closest('.native-select-enhanced');
+  if (!$container.length) return;
+
+  const selectedOption = select.options[select.selectedIndex] || select.options[0];
+  const selectedValue = selectedOption ? selectedOption.value : '';
+  const selectedText = selectedOption ? selectedOption.text : '';
+  const $menu = $container.find('.native-select-options');
+
+  $container.find('.native-select-value').text(selectedText);
+  $menu.empty();
+
+  Array.from(select.options).forEach(function (option) {
+    const $item = $('<li role="option" tabindex="-1"></li>')
+      .attr('data-value', option.value)
+      .attr('aria-selected', option.value === selectedValue ? 'true' : 'false')
+      .text(option.text);
+
+    if (option.value === selectedValue) {
+      $item.addClass('selected-option');
+    }
+    if (option.disabled) {
+      $item.addClass('disabled-option').attr('aria-disabled', 'true');
+    }
+    $menu.append($item);
+  });
+
+  const isDisabled = Boolean(select.disabled);
+  $container.toggleClass('disabled', isDisabled);
+  $container.find('.native-select-trigger')
+    .prop('disabled', isDisabled)
+    .attr('aria-disabled', isDisabled ? 'true' : 'false');
+}
+
+function enhanceNativeSelects(root) {
+  const $root = $(root || document);
+  let $selects = $root.is('select') ? $root : $root.find('select');
+  $selects = $selects.filter(':not([multiple])').not('.native-select-source');
+
+  $selects.each(function () {
+    const $select = $(this);
+    if ($select.closest('.native-select-enhanced').length) return;
+
+    nativeSelectId += 1;
+    const menuId = `native-select-options-${nativeSelectId}`;
+    const originalTabIndex = $select.attr('tabindex');
+    const labelText = $select.attr('aria-label') || $select.closest('.form-item').find('label').first().text().trim();
+    const icon = typeof MainIcons !== 'undefined'
+      ? MainIcons.render('chevronDown', { width: 14, height: 14, className: 'select-icon' })
+      : '<span class="select-icon" aria-hidden="true">⌄</span>';
+    const $container = $('<div class="lh-select native-select-enhanced"></div>');
+    const $trigger = $(`<button type="button" class="lh-select-k native-select-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="${menuId}"></button>`);
+    const $value = $('<span class="lh-select-value native-select-value"></span>');
+    const $menu = $(`<ul id="${menuId}" class="lh-select-op native-select-options" role="listbox"></ul>`);
+
+    if (originalTabIndex !== undefined) {
+      $trigger.attr('tabindex', originalTabIndex);
+    }
+    if (labelText) {
+      $trigger.attr('aria-label', labelText);
+    }
+
+    $trigger.append($value).append(icon);
+    $select.wrap($container);
+    $select.before($trigger, $menu);
+    $select.addClass('native-select-source').attr({
+      'aria-hidden': 'true',
+      'tabindex': '-1'
+    });
+    syncNativeSelect($select);
+  });
+}
+
 function initDropdowns() {
   function closeDropdowns($except) {
     const $menus = $except ? $('.lh-select-op').not($except) : $('.lh-select-op');
     $menus.hide().removeClass('drop-up');
     $menus.each(function () {
-      $(this).closest('.lh-select, .header-left-controls').removeClass('dropdown-open');
+      const $container = $(this).closest('.lh-select, .header-left-controls');
+      $container.removeClass('dropdown-open');
+      $container.find('.native-select-trigger').attr('aria-expanded', 'false');
     });
   }
 
@@ -247,6 +327,13 @@ function initDropdowns() {
     closeDropdowns();
   });
 
+  enhanceNativeSelects(document);
+
+  $(document).off('change.nativeSelectSync', 'select.native-select-source')
+    .on('change.nativeSelectSync', 'select.native-select-source', function () {
+      syncNativeSelect($(this));
+    });
+
   $(document).off("click", ".lh-select-k").on("click", ".lh-select-k", function (e) {
     e.stopPropagation();
     const that = this;
@@ -265,6 +352,7 @@ function initDropdowns() {
       const $select = $(that).closest('.lh-select');
       $select.addClass('dropdown-open');
       $op.show();
+      $select.find('.native-select-trigger').attr('aria-expanded', 'true');
       positionDropdown($op, $(that));
     }, 50);
   });
@@ -272,10 +360,13 @@ function initDropdowns() {
   $(document).off("click", ".lh-select-op li").on("click", ".lh-select-op li", function (e) {
     e.stopPropagation();
     const $li = $(this);
+    if ($li.hasClass('disabled-option')) return;
+
     const $container = $li.closest('.lh-select');
     const type = $container.data("type");
     $li.parent().removeClass('drop-up');
     $container.removeClass('dropdown-open');
+    $container.find('.native-select-trigger').attr('aria-expanded', 'false');
     $li.closest('.header-left-controls').removeClass('dropdown-open');
 
     $li.siblings().removeClass("selected-option");
@@ -284,6 +375,13 @@ function initDropdowns() {
 
     const txt = $li.text();
     const val = $li.data("value") || txt;
+
+    const $nativeSelect = $container.find('select.native-select-source');
+    if ($nativeSelect.length) {
+      const nativeValue = $li.attr('data-value');
+      $nativeSelect.val(nativeValue === undefined ? '' : nativeValue).trigger('change');
+      return;
+    }
 
     const $selectVal = $container.find(".lh-select-value");
     $selectVal.text(txt);
@@ -316,6 +414,43 @@ function initDropdowns() {
       }
     }
   });
+
+  $(document).off('keydown.nativeSelect', '.native-select-trigger, .native-select-options li')
+    .on('keydown.nativeSelect', '.native-select-trigger, .native-select-options li', function (e) {
+      const $target = $(this);
+      const $container = $target.closest('.native-select-enhanced');
+      const $trigger = $container.find('.native-select-trigger');
+      const $options = $container.find('.native-select-options li:not(.disabled-option)');
+
+      if ($target.hasClass('native-select-trigger')) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (e.key !== 'ArrowDown' || !$container.hasClass('dropdown-open')) {
+            $trigger.trigger('click');
+          }
+          setTimeout(function () {
+            const $selected = $options.filter('.selected-option');
+            ($selected.length ? $selected : $options.first()).trigger('focus');
+          }, 60);
+        }
+        return;
+      }
+
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        $target.trigger('click');
+        $trigger.trigger('focus');
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const index = $options.index($target);
+        const offset = e.key === 'ArrowDown' ? 1 : -1;
+        $options.eq((index + offset + $options.length) % $options.length).trigger('focus');
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closeDropdowns();
+        $trigger.trigger('focus');
+      }
+    });
 
   // Listen for storage changes
   chrome.storage.onChanged.addListener(function (changes, namespace) {
@@ -445,7 +580,6 @@ function bindGlobalEvents() {
     if (e.key === "Escape") {
       const popupOrder = [
         '.alert-scenario-tip',
-        '.add-scenario-tip',
         '.edit-scenario-tip',
         '.delete-scenario-tip',
         '.sync-config-tip',
@@ -462,9 +596,6 @@ function bindGlobalEvents() {
           setTimeout(function (popup) {
             return function () { popup.hide(); };
           }($popup), 300);
-          if ($popup.hasClass('add-scenario-tip')) {
-            $("#open-add-scenario-btn").trigger("focus");
-          }
           return;
         }
       }
@@ -538,3 +669,4 @@ $(".pac-details-tip").hide();
 // Export for use in other modules
 // ==========================================
 window.saveConfig = saveConfig;
+window.enhanceNativeSelects = enhanceNativeSelects;
