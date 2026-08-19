@@ -81,7 +81,8 @@ const StorageModule = (function () {
           name: 'Default',
           proxies: []
         }]
-      }
+      },
+      subscriptions: []
     };
   }
 
@@ -131,6 +132,7 @@ const StorageModule = (function () {
     if (!config) return config;
 
     const copy = JSON.parse(JSON.stringify(config));
+    delete copy.subscriptions;
     const scenarios = copy.scenarios?.lists || [];
     scenarios.forEach(scenario => {
       (scenario.proxies || []).forEach(proxy => {
@@ -147,22 +149,42 @@ const StorageModule = (function () {
 
   function mergeSubscriptionChanges(newConfig) {
     if (!configCache || !newConfig) return;
+    configCache.subscriptions = newConfig.subscriptions || [];
+  }
 
-    const incomingProxies = new Map();
-    (newConfig.scenarios?.lists || []).forEach(scenario => {
+  function getSubscriptions() {
+    return configCache?.subscriptions || [];
+  }
+
+  function getSubscription(id) {
+    return getSubscriptions().find(item => item.id === id);
+  }
+
+  function addSubscription(subscription) {
+    if (!configCache.subscriptions) configCache.subscriptions = [];
+    configCache.subscriptions.push(subscription);
+    return subscription;
+  }
+
+  function updateSubscription(id, updates) {
+    const subscription = getSubscription(id);
+    if (subscription) Object.assign(subscription, updates);
+    return subscription;
+  }
+
+  function deleteSubscription(id) {
+    if (!configCache) return;
+    configCache.subscriptions = getSubscriptions().filter(item => item.id !== id);
+    getScenarios().forEach(scenario => {
       (scenario.proxies || []).forEach(proxy => {
-        if (proxy.id) incomingProxies.set(proxy.id, proxy);
+        proxy.subscription_ids = (proxy.subscription_ids || []).filter(subscriptionId => subscriptionId !== id);
       });
     });
+  }
 
-    (configCache.scenarios?.lists || []).forEach(scenario => {
-      (scenario.proxies || []).forEach(proxy => {
-        const incomingProxy = proxy.id ? incomingProxies.get(proxy.id) : null;
-        if (incomingProxy) {
-          proxy.subscription = incomingProxy.subscription;
-        }
-      });
-    });
+  function reorderSubscriptions(newOrder) {
+    if (!configCache) return;
+    configCache.subscriptions = newOrder;
   }
 
   // ==========================================
@@ -347,6 +369,12 @@ const StorageModule = (function () {
     setConfig,
     isSubscriptionOnlyChange,
     mergeSubscriptionChanges,
+    getSubscriptions,
+    getSubscription,
+    addSubscription,
+    updateSubscription,
+    deleteSubscription,
+    reorderSubscriptions,
     getScenarios,
     getCurrentScenarioId,
     setCurrentScenarioId,

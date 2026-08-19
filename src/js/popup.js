@@ -4,6 +4,7 @@
 let scenarios = [];
 let currentScenarioId = null;
 let list = [];
+let subscriptions = [];
 let themeMode = 'light';
 
 function getProxyDisplayColor(color) {
@@ -42,6 +43,7 @@ function initApp() {
       currentScenarioId = defaultId;
       list = [];
     } else {
+      subscriptions = config.subscriptions || [];
       scenarios = config.scenarios?.lists || [];
       currentScenarioId = config.scenarios?.current || 'default';
       const currentScenario = scenarios.find(s => s.id === currentScenarioId);
@@ -77,6 +79,23 @@ function initApp() {
   bindGlobalEvents();
 }
 
+function getProxySubscriptions(proxy) {
+  const ids = Array.isArray(proxy?.subscription_ids) ? proxy.subscription_ids : [];
+  const selected = ids.map(id => subscriptions.find(item => item.id === id))
+    .filter(subscription => subscription && subscription.enabled !== false);
+  if (!selected.length && proxy?.subscription && proxy.subscription.enabled !== false) {
+    return [proxy.subscription];
+  }
+  return selected;
+}
+
+function getProxySubscriptionRules(proxy, type) {
+  return getProxySubscriptions(proxy).map(subscription => {
+    const item = subscription.lists?.[subscription.current];
+    return type === 'bypass' ? item?.bypass_rules : item?.include_rules;
+  }).filter(Boolean).join('\n');
+}
+
 function renderScenarioButtonIcon() {
   if (typeof MainIcons === 'undefined' || typeof MainIcons.render !== 'function') {
     return;
@@ -108,18 +127,15 @@ function getProxyIncludeRules(proxy) {
     includeRules.push(...proxy.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s));
   }
 
-  if (proxy.subscription && proxy.subscription.enabled !== false && proxy.subscription.current) {
+  const subscriptionRules = getProxySubscriptionRules(proxy, 'include');
+  if (subscriptionRules) {
     try {
-      const format = proxy.subscription.current;
-      const subConfig = proxy.subscription.lists ? proxy.subscription.lists[format] : null;
-      if (subConfig && subConfig.include_rules) {
-        const subRules = subConfig.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+        const subRules = subscriptionRules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
         subRules.forEach(rule => {
           if (!includeRules.includes(rule)) {
             includeRules.push(rule);
           }
         });
-      }
     } catch (e) {
       console.info('Error merging subscription rules in popup:', e);
     }
@@ -226,6 +242,7 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
   if (namespace === 'local' && changes.config) {
     const newConfig = changes.config.newValue;
     if (newConfig) {
+      subscriptions = newConfig.subscriptions || [];
       scenarios = newConfig.scenarios?.lists || [];
       currentScenarioId = newConfig.scenarios?.current || 'default';
       const currentScenario = scenarios.find(s => s.id === currentScenarioId);
@@ -630,19 +647,15 @@ function bindListEvents() {
     }
 
     // Also include subscription bypass rules
-    if (info.subscription && info.subscription.enabled !== false && info.subscription.current) {
-      const format = info.subscription.current;
-      const subConfig = info.subscription.lists ? info.subscription.lists[format] : null;
-
-      if (subConfig && subConfig.bypass_rules) {
-        const subBypass = subConfig.bypass_rules.trim();
+    const subscriptionBypassRules = getProxySubscriptionRules(info, 'bypass');
+    if (subscriptionBypassRules) {
+        const subBypass = subscriptionBypassRules.trim();
         if (subBypass) {
           if (bypassOutput) {
             bypassOutput += '\n--- 订阅规则 ---\n';
           }
           bypassOutput += subBypass;
         }
-      }
     }
 
     console.log('不使用代理的地址 (手动模式):', bypassOutput || '(无)');
@@ -893,10 +906,7 @@ function updateBypassButton() {
         }
 
         // Check subscription bypass rules
-        const subscription = currentProxy.subscription || {};
-        const format = subscription.current || 'autoproxy';
-        const subConfig = subscription.lists ? subscription.lists[format] : null;
-        const subBypassRules = subConfig ? subConfig.bypass_rules || '' : '';
+        const subBypassRules = getProxySubscriptionRules(currentProxy, 'bypass');
 
         // Check if already in bypass list (using exact match for toggle)
         const bypassUrls = currentProxy.bypass_rules || '';

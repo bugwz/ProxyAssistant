@@ -2,10 +2,11 @@
 // Subscription configuration, fetching, and conversion
 
 const SubscriptionModule = (function () {
-  let currentProxyIndex = -1;
+  let currentSubscriptionId = null;
   // Holds the state for the currently open modal
   // Structure: { current: '...', lists: { ... } }
   let subscriptionConfig = null;
+  let managementExpansionMode = 'auto';
 
   const FORMATS = ['autoproxy', 'switchy_legacy', 'switchy_omega', 'pac'];
   const FORMAT_NAMES = {
@@ -17,11 +18,13 @@ const SubscriptionModule = (function () {
 
   function init() {
     bindEvents();
+    initManagementSortable();
+    renderManagementList();
   }
 
   function getEmptyConfig() {
     const config = {
-      enabled: false,
+      enabled: true,
       current: 'autoproxy',
       lists: {}
     };
@@ -56,6 +59,98 @@ const SubscriptionModule = (function () {
   }
 
   function bindEvents() {
+    $('#subscription-expand-collapse-btn').on('click', function () {
+      const shouldCollapse = managementExpansionMode === 'expanded';
+      managementExpansionMode = shouldCollapse ? 'collapsed' : 'expanded';
+      $('#subscription-manage-list .subscription-card').toggleClass('collapsed', shouldCollapse);
+      updateManagementCardToggleState();
+      syncManagementExpandCollapseButton();
+    });
+
+    $('#add-subscription-btn').on('click', function () {
+      const subscription = {
+        ...getEmptyConfig(),
+        id: `subscription-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name: '',
+        is_new: true
+      };
+      StorageModule.addSubscription(subscription);
+      managementExpansionMode = 'auto';
+      renderManagementList();
+
+      const $card = $(`.subscription-card[data-id="${subscription.id}"]`);
+      if ($card.length) {
+        $('html, body').animate({ scrollTop: $card.offset().top - 100 }, 300);
+        $card.find('.subscription-name-input').trigger('focus');
+      }
+    });
+
+    $(document).off('click.subscriptionCard', '.subscription-card-header')
+      .on('click.subscriptionCard', '.subscription-card-header', function (event) {
+        if ($(event.target).closest('button, input, label, select, .drag-handle').length) return;
+        toggleManagementCard($(this).closest('.subscription-card'));
+      });
+
+    $(document).off('change.subscriptionCard', '.subscription-card-enabled')
+      .on('change.subscriptionCard', '.subscription-card-enabled', function () {
+        const subscription = getCardSubscription($(this).closest('.subscription-card'));
+        if (!subscription) return;
+        subscription.enabled = $(this).prop('checked');
+        $(this).closest('.subscription-card').toggleClass('disabled', !subscription.enabled)
+          .find('.subscription-status-text')
+          .text(subscription.enabled ? I18n.t('status_enabled') : I18n.t('status_disabled'));
+      });
+
+    $(document).off('change.subscriptionCard', '.subscription-card-format')
+      .on('change.subscriptionCard', '.subscription-card-format', function () {
+        const $card = $(this).closest('.subscription-card');
+        const subscription = getCardSubscription($card);
+        if (!subscription) return;
+        collectCardData($card, subscription);
+        subscription.current = $(this).val();
+        renderManagementList();
+      });
+
+    $(document).off('click.subscriptionCard', '.subscription-card-tab')
+      .on('click.subscriptionCard', '.subscription-card-tab', function () {
+        const $card = $(this).closest('.subscription-card');
+        const tab = $(this).data('tab');
+        $card.find('.subscription-card-tab').removeClass('active');
+        $(this).addClass('active');
+        $card.find('.subscription-card-pane').removeClass('active');
+        $card.find(`.subscription-card-pane[data-pane="${tab}"]`).addClass('active');
+      });
+
+    $(document).off('click.subscriptionCard', '.subscription-card-fetch')
+      .on('click.subscriptionCard', '.subscription-card-fetch', function () {
+        fetchCardSubscription($(this).closest('.subscription-card'), $(this));
+      });
+
+    $(document).off('click.subscriptionCard', '.subscription-card-save')
+      .on('click.subscriptionCard', '.subscription-card-save', function () {
+        saveCardSubscription($(this).closest('.subscription-card'));
+      });
+
+    $(document).off('click.subscriptionCard', '.subscription-card-delete')
+      .on('click.subscriptionCard', '.subscription-card-delete', function () {
+        deleteCardSubscription($(this).closest('.subscription-card'));
+      });
+
+    $(document).off('input.subscriptionCard', '.subscription-name-input')
+      .on('input.subscriptionCard', '.subscription-name-input', function () {
+        const $card = $(this).closest('.subscription-card');
+        const name = $card.find('.subscription-name-input').val().trim() || I18n.t('subscription_unnamed');
+        $card.find('.subscription-title-preview').text(name).attr('title', name);
+      });
+
+    $(document).off('click.subscriptionCard', '.subscription-card-collapse')
+      .on('click.subscriptionCard', '.subscription-card-collapse', function () {
+        toggleManagementCard($(this).closest('.subscription-card'));
+      });
+
+    $(document).off('click.subscriptionCard', '.subscription-manage-delete').on('click.subscriptionCard', '.subscription-manage-delete', function () {
+      deleteCardSubscription($(this).closest('.subscription-card'));
+    });
     $('.subscription-config-close-btn, .subscription-config-tip').on('click', function (e) {
       if (this === e.target || $(this).hasClass('subscription-config-close-btn')) {
         closeModal();
@@ -149,8 +244,8 @@ const SubscriptionModule = (function () {
     });
   }
 
-  function openModal(proxyIndex) {
-    currentProxyIndex = proxyIndex;
+  function openModal(subscriptionId) {
+    currentSubscriptionId = subscriptionId || null;
     loadModalData();
     updateModalUI();
     // Default to original tab
@@ -163,22 +258,22 @@ const SubscriptionModule = (function () {
     setTimeout(function () {
       $('.subscription-config-tip').hide();
     }, 300);
-    currentProxyIndex = -1;
+    currentSubscriptionId = null;
     subscriptionConfig = null;
   }
 
   function loadModalData() {
     subscriptionConfig = getEmptyConfig();
 
-    const proxyList = ProxyModule.getList();
-    const proxy = currentProxyIndex >= 0 && proxyList ? proxyList[currentProxyIndex] : null;
+    const savedSubscription = currentSubscriptionId ? StorageModule.getSubscription(currentSubscriptionId) : null;
+    $('#subscription-name').val(savedSubscription?.name || '');
 
-    if (proxy && proxy.subscription) {
-      subscriptionConfig.enabled = proxy.subscription.enabled !== false;
-      const savedCurrent = proxy.subscription.current || proxy.subscription.activeFormat || 'autoproxy';
+    if (savedSubscription) {
+      subscriptionConfig.enabled = savedSubscription.enabled !== false;
+      const savedCurrent = savedSubscription.current || savedSubscription.activeFormat || 'autoproxy';
       subscriptionConfig.current = FORMATS.includes(savedCurrent) ? savedCurrent : FORMATS[0];
 
-      const savedLists = proxy.subscription.lists || proxy.subscription.formats || {};
+      const savedLists = savedSubscription.lists || savedSubscription.formats || {};
 
       [...FORMATS].forEach(f => {
         if (savedLists[f]) {
@@ -433,12 +528,8 @@ const SubscriptionModule = (function () {
     };
     updateModalUI();
 
-    if (currentProxyIndex >= 0 && (oldRefreshInterval > 0 || oldUrl)) {
-      const proxyList = ProxyModule.getList();
-      const proxy = proxyList?.[currentProxyIndex];
-      if (proxy?.id) {
-        disableBackgroundRefresh(proxy.id, format);
-      }
+    if (currentSubscriptionId && (oldRefreshInterval > 0 || oldUrl)) {
+      disableBackgroundRefresh(currentSubscriptionId, format);
     }
   }
 
@@ -523,16 +614,21 @@ const SubscriptionModule = (function () {
       return;
     }
 
-    const proxyList = ProxyModule.getList();
-    if (currentProxyIndex >= 0 && proxyList && proxyList[currentProxyIndex]) {
-      const proxy = proxyList[currentProxyIndex];
-      const oldUrl = proxy.subscription?.lists?.[format]?.url || '';
+    const name = $('#subscription-name').val().trim();
+    if (!name) {
+      UtilsModule.showTip(I18n.t('subscription_name_required'), true);
+      return;
+    }
 
-      proxy.subscription = {
+    const oldSubscription = currentSubscriptionId ? StorageModule.getSubscription(currentSubscriptionId) : null;
+    const oldUrl = oldSubscription?.lists?.[format]?.url || '';
+    const savedSubscription = {
+        id: currentSubscriptionId || `subscription-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name: name,
         enabled: subscriptionConfig.enabled !== false,
         current: subscriptionConfig.current,
         lists: {}
-      };
+    };
 
       Object.keys(subscriptionConfig.lists).forEach(key => {
         const item = subscriptionConfig.lists[key];
@@ -553,34 +649,34 @@ const SubscriptionModule = (function () {
         if (key === 'pac') {
           saveItem.process_rule = item.process_rule || '';
         }
-        proxy.subscription.lists[key] = saveItem;
+        savedSubscription.lists[key] = saveItem;
       });
 
-      delete proxy.subscription_config;
+      if (oldSubscription) {
+        StorageModule.updateSubscription(currentSubscriptionId, savedSubscription);
+      } else {
+        StorageModule.addSubscription(savedSubscription);
+        currentSubscriptionId = savedSubscription.id;
+      }
 
+      const savedId = savedSubscription.id;
       ProxyModule.saveData({
         successMsg: I18n.t('subscription_save_success'),
         callback: function (success) {
           if (success) {
+            renderManagementList();
+            ProxyModule.renderList();
             closeModal();
-            if (currentProxyIndex >= 0) {
-              const proxyList = ProxyModule.getList();
-              const proxy = proxyList?.[currentProxyIndex];
-              if (proxy?.id && proxy?.subscription) {
-                const newUrl = proxy.subscription.lists?.[format]?.url || '';
-                const newInterval = proxy.subscription.lists?.[format]?.refresh_interval || 0;
-
-                if (newInterval <= 0 || !newUrl) {
-                  disableBackgroundRefresh(proxy.id, format);
-                } else {
-                  scheduleBackgroundRefresh(proxy.id, proxy.subscription);
-                }
-              }
+            const newUrl = savedSubscription.lists?.[format]?.url || '';
+            const newInterval = savedSubscription.lists?.[format]?.refresh_interval || 0;
+            if (newInterval <= 0 || !newUrl) {
+              disableBackgroundRefresh(savedId, format);
+            } else {
+              scheduleBackgroundRefresh(savedId, savedSubscription);
             }
           }
         }
       });
-    }
   }
 
   function scheduleBackgroundRefresh(proxyId, subscription) {
@@ -619,16 +715,8 @@ const SubscriptionModule = (function () {
   }
 
   function scheduleAllBackgroundRefreshes(config) {
-    if (!config?.scenarios?.lists) return;
-
-    config.scenarios.lists.forEach(scenario => {
-      if (scenario.proxies) {
-        scenario.proxies.forEach(proxy => {
-          if (proxy.id && proxy.subscription) {
-            scheduleBackgroundRefresh(proxy.id, proxy.subscription);
-          }
-        });
-      }
+    (config?.subscriptions || []).forEach(subscription => {
+      if (subscription.id) scheduleBackgroundRefresh(subscription.id, subscription);
     });
   }
 
@@ -1536,6 +1624,406 @@ const SubscriptionModule = (function () {
     };
   }
 
+  function getProxySubscriptions(proxy) {
+    const ids = Array.isArray(proxy?.subscription_ids) ? proxy.subscription_ids : [];
+    if (typeof StorageModule.getSubscription !== 'function') {
+      return proxy?.subscription ? [proxy.subscription] : [];
+    }
+    return ids.map(id => StorageModule.getSubscription(id)).filter(Boolean);
+  }
+
+  function getProxySubscriptionLineCounts(proxy) {
+    return getProxySubscriptions(proxy).reduce((totals, subscription) => {
+      if (subscription.enabled === false) return totals;
+      const counts = getSubscriptionLineCounts(subscription);
+      totals.include_lines += counts.include_lines;
+      totals.bypass_lines += counts.bypass_lines;
+      return totals;
+    }, { include_lines: 0, bypass_lines: 0 });
+  }
+
+  function getCardSubscription($card) {
+    return StorageModule.getSubscription($card.data('id'));
+  }
+
+  function ensureFormatConfig(subscription, format) {
+    if (!subscription.lists) subscription.lists = {};
+    if (!subscription.lists[format]) {
+      subscription.lists[format] = getEmptyConfig().lists[format];
+    }
+    if (format === 'pac' && !subscription.lists[format].process_rule) {
+      subscription.lists[format].process_rule = getDefaultPacProcessRule();
+    }
+    return subscription.lists[format];
+  }
+
+  function collectCardData($card, subscription) {
+    const format = subscription.current || 'autoproxy';
+    const item = ensureFormatConfig(subscription, format);
+    subscription.name = $card.find('.subscription-name-input').val().trim();
+    subscription.enabled = $card.find('.subscription-card-enabled').prop('checked');
+    item.url = $card.find('.subscription-url-input').val().trim();
+    item.reverse = $card.find('.subscription-card-reverse').val() === 'true';
+    item.refresh_interval = parseInt($card.find('.subscription-card-refresh').val(), 10) || 0;
+    if (format === 'pac') {
+      item.process_rule = $card.find('.subscription-process-rule-input').val() || '';
+    }
+  }
+
+  function formatLastUpdated(timestamp) {
+    if (!timestamp) return '-';
+    const date = new Date(timestamp);
+    const pad = value => String(value).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  function renderFormatOptions(selected) {
+    return FORMATS.map(format => `<option value="${format}"${format === selected ? ' selected' : ''}>${FORMAT_NAMES[format]}</option>`).join('');
+  }
+
+  function renderRefreshOptions(selected) {
+    const options = [
+      [0, I18n.t('interval_never')],
+      [1, I18n.t('interval_1m')],
+      [360, I18n.t('interval_6h')],
+      [720, I18n.t('interval_12h')],
+      [1440, I18n.t('interval_1d')],
+      [7200, I18n.t('interval_5d')]
+    ];
+    return options.map(([value, label]) => `<option value="${value}"${value === selected ? ' selected' : ''}>${label}</option>`).join('');
+  }
+
+  async function fetchCardSubscription($card, $button) {
+    const subscription = getCardSubscription($card);
+    if (!subscription || $button.prop('disabled')) return;
+    collectCardData($card, subscription);
+
+    const format = subscription.current;
+    const item = ensureFormatConfig(subscription, format);
+    if (!item.url) {
+      UtilsModule.showTip(I18n.t('subscription_empty_url'), true);
+      $card.find('.subscription-url-input').addClass('input-error').trigger('focus');
+      return;
+    }
+
+    $button.prop('disabled', true).addClass('btn-loading');
+    try {
+      const response = await fetch(item.url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const content = await response.text();
+      if (!isFormatValid(content, format)) throw new Error(I18n.t('alert_invalid_format'));
+
+      item.content = content;
+      item.last_fetch_time = Date.now();
+      updateSubscriptionParsedData(format, item);
+      renderManagementList();
+      UtilsModule.showTip(I18n.t('subscription_fetch_success'), false);
+    } catch (error) {
+      console.info('Subscription fetch failed:', error);
+      UtilsModule.showTip(`${I18n.t('subscription_fetch_failed')}: ${error.message}`, true);
+    } finally {
+      $button.prop('disabled', false).removeClass('btn-loading');
+    }
+  }
+
+  function saveCardSubscription($card) {
+    const subscription = getCardSubscription($card);
+    if (!subscription) return;
+    collectCardData($card, subscription);
+
+    if (!subscription.name) {
+      $card.find('.subscription-name-input').addClass('input-error').trigger('focus');
+      UtilsModule.showTip(I18n.t('subscription_name_required'), true);
+      return;
+    }
+
+    const format = subscription.current;
+    const item = ensureFormatConfig(subscription, format);
+    if (format === 'pac') {
+      const validation = validatePacProcessRule(item.process_rule || '');
+      if (!validation.valid) {
+        UtilsModule.showTip(`${I18n.t('subscription_save_failed')}: ${I18n.t(validation.error)}`, true);
+        return;
+      }
+    }
+    if (item.content) updateSubscriptionParsedData(format, item);
+    delete subscription.is_new;
+
+    StorageModule.save().then(function () {
+      renderManagementList();
+      ProxyModule.renderList();
+      if (item.refresh_interval > 0 && item.url && subscription.enabled !== false) {
+        scheduleBackgroundRefresh(subscription.id, subscription);
+      } else {
+        disableBackgroundRefresh(subscription.id, format);
+      }
+      UtilsModule.showTip(I18n.t('subscription_save_success'), false);
+    }).catch(function (error) {
+      console.info('Subscription save failed:', error);
+      UtilsModule.showTip(I18n.t('subscription_save_failed'), true);
+    });
+  }
+
+  function deleteCardSubscription($card) {
+    const subscription = getCardSubscription($card);
+    if (!subscription || !window.confirm(I18n.t('subscription_delete_confirm'))) return;
+    StorageModule.deleteSubscription(subscription.id);
+    StorageModule.save().then(function () {
+      renderManagementList();
+      ProxyModule.renderList();
+    });
+  }
+
+  function syncManagementExpandCollapseButton() {
+    const $button = $('#subscription-expand-collapse-btn');
+    if (!$button.length) return;
+
+    if (managementExpansionMode === 'expanded') {
+      $button.addClass('expanded');
+      $button.html(`${MainIcons.render('collapse', { width: 16, height: 16, className: 'icon-collapse' })} <span data-i18n="collapse_all">${I18n.t('collapse_all')}</span>`);
+      return;
+    }
+
+    $button.removeClass('expanded');
+    $button.html(`${MainIcons.render('expand', { width: 16, height: 16, className: 'icon-expand' })} <span data-i18n="expand_all">${I18n.t('expand_all')}</span>`);
+  }
+
+  function updateManagementExpansionModeFromCards() {
+    const $cards = $('#subscription-manage-list .subscription-card');
+    const collapsedCount = $cards.filter('.collapsed').length;
+
+    if (!$cards.length) {
+      managementExpansionMode = 'auto';
+    } else if (collapsedCount === 0) {
+      managementExpansionMode = 'expanded';
+    } else if (collapsedCount === $cards.length) {
+      managementExpansionMode = 'collapsed';
+    } else {
+      managementExpansionMode = 'auto';
+    }
+    syncManagementExpandCollapseButton();
+  }
+
+  function updateManagementCardToggleState() {
+    $('#subscription-manage-list .subscription-card').each(function () {
+      const $card = $(this);
+      const isExpanded = !$card.hasClass('collapsed');
+      $card.find('.subscription-card-collapse')
+        .attr('aria-expanded', String(isExpanded))
+        .attr('title', I18n.t(isExpanded ? 'collapse_all' : 'expand_all'));
+    });
+  }
+
+  function toggleManagementCard($card) {
+    $card.toggleClass('collapsed');
+    updateManagementCardToggleState();
+    updateManagementExpansionModeFromCards();
+  }
+
+  function initManagementSortable() {
+    const $container = $('#subscription-manage-list');
+    $container.off('mousedown.subscriptionSort', '.subscription-drag-handle');
+    $container.on('mousedown.subscriptionSort', '.subscription-drag-handle', function (event) {
+      if (event.button !== 0) return;
+      event.preventDefault();
+
+      $container.find('.subscription-card').each(function () {
+        const $card = $(this);
+        const subscription = getCardSubscription($card);
+        if (subscription) collectCardData($card, subscription);
+      });
+
+      const $item = $(this).closest('.subscription-card');
+      if (!$item.length) return;
+
+      const rect = $item[0].getBoundingClientRect();
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const $placeholder = $('<div class="drag-placeholder subscription-drag-placeholder"></div>').css({
+        height: rect.height,
+        marginBottom: 0
+      });
+      const $clone = $item.clone().addClass('proxy-card-clone').css({
+        position: 'fixed',
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height,
+        zIndex: 10000,
+        opacity: 0.95,
+        boxShadow: '0 10px 20px rgba(0,0,0,0.15)',
+        pointerEvents: 'none',
+        margin: 0,
+        transform: 'scale(1.02)',
+        transition: 'none'
+      });
+
+      $('body').append($clone);
+      $item.before($placeholder).hide();
+
+      function moveItem(clientX, clientY) {
+        $clone.css({
+          top: rect.top + (clientY - startY),
+          left: rect.left + (clientX - startX)
+        });
+
+        let $target = null;
+        $container.find('.subscription-card:not(:hidden)').each(function () {
+          const targetRect = this.getBoundingClientRect();
+          if (clientY < targetRect.top + targetRect.height / 2) {
+            $target = $(this);
+            return false;
+          }
+        });
+
+        if ($target) {
+          $target.before($placeholder);
+        } else {
+          $container.append($placeholder);
+        }
+      }
+
+      function finishSort() {
+        $(document).off('mousemove.subscriptionSort mouseup.subscriptionSort');
+        $clone.remove();
+        $placeholder.replaceWith($item);
+        $item.show();
+
+        const subscriptions = StorageModule.getSubscriptions();
+        const subscriptionsById = new Map(subscriptions.map(subscription => [subscription.id, subscription]));
+        const newOrder = $container.find('.subscription-card').map(function () {
+          return subscriptionsById.get(String($(this).data('id')));
+        }).get().filter(Boolean);
+        const hasChanged = newOrder.some((subscription, index) => subscription !== subscriptions[index]);
+
+        if (!hasChanged) return;
+        StorageModule.reorderSubscriptions(newOrder);
+        StorageModule.save().then(function () {
+          renderManagementList();
+          ProxyModule.renderList();
+          UtilsModule.showTip(I18n.t('sort_success'), false);
+        }).catch(function (error) {
+          console.info('Subscription sort failed:', error);
+          renderManagementList();
+          UtilsModule.showTip(I18n.t('save_failed'), true);
+        });
+      }
+
+      $(document).on('mousemove.subscriptionSort', function (moveEvent) {
+        moveItem(moveEvent.clientX, moveEvent.clientY);
+      });
+      $(document).on('mouseup.subscriptionSort', finishSort);
+    });
+  }
+
+  function renderManagementList() {
+    const $list = $('#subscription-manage-list');
+    if (!$list.length) return;
+
+    const expandedIds = new Set();
+    $list.find('.subscription-card:not(.collapsed)').each(function () {
+      expandedIds.add($(this).data('id'));
+    });
+
+    const subscriptions = typeof StorageModule.getSubscriptions === 'function' ? StorageModule.getSubscriptions().slice() : [];
+    if (!subscriptions.length) {
+      $list.html(`<div class="subscription-manage-empty">${I18n.t('subscription_empty_list')}</div>`);
+      managementExpansionMode = 'auto';
+      syncManagementExpandCollapseButton();
+      return;
+    }
+
+    const html = subscriptions.map((subscription, index) => {
+      const format = subscription.current || 'autoproxy';
+      const item = ensureFormatConfig(subscription, format);
+      const counts = getSubscriptionLineCounts(subscription);
+      const name = subscription.name || I18n.t('subscription_unnamed');
+      const lastUpdated = formatLastUpdated(item.last_fetch_time);
+      const isExpanded = managementExpansionMode === 'expanded'
+        || (managementExpansionMode === 'auto' && (subscription.is_new || expandedIds.has(subscription.id)));
+      const collapsed = isExpanded ? '' : ' collapsed';
+      const disabled = subscription.enabled === false ? ' disabled' : '';
+      return `<div class="proxy-card subscription-card${collapsed}${disabled}" data-id="${UtilsModule.escapeHtml(subscription.id)}">
+        <div class="proxy-header subscription-card-header">
+          <div class="header-left">
+            <div class="drag-handle subscription-drag-handle" title="${I18n.t('drag_sort')}">
+              ${MainIcons.render('dragHandle', { width: 20, height: 20 })}
+            </div>
+            <span class="proxy-index">#${index + 1}</span>
+            <div class="proxy-type-badge subscription-type-badge ${format}">${FORMAT_NAMES[format] || format}</div>
+            <div class="subscription-title-preview" title="${UtilsModule.escapeHtml(name)}">${UtilsModule.escapeHtml(name)}</div>
+          </div>
+          <div class="header-right">
+            <span class="subscription-last-updated" title="${UtilsModule.escapeHtml(I18n.t('subscription_last_updated'))}">${lastUpdated}</span>
+            <div class="status-container">
+              <span class="status-text subscription-status-text">${subscription.enabled === false ? I18n.t('status_disabled') : I18n.t('status_enabled')}</span>
+              <label class="switch-modern">
+                <input type="checkbox" class="subscription-card-enabled"${subscription.enabled === false ? '' : ' checked'}>
+                <span class="slider-modern"></span>
+              </label>
+            </div>
+            <button type="button" class="subscription-card-collapse" title="${I18n.t(isExpanded ? 'collapse_all' : 'expand_all')}" aria-expanded="${isExpanded}">${MainIcons.render('chevronDown', { width: 16, height: 16 })}</button>
+          </div>
+        </div>
+        <div class="proxy-body">
+          <div class="proxy-body-container">
+            <div class="proxy-content-left subscription-card-content">
+              <div class="form-grid subscription-card-form">
+                <div class="form-item" style="grid-column: span 4;">
+                  <label>${I18n.t('subscription_name')}</label>
+                  <input type="text" class="subscription-name-input" value="${UtilsModule.escapeHtml(subscription.name || '')}" placeholder="${I18n.t('subscription_name')}">
+                </div>
+                <div class="form-item" style="grid-column: span 8;">
+                  <label>${I18n.t('subscription_url')}</label>
+                  <input type="text" class="subscription-url-input" value="${UtilsModule.escapeHtml(item.url || '')}" placeholder="https://example.com/subscription.ini">
+                </div>
+                <div class="form-item" style="grid-column: span 4;">
+                  <label>${I18n.t('subscription_format')}</label>
+                  <select class="subscription-card-select subscription-card-format">${renderFormatOptions(format)}</select>
+                </div>
+                <div class="form-item" style="grid-column: span 4;">
+                  <label>${I18n.t('reverse_rule')}</label>
+                  <select class="subscription-card-select subscription-card-reverse">
+                    <option value="false"${item.reverse ? '' : ' selected'}>${I18n.t('no')}</option>
+                    <option value="true"${item.reverse ? ' selected' : ''}>${I18n.t('yes')}</option>
+                  </select>
+                </div>
+                <div class="form-item" style="grid-column: span 4;">
+                  <label>${I18n.t('subscription_refresh_method')}</label>
+                  <select class="subscription-card-select subscription-card-refresh">${renderRefreshOptions(item.refresh_interval || 0)}</select>
+                </div>
+              </div>
+              <div class="subscription-card-content-panel">
+                <div class="subscription-card-tabs">
+                  <button type="button" class="subscription-card-tab active" data-tab="original">${I18n.t('subscription_content_original')}</button>
+                  ${format === 'pac' ? `<button type="button" class="subscription-card-tab" data-tab="process">${I18n.t('subscription_content_script')}</button>` : ''}
+                  <button type="button" class="subscription-card-tab" data-tab="include">${I18n.t('subscription_content_include')}</button>
+                  <button type="button" class="subscription-card-tab" data-tab="bypass">${I18n.t('subscription_content_bypass')}</button>
+                </div>
+                <div class="subscription-card-pane active" data-pane="original"><textarea readonly>${UtilsModule.escapeHtml(item.content || '')}</textarea></div>
+                ${format === 'pac' ? `<div class="subscription-card-pane" data-pane="process"><textarea class="subscription-process-rule-input">${UtilsModule.escapeHtml(item.process_rule || '')}</textarea></div>` : ''}
+                <div class="subscription-card-pane" data-pane="include"><textarea readonly>${UtilsModule.escapeHtml(item.include_rules || '')}</textarea></div>
+                <div class="subscription-card-pane" data-pane="bypass"><textarea readonly>${UtilsModule.escapeHtml(item.bypass_rules || '')}</textarea></div>
+                <div class="subscription-card-footer">
+                  <span>${formatLastUpdated(item.last_fetch_time)}</span>
+                  <span>${I18n.t('subscription_content_include')}: ${counts.include_lines} · ${I18n.t('subscription_content_bypass')}: ${counts.bypass_lines}</span>
+                </div>
+              </div>
+            </div>
+            <div class="proxy-content-right subscription-card-actions">
+              <button type="button" class="right-panel-btn btn-test subscription-card-fetch">${I18n.t('fetch_subscription')}</button>
+              <button type="button" class="right-panel-btn btn-save subscription-card-save">${I18n.t('save')}</button>
+              <button type="button" class="right-panel-btn btn-delete subscription-card-delete">${I18n.t('delete')}</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    $list.html(html);
+    updateManagementCardToggleState();
+    updateManagementExpansionModeFromCards();
+  }
+
   function generateSubscriptionStats(content, format, reverse, processRule) {
     if (!content) {
       return {
@@ -1559,15 +2047,13 @@ const SubscriptionModule = (function () {
   }
 
   function parseProxyListSubscriptions(proxyList) {
-    if (!proxyList || !Array.isArray(proxyList)) {
-      return;
-    }
-
-    proxyList.forEach((proxy) => {
-      if (!proxy.subscription || !proxy.subscription.lists) return;
-
-      Object.keys(proxy.subscription.lists).forEach((format) => {
-        const listConfig = proxy.subscription.lists[format];
+    const subscriptions = typeof StorageModule.getSubscriptions === 'function' ? StorageModule.getSubscriptions().slice() : [];
+    (proxyList || []).forEach(proxy => {
+      if (proxy.subscription) subscriptions.push(proxy.subscription);
+    });
+    subscriptions.forEach(subscription => {
+      Object.keys(subscription.lists || {}).forEach((format) => {
+        const listConfig = subscription.lists[format];
         if (listConfig.content) {
           const stats = generateSubscriptionStats(
             listConfig.content,
@@ -1592,6 +2078,9 @@ const SubscriptionModule = (function () {
     fetchSubscription: fetchSubscription,
     convertContent: convertContent,
     getSubscriptionLineCounts: getSubscriptionLineCounts,
+    getProxySubscriptions: getProxySubscriptions,
+    getProxySubscriptionLineCounts: getProxySubscriptionLineCounts,
+    renderManagementList: renderManagementList,
     generateSubscriptionStats: generateSubscriptionStats,
     parseRules: parseRules,
     parseProxyListSubscriptions: parseProxyListSubscriptions,

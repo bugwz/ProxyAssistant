@@ -9,6 +9,7 @@ const jqueryPath = path.join(__dirname, '../../src/js/jquery.js');
 describe('main sidebar layout', () => {
   afterEach(() => {
     jest.useRealTimers();
+    window.localStorage.clear();
     document.body.innerHTML = '';
     delete global.$;
     delete global.jQuery;
@@ -20,7 +21,7 @@ describe('main sidebar layout', () => {
     delete window.chrome;
   });
 
-  test('uses the project logo and maps seven navigation items to seven pages', () => {
+  test('uses the project logo and maps navigation items to their pages', () => {
     const pageDocument = new DOMParser().parseFromString(fs.readFileSync(mainHtmlPath, 'utf8'), 'text/html');
     const navItems = Array.from(pageDocument.querySelectorAll('.main-nav-item'));
     const pages = Array.from(pageDocument.querySelectorAll('.main-page'));
@@ -31,8 +32,9 @@ describe('main sidebar layout', () => {
     expect(pageDocument.querySelector('.sidebar-github-link').getAttribute('href')).toBe('https://github.com/bugwz/ProxyAssistant');
     expect(pageDocument.querySelector('.sidebar-github-link').getAttribute('target')).toBe('_blank');
     expect(navItems.map(item => item.dataset.mainPage)).toEqual([
-      'scenarios',
       'proxies',
+      'scenarios',
+      'subscriptions',
       'sync',
       'config',
       'diagnostics',
@@ -48,6 +50,14 @@ describe('main sidebar layout', () => {
     expect(pageDocument.querySelectorAll('[id]').length).toBe(new Set(
       Array.from(pageDocument.querySelectorAll('[id]')).map(element => element.id)
     ).size);
+    expect(pageDocument.querySelector('#add-subscription-btn')).not.toBeNull();
+    expect(pageDocument.querySelector('#subscription-expand-collapse-btn')).not.toBeNull();
+    expect(pageDocument.querySelector('#subscription-manage-list')).not.toBeNull();
+    expect(pageDocument.querySelector('#add-subscription-btn [data-i18n="add_new"]')).not.toBeNull();
+    expect(pageDocument.querySelector('#page-proxies .page-heading p').dataset.i18n).toBe('proxy_management_desc');
+    expect(pageDocument.querySelector('#page-proxies .proxy-toolbar')).toBeNull();
+    expect(pageDocument.querySelector('#page-scenarios .page-heading p').dataset.i18n).toBe('scenario_management_desc');
+    expect(pageDocument.querySelector('#page-subscriptions .page-heading p').dataset.i18n).toBe('subscription_management_desc');
   });
 
   test('switches the visible page and refreshes scenario content', () => {
@@ -80,23 +90,54 @@ describe('main sidebar layout', () => {
     expect($('.main-nav-item[data-main-page="scenarios"]').attr('aria-current')).toBe('page');
     expect($('.main-page[data-page="proxies"]').prop('hidden')).toBe(true);
     expect($('.main-page[data-page="scenarios"]').prop('hidden')).toBe(false);
+    expect(window.localStorage.getItem('proxyAssistant.activeMainPage')).toBe('scenarios');
     expect(global.ScenariosModule.renderScenarioManagementList).toHaveBeenCalledTimes(1);
 
     $('.main-nav-item[data-main-page="about"]').trigger('click');
     expect($('.main-page[data-page="about"]').prop('hidden')).toBe(false);
+    expect(window.localStorage.getItem('proxyAssistant.activeMainPage')).toBe('about');
     expect(global.VersionModule.loadVersionInfo).toHaveBeenCalledTimes(1);
   });
 
-  test('provides scenario overview, list, and accessible management dialogs', () => {
+  test('restores the saved page and falls back when the navigation item no longer exists', () => {
+    document.body.innerHTML = `
+      <button class="main-nav-item active" data-main-page="proxies" aria-current="page"></button>
+      <button class="main-nav-item" data-main-page="scenarios"></button>
+      <section class="main-page active" data-page="proxies"></section>
+      <section class="main-page" data-page="scenarios" hidden></section>
+    `;
+
+    window.eval(fs.readFileSync(jqueryPath, 'utf8'));
+    global.$ = window.$;
+    global.jQuery = window.jQuery;
+    global.ScenariosModule = {
+      renderScenarioManagementList: jest.fn()
+    };
+    window.ScenariosModule = global.ScenariosModule;
+    window.localStorage.setItem('proxyAssistant.activeMainPage', 'scenarios');
+
+    window.eval(fs.readFileSync(mainJsPath, 'utf8'));
+    window.initMainNavigation();
+
+    expect($('.main-nav-item[data-main-page="scenarios"]').attr('aria-current')).toBe('page');
+    expect($('.main-page[data-page="scenarios"]').prop('hidden')).toBe(false);
+
+    window.localStorage.setItem('proxyAssistant.activeMainPage', 'removed-page');
+    window.initMainNavigation();
+
+    expect($('.main-nav-item[data-main-page="proxies"]').attr('aria-current')).toBe('page');
+    expect($('.main-page[data-page="proxies"]').prop('hidden')).toBe(false);
+    expect(window.localStorage.getItem('proxyAssistant.activeMainPage')).toBe('proxies');
+  });
+
+  test('provides collapsible scenario cards and accessible management dialogs', () => {
     const pageDocument = new DOMParser().parseFromString(fs.readFileSync(mainHtmlPath, 'utf8'), 'text/html');
     const scenarioPage = pageDocument.querySelector('#page-scenarios');
 
     expect(scenarioPage.querySelector('#open-add-scenario-btn')).not.toBeNull();
-    expect(scenarioPage.querySelector('.scenario-overview')).not.toBeNull();
-    expect(scenarioPage.querySelector('#scenario-management-current')).not.toBeNull();
-    expect(scenarioPage.querySelector('#scenario-total-count')).not.toBeNull();
-    expect(scenarioPage.querySelector('#scenario-proxy-total-count')).not.toBeNull();
+    expect(scenarioPage.querySelector('#scenario-expand-collapse-btn')).not.toBeNull();
     expect(scenarioPage.querySelector('#scenario-manage-list')).not.toBeNull();
+    expect(scenarioPage.querySelector('.scenario-overview')).toBeNull();
 
     const dialogs = Array.from(pageDocument.querySelectorAll('.scenario-dialog-tip'));
     expect(dialogs).toHaveLength(4);

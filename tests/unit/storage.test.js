@@ -18,16 +18,19 @@ function createConfig(subscriptionContent) {
         proxies: [{
           id: 'proxy-1',
           name: 'Saved name',
-          subscription: {
-            enabled: true,
-            current: 'autoproxy',
-            lists: {
-              autoproxy: { content: subscriptionContent }
-            }
-          }
+          subscription_ids: ['subscription-1']
         }]
       }]
-    }
+    },
+    subscriptions: [{
+      id: 'subscription-1',
+      name: 'Shared rules',
+      enabled: true,
+      current: 'autoproxy',
+      lists: {
+        autoproxy: { content: subscriptionContent }
+      }
+    }]
   };
 }
 
@@ -66,7 +69,8 @@ describe('StorageModule subscription synchronization', () => {
     const savedConfig = chromeMock.storage.local.set.mock.calls[0][0].config;
     const savedProxy = savedConfig.scenarios.lists[0].proxies[0];
     expect(savedProxy.name).toBe('Unsaved draft');
-    expect(savedProxy.subscription.lists.autoproxy.content).toBe('new content');
+    expect(savedProxy.subscription_ids).toEqual(['subscription-1']);
+    expect(savedConfig.subscriptions[0].lists.autoproxy.content).toBe('new content');
   });
 
   test('does not classify general config edits as subscription-only', () => {
@@ -75,5 +79,27 @@ describe('StorageModule subscription synchronization', () => {
     newConfig.scenarios.lists[0].proxies[0].name = 'Renamed';
 
     expect(storageModule.isSubscriptionOnlyChange(oldConfig, newConfig)).toBe(false);
+  });
+
+  test('reorders the shared subscription collection', () => {
+    const config = createConfig('first');
+    config.subscriptions.push({
+      id: 'subscription-2',
+      name: 'Second rules',
+      enabled: true,
+      current: 'autoproxy',
+      lists: { autoproxy: { content: 'second' } }
+    });
+    storageModule.setConfig(config);
+
+    storageModule.reorderSubscriptions([
+      config.subscriptions[1],
+      config.subscriptions[0]
+    ]);
+
+    expect(storageModule.getSubscriptions().map(item => item.id)).toEqual([
+      'subscription-2',
+      'subscription-1'
+    ]);
   });
 });
