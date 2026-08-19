@@ -63,7 +63,7 @@ const StorageModule = (function () {
 
     const defaultId = window.ConfigModule.generateScenarioId();
     return {
-      version: 4,
+      version: 5,
       system: {
         app_language: 'zh-CN',
         theme_mode: 'light',
@@ -79,7 +79,13 @@ const StorageModule = (function () {
         lists: [{
           id: defaultId,
           name: 'Default',
-          proxies: []
+          proxies: [],
+          defaultProxyId: null,
+          lastProxyId: null,
+          automation: {
+            enabled: false,
+            rules: [{ type: 'time', operator: 'if', weekdays: [1, 2, 3, 4, 5], start: '09:00', end: '18:00' }]
+          }
         }]
       },
       subscriptions: []
@@ -280,6 +286,14 @@ const StorageModule = (function () {
     const scenario = scenarios.find(s => s.id === id);
     if (scenario && scenario.proxies && scenario.proxies[proxyIndex]) {
       Object.assign(scenario.proxies[proxyIndex], updates);
+      const defaultProxy = scenario.proxies.find(proxy => proxy?.id === scenario.defaultProxyId);
+      if (!defaultProxy || defaultProxy.enabled === false || !defaultProxy.ip || !defaultProxy.port) {
+        scenario.defaultProxyId = null;
+      }
+      const lastProxy = scenario.proxies.find(proxy => proxy?.id === scenario.lastProxyId);
+      if (!lastProxy || lastProxy.enabled === false || !lastProxy.ip || !lastProxy.port) {
+        scenario.lastProxyId = null;
+      }
     }
   }
 
@@ -288,7 +302,14 @@ const StorageModule = (function () {
     const id = scenarioId || getCurrentScenarioId();
     const scenario = scenarios.find(s => s.id === id);
     if (scenario && scenario.proxies) {
+      const deletedProxy = scenario.proxies[proxyIndex];
       scenario.proxies.splice(proxyIndex, 1);
+      if (deletedProxy?.id === scenario.defaultProxyId) {
+        scenario.defaultProxyId = null;
+      }
+      if (deletedProxy?.id === scenario.lastProxyId) {
+        scenario.lastProxyId = null;
+      }
     }
   }
 
@@ -309,6 +330,13 @@ const StorageModule = (function () {
     if (fromScenario && toScenario && fromScenario.proxies && fromScenario.proxies[proxyIndex]) {
       const proxy = fromScenario.proxies[proxyIndex];
       fromScenario.proxies.splice(proxyIndex, 1);
+
+      if (proxy.id === fromScenario.defaultProxyId) {
+        fromScenario.defaultProxyId = null;
+      }
+      if (proxy.id === fromScenario.lastProxyId) {
+        fromScenario.lastProxyId = null;
+      }
 
       if (!toScenario.proxies) toScenario.proxies = [];
       toScenario.proxies.push(proxy);

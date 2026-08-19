@@ -150,4 +150,47 @@ describe('proxy color configuration', () => {
     expect(exported.scenarios.lists[0].proxies[0].color).toBe('#FF0000');
     expect(ConfigModule.PROXY_EXPORT_KEYS).toContain('color');
   });
+
+  test('preserves scenario defaults and multi-condition automation', () => {
+    const config = {
+      version: 4,
+      system: { app_language: 'en', theme_mode: 'light' },
+      scenarios: {
+        current: 'scenario-a',
+        lists: [{
+          id: 'scenario-a',
+          name: 'Work',
+          proxies: [
+            { id: 'proxy-disabled', enabled: false, ip: '10.0.0.1', port: '8080' },
+            { id: 'proxy-default', enabled: true, ip: '10.0.0.2', port: '8080' }
+          ],
+          automation: {
+            enabled: true,
+            rules: [
+              { type: 'time', operator: 'if', weekdays: [1, 2, 3, 4, 5], start: '08:30', end: '17:45' },
+              { type: 'time', operator: 'and', weekdays: [1], start: '09:00', end: '12:00' }
+            ]
+          }
+        }]
+      }
+    };
+    const { ConfigModule } = setupModules(config);
+
+    const migrated = ConfigModule.migrateConfig(config);
+    const exported = ConfigModule.buildConfigData();
+
+    expect(migrated.version).toBe(5);
+    expect(migrated.scenarios.lists[0].defaultProxyId).toBeNull();
+    expect(exported.scenarios.lists[0]).toEqual(expect.objectContaining({
+      defaultProxyId: null,
+      lastProxyId: null,
+      automation: {
+        enabled: true,
+        rules: [
+          { type: 'time', operator: 'if', weekdays: [1, 2, 3, 4, 5], start: '08:30', end: '17:45' },
+          { type: 'time', operator: 'and', weekdays: [1], start: '09:00', end: '12:00' }
+        ]
+      }
+    }));
+  });
 });

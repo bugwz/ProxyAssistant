@@ -377,4 +377,142 @@ describe('Worker applyProxy async handling', () => {
     await expect(context.handleFirefoxRequest({ url: 'moz-extension://extension-id/page.html' }))
       .resolves.toEqual({ type: 'direct' });
   });
+
+  test('matches daytime and overnight scenario schedules', () => {
+    const context = loadWorkerContext();
+    const workRule = { type: 'time', weekdays: [1], start: '09:00', end: '18:00' };
+    const nightRule = { type: 'time', weekdays: [1], start: '22:00', end: '06:00' };
+
+    expect(context.isTimeRuleActive(workRule, new Date('2026-08-17T10:00:00'))).toBe(true);
+    expect(context.isTimeRuleActive(workRule, new Date('2026-08-17T18:00:00'))).toBe(false);
+    expect(context.isTimeRuleActive(nightRule, new Date('2026-08-17T23:00:00'))).toBe(true);
+    expect(context.isTimeRuleActive(nightRule, new Date('2026-08-18T05:59:00'))).toBe(true);
+    expect(context.isTimeRuleActive(nightRule, new Date('2026-08-18T06:00:00'))).toBe(false);
+  });
+
+  test('selects the first matching scenario and calculates its next boundary', () => {
+    const context = loadWorkerContext();
+    const config = {
+      scenarios: {
+        current: 'scenario-home',
+        lists: [
+          {
+            id: 'scenario-low',
+            automation: {
+              enabled: true,
+              rules: [{ type: 'time', operator: 'if', weekdays: [1], start: '09:00', end: '18:00' }]
+            }
+          },
+          {
+            id: 'scenario-high',
+            automation: {
+              enabled: true,
+              rules: [{ type: 'time', operator: 'if', weekdays: [1], start: '08:00', end: '17:00' }]
+            }
+          }
+        ]
+      }
+    };
+    const now = new Date('2026-08-17T10:00:00');
+
+    expect(context.findScheduledScenario(config, now).id).toBe('scenario-low');
+    expect(new Date(context.getNextScenarioAutomationBoundary(config, now)).toISOString())
+      .toBe(new Date('2026-08-17T17:00:00').toISOString());
+  });
+
+  test('combines multiple automation conditions with OR and AND', () => {
+    const context = loadWorkerContext();
+    const mondayMorning = { type: 'time', operator: 'if', weekdays: [1], start: '09:00', end: '12:00' };
+    const weekdays = { type: 'time', operator: 'and', weekdays: [1, 2, 3, 4, 5], start: '08:00', end: '18:00' };
+    const now = new Date('2026-08-17T10:00:00');
+
+    expect(context.isScenarioAutomationActive({
+      automation: { rules: [mondayMorning, weekdays] }
+    }, now)).toBe(true);
+    expect(context.isScenarioAutomationActive({
+      automation: {
+        rules: [mondayMorning, { type: 'time', operator: 'and', weekdays: [0], start: '09:00', end: '12:00' }]
+      }
+    }, now)).toBe(false);
+    expect(context.isScenarioAutomationActive({
+      automation: {
+        rules: [mondayMorning, { type: 'time', operator: 'or', weekdays: [0], start: '09:00', end: '12:00' }]
+      }
+    }, now)).toBe(true);
+  });
+
+  test('scheduled activation applies the configured default proxy before changing scenario', async () => {
+    const context = loadWorkerContext();
+    const defaultProxy = {
+      id: 'proxy-work',
+      name: 'Work Proxy',
+      protocol: 'http',
+      ip: '10.0.0.2',
+      port: '8080',
+      enabled: true
+    };
+    let stored = {
+      config: {
+        scenarios: {
+          current: 'scenario-home',
+          lists: [
+            { id: 'scenario-home', proxies: [] },
+            { id: 'scenario-work', defaultProxyId: defaultProxy.id, proxies: [defaultProxy] }
+          ]
+        }
+      },
+      state: { proxy: { mode: 'disabled', current: null } }
+    };
+
+    context.chrome.storage.local.get = jest.fn((keys, callback) => callback(stored));
+    context.chrome.storage.local.set = jest.fn((payload, callback) => {
+      stored = { ...stored, ...payload };
+      if (callback) callback();
+    });
+    context.applyProxySettings = jest.fn(() => Promise.resolve({ success: true }));
+
+    const result = await context.activateScenario('scenario-work', 'automation');
+
+    expect(result).toEqual(expect.objectContaining({
+      success: true,
+      scenarioId: 'scenario-work',
+      mode: 'manual',
+      currentProxy: defaultProxy
+    }));
+    expect(context.applyProxySettings).toHaveBeenCalledWith(defaultProxy, 'manual');
+    expect(stored.config.scenarios.current).toBe('scenario-work');
+  });
+
+  test('restores the target scenario last-used proxy when no fixed default is selected', async () => {
+    const context = loadWorkerContext();
+    const homeProxy = { id: 'proxy-home', name: 'Home', protocol: 'http', ip: '10.0.0.1', port: '8080', enabled: true };
+    const firstWorkProxy = { id: 'proxy-work-1', name: 'Work 1', protocol: 'http', ip: '10.0.0.2', port: '8080', enabled: true };
+    const lastWorkProxy = { id: 'proxy-work-2', name: 'Work 2', protocol: 'http', ip: '10.0.0.3', port: '8080', enabled: true };
+    let stored = {
+      config: {
+        scenarios: {
+          current: 'scenario-home',
+          lists: [
+            { id: 'scenario-home', proxies: [homeProxy] },
+            { id: 'scenario-work', defaultProxyId: null, lastProxyId: lastWorkProxy.id, proxies: [firstWorkProxy, lastWorkProxy] }
+          ]
+        }
+      },
+      state: { proxy: { mode: 'manual', current: homeProxy } }
+    };
+
+    context.chrome.storage.local.get = jest.fn((keys, callback) => callback(stored));
+    context.chrome.storage.local.set = jest.fn((payload, callback) => {
+      stored = { ...stored, ...payload };
+      if (callback) callback();
+    });
+    context.applyProxySettings = jest.fn(() => Promise.resolve({ success: true }));
+
+    const result = await context.activateScenario('scenario-work', 'manual');
+
+    expect(context.applyProxySettings).toHaveBeenCalledWith(lastWorkProxy, 'manual');
+    expect(result.currentProxy).toEqual(lastWorkProxy);
+    expect(stored.config.scenarios.lists[0].lastProxyId).toBe(homeProxy.id);
+    expect(stored.config.scenarios.lists[1].defaultProxyId).toBeNull();
+  });
 });

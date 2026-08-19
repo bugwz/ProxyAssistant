@@ -2020,6 +2020,9 @@ const SubscriptionModule = (function () {
       </div>`;
     }).join('');
     $list.html(html);
+    if (typeof window.enhanceNativeSelects === 'function') {
+      window.enhanceNativeSelects($list[0]);
+    }
     updateManagementCardToggleState();
     updateManagementExpansionModeFromCards();
   }

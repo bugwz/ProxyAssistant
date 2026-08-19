@@ -201,7 +201,7 @@ describe('popup scenario switching', () => {
     expect(context.refreshPopupForMode).toHaveBeenCalledWith('disabled', null);
   });
 
-  test('does not write null state when switching scenario outside manual mode', () => {
+  test('delegates scenario activation without prewriting proxy state', () => {
     const context = loadPopupContext();
     const existingState = {
       proxy: {
@@ -227,17 +227,21 @@ describe('popup scenario switching', () => {
     context.chrome.storage.local.set.mockImplementation((payload, callback) => {
       callback();
     });
+    context.chrome.runtime.sendMessage.mockImplementation((message, callback) => {
+      callback({ success: false, error: 'activation failed' });
+    });
 
     context.switchScenario('scenario-b');
 
-    expect(context.chrome.storage.local.set).toHaveBeenCalledWith(
-      { config },
+    expect(context.chrome.runtime.sendMessage).toHaveBeenCalledWith(
+      { action: 'activateScenario', scenarioId: 'scenario-b', source: 'manual' },
       expect.any(Function)
     );
-    expect(context.chrome.storage.local.set.mock.calls[0][0]).not.toHaveProperty('state');
+    expect(context.chrome.storage.local.set).not.toHaveBeenCalled();
+    expect(context.__popupTestApi.getState().currentScenarioId).toBe('scenario-a');
   });
 
-  test('refreshes PAC when switching scenario in auto mode', () => {
+  test('uses worker activation when switching scenario in auto mode', () => {
     const context = loadPopupContext();
     const existingState = {
       proxy: {
@@ -272,12 +276,13 @@ describe('popup scenario switching', () => {
     context.switchScenario('scenario-b');
 
     expect(context.chrome.runtime.sendMessage).toHaveBeenCalledWith(
-      { action: 'refreshProxy' },
+      { action: 'activateScenario', scenarioId: 'scenario-b', source: 'manual' },
       expect.any(Function)
     );
+    expect(context.chrome.storage.local.set).not.toHaveBeenCalled();
   });
 
-  test('turns off proxy when switching to a manual scenario without selectable proxies', () => {
+  test('lets worker handle an empty manual scenario atomically', () => {
     const context = loadPopupContext();
     const existingState = {
       proxy: {
@@ -311,22 +316,11 @@ describe('popup scenario switching', () => {
 
     context.switchScenario('scenario-b');
 
-    expect(context.chrome.storage.local.set).toHaveBeenCalledWith(
-      {
-        config,
-        state: {
-          proxy: {
-            mode: 'manual',
-            current: null
-          }
-        }
-      },
-      expect.any(Function)
-    );
     expect(context.chrome.runtime.sendMessage).toHaveBeenCalledWith(
-      { action: 'turnOffProxy' },
+      { action: 'activateScenario', scenarioId: 'scenario-b', source: 'manual' },
       expect.any(Function)
     );
+    expect(context.chrome.storage.local.set).not.toHaveBeenCalled();
   });
 
   test('persists config when adding current site to bypass rules', () => {

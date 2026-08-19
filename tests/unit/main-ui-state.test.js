@@ -335,7 +335,7 @@ describe('main UI state flow', () => {
     expect(global.StorageModule.reload).not.toHaveBeenCalled();
   });
 
-  test('switchScenario rolls back when saving current scenario fails', async () => {
+  test('switchScenario keeps the current scenario when worker activation fails', async () => {
     const scenarios = [
       { id: 'scenario-a', name: 'Scenario A', proxies: [] },
       { id: 'scenario-b', name: 'Scenario B', proxies: [] }
@@ -349,7 +349,7 @@ describe('main UI state flow', () => {
         currentScenarioId = id;
       }),
       getCurrentScenario: jest.fn(() => scenarios.find((scenario) => scenario.id === currentScenarioId)),
-      save: jest.fn(() => Promise.reject(new Error('save failed')))
+      save: jest.fn(() => Promise.resolve())
     };
     global.ProxyModule = {
       setList: jest.fn(),
@@ -359,6 +359,9 @@ describe('main UI state flow', () => {
     window.StorageModule = global.StorageModule;
     window.ProxyModule = global.ProxyModule;
     window.onScenarioSwitch = global.onScenarioSwitch;
+    global.chrome.runtime.sendMessage.mockImplementation((message, callback) => {
+      callback({ success: false, error: 'apply failed' });
+    });
 
     const scenariosModule = loadScenariosModule({
       StorageModule: global.StorageModule,
@@ -371,8 +374,11 @@ describe('main UI state flow', () => {
 
     await scenariosModule.switchScenario('scenario-b');
 
-    expect(global.StorageModule.setCurrentScenarioId).toHaveBeenNthCalledWith(1, 'scenario-b');
-    expect(global.StorageModule.setCurrentScenarioId).toHaveBeenNthCalledWith(2, 'scenario-a');
+    expect(global.chrome.runtime.sendMessage).toHaveBeenCalledWith(
+      { action: 'activateScenario', scenarioId: 'scenario-b', source: 'manual' },
+      expect.any(Function)
+    );
+    expect(global.StorageModule.setCurrentScenarioId).not.toHaveBeenCalled();
     expect(global.onScenarioSwitch).not.toHaveBeenCalled();
     expect(currentScenarioId).toBe('scenario-a');
   });
@@ -385,20 +391,34 @@ describe('main UI state flow', () => {
       <ul class="main-scenario-dropdown"></ul>
       <button class="main-scenario-btn"></button>
       <div id="current-scenario-indicator"></div>
-      <div class="add-scenario-tip">
-        <button class="add-scenario-close-btn"></button>
-        <button class="add-scenario-cancel-btn"></button>
-        <input id="new-scenario-name">
-        <button id="add-scenario-btn"></button>
-      </div>
       <div class="edit-scenario-tip"></div>
       <div class="delete-scenario-tip"></div>
       <div class="alert-scenario-tip"></div>
     `;
 
     const scenarios = [
-      { id: 'scenario-a', name: 'Home', proxies: [{ name: 'Proxy A' }] },
-      { id: 'scenario-b', name: 'Work', proxies: [{ name: 'Proxy B' }, { name: 'Proxy C' }] }
+      {
+        id: 'scenario-a',
+        name: 'Home',
+        defaultProxyId: null,
+        proxies: [{ id: 'proxy-a', name: 'Proxy A', ip: '127.0.0.1', port: '8080', enabled: true }],
+        automation: {
+          enabled: true,
+          rules: [
+            { type: 'time', operator: 'if', weekdays: [1, 2, 3, 4, 5], start: '08:00', end: '17:00' },
+            { type: 'time', operator: 'or', weekdays: [6, 0], start: '10:00', end: '14:00' }
+          ]
+        }
+      },
+      {
+        id: 'scenario-b',
+        name: 'Work',
+        defaultProxyId: 'proxy-b',
+        proxies: [
+          { id: 'proxy-b', name: 'Proxy B', ip: '10.0.0.1', port: '8080', enabled: true },
+          { id: 'proxy-c', name: 'Proxy C', ip: '10.0.0.2', port: '8080', enabled: true }
+        ]
+      }
     ];
     let currentScenarioId = 'scenario-a';
     const onScenarioSwitch = jest.fn();
@@ -433,6 +453,10 @@ describe('main UI state flow', () => {
       onScenarioRename
     });
 
+    global.chrome.runtime.sendMessage.mockImplementation((message, callback) => {
+      callback({ success: true, scenarioId: message.scenarioId });
+    });
+
     scenariosModule.init();
     scenariosModule.renderScenarioManagementList();
 
@@ -440,34 +464,108 @@ describe('main UI state flow', () => {
     expect($('.scenario-card.collapsed')).toHaveLength(2);
     expect($('.scenario-card .proxy-index').map((index, node) => $(node).text()).get()).toEqual(['#1', '#2']);
     expect($('.scenario-card.is-current').data('id')).toBe('scenario-a');
+    expect($('.scenario-card-header .header-right').first().children()).toHaveLength(2);
+    expect($('.scenario-card-actions').map((index, node) => $(node).children().length).get()).toEqual([2, 2]);
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-default-proxy-select').val()).toBe('');
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-default-proxy-select option').map((index, node) => $(node).text()).get()).toEqual([
+      'scenario_last_used_proxy',
+      'Proxy A - 127.0.0.1:8080'
+    ]);
+    expect($('.scenario-card[data-id="scenario-b"] .scenario-default-proxy-select').val()).toBe('proxy-b');
+    expect($('.scenario-card[data-id="scenario-b"] .scenario-default-proxy-select option').eq(1).text()).toBe('Proxy B - 10.0.0.1:8080');
+    scenarios[1].proxies[0].name = 'Updated Proxy';
+    scenarios[1].proxies[0].ip = '10.0.1.1';
+    scenarios[1].proxies[0].port = '9090';
+    scenariosModule.renderScenarioManagementList();
+    expect($('.scenario-card[data-id="scenario-b"] .scenario-default-proxy-select').val()).toBe('proxy-b');
+    expect($('.scenario-card[data-id="scenario-b"] .scenario-default-proxy-select option').eq(1).text()).toBe('Updated Proxy - 10.0.1.1:9090');
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-automation-enabled').val()).toBe('on');
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-automation-panel').hasClass('hidden')).toBe(false);
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-automation-summary strong').text().trim()).toBe('scenario_conditions');
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-strategy-info').attr('data-tooltip')).toBe('scenario_conditions_hint');
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-strategy-info svg')).toHaveLength(1);
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-condition-row')).toHaveLength(2);
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-condition-columns span').slice(0, 3).map((index, node) => $(node).text()).get()).toEqual([
+      'scenario_condition_relation',
+      'scenario_strategy_type',
+      'scenario_strategy_value'
+    ]);
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-condition-row > .form-item > label')).toHaveLength(0);
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-condition-operator-select').eq(0).val()).toBe('if');
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-condition-operator-select').eq(0).prop('disabled')).toBe(true);
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-condition-operator-select').eq(1).val()).toBe('or');
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-condition-operator-select').eq(1).prop('disabled')).toBe(false);
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-condition-type-select').map((index, node) => $(node).val()).get()).toEqual(['time', 'time']);
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-weekday-select')).toHaveLength(2);
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-weekday-select').first().find('.scenario-weekday-option input')).toHaveLength(7);
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-weekday-select').eq(1).find('.scenario-weekday-option input:checked').map((index, node) => Number($(node).val())).get()).toEqual([6, 0]);
+    $('.scenario-card[data-id="scenario-a"] .scenario-weekday-trigger').first().trigger('click');
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-weekday-select').first().hasClass('open')).toBe(true);
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-weekday-select').first().find('.scenario-weekday-option')).toHaveLength(7);
+    $('.scenario-card[data-id="scenario-a"] .scenario-weekday-select').first().find('.scenario-weekday-option input[value="0"]').prop('checked', true).trigger('change');
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-weekday-value').first().text()).toContain('scenario_day_sunday');
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-condition-actions')).toHaveLength(2);
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-condition-remove').first().prop('disabled')).toBe(true);
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-automation-start').val()).toBe('08:00');
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-automation-start').attr('type')).toBe('text');
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-automation-start').attr('inputmode')).toBe('numeric');
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-automation-start').attr('maxlength')).toBe('5');
+    $('.scenario-card[data-id="scenario-a"] .scenario-automation-enabled').val('off').trigger('change');
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-automation-panel').hasClass('hidden')).toBe(true);
+    $('.scenario-card[data-id="scenario-a"] .scenario-automation-enabled').val('on').trigger('change');
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-automation-panel').hasClass('hidden')).toBe(false);
 
     $('#scenario-expand-collapse-btn').trigger('click');
     expect($('.scenario-card.collapsed')).toHaveLength(0);
 
     $('.scenario-card[data-id="scenario-a"] .scenario-card-name-input').val('HomeOffice');
+    $('.scenario-card[data-id="scenario-a"] .scenario-condition-operator-select').eq(1).val('and').trigger('change');
+    $('.scenario-card[data-id="scenario-a"] .scenario-condition-add').last().trigger('click');
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-condition-row')).toHaveLength(3);
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-condition-operator-select').eq(2).val()).toBe('and');
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-condition-operator-select').eq(2).prop('disabled')).toBe(true);
+    $('.scenario-card[data-id="scenario-a"] .scenario-condition-remove').last().trigger('click');
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-condition-row')).toHaveLength(2);
+    global.StorageModule.updateScenario.mockClear();
+    $('.scenario-card[data-id="scenario-a"] .scenario-automation-start').first().val('24:00').trigger('blur');
+    expect($('.scenario-card[data-id="scenario-a"] .scenario-automation-start').first().hasClass('input-error')).toBe(true);
+    $('.scenario-card[data-id="scenario-a"] .scenario-card-save').trigger('click');
+    expect(global.StorageModule.updateScenario).not.toHaveBeenCalled();
+    $('.scenario-card[data-id="scenario-a"] .scenario-automation-start').first().val('08:00').trigger('input');
     $('.scenario-card[data-id="scenario-a"] .scenario-card-save').trigger('click');
     expect(onScenarioRename).toHaveBeenCalledWith('scenario-a', 'HomeOffice');
-
-    $('.scenario-switch-btn[data-id="scenario-b"]').trigger('click');
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(onScenarioSwitch).toHaveBeenCalledWith('scenario-b', scenarios[1].proxies);
-    expect($('.scenario-card.is-current').data('id')).toBe('scenario-b');
+    expect(global.StorageModule.updateScenario).toHaveBeenCalledWith('scenario-a', expect.objectContaining({
+      defaultProxyId: null,
+      automation: expect.objectContaining({
+        enabled: true,
+        rules: expect.arrayContaining([expect.objectContaining({ operator: 'if' }), expect.objectContaining({ operator: 'and' })])
+      })
+    }));
 
     $('#open-add-scenario-btn').trigger('click');
-    expect($('.add-scenario-tip').hasClass('show')).toBe(true);
-    $('#new-scenario-name').val('Travel').trigger($.Event('keydown', { key: 'Enter' }));
-
     expect(global.StorageModule.addScenario).toHaveBeenCalledWith({
       id: 'scenario-new',
-      name: 'Travel',
-      proxies: []
+      name: '',
+      proxies: [],
+      defaultProxyId: null,
+      lastProxyId: null,
+      automation: {
+        enabled: false,
+        rules: [{ type: 'time', operator: 'if', weekdays: [1, 2, 3, 4, 5], start: '09:00', end: '18:00' }]
+      }
     });
-    expect(onScenarioAdd).toHaveBeenCalledWith('scenario-new', 'Travel');
     expect($('.scenario-card')).toHaveLength(3);
     expect($('.scenario-card[data-id="scenario-new"]').hasClass('collapsed')).toBe(false);
-    expect($('.add-scenario-tip').hasClass('show')).toBe(false);
+    expect($('.scenario-card[data-id="scenario-new"] .scenario-card-name-input').val()).toBe('');
+    expect(onScenarioAdd).not.toHaveBeenCalled();
+
+    $('.scenario-card[data-id="scenario-new"] .scenario-card-name-input').val('Travel');
+    $('.scenario-card[data-id="scenario-new"] .scenario-card-save').trigger('click');
+    expect(onScenarioAdd).toHaveBeenCalledWith('scenario-new', 'Travel');
+    expect(global.StorageModule.updateScenario).toHaveBeenCalledWith('scenario-new', expect.objectContaining({
+      name: 'Travel',
+      defaultProxyId: null
+    }));
   });
 
   test('subscription badge delegated click handler is not duplicated across renders', () => {

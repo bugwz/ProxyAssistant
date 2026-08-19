@@ -11,6 +11,52 @@ const PROXY_EXPORT_KEYS = [
   'enabled', 'id', 'name', 'protocol', 'ip', 'port', 'username', 'password',
   'bypass_rules', 'include_rules', 'fallback_policy', 'color', 'subscription_ids'
 ];
+const DEFAULT_SCENARIO_WEEKDAYS = [1, 2, 3, 4, 5];
+
+function normalizeScenarioAutomation(automation) {
+  const source = automation && typeof automation === 'object' ? automation : {};
+  const sourceRules = Array.isArray(source.rules) ? source.rules : [];
+  const isTime = value => typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+  const sourceTimeRules = sourceRules.filter(rule => rule?.type === 'time');
+  const operatorMode = sourceTimeRules[1]?.operator === 'and' ? 'and' : 'or';
+  const timeRules = sourceTimeRules.map((rule, index) => {
+    const weekdays = Array.isArray(rule.weekdays)
+      ? [...new Set(rule.weekdays.map(Number).filter(day => day >= 0 && day <= 6))]
+      : DEFAULT_SCENARIO_WEEKDAYS.slice();
+
+    return {
+      type: 'time',
+      operator: index === 0 ? 'if' : operatorMode,
+      weekdays: weekdays.length ? weekdays : DEFAULT_SCENARIO_WEEKDAYS.slice(),
+      start: isTime(rule.start) ? rule.start : '09:00',
+      end: isTime(rule.end) ? rule.end : '18:00'
+    };
+  });
+
+  return {
+    enabled: source.enabled === true,
+    rules: timeRules.length ? timeRules : [{
+      type: 'time',
+      operator: 'if',
+      weekdays: DEFAULT_SCENARIO_WEEKDAYS.slice(),
+      start: '09:00',
+      end: '18:00'
+    }]
+  };
+}
+
+function normalizeScenarioSettings(scenario) {
+  const proxies = Array.isArray(scenario.proxies) ? scenario.proxies : [];
+  const selectableProxies = proxies.filter(proxy => proxy && proxy.enabled !== false && proxy.ip && proxy.port);
+  const hasConfiguredDefault = selectableProxies.some(proxy => proxy.id === scenario.defaultProxyId);
+  const hasLastProxy = selectableProxies.some(proxy => proxy.id === scenario.lastProxyId);
+
+  scenario.proxies = proxies;
+  scenario.defaultProxyId = hasConfiguredDefault ? scenario.defaultProxyId : null;
+  scenario.lastProxyId = hasLastProxy ? scenario.lastProxyId : null;
+  scenario.automation = normalizeScenarioAutomation(scenario.automation);
+  return scenario;
+}
 
 function normalizeConfigProxyColor(color) {
   if (window.UtilsModule && typeof window.UtilsModule.normalizeProxyColor === 'function') {
@@ -29,12 +75,12 @@ function migrateConfig(config) {
   if (!config) return getDefaultConfig();
 
   // If already in new format (with version and system), return directly
-  if (config.version === 4 && config.system && config.scenarios) {
+  if ((config.version === 4 || config.version === 5) && config.system && config.scenarios) {
     return normalizeConfig(config);
   }
 
   // Migrate from old format
-  const v4 = getDefaultConfig();
+  const v5 = getDefaultConfig();
 
   // Migrate proxy data
   const migrateProxy = (p) => {
@@ -98,39 +144,45 @@ function migrateConfig(config) {
     // New format: scenarios is { current, lists } object
     const newScenarios = config.scenarios;
     const currentId = newScenarios.current || 'default';
-    v4.scenarios.lists = (newScenarios.lists || []).map(s => ({
+    v5.scenarios.lists = (newScenarios.lists || []).map(s => ({
       id: s.id || generateScenarioId(),
       name: s.name || I18n.t('scenario_default'),
-      proxies: (s.proxies || []).map(migrateProxy)
+      proxies: (s.proxies || []).map(migrateProxy),
+      defaultProxyId: s.defaultProxyId || null,
+      lastProxyId: s.lastProxyId || null,
+      automation: s.automation
     }));
-    v4.scenarios.current = currentId;
+    v5.scenarios.current = currentId;
   } else if (config.scenarios && Array.isArray(config.scenarios)) {
     // Old format: scenarios is array
-    v4.scenarios.lists = config.scenarios.map(s => ({
+    v5.scenarios.lists = config.scenarios.map(s => ({
       id: s.id || generateScenarioId(),
       name: s.name || I18n.t('scenario_default'),
-      proxies: (s.proxies || []).map(migrateProxy)
+      proxies: (s.proxies || []).map(migrateProxy),
+      defaultProxyId: s.defaultProxyId || null,
+      lastProxyId: s.lastProxyId || null,
+      automation: s.automation
     }));
-    v4.scenarios.current = config.currentScenarioId || v4.scenarios.lists[0]?.id || 'default';
+    v5.scenarios.current = config.currentScenarioId || v5.scenarios.lists[0]?.id || 'default';
   } else if (config.proxies && Array.isArray(config.proxies)) {
-    v4.scenarios.lists = [{
+    v5.scenarios.lists = [{
       id: generateScenarioId(),
       name: I18n.t('scenario_default'),
       proxies: config.proxies.map(migrateProxy)
     }];
-    v4.scenarios.current = v4.scenarios.lists[0].id;
+    v5.scenarios.current = v5.scenarios.lists[0].id;
   } else if (Array.isArray(config)) {
-    v4.scenarios.lists = [{
+    v5.scenarios.lists = [{
       id: generateScenarioId(),
       name: I18n.t('scenario_default'),
       proxies: config.map(migrateProxy)
     }];
-    v4.scenarios.current = v4.scenarios.lists[0].id;
+    v5.scenarios.current = v5.scenarios.lists[0].id;
   }
 
   // Ensure currentScenarioId is valid
-  if (!v4.scenarios.lists.find(s => s.id === v4.scenarios.current)) {
-    v4.scenarios.current = v4.scenarios.lists[0]?.id || 'default';
+  if (!v5.scenarios.lists.find(s => s.id === v5.scenarios.current)) {
+    v5.scenarios.current = v5.scenarios.lists[0]?.id || 'default';
   }
 
   // Migrate system settings
@@ -142,48 +194,48 @@ function migrateConfig(config) {
   };
 
   // Migrate settings from various possible sources
-  applyIf(sourceSettings.appLanguage || sourceSettings.app_language, v4.system, 'app_language');
-  applyIf(sourceSettings.themeMode || sourceSettings.theme_mode, v4.system, 'theme_mode');
-  applyIf(sourceSettings.nightModeStart || sourceSettings.night_mode_start, v4.system, 'night_mode_start');
-  applyIf(sourceSettings.nightModeEnd || sourceSettings.night_mode_end, v4.system, 'night_mode_end');
+  applyIf(sourceSettings.appLanguage || sourceSettings.app_language, v5.system, 'app_language');
+  applyIf(sourceSettings.themeMode || sourceSettings.theme_mode, v5.system, 'theme_mode');
+  applyIf(sourceSettings.nightModeStart || sourceSettings.night_mode_start, v5.system, 'night_mode_start');
+  applyIf(sourceSettings.nightModeEnd || sourceSettings.night_mode_end, v5.system, 'night_mode_end');
 
-  applyIf(config.appLanguage || config.app_language, v4.system, 'app_language');
+  applyIf(config.appLanguage || config.app_language, v5.system, 'app_language');
 
   if (config.themeSettings) {
-    applyIf(config.themeSettings.mode, v4.system, 'theme_mode');
-    applyIf(config.themeSettings.startTime || config.themeSettings.start_time, v4.system, 'night_mode_start');
-    applyIf(config.themeSettings.endTime || config.themeSettings.end_time, v4.system, 'night_mode_end');
+    applyIf(config.themeSettings.mode, v5.system, 'theme_mode');
+    applyIf(config.themeSettings.startTime || config.themeSettings.start_time, v5.system, 'night_mode_start');
+    applyIf(config.themeSettings.endTime || config.themeSettings.end_time, v5.system, 'night_mode_end');
   }
 
   if (config.sync_config) {
-    if (config.sync_config.type) v4.system.sync.type = config.sync_config.type;
-    if (config.sync_config.gist) v4.system.sync.gist = { ...v4.system.sync.gist, ...config.sync_config.gist };
+    if (config.sync_config.type) v5.system.sync.type = config.sync_config.type;
+    if (config.sync_config.gist) v5.system.sync.gist = { ...v5.system.sync.gist, ...config.sync_config.gist };
   }
 
-  applyIf(sourceSystem.appLanguage || sourceSystem.app_language, v4.system, 'app_language');
-  applyIf(sourceSystem.themeMode || sourceSystem.theme_mode, v4.system, 'theme_mode');
-  applyIf(sourceSystem.nightModeStart || sourceSystem.night_mode_start, v4.system, 'night_mode_start');
-  applyIf(sourceSystem.nightModeEnd || sourceSystem.night_mode_end, v4.system, 'night_mode_end');
+  applyIf(sourceSystem.appLanguage || sourceSystem.app_language, v5.system, 'app_language');
+  applyIf(sourceSystem.themeMode || sourceSystem.theme_mode, v5.system, 'theme_mode');
+  applyIf(sourceSystem.nightModeStart || sourceSystem.night_mode_start, v5.system, 'night_mode_start');
+  applyIf(sourceSystem.nightModeEnd || sourceSystem.night_mode_end, v5.system, 'night_mode_end');
 
   if (sourceSystem.sync) {
-    if (sourceSystem.sync.type) v4.system.sync.type = sourceSystem.sync.type;
-    if (sourceSystem.sync.gist) v4.system.sync.gist = { ...v4.system.sync.gist, ...sourceSystem.sync.gist };
+    if (sourceSystem.sync.type) v5.system.sync.type = sourceSystem.sync.type;
+    if (sourceSystem.sync.gist) v5.system.sync.gist = { ...v5.system.sync.gist, ...sourceSystem.sync.gist };
   }
 
   if (sourceSystem.settings) {
-    applyIf(sourceSystem.settings.appLanguage || sourceSystem.settings.app_language, v4.system, 'app_language');
-    applyIf(sourceSystem.settings.themeMode || sourceSystem.settings.theme_mode, v4.system, 'theme_mode');
-    applyIf(sourceSystem.settings.nightModeStart || sourceSystem.settings.night_mode_start, v4.system, 'night_mode_start');
-    applyIf(sourceSystem.settings.nightModeEnd || sourceSystem.settings.night_mode_end, v4.system, 'night_mode_end');
+    applyIf(sourceSystem.settings.appLanguage || sourceSystem.settings.app_language, v5.system, 'app_language');
+    applyIf(sourceSystem.settings.themeMode || sourceSystem.settings.theme_mode, v5.system, 'theme_mode');
+    applyIf(sourceSystem.settings.nightModeStart || sourceSystem.settings.night_mode_start, v5.system, 'night_mode_start');
+    applyIf(sourceSystem.settings.nightModeEnd || sourceSystem.settings.night_mode_end, v5.system, 'night_mode_end');
   }
 
-  return normalizeConfig(v4);
+  return normalizeConfig(v5);
 }
 
 function getDefaultConfig() {
   const defaultScenarioId = generateScenarioId();
   return {
-    version: 4,
+    version: 5,
     system: {
       app_language: I18n.getCurrentLanguage ? I18n.getCurrentLanguage() : 'zh-CN',
       theme_mode: 'light',
@@ -199,7 +251,10 @@ function getDefaultConfig() {
       lists: [{
         id: defaultScenarioId,
         name: I18n.t('scenario_default'),
-        proxies: []
+        proxies: [],
+        defaultProxyId: null,
+        lastProxyId: null,
+        automation: normalizeScenarioAutomation()
       }]
     },
     subscriptions: []
@@ -220,6 +275,7 @@ function normalizeConfig(config) {
   if (!Array.isArray(config.subscriptions)) {
     config.subscriptions = [];
   }
+  config.version = 5;
 
   const knownSubscriptionIds = new Set(config.subscriptions.map(item => item.id));
 
@@ -247,6 +303,7 @@ function normalizeConfig(config) {
         }
       });
     }
+    normalizeScenarioSettings(scenario);
   });
 
   return config;
@@ -341,11 +398,14 @@ function buildConfigData(includeInternalState = false) {
   const formattedScenarios = config.scenarios.lists.map(s => ({
     id: s.id,
     name: s.name,
-    proxies: processProxies(s.proxies)
+    proxies: processProxies(s.proxies),
+    defaultProxyId: s.defaultProxyId || null,
+    lastProxyId: s.lastProxyId || null,
+    automation: normalizeScenarioAutomation(s.automation)
   }));
 
   return {
-    version: 4,
+    version: 5,
     system: {
       app_language: I18n.getCurrentLanguage ? I18n.getCurrentLanguage() : (config.system?.app_language || 'zh-CN'),
       theme_mode: currentThemeMode,
