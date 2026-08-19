@@ -93,7 +93,15 @@ body[data-theme="dark"] .main-nav-item:hover {
   color: #ffffff;
 }
 
-body[data-theme="dark"] .main-nav-item.active {
+body[data-theme="dark"] .main-nav-item.active,
+html[data-initial-main-page="proxies"] body[data-theme="dark"] .main-nav-item[data-main-page="proxies"],
+html[data-initial-main-page="scenarios"] body[data-theme="dark"] .main-nav-item[data-main-page="scenarios"],
+html[data-initial-main-page="subscriptions"] body[data-theme="dark"] .main-nav-item[data-main-page="subscriptions"],
+html[data-initial-main-page="sync"] body[data-theme="dark"] .main-nav-item[data-main-page="sync"],
+html[data-initial-main-page="config"] body[data-theme="dark"] .main-nav-item[data-main-page="config"],
+html[data-initial-main-page="diagnostics"] body[data-theme="dark"] .main-nav-item[data-main-page="diagnostics"],
+html[data-initial-main-page="appearance"] body[data-theme="dark"] .main-nav-item[data-main-page="appearance"],
+html[data-initial-main-page="about"] body[data-theme="dark"] .main-nav-item[data-main-page="about"] {
   background-color: #293250;
   color: #aab8ff;
 }

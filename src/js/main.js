@@ -74,6 +74,8 @@ function initMainNavigation() {
     switchMainPage('proxies');
     saveActiveMainPage('proxies');
   }
+
+  document.documentElement.removeAttribute('data-initial-main-page');
 }
 
 function getSavedActiveMainPage() {
