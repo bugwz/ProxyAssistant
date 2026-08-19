@@ -87,7 +87,15 @@ body {
   color: #1e293b;
 }
 
-.main-nav-item.active {
+.main-nav-item.active,
+html[data-initial-main-page="proxies"] .main-nav-item[data-main-page="proxies"],
+html[data-initial-main-page="scenarios"] .main-nav-item[data-main-page="scenarios"],
+html[data-initial-main-page="subscriptions"] .main-nav-item[data-main-page="subscriptions"],
+html[data-initial-main-page="sync"] .main-nav-item[data-main-page="sync"],
+html[data-initial-main-page="config"] .main-nav-item[data-main-page="config"],
+html[data-initial-main-page="diagnostics"] .main-nav-item[data-main-page="diagnostics"],
+html[data-initial-main-page="appearance"] .main-nav-item[data-main-page="appearance"],
+html[data-initial-main-page="about"] .main-nav-item[data-main-page="about"] {
   background-color: #eef2ff;
   color: #3154e8;
   font-weight: 700;
@@ -169,6 +177,20 @@ body {
 
 .main-page[hidden] {
   display: none !important;
+}
+
+html[data-initial-main-page]:not([data-initial-main-page="proxies"]) .main-page[data-page="proxies"] {
+  display: none !important;
+}
+
+html[data-initial-main-page="scenarios"] .main-page[data-page="scenarios"],
+html[data-initial-main-page="subscriptions"] .main-page[data-page="subscriptions"],
+html[data-initial-main-page="sync"] .main-page[data-page="sync"],
+html[data-initial-main-page="config"] .main-page[data-page="config"],
+html[data-initial-main-page="diagnostics"] .main-page[data-page="diagnostics"],
+html[data-initial-main-page="appearance"] .main-page[data-page="appearance"],
+html[data-initial-main-page="about"] .main-page[data-page="about"] {
+  display: block !important;
 }
 
 .subscription-manage-list {

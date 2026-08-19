@@ -3,6 +3,7 @@ const path = require('path');
 
 const mainHtmlPath = path.join(__dirname, '../../src/main.html');
 const mainJsPath = path.join(__dirname, '../../src/js/main.js');
+const navigationBootstrapPath = path.join(__dirname, '../../src/js/main-navigation-bootstrap.js');
 const mainCssPath = path.join(__dirname, '../../src/css/main.css');
 const jqueryPath = path.join(__dirname, '../../src/js/jquery.js');
 
@@ -20,6 +21,7 @@ describe('main sidebar layout', () => {
     delete window.VersionModule;
     delete window.chrome;
     delete window.enhanceNativeSelects;
+    document.documentElement.removeAttribute('data-initial-main-page');
   });
 
   test('uses the project logo and maps navigation items to their pages', () => {
@@ -59,6 +61,21 @@ describe('main sidebar layout', () => {
     expect(pageDocument.querySelector('#page-proxies .proxy-toolbar')).toBeNull();
     expect(pageDocument.querySelector('#page-scenarios .page-heading p').dataset.i18n).toBe('scenario_management_desc');
     expect(pageDocument.querySelector('#page-subscriptions .page-heading p').dataset.i18n).toBe('subscription_management_desc');
+    expect(pageDocument.querySelector('head script').getAttribute('src')).toBe('./js/main-navigation-bootstrap.js');
+    expect(pageDocument.querySelector('.main-nav-item.active')).toBeNull();
+  });
+
+  test('restores the saved page before the navigation markup is rendered', () => {
+    window.localStorage.setItem('proxyAssistant.activeMainPage', 'subscriptions');
+
+    window.eval(fs.readFileSync(navigationBootstrapPath, 'utf8'));
+
+    expect(document.documentElement.dataset.initialMainPage).toBe('subscriptions');
+
+    window.localStorage.setItem('proxyAssistant.activeMainPage', 'removed-page');
+    window.eval(fs.readFileSync(navigationBootstrapPath, 'utf8'));
+
+    expect(document.documentElement.dataset.initialMainPage).toBe('proxies');
   });
 
   test('switches the visible page and refreshes scenario content', () => {
@@ -122,6 +139,7 @@ describe('main sidebar layout', () => {
 
     expect($('.main-nav-item[data-main-page="scenarios"]').attr('aria-current')).toBe('page');
     expect($('.main-page[data-page="scenarios"]').prop('hidden')).toBe(false);
+    expect(document.documentElement.hasAttribute('data-initial-main-page')).toBe(false);
 
     window.localStorage.setItem('proxyAssistant.activeMainPage', 'removed-page');
     window.initMainNavigation();
