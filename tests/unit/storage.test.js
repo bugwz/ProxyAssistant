@@ -109,6 +109,34 @@ describe('StorageModule subscription synchronization', () => {
     expect(storageModule.isSubscriptionOnlyChange(oldConfig, newConfig)).toBe(false);
   });
 
+  test('recognizes the configuration written by the current page', () => {
+    const config = createConfig('rules');
+    storageModule.setConfig(config);
+
+    expect(storageModule.isCurrentConfig(JSON.parse(JSON.stringify(config)))).toBe(true);
+    expect(storageModule.isCurrentConfig({ ...config, updated_at: 'changed' })).toBe(false);
+  });
+
+  test('keeps the current configuration available while reloading storage', async () => {
+    const currentConfig = createConfig('current rules');
+    const refreshedConfig = createConfig('refreshed rules');
+    let completeReload;
+    storageModule.setConfig(currentConfig);
+    chromeMock.storage.local.get.mockImplementation((keys, callback) => {
+      completeReload = callback;
+    });
+
+    const reloadPromise = storageModule.reload();
+
+    expect(storageModule.getConfig()).toBe(currentConfig);
+    expect(storageModule.getConfig().scenarios.lists[0].proxies).toHaveLength(1);
+
+    completeReload({ config: refreshedConfig });
+    await reloadPromise;
+
+    expect(storageModule.getConfig().subscriptions[0].lists.autoproxy.content).toBe('refreshed rules');
+  });
+
   test('reorders the shared subscription collection', () => {
     const config = createConfig('first');
     config.subscriptions.push({

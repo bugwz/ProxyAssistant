@@ -38,11 +38,10 @@ const MAIN_NAVIGATION_STORAGE_KEY = 'proxyAssistant.activeMainPage';
 const CONFIG_INCLUDE_SUBSCRIPTIONS_KEY = 'proxyAssistant.config.includeSubscriptions';
 const CONFIG_INCLUDE_SUBSCRIPTION_CACHE_KEY = 'proxyAssistant.config.includeSubscriptionCache';
 const CONFIG_UPDATED_AT_KEY = 'config_updated_at';
-let configEditorSnapshot = '';
-let configEditorRenderedText = '';
 let configLastUpdatedAt = null;
 
 document.addEventListener('DOMContentLoaded', function () {
+  initConfigFileOptions();
   I18n.init(function () {
     initApp();
   });
@@ -156,7 +155,7 @@ function loadSettings() {
   if (config.system) {
     // Language settings - only apply if I18n current language matches storage
     if (config.system.app_language && I18n.getCurrentLanguage() !== config.system.app_language) {
-      I18n.setLanguage(config.system.app_language);
+      I18n.setLanguage(config.system.app_language, { persist: false });
     }
     const langName = $(`#language-options li[data-value="${config.system.app_language || I18n.getCurrentLanguage()}"]`).text();
     if (langName) $('#current-language-display').text(langName);
@@ -180,7 +179,6 @@ function loadSettings() {
   // Update UI (but don't re-init theme UI since ThemeModule.initTheme() already did it)
   SyncModule.updateSyncUI();
   refreshMainView();
-  initConfigFileOptions();
   refreshConfigEditor(true);
 }
 
@@ -200,6 +198,10 @@ function initConfigFileOptions() {
   $('#config-include-subscription-cache')
     .prop('checked', includeSubscriptionCache)
     .prop('disabled', !includeSubscriptions);
+
+  const optionsElement = document.querySelector('.config-file-options');
+  if (optionsElement) void optionsElement.offsetWidth;
+  document.documentElement.removeAttribute('data-config-options-initializing');
 }
 
 function getConfigFileOptions() {
@@ -256,27 +258,12 @@ function getJsonFoldRanges(lines) {
   return ranges;
 }
 
-function collectConfigJsonCode() {
-  return $('#config-json-code .config-json-line-content').map(function () {
-    return $(this).text();
-  }).get().join('\n');
-}
-
-function syncConfigJsonSource() {
-  if (!$('#config-json-code').length) return;
-  const text = collectConfigJsonCode();
-  configEditorRenderedText = text;
-  $('#config-json-editor').val(text);
-  updateConfigJsonMetadata(text);
-}
-
 function renderConfigJsonCode(text) {
   const $code = $('#config-json-code');
   if (!$code.length) return;
 
   const lines = String(text || '').split('\n');
   const ranges = getJsonFoldRanges(lines);
-  const isEditing = !$('#config-json-editor').prop('readonly');
   $code.empty();
 
   lines.forEach((line, lineIndex) => {
@@ -293,21 +280,22 @@ function renderConfigJsonCode(text) {
     $gutter.append($('<span class="config-json-line-number"></span>').text(lineIndex + 1));
     const $content = $('<span class="config-json-line-content"></span>')
       .text(line)
-      .attr('contenteditable', isEditing ? 'true' : 'false')
+      .attr('contenteditable', 'false')
       .attr('spellcheck', 'false');
     $line.append($gutter, $content);
     $code.append($line);
   });
 
-  configEditorRenderedText = String(text || '');
   updateConfigJsonFoldAction();
 }
 
-function setConfigEditorText(text) {
+function setConfigEditorText(text, options = {}) {
   const normalized = String(text || '');
-  configEditorRenderedText = normalized;
   $('#config-json-editor').val(normalized);
   renderConfigJsonCode(normalized);
+  if (options.resetScroll === true) {
+    $('#config-json-code').scrollTop(0).scrollLeft(0);
+  }
   updateConfigJsonMetadata(normalized);
 }
 
@@ -342,7 +330,7 @@ function updateConfigJsonMetadata(text = getConfigEditorText()) {
       version = `v${data.version}`;
     }
   } catch (error) {
-    // Keep the version placeholder while the edited JSON is incomplete.
+    // Keep the version placeholder when the displayed JSON is unavailable.
   }
 
   $('#config-json-version').text(version);
@@ -353,9 +341,7 @@ function updateConfigJsonMetadata(text = getConfigEditorText()) {
 }
 
 function getConfigEditorText() {
-  const sourceText = $('#config-json-editor').val() || '';
-  if (!$('#config-json-code').length || sourceText !== configEditorRenderedText) return sourceText;
-  return collectConfigJsonCode();
+  return $('#config-json-editor').val() || '';
 }
 
 function setJsonFoldState($line, shouldCollapse) {
@@ -389,22 +375,9 @@ function updateConfigJsonFoldAction() {
     .html(MainIcons.render(action === 'expand' ? 'unfoldAll' : 'foldAll', { width: 16, height: 16 }));
 }
 
-function focusConfigJsonLine(lineIndex, offset = 0) {
-  const element = $('#config-json-code .config-json-line-content').get(lineIndex);
-  if (!element) return;
-  const textNode = element.firstChild || element.appendChild(document.createTextNode(''));
-  const range = document.createRange();
-  range.setStart(textNode, Math.min(offset, textNode.textContent.length));
-  range.collapse(true);
-  const selection = window.getSelection();
-  selection.removeAllRanges();
-  selection.addRange(range);
-  element.focus();
-}
-
 function refreshConfigEditor(force = false) {
   const $editor = $('#config-json-editor');
-  if (!$editor.length || (!force && !$editor.prop('readonly'))) return;
+  if (!$editor.length) return;
 
   try {
     const data = ConfigModule.buildEditableConfigData
@@ -414,33 +387,12 @@ function refreshConfigEditor(force = false) {
     configLastUpdatedAt = typeof StorageModule.getConfigUpdatedAt === 'function'
       ? StorageModule.getConfigUpdatedAt()
       : configLastUpdatedAt;
-    configEditorSnapshot = text;
     $editor.prop('readonly', true);
-    setConfigEditorText(text);
-    $('#config-editor-actions').prop('hidden', true);
+    setConfigEditorText(text, { resetScroll: true });
     $('#config-editor-state')
-      .removeClass('editing')
       .text(I18n.t('config_readonly'));
   } catch (error) {
     console.info('Failed to render configuration editor:', error);
-  }
-}
-
-function setConfigEditorEditing(isEditing) {
-  const $editor = $('#config-json-editor');
-  $editor.prop('readonly', !isEditing);
-  $('#config-json-code')
-    .toggleClass('editing', isEditing)
-    .find('.config-json-line-content')
-    .attr('contenteditable', isEditing ? 'true' : 'false');
-  $('.config-json-editor-shell').toggleClass('editing', isEditing);
-  $('#config-editor-actions').prop('hidden', !isEditing);
-  $('#config-editor-state')
-    .toggleClass('editing', isEditing)
-    .text(I18n.t(isEditing ? 'config_editing' : 'config_readonly'));
-  $('#config-include-subscriptions, #config-include-subscription-cache').prop('disabled', isEditing);
-  if (!isEditing && !$('#config-include-subscriptions').prop('checked')) {
-    $('#config-include-subscription-cache').prop('disabled', true);
   }
 }
 
@@ -741,6 +693,11 @@ function initDropdowns() {
         chrome.storage.local.set({ [CONFIG_UPDATED_AT_KEY]: updatedAt });
       }
 
+      if (typeof StorageModule.isCurrentConfig === 'function'
+        && StorageModule.isCurrentConfig(changes.config.newValue)) {
+        return;
+      }
+
       if (StorageModule.isSubscriptionOnlyChange(changes.config.oldValue, changes.config.newValue)) {
         StorageModule.mergeSubscriptionChanges(changes.config.newValue);
         ProxyModule.updateSubscriptionLinesDisplay();
@@ -848,54 +805,13 @@ function bindGlobalEvents() {
     $('#config-include-subscription-cache').prop('disabled', !$(this).prop('checked'));
     saveConfigFileOptions();
     refreshConfigEditor(true);
+    UtilsModule.showTip(I18n.t('config_options_updated'), false);
   });
 
   $('#config-include-subscription-cache').on('change', function () {
     saveConfigFileOptions();
     refreshConfigEditor(true);
-  });
-
-  $('#edit-config-btn').on('click', function () {
-    refreshConfigEditor(true);
-    configEditorSnapshot = getConfigEditorText();
-    setConfigEditorEditing(true);
-    focusConfigJsonLine(0);
-  });
-
-  $('#config-json-code').on('input', '.config-json-line-content', function () {
-    syncConfigJsonSource();
-  }).on('keydown', '.config-json-line-content', function (event) {
-    const $content = $(this);
-    const lineIndex = Number($content.closest('.config-json-line').attr('data-line-index'));
-    const selection = window.getSelection();
-    const offset = selection.rangeCount ? selection.getRangeAt(0).startOffset : $content.text().length;
-    const lineText = $content.text();
-
-    if (event.key === 'Backspace' && offset === 0 && lineIndex > 0) {
-      event.preventDefault();
-      const lines = collectConfigJsonCode().split('\n');
-      const previousLength = lines[lineIndex - 1].length;
-      lines.splice(lineIndex - 1, 2, lines[lineIndex - 1] + lines[lineIndex]);
-      setConfigEditorText(lines.join('\n'));
-      focusConfigJsonLine(lineIndex - 1, previousLength);
-      return;
-    }
-
-    if (event.key !== 'Enter' && event.key !== 'Tab') return;
-    event.preventDefault();
-
-    if (event.key === 'Tab') {
-      const updated = lineText.slice(0, offset) + '  ' + lineText.slice(offset);
-      $content.text(updated);
-      syncConfigJsonSource();
-      focusConfigJsonLine(lineIndex, offset + 2);
-      return;
-    }
-
-    const lines = collectConfigJsonCode().split('\n');
-    lines.splice(lineIndex, 1, lineText.slice(0, offset), lineText.slice(offset));
-    setConfigEditorText(lines.join('\n'));
-    focusConfigJsonLine(lineIndex + 1);
+    UtilsModule.showTip(I18n.t('config_options_updated'), false);
   });
 
   $('#config-json-code').on('click', '.config-json-fold', function () {
@@ -941,51 +857,6 @@ function bindGlobalEvents() {
       }, 1500);
     }).catch(() => {
       UtilsModule.showTip(I18n.t('copy_failed'), true);
-    });
-  });
-
-  $('#format-config-btn').on('click', function () {
-    try {
-      const data = JSON.parse(getConfigEditorText());
-      setConfigEditorText(JSON.stringify(data, null, 2));
-    } catch (error) {
-      UtilsModule.showTip(I18n.t('alert_parse_error') + ': ' + error.message, true);
-    }
-  });
-
-  $('#cancel-config-edit-btn').on('click', function () {
-    setConfigEditorText(configEditorSnapshot);
-    setConfigEditorEditing(false);
-  });
-
-  $('#apply-config-btn').on('click', function () {
-    let data;
-    try {
-      data = JSON.parse(getConfigEditorText());
-    } catch (error) {
-      UtilsModule.showTip(I18n.t('alert_parse_error') + ': ' + error.message, true);
-      return;
-    }
-
-    const $button = $(this).prop('disabled', true);
-    UtilsModule.showProcessingTip(I18n.t('processing'));
-    const configFileOptions = getConfigFileOptions();
-    ConfigModule.applyConfigData(data, {
-      preserveOmittedSubscriptionCache: !configFileOptions.includeSubscriptionCache
-    }).then(() => {
-      refreshMainView();
-      if (SubscriptionModule.renderManagementList) {
-        SubscriptionModule.renderManagementList();
-      }
-      if (ScenariosModule.renderScenarioManagementList) {
-        ScenariosModule.renderScenarioManagementList();
-      }
-      refreshConfigEditor(true);
-      UtilsModule.showTip(I18n.t('save_success'), false);
-    }).catch(error => {
-      UtilsModule.showTip(I18n.t('save_failed') + ': ' + error.message, true);
-    }).finally(() => {
-      $button.prop('disabled', false);
     });
   });
 

@@ -20,7 +20,7 @@ function initLanguage() {
     $(this).closest('.lh-select').removeClass('dropdown-open')
       .find('.lh-select-op').hide().removeClass('drop-up');
 
-    I18n.setLanguage(lang);
+    I18n.setLanguage(lang, { persist: false });
 
     const config = StorageModule.getConfig();
     if (config && config.system) {
