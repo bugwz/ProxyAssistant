@@ -1,0 +1,207 @@
+/* ========== Base Styles ========== */
+:root {
+  --layer-dropdown: 200;
+  --layer-tooltip: 400;
+  --layer-overlay: 1000;
+  --layer-notification: 2000;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+body {
+  font-family: "Noto Sans SC", "Source Han Sans SC", "Source Han Sans CN", "思源黑体", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", "微软雅黑", sans-serif;
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background-color: #f6f7f9;
+  color: var(--text-primary);
+}
+
+.main-container {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+}
+
+.main-sidebar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 14px 18px;
+  box-sizing: border-box;
+  background-color: #ffffff;
+  border-right: 1px solid #e5e7eb;
+}
+
+.sidebar-logo {
+  min-width: 0;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 9px;
+  margin-bottom: 24px;
+}
+
+.sidebar-logo img {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+}
+
+.sidebar-logo-text {
+  overflow: hidden;
+  color: #1e2854;
+  font-size: 16px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.main-nav {
+  display: grid;
+  gap: 4px;
+}
+
+.main-nav-item {
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 6px;
+  background-color: transparent;
+  color: #566171;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.main-nav-item:hover {
+  background-color: #f3f4f6;
+  color: #1e293b;
+}
+
+.main-nav-item.active,
+html[data-initial-main-page="proxies"] .main-nav-item[data-main-page="proxies"],
+html[data-initial-main-page="scenarios"] .main-nav-item[data-main-page="scenarios"],
+html[data-initial-main-page="subscriptions"] .main-nav-item[data-main-page="subscriptions"],
+html[data-initial-main-page="config"] .main-nav-item[data-main-page="config"],
+html[data-initial-main-page="sync"] .main-nav-item[data-main-page="sync"],
+html[data-initial-main-page="diagnostics"] .main-nav-item[data-main-page="diagnostics"],
+html[data-initial-main-page="appearance"] .main-nav-item[data-main-page="appearance"],
+html[data-initial-main-page="about"] .main-nav-item[data-main-page="about"] {
+  background-color: #eef2ff;
+  color: #3154e8;
+  font-weight: 700;
+}
+
+.main-nav-item:focus {
+  outline: none;
+}
+
+.main-nav-item:focus-visible {
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
+.main-nav-item svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+.main-nav-item span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding: 16px 9px 0;
+  border-top: 1px solid #eceef1;
+  color: #8a93a1;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.sidebar-github-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: #697386;
+  border-radius: 4px;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.sidebar-github-link:hover {
+  color: #182235;
+  background-color: #f0f2f5;
+}
+
+.sidebar-github-link:focus {
+  outline: none;
+}
+
+.sidebar-github-link:focus-visible {
+  box-shadow: 0 0 0 2px rgba(49, 84, 232, 0.25);
+}
+
+.sidebar-github-link svg {
+  width: 17px;
+  height: 17px;
+}
+
+.main-content {
+  min-width: 0;
+  padding: 36px clamp(24px, 4vw, 56px) 48px;
+}
+
+.main-page {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.main-page[hidden] {
+  display: none !important;
+}
+
+html[data-initial-main-page]:not([data-initial-main-page="proxies"]) .main-page[data-page="proxies"] {
+  display: none !important;
+}
+
+html[data-initial-main-page="scenarios"] .main-page[data-page="scenarios"],
+html[data-initial-main-page="subscriptions"] .main-page[data-page="subscriptions"],
+html[data-initial-main-page="config"] .main-page[data-page="config"],
+html[data-initial-main-page="sync"] .main-page[data-page="sync"],
+html[data-initial-main-page="diagnostics"] .main-page[data-page="diagnostics"],
+html[data-initial-main-page="appearance"] .main-page[data-page="appearance"],
+html[data-initial-main-page="about"] .main-page[data-page="about"] {
+  display: block !important;
+}
+
