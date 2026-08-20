@@ -121,6 +121,19 @@
       '<path d="M12 10v5"/>',
       '<path d="M12 7h.01"/>'
     ].join(''),
+    disabledCircle: [
+      '<circle cx="12" cy="12" r="9"/>',
+      '<path d="M8 12h8"/>'
+    ].join(''),
+    manualMode: [
+      '<circle cx="12" cy="12" r="9"/>',
+      '<path d="M8.5 16V8l3.5 5 3.5-5v8"/>'
+    ].join(''),
+    autoMode: [
+      '<circle cx="12" cy="12" r="9"/>',
+      '<path d="m8.5 16 3.5-8 3.5 8"/>',
+      '<path d="M10 13h4"/>'
+    ].join(''),
     search: [
       '<circle cx="11" cy="11" r="7"/>',
       '<path d="m20 20-4-4"/>'

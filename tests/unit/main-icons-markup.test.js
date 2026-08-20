@@ -78,14 +78,20 @@ describe('main header icon markup', () => {
     expect(html).toContain('M5 15.5v2A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5v-2');
   });
 
-  test('detect and pac buttons should use inspect and script semantics', () => {
+  test('proxy and PAC refresh buttons should use refresh semantics', () => {
     const mainHtmlPath = path.join(__dirname, '../../src/main.html');
-    const html = fs.readFileSync(mainHtmlPath, 'utf8');
+    const pageDocument = new DOMParser().parseFromString(fs.readFileSync(mainHtmlPath, 'utf8'), 'text/html');
+    const refreshPaths = Array.from(pageDocument.querySelectorAll('#detect-proxy-btn path')).map(path => path.getAttribute('d'));
+    const pacPaths = Array.from(pageDocument.querySelectorAll('#pac-details-btn path')).map(path => path.getAttribute('d'));
 
-    expect(html).toContain('circle cx="10.5" cy="10.5" r="4.5"');
-    expect(html).toContain('m14 14 4 4');
-    expect(html).toContain('M8 3h5l4 4v14');
-    expect(html).toContain('m10 14 2-2-2-2');
+    expect(refreshPaths).toEqual([
+      'M20 5v5h-5',
+      'M4 19v-5h5',
+      'M6.5 10A7 7 0 0 1 18 7l2 3',
+      'M17.5 14A7 7 0 0 1 6 17l-2-3'
+    ]);
+    expect(pacPaths).toEqual(refreshPaths);
+    expect(pageDocument.querySelector('#pac-details-btn span').getAttribute('data-i18n')).toBe('proxy_detection_button');
   });
 
   test('about page displays complete version information', () => {

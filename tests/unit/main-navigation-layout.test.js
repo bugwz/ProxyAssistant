@@ -24,9 +24,11 @@ describe('main sidebar layout', () => {
     delete global.jQuery;
     delete global.ScenariosModule;
     delete global.VersionModule;
+    delete global.DetectionModule;
     delete global.chrome;
     delete window.ScenariosModule;
     delete window.VersionModule;
+    delete window.DetectionModule;
     delete window.chrome;
     delete window.enhanceNativeSelects;
     document.documentElement.removeAttribute('data-initial-main-page');
@@ -72,6 +74,9 @@ describe('main sidebar layout', () => {
     expect(pageDocument.querySelector('#subscription-expand-collapse-btn')).not.toBeNull();
     expect(pageDocument.querySelector('#subscription-manage-list')).not.toBeNull();
     expect(pageDocument.querySelector('#add-subscription-btn [data-i18n="add_new"]')).not.toBeNull();
+    const runtimeStatusIcon = pageDocument.querySelector('.main-nav-item[data-main-page="diagnostics"] svg');
+    expect(runtimeStatusIcon.querySelector('circle').getAttribute('r')).toBe('9');
+    expect(runtimeStatusIcon.querySelector('path').getAttribute('d')).toBe('M6.5 12h3l1.5-3 2 6 1.5-3h3');
     expect(pageDocument.querySelector('#page-proxies .page-heading p').dataset.i18n).toBe('proxy_management_desc');
     expect(pageDocument.querySelector('#page-proxies .proxy-toolbar')).toBeNull();
     expect(pageDocument.querySelector('#page-scenarios .page-heading p').dataset.i18n).toBe('scenario_management_desc');
@@ -129,6 +134,21 @@ describe('main sidebar layout', () => {
     expect(cloudSyncSection.querySelector('.sync-pull-warning').textContent).toContain('远程配置完整覆盖本地配置');
     expect(cloudSyncSection.querySelector('.sync-config-summary')).toBeNull();
     expect(pageDocument.querySelector('.sync-config-tip')).toBeNull();
+    const diagnosticsPage = pageDocument.querySelector('#page-diagnostics');
+    const diagnosticsCards = Array.from(diagnosticsPage.querySelectorAll(':scope > .diagnostics-card'));
+    expect(diagnosticsCards).toHaveLength(2);
+    expect(diagnosticsCards[0].classList.contains('diagnostics-detection-card')).toBe(true);
+    expect(diagnosticsCards[1].classList.contains('diagnostics-pac-card')).toBe(true);
+    expect(diagnosticsCards[0].querySelector(':scope > .diagnostics-card-header #detect-proxy-btn')).not.toBeNull();
+    expect(diagnosticsCards[0].querySelector(':scope > .proxy-detection-content')).not.toBeNull();
+    const detectionOverview = diagnosticsCards[0].querySelector('.detection-overview');
+    expect(detectionOverview.querySelector(':scope > .detection-summary')).not.toBeNull();
+    expect(detectionOverview.querySelector(':scope > .detection-details')).not.toBeNull();
+    expect(diagnosticsCards[1].querySelector(':scope > .diagnostics-card-header #pac-details-btn')).not.toBeNull();
+    expect(diagnosticsCards[1].querySelector(':scope > .pac-details-content')).not.toBeNull();
+    expect(diagnosticsCards.every(card => card.hidden === false)).toBe(true);
+    expect(pageDocument.querySelector('.proxy-detection-tip')).toBeNull();
+    expect(pageDocument.querySelector('.pac-details-tip')).toBeNull();
     expect(pageDocument.querySelector('head script').getAttribute('src')).toBe('./js/main-navigation-bootstrap.js');
     expect(pageDocument.querySelector('.main-nav-item.active')).toBeNull();
     expect(readMainCss()).toContain(
@@ -136,6 +156,15 @@ describe('main sidebar layout', () => {
     );
     expect(readMainCss()).toContain(
       '.config-json-line[hidden]'
+    );
+    expect(readMainCss()).toContain(
+      '.diagnostics-card'
+    );
+    expect(readMainCss()).toContain(
+      'grid-template-columns: minmax(0, 20%) repeat(2, minmax(0, 40%));'
+    );
+    expect(readMainCss()).toContain(
+      '.diagnostics-card .detection-summary-copy'
     );
   });
 
@@ -161,9 +190,11 @@ describe('main sidebar layout', () => {
     document.body.innerHTML = `
       <button class="main-nav-item active" data-main-page="proxies" aria-current="page"></button>
       <button class="main-nav-item" data-main-page="scenarios"></button>
+      <button class="main-nav-item" data-main-page="diagnostics"></button>
       <button class="main-nav-item" data-main-page="about"></button>
       <section class="main-page active" data-page="proxies"></section>
       <section class="main-page" data-page="scenarios" hidden></section>
+      <section class="main-page" data-page="diagnostics" hidden></section>
       <section class="main-page" data-page="about" hidden></section>
       <div id="scenario-manage-list"></div>
     `;
@@ -179,6 +210,12 @@ describe('main sidebar layout', () => {
       loadVersionInfo: jest.fn(() => Promise.resolve())
     };
     window.VersionModule = global.VersionModule;
+    global.DetectionModule = {
+      detectProxy: jest.fn(),
+      showPacDetails: jest.fn(),
+      closePacDetails: jest.fn()
+    };
+    window.DetectionModule = global.DetectionModule;
 
     window.eval(fs.readFileSync(mainJsPath, 'utf8'));
     window.initMainNavigation();
@@ -189,6 +226,11 @@ describe('main sidebar layout', () => {
     expect($('.main-page[data-page="scenarios"]').prop('hidden')).toBe(false);
     expect(window.localStorage.getItem('proxyAssistant.activeMainPage')).toBe('scenarios');
     expect(global.ScenariosModule.renderScenarioManagementList).toHaveBeenCalledTimes(1);
+
+    $('.main-nav-item[data-main-page="diagnostics"]').trigger('click');
+    expect($('.main-page[data-page="diagnostics"]').prop('hidden')).toBe(false);
+    expect(global.DetectionModule.detectProxy).toHaveBeenCalledTimes(1);
+    expect(global.DetectionModule.showPacDetails).toHaveBeenCalledTimes(1);
 
     $('.main-nav-item[data-main-page="about"]').trigger('click');
     expect($('.main-page[data-page="about"]').prop('hidden')).toBe(false);

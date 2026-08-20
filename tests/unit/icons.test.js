@@ -14,8 +14,11 @@ describe('MainIcons', () => {
     const tagIcon = MainIcons.render('tag');
     const foldAllIcon = MainIcons.render('foldAll');
     const unfoldAllIcon = MainIcons.render('unfoldAll');
+    const disabledCircleIcon = MainIcons.render('disabledCircle');
+    const manualModeIcon = MainIcons.render('manualMode');
+    const autoModeIcon = MainIcons.render('autoMode');
 
-    [testAllIcon, chevronDownIcon, eyeOffIcon, scenarioSwitchIcon, tagIcon, foldAllIcon, unfoldAllIcon].forEach((svg) => {
+    [testAllIcon, chevronDownIcon, eyeOffIcon, scenarioSwitchIcon, tagIcon, foldAllIcon, unfoldAllIcon, disabledCircleIcon, manualModeIcon, autoModeIcon].forEach((svg) => {
       expect(svg).toContain('<svg');
       expect(svg).toContain('viewBox="0 0 24 24"');
       expect(svg).toContain('stroke="currentColor"');
@@ -27,5 +30,10 @@ describe('MainIcons', () => {
     expect(scenarioSwitchIcon).toContain('M12 3 4 7l8 4 8-4-8-4Z');
     expect(tagIcon).toContain('M6 3h12v18l-6-4-6 4V3Z');
     expect(tagIcon).toContain('M6 7h12');
+    expect(disabledCircleIcon).toContain('M8 12h8');
+    expect(manualModeIcon).toContain('M8.5 16V8l3.5 5 3.5-5v8');
+    expect(autoModeIcon).toContain('m8.5 16 3.5-8 3.5 8');
+    expect(manualModeIcon).toContain('<circle cx="12" cy="12" r="9"/>');
+    expect(autoModeIcon).toContain('<circle cx="12" cy="12" r="9"/>');
   });
 });

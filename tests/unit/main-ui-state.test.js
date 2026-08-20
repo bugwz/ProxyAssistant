@@ -56,11 +56,6 @@ function setupBaseDom() {
     <div class="delete-tip-close-btn"></div>
     <div class="delete-tip-cancel-btn"></div>
     <div class="delete-tip-confirm-btn"></div>
-    <div class="proxy-detection-tip"></div>
-    <div class="proxy-detection-close-btn"></div>
-    <div class="pac-details-tip"></div>
-    <div class="pac-details-close-btn"></div>
-    <div class="pac-details-close-btn-secondary"></div>
     <div id="pac-copy-btn"></div>
     <div id="pac-toggle-btn"></div>
     <div id="pac-script-content"></div>
