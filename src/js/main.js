@@ -124,6 +124,15 @@ function switchMainPage(pageId) {
     .addClass('active')
     .prop('hidden', false);
 
+  if (pageId !== 'diagnostics' && typeof DetectionModule !== 'undefined' && DetectionModule.closePacDetails) {
+    DetectionModule.closePacDetails();
+  }
+
+  if (pageId === 'diagnostics' && typeof DetectionModule !== 'undefined') {
+    if (DetectionModule.detectProxy) DetectionModule.detectProxy();
+    if (DetectionModule.showPacDetails) DetectionModule.showPacDetails();
+  }
+
   if (pageId === 'scenarios' && typeof ScenariosModule !== 'undefined' && ScenariosModule.renderScenarioManagementList) {
     ScenariosModule.renderScenarioManagementList();
   }
@@ -867,7 +876,9 @@ function bindGlobalEvents() {
   });
 
   $("#detect-proxy-btn").on("click", DetectionModule.detectProxy);
-  $("#pac-details-btn").on("click", DetectionModule.showPacDetails);
+  $("#pac-details-btn").on("click", function () {
+    DetectionModule.updatePacDetails();
+  });
 
   $(document).on("click", ".version-row-retry-btn", function () {
     const source = $(this).data("source");
@@ -892,8 +903,6 @@ function bindGlobalEvents() {
         '.edit-scenario-tip',
         '.delete-scenario-tip',
         '.subscription-config-tip',
-        '.pac-details-tip',
-        '.proxy-detection-tip',
         '.delete-tip'
       ];
 
@@ -928,23 +937,6 @@ $(".delete-tip-confirm-btn").on("click", function () {
 
 $(".delete-tip").hide();
 
-$(".proxy-detection-close-btn, .proxy-detection-tip").on("click", function (e) {
-  if (this === e.target || $(this).hasClass('proxy-detection-close-btn')) {
-    $(".proxy-detection-tip").removeClass("show");
-    setTimeout(function () { $(".proxy-detection-tip").hide(); }, 300);
-  }
-});
-
-$(".pac-details-close-btn, .pac-details-close-btn-secondary, .pac-details-tip").on("click", function (e) {
-  if (this === e.target || $(this).hasClass('pac-details-close-btn') || $(this).hasClass('pac-details-close-btn-secondary')) {
-    if (typeof DetectionModule !== 'undefined' && DetectionModule.closePacDetails) {
-      DetectionModule.closePacDetails();
-    }
-    $(".pac-details-tip").removeClass("show");
-    setTimeout(function () { $(".pac-details-tip").hide(); }, 300);
-  }
-});
-
 $("#pac-copy-btn").on("click", function () {
   var script = $("#pac-script-content").text();
   var $btn = $(this);
@@ -964,14 +956,18 @@ $("#pac-toggle-btn").on("click", function () {
 
   if (isExpanded) {
     $wrapper.addClass("collapsed");
-    $btn.removeClass("expanded");
+    $btn
+      .removeClass("expanded")
+      .attr('aria-expanded', 'false')
+      .attr('title', I18n.t('expand_all'));
   } else {
     $wrapper.removeClass("collapsed");
-    $btn.addClass("expanded");
+    $btn
+      .addClass("expanded")
+      .attr('aria-expanded', 'true')
+      .attr('title', I18n.t('collapse_all'));
   }
 });
-
-$(".pac-details-tip").hide();
 
 // ==========================================
 // Export for use in other modules

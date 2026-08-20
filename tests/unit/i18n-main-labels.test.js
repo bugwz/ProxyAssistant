@@ -115,6 +115,26 @@ describe('main page translated section labels', () => {
     });
   });
 
+  test('runtime status navigation label should be translated in every language', () => {
+    const expectations = {
+      'zh-CN': '运行状态',
+      'zh-TW': '運行狀態',
+      'en': 'Runtime Status',
+      'ja': '稼働状況',
+      'fr': 'État de fonctionnement',
+      'de': 'Betriebsstatus',
+      'es': 'Estado operativo',
+      'ko': '실행 상태',
+      'pt': 'Status operacional',
+      'ru': 'Состояние работы'
+    };
+
+    Object.entries(expectations).forEach(([lang, label]) => {
+      window.I18n.setLanguage(lang);
+      expect(window.I18n.t('nav_diagnostics')).toBe(label);
+    });
+  });
+
   test('does not write a partial configuration while initializing without stored data', () => {
     global.chrome.storage.local.get.mockImplementation((keys, callback) => callback({}));
     const callback = jest.fn();

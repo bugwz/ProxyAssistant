@@ -5,8 +5,7 @@
 let pacStorageListener = null;
 
 const detectionIcons = {
-  success: MainIcons.render('successCircle', { width: 48, height: 48, style: 'color:#22c55e' }),
-  warning: MainIcons.render('warningCircle', { width: 48, height: 48, style: 'color:#f59e0b' }),
+  disabled: MainIcons.render('disabledCircle', { width: 48, height: 48, style: 'color:#94a3b8' }),
   error: MainIcons.render('errorCircle', { width: 48, height: 48, style: 'color:#ef4444' }),
   loading: MainIcons.render('loading', { width: 48, height: 48, className: 'spin' })
 };
@@ -22,7 +21,6 @@ async function detectProxy() {
   $("#detection-status-icon").html(detectionIcons.loading);
   $("#detection-status-text").text(I18n.t('proxy_effect_testing'));
   $("#detection-details, #detection-warning, #detection-suggestion").hide();
-  $(".proxy-detection-tip").show().addClass("show");
 
   try {
     var browserConfig = await getBrowserProxyConfig();
@@ -66,7 +64,7 @@ function getPluginProxyConfig() {
 }
 
 function analyzeProxyStatus(browserConfig, pluginConfig) {
-  var result = { status: 'normal', statusText: '', statusIcon: '', details: [], warning: null, suggestion: null };
+  var result = { status: 'normal', mode: pluginConfig.mode, statusText: '', sections: [], warning: null, suggestion: null };
   var browserMode = (browserConfig.value && browserConfig.value.mode) || 'system';
   var levelOfControl = browserConfig.levelOfControl || '';
 
@@ -77,15 +75,16 @@ function analyzeProxyStatus(browserConfig, pluginConfig) {
     else if (rules.proxyForHttp || rules.proxyForHttps) { var p = rules.proxyForHttp || rules.proxyForHttps; proxyServer = p.host + ':' + p.port; proxyProtocol = p.scheme || 'http'; }
   } else if (browserConfig.value && browserConfig.value.pacScript) { proxyServer = 'PAC Script'; proxyProtocol = 'Auto'; }
 
-  result.details.push({ label: I18n.t('proxy_mode'), value: getModeDisplayName(browserMode) });
-  if (proxyServer) result.details.push({ label: I18n.t('proxy_server'), value: proxyServer });
-  if (proxyProtocol) result.details.push({ label: I18n.t('proxy_protocol'), value: proxyProtocol.toUpperCase() });
-
   var controlText = '';
   if (levelOfControl === 'controlled_by_this_extension') controlText = I18n.t('proxy_control_this');
   else if (levelOfControl === 'controlled_by_other_extensions') controlText = I18n.t('proxy_control_other');
   else controlText = I18n.t('proxy_control_system');
-  result.details.push({ label: I18n.t('proxy_control'), value: controlText });
+  const browserDetails = [
+    { label: I18n.t('proxy_mode'), value: getModeDisplayName(browserMode) },
+    { label: I18n.t('proxy_server'), value: proxyServer || '-' },
+    { label: I18n.t('proxy_protocol'), value: proxyProtocol ? proxyProtocol.toUpperCase() : '-' },
+    { label: I18n.t('proxy_control'), value: controlText }
+  ];
 
   var isUsingPlugin = false;
   var isFirefox = navigator.userAgent.indexOf("Firefox") !== -1;
@@ -106,16 +105,36 @@ function analyzeProxyStatus(browserConfig, pluginConfig) {
   if (!isFirefox && pluginConfig.mode !== 'disabled') hasOtherProxy = hasOtherProxy || (browserMode === 'system');
 
   if (pluginConfig.mode === 'disabled') {
-    result.status = 'normal'; result.statusText = I18n.t('status_disabled'); result.statusIcon = detectionIcons.success;
-    result.details.push({ label: I18n.t('proxy_effect'), value: I18n.t('proxy_control_system') });
+    result.status = 'disabled'; result.statusText = I18n.t('status_disabled');
+    result.proxyEffect = I18n.t('proxy_control_system');
   } else if (isUsingPlugin && !hasOtherProxy) {
-    result.status = 'normal'; result.statusText = I18n.t('proxy_status_normal'); result.statusIcon = detectionIcons.success;
-    result.details.push({ label: I18n.t('proxy_effect'), value: I18n.t('proxy_effect_verified') });
+    result.status = 'normal'; result.statusText = getPluginStatusText(pluginConfig.mode);
+    result.proxyEffect = I18n.t('proxy_effect_verified');
   } else {
-    result.status = 'warning'; result.statusText = I18n.t('proxy_status_warning'); result.statusIcon = detectionIcons.warning;
+    result.status = 'warning'; result.statusText = getPluginStatusText(pluginConfig.mode);
     result.warning = I18n.t('proxy_warning_system'); result.suggestion = I18n.t('proxy_suggestion_check');
-    result.details.push({ label: I18n.t('proxy_effect'), value: I18n.t('proxy_effect_failed') });
+    result.proxyEffect = I18n.t('proxy_effect_failed');
   }
+
+  const currentProxy = pluginConfig.currentProxy;
+  const currentProxyName = currentProxy
+    ? (currentProxy.name || [currentProxy.ip, currentProxy.port].filter(Boolean).join(':') || '-')
+    : '-';
+  result.sections = [
+    {
+      title: I18n.t('proxy_browser_section'),
+      items: browserDetails
+    },
+    {
+      title: I18n.t('proxy_extension_section'),
+      items: [
+        { label: I18n.t('proxy_extension_mode'), value: getPluginModeDisplayName(pluginConfig.mode) },
+        { label: I18n.t('proxy_current_node'), value: currentProxyName },
+        { label: I18n.t('proxy_node_count'), value: String(pluginConfig.list.length) },
+        { label: I18n.t('proxy_effect'), value: result.proxyEffect }
+      ]
+    }
+  ];
   return result;
 }
 
@@ -129,16 +148,40 @@ function getModeDisplayName(mode) {
   }
 }
 
+function getPluginModeDisplayName(mode) {
+  switch (mode) {
+    case 'manual': return I18n.t('mode_manual');
+    case 'auto': return I18n.t('mode_auto');
+    default: return I18n.t('mode_disabled');
+  }
+}
+
+function getPluginStatusText(mode) {
+  return mode === 'manual'
+    ? I18n.t('proxy_status_manual_mode')
+    : I18n.t('proxy_status_auto_mode');
+}
+
 function displayDetectionResult(result) {
-  var iconKey = result.status === 'normal' ? 'success' : (result.status === 'warning' ? 'warning' : 'error');
-  $("#detection-status-icon").html(detectionIcons[iconKey]);
+  var statusIcon = detectionIcons.disabled;
+  if (result.status !== 'disabled') {
+    const iconName = result.mode === 'manual' ? 'manualMode' : 'autoMode';
+    const iconColor = result.status === 'warning' ? '#f59e0b' : '#22c55e';
+    statusIcon = MainIcons.render(iconName, { width: 48, height: 48, style: 'color:' + iconColor });
+  }
+  $("#detection-status-icon").html(statusIcon);
   $("#detection-status-text").text(result.statusText);
 
   var detailsHtml = '';
-  result.details.forEach(function (item) {
-    detailsHtml += '<div class="detection-row"><span class="detection-label">' + item.label + '</span><span class="detection-value">' + item.value + '</span></div>';
+  result.sections.forEach(function (section) {
+    detailsHtml += '<section class="detection-info-group"><h3>' + UtilsModule.escapeHtml(section.title) + '</h3><div class="detection-info-grid">';
+    section.items.forEach(function (item) {
+      detailsHtml += '<div class="detection-row"><span class="detection-label">' + UtilsModule.escapeHtml(item.label) + '</span><span class="detection-value">' + UtilsModule.escapeHtml(item.value) + '</span></div>';
+    });
+    detailsHtml += '</div></section>';
   });
   $("#detection-details").html(detailsHtml).show();
+  $("#detection-checked-time").text(new Date().toLocaleString());
 
   if (result.warning) $("#detection-warning").text(result.warning).show(); else $("#detection-warning").hide();
   if (result.suggestion) { $("#detection-suggestion-text").text(result.suggestion); $("#detection-suggestion").show(); } else $("#detection-suggestion").hide();
@@ -148,7 +191,8 @@ function displayErrorResult(errorMsg) {
   $("#detection-status-icon").html(detectionIcons.error);
   $("#detection-status-text").text(I18n.t('proxy_status_error'));
   var safeErrorMsg = errorMsg ? UtilsModule.escapeHtml(errorMsg) : I18n.t('proxy_suggestion_retry');
-  $("#detection-details").html('<div class="detection-row"><span class="detection-label">Error</span><span class="detection-value">' + safeErrorMsg + '</span></div>').show();
+  $("#detection-details").html('<section class="detection-info-group detection-error-group"><div class="detection-row"><span class="detection-label">Error</span><span class="detection-value">' + safeErrorMsg + '</span></div></section>').show();
+  $("#detection-checked-time").text(new Date().toLocaleString());
   $("#detection-warning").hide();
   $("#detection-suggestion-text").text(I18n.t('proxy_suggestion_retry'));
   $("#detection-suggestion").show();
@@ -169,7 +213,12 @@ function showPacDetails() {
     }
   };
   chrome.storage.onChanged.addListener(pacStorageListener);
-  $(".pac-details-tip").show().addClass("show");
+}
+
+function closePacDetails() {
+  if (!pacStorageListener) return;
+  chrome.storage.onChanged.removeListener(pacStorageListener);
+  pacStorageListener = null;
 }
 
 function updatePacDetails() {
@@ -236,7 +285,5 @@ window.DetectionModule = {
   detectProxy,
   showPacDetails,
   updatePacDetails,
-  closePacDetails: () => {
-    if (pacStorageListener) { chrome.storage.onChanged.removeListener(pacStorageListener); pacStorageListener = null; }
-  }
+  closePacDetails
 };
