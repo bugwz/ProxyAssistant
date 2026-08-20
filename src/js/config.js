@@ -684,7 +684,7 @@ function exportConfig(options = {}) {
   var downloadAnchorNode = document.createElement('a');
   var timestamp = getLocalTimestamp();
   downloadAnchorNode.setAttribute("href", dataStr);
-  downloadAnchorNode.setAttribute("download", "proxy_assistant_config_" + timestamp + ".json");
+  downloadAnchorNode.setAttribute("download", "proxyassistant_" + timestamp + ".json");
   document.body.appendChild(downloadAnchorNode);
   downloadAnchorNode.click();
   downloadAnchorNode.remove();

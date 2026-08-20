@@ -56,6 +56,8 @@ function setupModules(config) {
 
 describe('proxy color configuration', () => {
   afterEach(() => {
+    jest.useRealTimers();
+    jest.restoreAllMocks();
     delete window.I18n;
     delete window.ThemeModule;
     delete window.SyncModule;
@@ -147,6 +149,29 @@ describe('proxy color configuration', () => {
     expect(firstSubscriptionId).toMatch(/^subscription_\d{14}$/);
     expect(secondSubscriptionId).toMatch(/^subscription_\d{14}$/);
     expect(secondSubscriptionId).not.toBe(firstSubscriptionId);
+  });
+
+  test('uses the simplified prefix for exported configuration files', () => {
+    const { ConfigModule } = setupModules(null);
+    window.StorageModule.getConfig.mockReturnValue(ConfigModule.getDefaultConfig());
+    const originalCreateElement = document.createElement.bind(document);
+    let downloadAnchor;
+
+    jest.useFakeTimers().setSystemTime(new Date(2026, 7, 20, 1, 2, 3));
+    jest.spyOn(document, 'createElement').mockImplementation(tagName => {
+      const element = originalCreateElement(tagName);
+      if (tagName === 'a') {
+        downloadAnchor = element;
+        element.click = jest.fn();
+        element.remove = jest.fn();
+      }
+      return element;
+    });
+
+    ConfigModule.exportConfig();
+
+    expect(downloadAnchor.getAttribute('download')).toBe('proxyassistant_20260820010203.json');
+    expect(downloadAnchor.click).toHaveBeenCalledTimes(1);
   });
 
   test('migrates existing entity IDs and keeps every reference connected', () => {
