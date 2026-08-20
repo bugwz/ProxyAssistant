@@ -247,25 +247,29 @@ function migrateConfig(config) {
   return normalizeConfig(v5);
 }
 
+function getDefaultSystemConfig() {
+  return {
+    app_language: I18n.getCurrentLanguage ? I18n.getCurrentLanguage() : 'zh-CN',
+    theme_mode: 'light',
+    night_mode_start: '22:00',
+    night_mode_end: '06:00',
+    sync: {
+      type: 'native',
+      auto_mode: 'off',
+      interval_minutes: 360,
+      last_sync_at: null,
+      last_sync_direction: null,
+      gist: { token: '', filename: 'proxy_assistant_config.json', gist_id: '' }
+    }
+  };
+}
+
 function getDefaultConfig() {
   const defaultScenarioId = generateScenarioId();
   return {
     version: 5,
     updated_at: null,
-    system: {
-      app_language: I18n.getCurrentLanguage ? I18n.getCurrentLanguage() : 'zh-CN',
-      theme_mode: 'light',
-      night_mode_start: '22:00',
-      night_mode_end: '06:00',
-      sync: {
-        type: 'native',
-        auto_mode: 'off',
-        interval_minutes: 360,
-        last_sync_at: null,
-        last_sync_direction: null,
-        gist: { token: '', filename: 'proxy_assistant_config.json', gist_id: '' }
-      }
-    },
+    system: getDefaultSystemConfig(),
     scenarios: {
       current: defaultScenarioId,
       lists: [{
@@ -361,9 +365,9 @@ function normalizeConfig(config) {
     config.scenarios.lists = [];
   }
   if (!config.system) {
-    config.system = getDefaultConfig().system;
+    config.system = getDefaultSystemConfig();
   }
-  const defaultSync = getDefaultConfig().system.sync;
+  const defaultSync = getDefaultSystemConfig().sync;
   const sourceSync = config.system.sync || {};
   const intervalMinutes = Number(sourceSync.interval_minutes);
   config.system.sync = {
@@ -699,7 +703,13 @@ function getLocalSyncConfig() {
   const localSync = window.SyncModule && window.SyncModule.getSyncConfig
     ? window.SyncModule.getSyncConfig()
     : config.system?.sync;
-  return JSON.parse(JSON.stringify(localSync || getDefaultConfig().system.sync));
+  const defaultSync = getDefaultSystemConfig().sync;
+  const sourceSync = localSync || {};
+  return JSON.parse(JSON.stringify({
+    ...defaultSync,
+    ...sourceSync,
+    gist: { ...defaultSync.gist, ...(sourceSync.gist || {}) }
+  }));
 }
 
 function expandSubscriptionCache(rawData) {
@@ -849,10 +859,33 @@ function prepareConfigForApply(rawData, options = {}) {
   return data;
 }
 
+function hasConfigContentChanged(currentConfig, nextConfig) {
+  if (!currentConfig || !nextConfig) return true;
+  const currentComparable = JSON.parse(JSON.stringify(currentConfig));
+  const nextComparable = JSON.parse(JSON.stringify(nextConfig));
+  delete currentComparable.updated_at;
+  delete nextComparable.updated_at;
+  const sortObjectKeys = value => {
+    if (Array.isArray(value)) return value.map(sortObjectKeys);
+    if (!value || typeof value !== 'object') return value;
+    return Object.keys(value).sort().reduce((result, key) => {
+      result[key] = sortObjectKeys(value[key]);
+      return result;
+    }, {});
+  };
+  return JSON.stringify(sortObjectKeys(currentComparable))
+    !== JSON.stringify(sortObjectKeys(nextComparable));
+}
+
 function applyConfigData(rawData, options = {}) {
+  const currentConfig = window.StorageModule ? StorageModule.getConfig() : null;
   const data = prepareConfigForApply(rawData, options);
 
   if (window.StorageModule) {
+    if (!hasConfigContentChanged(currentConfig, data)) {
+      applyImportedSettings(currentConfig);
+      return Promise.resolve(currentConfig);
+    }
     StorageModule.setConfig(data);
     return StorageModule.save().then(() => {
       applyImportedSettings(data);
@@ -904,7 +937,7 @@ function applyImportedSettings(data) {
   const systemData = data.system;
   if (systemData) {
     if (systemData.app_language && typeof I18n !== 'undefined' && I18n.setLanguage) {
-      I18n.setLanguage(systemData.app_language);
+      I18n.setLanguage(systemData.app_language, { persist: false });
       $('#current-language-display').text($(`#language-options li[data-value="${systemData.app_language}"]`).text());
     }
     if (systemData.theme_mode && window.ThemeModule) {

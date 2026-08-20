@@ -151,6 +151,26 @@ describe('proxy color configuration', () => {
     expect(secondSubscriptionId).not.toBe(firstSubscriptionId);
   });
 
+  test('does not consume scenario IDs while normalizing an existing configuration', () => {
+    jest.useFakeTimers().setSystemTime(new Date(2026, 7, 20, 1, 2, 3));
+    const config = {
+      version: 6,
+      system: { app_language: 'en', theme_mode: 'light' },
+      scenarios: {
+        current: 'scenario_20250213134422',
+        lists: [{ id: 'scenario_20250213134422', name: 'Default', proxies: [] }]
+      },
+      subscriptions: []
+    };
+    const { ConfigModule } = setupModules(config);
+
+    ConfigModule.migrateConfig(config);
+    ConfigModule.migrateConfig(config);
+
+    expect(ConfigModule.getDefaultConfig().scenarios.current).toBe('scenario_20260820010203');
+    expect(config.scenarios.current).toBe('scenario_20250213134422');
+  });
+
   test('uses the simplified prefix for exported configuration files', () => {
     const { ConfigModule } = setupModules(null);
     window.StorageModule.getConfig.mockReturnValue(ConfigModule.getDefaultConfig());
@@ -322,6 +342,8 @@ describe('proxy color configuration', () => {
       type: 'native',
       auto_mode: 'pull',
       interval_minutes: 30,
+      last_sync_at: null,
+      last_sync_direction: null,
       gist: {
         token: 'local-secret',
         filename: 'proxy_assistant_config.json',
@@ -330,7 +352,102 @@ describe('proxy color configuration', () => {
     });
     expect(window.ThemeModule.setThemeMode).toHaveBeenCalledWith('dark');
     expect(window.ThemeModule.setNightModeTimes).toHaveBeenCalledWith('21:30', '07:15');
-    expect(window.I18n.setLanguage).toHaveBeenCalledWith('en');
+    expect(window.I18n.setLanguage).toHaveBeenCalledWith('en', { persist: false });
+  });
+
+  test('round-trips flattened proxies without changing their scenario ID', async () => {
+    const config = {
+      version: 5,
+      updated_at: null,
+      system: { app_language: 'en', theme_mode: 'light' },
+      scenarios: {
+        current: 'scenario_20260820103413',
+        lists: [{
+          id: 'scenario_20260820103413',
+          name: 'Default',
+          proxies: [{
+            id: 'proxy_20260820103414',
+            name: 'Office',
+            enabled: true,
+            protocol: 'http',
+            ip: '10.0.0.1',
+            port: '8080'
+          }]
+        }]
+      },
+      subscriptions: []
+    };
+    const { ConfigModule } = setupModules(config);
+    const editable = ConfigModule.buildEditableConfigData();
+
+    const applied = await ConfigModule.applyConfigData(editable);
+    window.StorageModule.getConfig.mockReturnValue(applied);
+    const rendered = ConfigModule.buildEditableConfigData();
+
+    expect(rendered.scenarios.current).toBe('scenario_20260820103413');
+    expect(rendered.scenarios.lists[0].id).toBe('scenario_20260820103413');
+    expect(rendered.proxies).toHaveLength(1);
+    expect(rendered.proxies[0]).toEqual(expect.objectContaining({
+      id: 'proxy_20260820103414',
+      scenarioId: 'scenario_20260820103413',
+      name: 'Office',
+      ip: '10.0.0.1',
+      port: '8080'
+    }));
+  });
+
+  test('does not save or update metadata when editable content is unchanged', async () => {
+    const config = {
+      version: 5,
+      updated_at: '2026-08-20T02:18:49.092Z',
+      system: {
+        app_language: 'en',
+        theme_mode: 'light',
+        night_mode_start: '22:00',
+        night_mode_end: '06:00',
+        sync: {
+          type: 'native',
+          auto_mode: 'pull',
+          interval_minutes: 30,
+          last_sync_at: null,
+          last_sync_direction: null,
+          gist: {
+            token: 'local-secret',
+            filename: 'proxy_assistant_config.json',
+            gist_id: 'local-gist'
+          }
+        }
+      },
+      scenarios: {
+        current: 'scenario_20260820103413',
+        lists: [{
+          id: 'scenario_20260820103413',
+          name: 'Default',
+          proxies: [{
+            id: 'proxy_20260820103414',
+            name: 'Office',
+            enabled: true,
+            protocol: 'http',
+            ip: '10.0.0.1',
+            port: '8080'
+          }]
+        }]
+      },
+      subscriptions: []
+    };
+    const { ConfigModule } = setupModules(config);
+    const normalized = ConfigModule.migrateConfig(config);
+    window.StorageModule.getConfig.mockReturnValue(normalized);
+    const editable = ConfigModule.buildEditableConfigData();
+    window.StorageModule.setConfig.mockClear();
+    window.StorageModule.save.mockClear();
+
+    const applied = await ConfigModule.applyConfigData(editable);
+
+    expect(applied).toBe(normalized);
+    expect(applied.updated_at).toBe('2026-08-20T02:18:49.092Z');
+    expect(window.StorageModule.setConfig).not.toHaveBeenCalled();
+    expect(window.StorageModule.save).not.toHaveBeenCalled();
   });
 
   test('builds the editable project configuration without local cloud sync settings', () => {

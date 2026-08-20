@@ -83,12 +83,13 @@ describe('main sidebar layout', () => {
     const syncPage = pageDocument.querySelector('#page-sync');
     const cloudSyncSection = syncPage.querySelector('.cloud-sync-section');
     expect(configSections).toHaveLength(2);
+    expect(pageDocument.documentElement.hasAttribute('data-config-options-initializing')).toBe(true);
+    expect(readMainCss()).toContain('html[data-config-options-initializing] .config-file-options');
     expect(configOptionsSection.querySelector('.config-row-title').textContent.trim()).toBe('配置选项');
     expect(configOptionsSection.querySelector('#config-include-subscriptions').checked).toBe(true);
     expect(configOptionsSection.querySelector('#config-include-subscription-cache').checked).toBe(false);
     expect(currentConfigSection.querySelector('.config-row-title').textContent.trim()).toBe('当前配置');
     expect(Array.from(currentConfigSection.querySelectorAll('.config-actions button')).map(button => button.id || button.className)).toEqual([
-      'edit-config-btn',
       'import-json-btn',
       'export-btn'
     ]);
@@ -107,9 +108,8 @@ describe('main sidebar layout', () => {
     expect(editorToolbar.querySelector('.config-json-toolbar-actions #copy-config-json-btn')).not.toBeNull();
     expect(editorToolbar.querySelector('.config-json-toolbar-actions #toggle-config-json-fold-btn')).not.toBeNull();
     expect(editorShell.querySelector(':scope > #config-json-code')).not.toBeNull();
-    expect(currentConfigSection.querySelector('#format-config-btn')).not.toBeNull();
-    expect(currentConfigSection.querySelector('#cancel-config-edit-btn')).not.toBeNull();
-    expect(currentConfigSection.querySelector('#apply-config-btn')).not.toBeNull();
+    expect(currentConfigSection.querySelector('#config-json-code').getAttribute('role')).toBe('textbox');
+    expect(currentConfigSection.querySelector('#config-json-code').getAttribute('aria-readonly')).toBe('true');
     expect(syncPage.querySelector('.page-heading h1').textContent.trim()).toBe('云同步');
     expect(cloudSyncSection.querySelector('.sync-config-panel')).not.toBeNull();
     expect(cloudSyncSection.querySelector('#sync-options')).not.toBeNull();

@@ -114,4 +114,22 @@ describe('main page translated section labels', () => {
       expect(window.I18n.t('version_check_title')).toBe(labels.version_check_title);
     });
   });
+
+  test('does not write a partial configuration while initializing without stored data', () => {
+    global.chrome.storage.local.get.mockImplementation((keys, callback) => callback({}));
+    const callback = jest.fn();
+
+    window.I18n.init(callback);
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(global.chrome.storage.local.set).not.toHaveBeenCalled();
+  });
+
+  test('can update the page language without persisting the whole configuration', () => {
+    window.I18n.setLanguage('en', { persist: false });
+
+    expect(window.I18n.getCurrentLanguage()).toBe('en');
+    expect(global.chrome.storage.local.get).not.toHaveBeenCalled();
+    expect(global.chrome.storage.local.set).not.toHaveBeenCalled();
+  });
 });

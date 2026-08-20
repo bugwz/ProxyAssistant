@@ -87,21 +87,18 @@ function setupBaseDom() {
     <div class="export-btn"></div>
     <div class="import-json-btn"></div>
     <input id="json-file-input" />
-    <button id="edit-config-btn"></button>
     <textarea id="config-json-editor" readonly></textarea>
     <span id="config-editor-state"></span>
-    <div id="config-editor-actions" hidden></div>
-    <button id="format-config-btn"></button>
-    <button id="cancel-config-edit-btn"></button>
-    <button id="apply-config-btn"></button>
     <button id="toggle-config-json-fold-btn" data-action="collapse"></button>
     <button id="copy-config-json-btn"></button>
     <span id="config-json-version"></span>
     <span id="config-json-size"></span>
     <span id="config-json-updated-at"></span>
     <div id="config-json-code"></div>
-    <input type="checkbox" id="config-include-subscriptions" checked />
-    <input type="checkbox" id="config-include-subscription-cache" />
+    <div class="config-file-options">
+      <input type="checkbox" id="config-include-subscriptions" checked />
+      <input type="checkbox" id="config-include-subscription-cache" />
+    </div>
     <button id="detect-proxy-btn"></button>
     <button id="pac-details-btn"></button>
     <div id="language-options"><li data-value="zh-CN">简体中文</li></div>
@@ -203,6 +200,7 @@ describe('main UI state flow', () => {
   beforeEach(() => {
     jest.resetModules();
     window.localStorage.clear();
+    document.documentElement.removeAttribute('data-config-options-initializing');
     resetGlobals();
     setupBaseDom();
     loadJQuery();
@@ -258,6 +256,7 @@ describe('main UI state flow', () => {
       getProxies: jest.fn(() => []),
       save: jest.fn(() => Promise.resolve()),
       reload: jest.fn(() => Promise.resolve()),
+      isCurrentConfig: jest.fn(() => false),
       isSubscriptionOnlyChange: jest.fn(() => false),
       mergeSubscriptionChanges: jest.fn(),
       setSyncConfig: jest.fn()
@@ -369,6 +368,22 @@ describe('main UI state flow', () => {
     expect(global.StorageModule.reload).not.toHaveBeenCalled();
   });
 
+  test('does not reload a configuration saved by the current page', () => {
+    global.StorageModule.isCurrentConfig.mockReturnValue(true);
+    window.eval(fs.readFileSync(mainJsPath, 'utf8'));
+    window.initDropdowns();
+
+    const listener = global.chrome.storage.onChanged.addListener.mock.calls[0][0];
+    const savedConfig = { version: 5, updated_at: '2026-08-20T06:30:00.000Z' };
+    listener({
+      config: { oldValue: {}, newValue: savedConfig },
+      config_updated_at: { newValue: savedConfig.updated_at }
+    }, 'local');
+
+    expect(global.StorageModule.reload).not.toHaveBeenCalled();
+    expect(global.ConfigModule.buildEditableConfigData).not.toHaveBeenCalled();
+  });
+
   test('refreshes the cloud sync summary after a background configuration update', async () => {
     const updatedSync = {
       type: 'native',
@@ -421,35 +436,20 @@ describe('main UI state flow', () => {
     expect(global.SyncModule.updateSyncUI).toHaveBeenCalled();
   });
 
-  test('edits, validates, and applies the current JSON configuration', async () => {
-    const initialConfig = { version: 5, scenarios: { current: 'a', lists: [] } };
-    const editedConfig = { version: 5, scenarios: { current: 'b', lists: [] } };
-    let activeConfig = initialConfig;
-    global.ConfigModule.buildEditableConfigData.mockImplementation(() => activeConfig);
-    global.ConfigModule.applyConfigData.mockImplementation(data => {
-      activeConfig = data;
-      return Promise.resolve(data);
-    });
+  test('renders the current JSON configuration as read-only content', () => {
+    const config = { version: 5, scenarios: { current: 'a', lists: [] } };
+    global.ConfigModule.buildEditableConfigData.mockReturnValue(config);
     window.eval(fs.readFileSync(mainJsPath, 'utf8'));
     window.bindGlobalEvents();
     window.refreshConfigEditor(true);
 
     expect($('#config-json-editor').prop('readonly')).toBe(true);
-    expect(JSON.parse($('#config-json-editor').val())).toEqual(initialConfig);
-
-    $('#edit-config-btn').trigger('click');
-    $('#config-json-editor').val(JSON.stringify(editedConfig));
-    $('#apply-config-btn').trigger('click');
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(global.ConfigModule.applyConfigData).toHaveBeenCalledWith(editedConfig, {
-      preserveOmittedSubscriptionCache: true
-    });
-    expect(global.ProxyModule.setList).toHaveBeenCalled();
-    expect(global.ProxyModule.renderList).toHaveBeenCalled();
-    expect($('#config-json-editor').prop('readonly')).toBe(true);
-    expect(JSON.parse($('#config-json-editor').val())).toEqual(editedConfig);
+    expect(JSON.parse($('#config-json-editor').val())).toEqual(config);
+    expect($('#config-json-code .config-json-line-content')).not.toHaveLength(0);
+    expect($('#config-json-code .config-json-line-content').toArray().every(element => (
+      element.getAttribute('contenteditable') === 'false'
+    ))).toBe(true);
+    expect(global.ConfigModule.applyConfigData).not.toHaveBeenCalled();
   });
 
   test('shows configuration version, UTF-8 file size, and last update time in the editor header', () => {
@@ -464,6 +464,26 @@ describe('main UI state flow', () => {
     expect($('#config-json-updated-at').text()).not.toBe('config_never_updated');
   });
 
+  test('returns to the first line after refreshing the configuration editor', () => {
+    const config = {
+      version: 6,
+      system: { app_language: 'zh-CN' },
+      scenarios: { current: 'default', lists: [] }
+    };
+    global.ConfigModule.buildEditableConfigData.mockReturnValue(config);
+    window.eval(fs.readFileSync(mainJsPath, 'utf8'));
+    window.refreshConfigEditor(true);
+
+    const $code = $('#config-json-code');
+    $code.scrollTop(160).scrollLeft(80);
+    window.refreshConfigEditor(true);
+
+    expect($code.scrollTop()).toBe(0);
+    expect($code.scrollLeft()).toBe(0);
+    expect($code.find('.config-json-line-number').first().text()).toBe('1');
+    expect($code.find('.config-json-line-content').first().text()).toBe('{');
+  });
+
   test('controls subscription definitions and cached content in the configuration file', () => {
     window.eval(fs.readFileSync(mainJsPath, 'utf8'));
     window.bindGlobalEvents();
@@ -473,6 +493,7 @@ describe('main UI state flow', () => {
       includeSubscriptions: true,
       includeSubscriptionCache: true
     });
+    expect(global.UtilsModule.showTip).toHaveBeenLastCalledWith('config_options_updated', false);
 
     $('#config-include-subscriptions').prop('checked', false).trigger('change');
     expect($('#config-include-subscription-cache').prop('disabled')).toBe(true);
@@ -480,6 +501,8 @@ describe('main UI state flow', () => {
       includeSubscriptions: false,
       includeSubscriptionCache: false
     });
+    expect(global.UtilsModule.showTip).toHaveBeenLastCalledWith('config_options_updated', false);
+    expect(global.UtilsModule.showTip).toHaveBeenCalledTimes(2);
 
     $('.export-btn').trigger('click');
     expect(global.ConfigModule.exportConfig).toHaveBeenCalledWith({
@@ -488,7 +511,21 @@ describe('main UI state flow', () => {
     });
   });
 
-  test('folds and expands JSON structures while preserving editable content', () => {
+  test('hydrates configuration switches before revealing their saved state', () => {
+    window.localStorage.setItem('proxyAssistant.config.includeSubscriptions', 'false');
+    window.localStorage.setItem('proxyAssistant.config.includeSubscriptionCache', 'true');
+    document.documentElement.setAttribute('data-config-options-initializing', '');
+    window.eval(fs.readFileSync(mainJsPath, 'utf8'));
+
+    window.initConfigFileOptions();
+
+    expect($('#config-include-subscriptions').prop('checked')).toBe(false);
+    expect($('#config-include-subscription-cache').prop('checked')).toBe(true);
+    expect($('#config-include-subscription-cache').prop('disabled')).toBe(true);
+    expect(document.documentElement.hasAttribute('data-config-options-initializing')).toBe(false);
+  });
+
+  test('folds and expands read-only JSON structures', () => {
     const config = {
       version: 6,
       system: { app_language: 'zh-CN' },
@@ -511,12 +548,10 @@ describe('main UI state flow', () => {
     expect($('#config-json-code .config-json-line').eq(1).prop('hidden')).toBe(false);
     expect($('#toggle-config-json-fold-btn').attr('data-action')).toBe('collapse');
 
-    $('#edit-config-btn').trigger('click');
-    expect($('#config-json-code').hasClass('editing')).toBe(true);
-    expect($('#config-json-code .config-json-line-content').first().attr('contenteditable')).toBe('true');
     $('#config-json-code .config-json-line').first().find('.config-json-fold').trigger('click');
     expect($('#config-json-code .config-json-line').eq(1).prop('hidden')).toBe(true);
     expect(JSON.parse($('#config-json-editor').val())).toEqual(config);
+    expect($('#config-json-code .config-json-line-content').first().attr('contenteditable')).toBe('false');
   });
 
   test('copies the complete JSON configuration when content is folded', async () => {

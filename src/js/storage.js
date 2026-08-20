@@ -178,6 +178,11 @@ const StorageModule = (function () {
     configCache = newConfig;
   }
 
+  function isCurrentConfig(config) {
+    if (!configCache || !config) return false;
+    return JSON.stringify(configCache) === JSON.stringify(config);
+  }
+
   function stripSubscriptions(config) {
     if (!config) return config;
 
@@ -456,7 +461,6 @@ const StorageModule = (function () {
   // ==========================================
 
   function reload() {
-    clearCache();
     return loadFromStorage();
   }
 
@@ -470,6 +474,7 @@ const StorageModule = (function () {
     getConfig,
     getConfigUpdatedAt,
     setConfig,
+    isCurrentConfig,
     isSubscriptionOnlyChange,
     mergeSubscriptionChanges,
     getSubscriptions,
