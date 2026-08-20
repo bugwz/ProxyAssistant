@@ -385,38 +385,140 @@
   margin-bottom: 20px;
 }
 
-.sync-settings-section + .sync-settings-section {
-  margin-top: 24px;
-  padding-top: 24px;
-  border-top: 1px solid #e2e8f0;
+.sync-service-list {
+  display: grid;
+  gap: 14px;
 }
 
-[data-theme="dark"] .sync-settings-section + .sync-settings-section {
-  border-top-color: #334155;
+.sync-service-card {
+  overflow: hidden;
+  border: 1px solid #dbe3ec;
+  border-radius: 10px;
+  background-color: #ffffff;
 }
 
-.sync-section-heading {
-  margin-bottom: 16px;
+[data-theme="dark"] .sync-service-card {
+  border-color: #334155;
+  background-color: #172033;
 }
 
-.sync-section-title {
+.sync-service-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .sync-service-header {
+  border-bottom-color: #334155;
+}
+
+.sync-service-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sync-service-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.sync-service-icon-native {
+  background-color: #eef2ff;
+  color: #4f46e5;
+}
+
+.sync-service-icon-gist {
+  background-color: #f1f5f9;
+  color: #334155;
+}
+
+[data-theme="dark"] .sync-service-icon-native {
+  background-color: rgba(79, 70, 229, 0.2);
+  color: #a5b4fc;
+}
+
+[data-theme="dark"] .sync-service-icon-gist {
+  background-color: #263247;
+  color: #e2e8f0;
+}
+
+.sync-service-title {
   color: #1e293b;
   font-size: 14px;
   font-weight: 700;
 }
 
-[data-theme="dark"] .sync-section-title {
+[data-theme="dark"] .sync-service-title {
   color: #f1f5f9;
 }
 
-.sync-section-desc {
-  margin-top: 4px;
+.sync-service-desc {
+  margin-top: 3px;
   color: #64748b;
   font-size: 12px;
+  line-height: 1.5;
 }
 
-[data-theme="dark"] .sync-section-desc {
+[data-theme="dark"] .sync-service-desc {
   color: #94a3b8;
+}
+
+.sync-service-body {
+  padding: 16px 18px 18px;
+}
+
+.sync-service-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.sync-service-schedule {
+  margin-top: 16px;
+}
+
+.sync-service-last-time {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 12px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.sync-service-last-time strong {
+  color: #475569;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .sync-service-last-time {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .sync-service-last-time strong {
+  color: #cbd5e1;
+}
+
+@media (max-width: 720px) {
+  .sync-service-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .sync-service-actions {
+    width: 100%;
+  }
 }
 
 .sync-schedule-grid {
@@ -457,20 +559,6 @@
   color: #fdba74;
 }
 
-.sync-summary-separator {
-  margin: 0 6px;
-}
-
-.sync-last-time {
-  margin-left: 4px;
-  color: #475569;
-  font-weight: 600;
-}
-
-[data-theme="dark"] .sync-last-time {
-  color: #cbd5e1;
-}
-
 .sync-config-footer {
   display: flex;
   justify-content: flex-end;
@@ -484,15 +572,9 @@
 }
 
 .native-sync-info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
-  background-color: #f8fafc;
+  padding: 12px 14px;
   border-radius: 8px;
-  text-align: center;
-  gap: 15px;
+  background-color: #f8fafc;
 }
 
 [data-theme="dark"] .native-sync-info {
@@ -503,7 +585,6 @@
 /* Storage Quota Display */
 .quota-container {
   width: 100%;
-  margin-top: 15px;
 }
 
 .quota-text {
@@ -575,34 +656,8 @@
   color: #94a3b8;
 }
 
-.sync-status-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
-  margin-left: 8px;
-  background-color: #f1f5f9;
-  color: #64748b;
-}
-
-[data-theme="dark"] .sync-status-badge {
-  background-color: #334155;
-  color: #cbd5e1;
-}
-
-.sync-status-badge.active {
-  background-color: #dcfce7;
-  color: #166534;
-}
-
-[data-theme="dark"] .sync-status-badge.active {
-  background-color: rgba(22, 101, 52, 0.2);
-  color: #4ade80;
-}
-
 .sync-panel {
-  display: none;
+  display: block;
 }
 
 .sync-panel.active {
@@ -610,10 +665,6 @@
 }
 
 #gist-config {
-  display: none;
-}
-
-#gist-config.active {
   display: block;
 }
 
@@ -859,4 +910,3 @@
 .delete-scenario-btn:hover {
   opacity: 0.7;
 }
-

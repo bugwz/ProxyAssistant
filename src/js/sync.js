@@ -7,25 +7,46 @@ const SYNC_INTERVALS = [15, 30, 60, 360, 720, 1440];
 
 function normalizeSyncConfig(config) {
   const source = config || {};
-  const type = source.type === 'gist' ? 'gist' : 'native';
-  const autoMode = ['push', 'pull'].includes(source.auto_mode) ? source.auto_mode : 'off';
-  const requestedInterval = Number(source.interval_minutes);
-  const intervalMinutes = SYNC_INTERVALS.includes(requestedInterval) ? requestedInterval : 360;
+  const normalizeService = (service, defaults = {}) => {
+    const serviceSource = service || {};
+    const requestedInterval = Number(serviceSource.interval_minutes);
+    return {
+      ...defaults,
+      ...serviceSource,
+      auto_mode: ['push', 'pull'].includes(serviceSource.auto_mode) ? serviceSource.auto_mode : 'off',
+      interval_minutes: SYNC_INTERVALS.includes(requestedInterval) ? requestedInterval : 360,
+      last_sync_at: typeof serviceSource.last_sync_at === 'string' ? serviceSource.last_sync_at : null,
+      last_sync_direction: ['push', 'pull'].includes(serviceSource.last_sync_direction)
+        ? serviceSource.last_sync_direction
+        : null
+    };
+  };
 
+  if (source.native || source.gist?.auto_mode !== undefined) {
+    return {
+      native: normalizeService(source.native),
+      gist: normalizeService(source.gist, {
+        token: '',
+        filename: 'proxy_assistant_config.json',
+        gist_id: ''
+      })
+    };
+  }
+
+  const legacyType = source.type === 'gist' ? 'gist' : 'native';
+  const legacyService = {
+    auto_mode: source.auto_mode,
+    interval_minutes: source.interval_minutes,
+    last_sync_at: source.last_sync_at,
+    last_sync_direction: source.last_sync_direction
+  };
   return {
-    ...source,
-    type: type,
-    auto_mode: autoMode,
-    interval_minutes: intervalMinutes,
-    last_sync_at: typeof source.last_sync_at === 'string' ? source.last_sync_at : null,
-    last_sync_direction: ['push', 'pull'].includes(source.last_sync_direction)
-      ? source.last_sync_direction
-      : null,
-    gist: {
-      token: source.gist?.token || '',
-      filename: source.gist?.filename || 'proxy_assistant_config.json',
-      gist_id: source.gist?.gist_id || ''
-    }
+    native: normalizeService(legacyType === 'native' ? legacyService : {}),
+    gist: normalizeService(legacyType === 'gist' ? { ...source.gist, ...legacyService } : source.gist, {
+      token: '',
+      filename: 'proxy_assistant_config.json',
+      gist_id: ''
+    })
   };
 }
 
@@ -84,29 +105,18 @@ function isValidMeta(meta) {
 
 function updateSyncUI() {
   syncConfig = normalizeSyncConfig(syncConfig);
-  const type = syncConfig.type || 'native';
 
-  const $badge = $('#sync-status-badge');
-  const typeTextKey = type === 'native' ? 'sync_native' : 'sync_gist';
-  const typeText = I18n.t(typeTextKey);
+  ['native', 'gist'].forEach(type => {
+    const service = syncConfig[type];
+    $(`#${type}-sync-auto-mode`).val(service.auto_mode).trigger('change');
+    $(`#${type}-sync-interval`)
+      .val(String(service.interval_minutes))
+      .prop('disabled', service.auto_mode === 'off')
+      .trigger('change');
 
-  $badge.text(typeText).addClass('active');
-
-  const $selectedOption = $(`.sync-selector li[data-value="${type}"]`);
-  if ($selectedOption.length) {
-    $('#current-sync-display').text($selectedOption.text());
-  }
-
-  $('#sync-auto-mode').val(syncConfig.auto_mode).trigger('change');
-  $('#sync-interval')
-    .val(String(syncConfig.interval_minutes))
-    .prop('disabled', syncConfig.auto_mode === 'off')
-    .trigger('change');
-
-  const $lastSyncTime = $('#sync-last-time');
-  if (syncConfig.last_sync_at) {
-    const lastSyncDate = new Date(syncConfig.last_sync_at);
-    if (!Number.isNaN(lastSyncDate.getTime())) {
+    const $lastSyncTime = $(`#${type}-sync-last-time`);
+    const lastSyncDate = service.last_sync_at ? new Date(service.last_sync_at) : null;
+    if (lastSyncDate && !Number.isNaN(lastSyncDate.getTime())) {
       const locale = I18n.getCurrentLanguage ? I18n.getCurrentLanguage() : undefined;
       $lastSyncTime.text(new Intl.DateTimeFormat(locale, {
         year: 'numeric',
@@ -118,38 +128,30 @@ function updateSyncUI() {
     } else {
       $lastSyncTime.text(I18n.t('sync_never'));
     }
-  } else {
-    $lastSyncTime.text(I18n.t('sync_never'));
-  }
+  });
 
-  $('.sync-panel').hide();
-  $('#test-sync-connection').hide();
-
-  if (type === 'gist') {
-    $('#gist-token').val(syncConfig.gist.token);
-    $('#gist-filename').val(syncConfig.gist.filename || 'proxy_assistant_config.json');
-    $('#gist-config').show();
-    $('#test-sync-connection').show();
-  } else {
-    $('#native-config').show();
-    updateNativeQuotaInfo();
-  }
+  $('#gist-token').val(syncConfig.gist.token);
+  $('#gist-filename').val(syncConfig.gist.filename || 'proxy_assistant_config.json');
+  $('#test-sync-connection').show();
+  updateNativeQuotaInfo();
 }
 
-function updateNativeQuotaInfo() {
-  if (typeof buildConfigData !== 'function') return;
-  const data = buildConfigData();
+function updateNativeQuotaInfo(configFileOptions) {
+  const options = configFileOptions
+    || (typeof window.getConfigFileOptions === 'function' ? window.getConfigFileOptions() : {});
+  const data = window.ConfigModule?.buildConfigFileData
+    ? window.ConfigModule.buildConfigFileData(options)
+    : (typeof buildConfigData === 'function' ? buildConfigData() : null);
+  if (!data) return;
   const jsonStr = JSON.stringify(data);
   const chunks = chunkString(jsonStr, SYNC_CHUNK_SIZE);
   const meta = buildSyncMeta(chunks);
 
-  const quotaItemLimit = chrome.storage.sync.QUOTA_BYTES_PER_ITEM || 8000;
   const quotaTotalLimit = chrome.storage.sync.QUOTA_BYTES || 102400;
 
   const usageBytes = meta.totalSize;
   const chunksCount = chunks.length;
   const usageKB = (usageBytes / 1024).toFixed(1);
-  const quotaItemKB = (quotaItemLimit / 1024).toFixed(1);
   const quotaTotalKB = (quotaTotalLimit / 1024).toFixed(0);
 
   const percentage = ((usageBytes / quotaTotalLimit) * 100).toFixed(1);
@@ -303,13 +305,14 @@ async function nativePull() {
 // Manual Sync Handlers
 // ==========================================
 
-async function manualPush() {
-  const type = syncConfig.type || 'native';
-  var $btn = $("#sync-push-btn");
+async function manualPush(type = 'native', configFileOptions = {}) {
+  if (!['native', 'gist'].includes(type)) return;
+  var $btn = $(`#${type}-sync-push-btn`);
   $btn.prop('disabled', true);
 
-  // Use buildConfigData to get data in export format
-  const data = buildConfigData ? buildConfigData() : (StorageModule ? StorageModule.getConfig() : {});
+  const data = window.ConfigModule?.buildConfigFileData
+    ? window.ConfigModule.buildConfigFileData(configFileOptions)
+    : (buildConfigData ? buildConfigData() : (StorageModule ? StorageModule.getConfig() : {}));
 
   try {
     if (type === 'native') {
@@ -318,8 +321,8 @@ async function manualPush() {
     } else if (type === 'gist') {
       await pushToGist(data);
     }
-    syncConfig.last_sync_at = new Date().toISOString();
-    syncConfig.last_sync_direction = 'push';
+    syncConfig[type].last_sync_at = new Date().toISOString();
+    syncConfig[type].last_sync_direction = 'push';
     if (StorageModule) {
       StorageModule.setSyncConfig(syncConfig);
       await StorageModule.save();
@@ -334,9 +337,9 @@ async function manualPush() {
   }
 }
 
-async function manualPull() {
-  const type = syncConfig.type || 'native';
-  var $btn = $("#sync-pull-btn");
+async function manualPull(type = 'native') {
+  if (!['native', 'gist'].includes(type)) return;
+  var $btn = $(`#${type}-sync-pull-btn`);
   $btn.prop('disabled', true);
 
   try {
@@ -359,8 +362,8 @@ async function manualPull() {
       // Remote data replaces the complete local configuration. The local
       // connection credentials and schedule remain local so future pulls work.
       const localSyncConfig = normalizeSyncConfig(syncConfig);
-      localSyncConfig.last_sync_at = new Date().toISOString();
-      localSyncConfig.last_sync_direction = 'pull';
+      localSyncConfig[type].last_sync_at = new Date().toISOString();
+      localSyncConfig[type].last_sync_direction = 'pull';
       data.system = data.system || {};
       data.system.sync = localSyncConfig;
 

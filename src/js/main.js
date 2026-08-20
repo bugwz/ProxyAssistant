@@ -37,6 +37,7 @@ window.onScenariosReorder = function (scenarios) {
 const MAIN_NAVIGATION_STORAGE_KEY = 'proxyAssistant.activeMainPage';
 const CONFIG_INCLUDE_SUBSCRIPTIONS_KEY = 'proxyAssistant.config.includeSubscriptions';
 const CONFIG_INCLUDE_SUBSCRIPTION_CACHE_KEY = 'proxyAssistant.config.includeSubscriptionCache';
+const CONFIG_FILE_OPTIONS_STORAGE_KEY = 'config_file_options';
 const CONFIG_UPDATED_AT_KEY = 'config_updated_at';
 let configLastUpdatedAt = null;
 
@@ -198,10 +199,23 @@ function initConfigFileOptions() {
   $('#config-include-subscription-cache')
     .prop('checked', includeSubscriptionCache)
     .prop('disabled', !includeSubscriptions);
+  persistConfigFileOptions({
+    includeSubscriptions,
+    includeSubscriptionCache: includeSubscriptions && includeSubscriptionCache
+  });
 
   const optionsElement = document.querySelector('.config-file-options');
   if (optionsElement) void optionsElement.offsetWidth;
   document.documentElement.removeAttribute('data-config-options-initializing');
+}
+
+function persistConfigFileOptions(options) {
+  if (!chrome?.storage?.local) return;
+  chrome.storage.local.set({ [CONFIG_FILE_OPTIONS_STORAGE_KEY]: options }, function () {
+    if (chrome.runtime.lastError) {
+      console.info('Config file options save error:', chrome.runtime.lastError);
+    }
+  });
 }
 
 function getConfigFileOptions() {
@@ -211,6 +225,8 @@ function getConfigFileOptions() {
     includeSubscriptionCache: includeSubscriptions && $('#config-include-subscription-cache').prop('checked') === true
   };
 }
+
+window.getConfigFileOptions = getConfigFileOptions;
 
 function saveConfigFileOptions() {
   const options = getConfigFileOptions();
@@ -223,6 +239,7 @@ function saveConfigFileOptions() {
   } catch (error) {
     // The switches still work for the current page when local storage is unavailable.
   }
+  persistConfigFileOptions(options);
   return options;
 }
 
@@ -429,9 +446,7 @@ function saveConfig(options) {
       UtilsModule.showTip(options.successMsg || I18n.t('save_success'), false);
     }
 
-    if (SyncModule.getSyncConfig().type === 'native') {
-      SyncModule.updateNativeQuotaInfo();
-    }
+    SyncModule.updateNativeQuotaInfo(getConfigFileOptions());
 
     if (options.callback) options.callback(true);
   }).catch(err => {
@@ -718,15 +733,6 @@ function initDropdowns() {
 }
 
 function bindGlobalEvents() {
-  $(".sync-selector .lh-select-op li").on("click", function () {
-    const type = $(this).data("value");
-    const config = SyncModule.getSyncConfig();
-    config.type = type;
-    SyncModule.setSyncConfig(config);
-    SyncModule.updateSyncUI();
-    $(this).closest('.lh-select-op').hide();
-  });
-
   $("#gist-token-eye input").on("change", function () {
     const isChecked = $(this).prop("checked");
     const $input = $("#gist-token");
@@ -736,20 +742,21 @@ function bindGlobalEvents() {
     else $toggle.removeClass('show-password').addClass('hide-password');
   });
 
-  $("#sync-auto-mode").on("change", function () {
+  $(".sync-auto-mode").on("change", function () {
+    const type = $(this).data('sync-service');
     const isDisabled = $(this).val() === 'off';
-    $("#sync-interval").prop('disabled', isDisabled).trigger('change');
+    $(`#${type}-sync-interval`).prop('disabled', isDisabled).trigger('change');
   });
 
   $("#save-sync-config").on("click", function () {
     UtilsModule.showProcessingTip(I18n.t('processing'));
     const config = SyncModule.getSyncConfig();
-    if (config.type === 'gist') {
-      config.gist.token = $("#gist-token").val();
-      config.gist.filename = $("#gist-filename").val() || 'proxy_assistant_config.json';
-    }
-    config.auto_mode = $("#sync-auto-mode").val() || 'off';
-    config.interval_minutes = Number($("#sync-interval").val()) || 360;
+    config.gist.token = $("#gist-token").val();
+    config.gist.filename = $("#gist-filename").val() || 'proxy_assistant_config.json';
+    ['native', 'gist'].forEach(type => {
+      config[type].auto_mode = $(`#${type}-sync-auto-mode`).val() || 'off';
+      config[type].interval_minutes = Number($(`#${type}-sync-interval`).val()) || 360;
+    });
 
     StorageModule.setSyncConfig(config);
     StorageModule.save().then(() => {
@@ -760,14 +767,14 @@ function bindGlobalEvents() {
     });
   });
 
-  $("#sync-pull-btn").on("click", function () {
+  $("[data-sync-action='pull']").on("click", function () {
     UtilsModule.showProcessingTip(I18n.t('processing'));
-    SyncModule.manualPull();
+    SyncModule.manualPull($(this).data('sync-service'));
   });
 
-  $("#sync-push-btn").on("click", function () {
+  $("[data-sync-action='push']").on("click", function () {
     UtilsModule.showProcessingTip(I18n.t('processing'));
-    SyncModule.manualPush();
+    SyncModule.manualPush($(this).data('sync-service'), getConfigFileOptions());
   });
 
   $("#test-sync-connection").on("click", async function () {
@@ -777,14 +784,11 @@ function bindGlobalEvents() {
     $btn.prop('disabled', true).find('span').text(I18n.t('testing'));
 
     try {
-      let resultMsg = "";
       const config = SyncModule.getSyncConfig();
-      if (config.type === 'gist') {
-        config.gist.token = $("#gist-token").val();
-        config.gist.filename = $("#gist-filename").val() || 'proxy_assistant_config.json';
-        SyncModule.setSyncConfig(config);
-        resultMsg = await SyncModule.testGistConnection();
-      }
+      config.gist.token = $("#gist-token").val();
+      config.gist.filename = $("#gist-filename").val() || 'proxy_assistant_config.json';
+      SyncModule.setSyncConfig(config);
+      const resultMsg = await SyncModule.testGistConnection();
 
       UtilsModule.showTip(resultMsg, false);
 
@@ -805,12 +809,14 @@ function bindGlobalEvents() {
     $('#config-include-subscription-cache').prop('disabled', !$(this).prop('checked'));
     saveConfigFileOptions();
     refreshConfigEditor(true);
+    SyncModule.updateNativeQuotaInfo(getConfigFileOptions());
     UtilsModule.showTip(I18n.t('config_options_updated'), false);
   });
 
   $('#config-include-subscription-cache').on('change', function () {
     saveConfigFileOptions();
     refreshConfigEditor(true);
+    SyncModule.updateNativeQuotaInfo(getConfigFileOptions());
     UtilsModule.showTip(I18n.t('config_options_updated'), false);
   });
 

@@ -26,11 +26,28 @@ describe('main header icon markup', () => {
   test('cloud sync actions should use upload and download icons', () => {
     const mainHtmlPath = path.join(__dirname, '../../src/main.html');
     const pageDocument = new DOMParser().parseFromString(fs.readFileSync(mainHtmlPath, 'utf8'), 'text/html');
-    const pushButton = pageDocument.querySelector('#sync-push-btn');
-    const pullButton = pageDocument.querySelector('#sync-pull-btn');
+    const pushButtons = pageDocument.querySelectorAll('[data-sync-action="push"]');
+    const pullButtons = pageDocument.querySelectorAll('[data-sync-action="pull"]');
 
-    expect(pushButton.querySelector('path:nth-child(2)').getAttribute('d')).toBe('M12 15V9');
-    expect(pullButton.querySelector('path:nth-child(2)').getAttribute('d')).toBe('M12 9v6');
+    expect(pushButtons).toHaveLength(2);
+    expect(pullButtons).toHaveLength(2);
+    pushButtons.forEach(button => {
+      expect(button.querySelector('path:nth-child(2)').getAttribute('d')).toBe('M12 15V9');
+    });
+    pullButtons.forEach(button => {
+      expect(button.querySelector('path:nth-child(2)').getAttribute('d')).toBe('M12 9v6');
+    });
+  });
+
+  test('cloud sync displays native and Gist services as separate blocks', () => {
+    const mainHtmlPath = path.join(__dirname, '../../src/main.html');
+    const pageDocument = new DOMParser().parseFromString(fs.readFileSync(mainHtmlPath, 'utf8'), 'text/html');
+    const serviceCards = Array.from(pageDocument.querySelectorAll('.sync-service-card'));
+
+    expect(serviceCards.map(card => card.dataset.syncService)).toEqual(['native', 'gist']);
+    expect(serviceCards[0].querySelector('#native-config #quota-bar-fill')).toBeTruthy();
+    expect(serviceCards[1].querySelector('#gist-config #gist-token')).toBeTruthy();
+    expect(serviceCards[1].querySelector('#gist-config #gist-filename')).toBeTruthy();
   });
 
   test('configuration and cloud sync navigation use distinct file and cloud icons', () => {

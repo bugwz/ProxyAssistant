@@ -51,14 +51,21 @@ function createChromeMock(initialItems = {}) {
   };
 }
 
-function loadSyncModule(chromeMock) {
+function loadSyncModule(chromeMock, overrides = {}) {
   const source = fs.readFileSync(path.join(__dirname, '../../src/js/sync.js'), 'utf8');
   const factory = new Function('window', 'chrome', '$', 'I18n', 'Blob', 'console', `${source}\nreturn window.SyncModule;`);
-  return factory({}, chromeMock, jest.fn(), { t: key => key }, Blob, console);
+  return factory(
+    overrides.window || {},
+    chromeMock,
+    overrides.$ || jest.fn(),
+    overrides.I18n || { t: key => key },
+    Blob,
+    console
+  );
 }
 
 describe('native sync writes', () => {
-  test('normalizes one automatic direction and a supported interval', () => {
+  test('normalizes independent schedules and migrates the legacy selected service', () => {
     const { chromeMock } = createChromeMock();
     const syncModule = loadSyncModule(chromeMock);
 
@@ -67,18 +74,29 @@ describe('native sync writes', () => {
       auto_mode: 'pull',
       interval_minutes: 30,
       gist: { token: 'token' }
-    })).toMatchObject({
-      type: 'gist',
-      auto_mode: 'pull',
-      interval_minutes: 30,
-      gist: { token: 'token', filename: 'proxy_assistant_config.json', gist_id: '' }
+    })).toEqual({
+      native: {
+        auto_mode: 'off',
+        interval_minutes: 360,
+        last_sync_at: null,
+        last_sync_direction: null
+      },
+      gist: {
+        token: 'token',
+        filename: 'proxy_assistant_config.json',
+        gist_id: '',
+        auto_mode: 'pull',
+        interval_minutes: 30,
+        last_sync_at: null,
+        last_sync_direction: null
+      }
     });
     expect(syncModule.normalizeSyncConfig({
-      auto_mode: 'push,pull',
-      interval_minutes: 5
+      native: { auto_mode: 'push', interval_minutes: 15 },
+      gist: { auto_mode: 'pull', interval_minutes: 30 }
     })).toMatchObject({
-      auto_mode: 'off',
-      interval_minutes: 360
+      native: { auto_mode: 'push', interval_minutes: 15 },
+      gist: { auto_mode: 'pull', interval_minutes: 30 }
     });
   });
 
@@ -116,5 +134,37 @@ describe('native sync writes', () => {
     expect(items['data.1']).toBeUndefined();
     expect(items['data.2']).toBeUndefined();
     await expect(syncModule.nativePull()).resolves.toEqual(newData);
+  });
+
+  test('calculates native quota from the configuration file rules', () => {
+    const { chromeMock } = createChromeMock();
+    const options = {
+      includeSubscriptions: false,
+      includeSubscriptionCache: false
+    };
+    const buildConfigFileData = jest.fn(() => ({
+      version: 5,
+      scenarios: { current: 'default', lists: [] }
+    }));
+    const chain = {
+      text: jest.fn().mockReturnThis(),
+      css: jest.fn().mockReturnThis(),
+      removeClass: jest.fn().mockReturnThis(),
+      addClass: jest.fn().mockReturnThis(),
+      show: jest.fn().mockReturnThis(),
+      hide: jest.fn().mockReturnThis()
+    };
+    const syncModule = loadSyncModule(chromeMock, {
+      window: {
+        ConfigModule: { buildConfigFileData },
+        getConfigFileOptions: jest.fn(() => options)
+      },
+      $: jest.fn(() => chain),
+      I18n: { t: key => key }
+    });
+
+    syncModule.updateNativeQuotaInfo();
+
+    expect(buildConfigFileData).toHaveBeenCalledWith(options);
   });
 });

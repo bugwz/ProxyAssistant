@@ -272,7 +272,7 @@ describe('Worker applyProxy async handling', () => {
     );
   });
 
-  test('schedules only one cloud sync direction at the selected interval', () => {
+  test('schedules native and Gist cloud sync independently', () => {
     const context = loadWorkerContext();
     context.chrome.alarms.create.mockClear();
     context.chrome.alarms.clear.mockClear();
@@ -280,19 +280,35 @@ describe('Worker applyProxy async handling', () => {
     context.scheduleCloudSync({
       system: {
         sync: {
-          auto_mode: 'pull',
-          interval_minutes: 30
+          native: { auto_mode: 'pull', interval_minutes: 30 },
+          gist: { auto_mode: 'push', interval_minutes: 360 }
         }
       }
     });
 
-    expect(context.chrome.alarms.create).toHaveBeenCalledWith('cloud-sync-schedule', {
+    expect(context.chrome.alarms.create).toHaveBeenCalledWith('cloud-sync-schedule-native', {
+      delayInMinutes: 30,
+      periodInMinutes: 30
+    });
+    expect(context.chrome.alarms.create).toHaveBeenCalledWith('cloud-sync-schedule-gist', {
+      delayInMinutes: 360,
+      periodInMinutes: 360
+    });
+
+    context.chrome.alarms.create.mockClear();
+    context.scheduleCloudSync({
+      system: { sync: { type: 'gist', auto_mode: 'pull', interval_minutes: 30, gist: {} } }
+    });
+    expect(context.chrome.alarms.create).toHaveBeenCalledWith('cloud-sync-schedule-gist', {
       delayInMinutes: 30,
       periodInMinutes: 30
     });
 
-    context.scheduleCloudSync({ system: { sync: { auto_mode: 'off', interval_minutes: 30 } } });
-    expect(context.chrome.alarms.clear).toHaveBeenCalledWith('cloud-sync-schedule');
+    context.scheduleCloudSync({
+      system: { sync: { native: { auto_mode: 'off' }, gist: { auto_mode: 'off' } } }
+    });
+    expect(context.chrome.alarms.clear).toHaveBeenCalledWith('cloud-sync-schedule-native');
+    expect(context.chrome.alarms.clear).toHaveBeenCalledWith('cloud-sync-schedule-gist');
   });
 
   test('stores the configuration update time inside every background config write', async () => {
@@ -304,16 +320,95 @@ describe('Worker applyProxy async handling', () => {
     expect(payload.config_updated_at).toBe(payload.config.updated_at);
   });
 
+  test('applies configuration file rules to scheduled cloud push payloads', () => {
+    const context = loadWorkerContext();
+    const config = {
+      version: 5,
+      system: {
+        app_language: 'zh-CN',
+        theme_mode: 'dark',
+        night_mode_start: '21:00',
+        night_mode_end: '07:00',
+        sync: {
+          gist: { token: 'local-secret', filename: 'shared.json' }
+        }
+      },
+      scenarios: {
+        current: 'scenario-a',
+        lists: [{
+          id: 'scenario-a',
+          name: 'Scenario A',
+          proxies: [{
+            id: 'proxy-a',
+            name: 'Proxy A',
+            enabled: true,
+            ip: '127.0.0.1',
+            port: '8080',
+            is_new: true
+          }]
+        }]
+      },
+      subscriptions: [{
+        id: 'subscription-a',
+        name: 'Rules',
+        current: 'autoproxy',
+        lists: {
+          autoproxy: {
+            url: 'https://example.com/rules.txt',
+            content: 'downloaded rules',
+            last_fetch_time: 123
+          }
+        }
+      }]
+    };
+
+    const compact = context.buildCloudSyncPayload(config, {
+      includeSubscriptions: true,
+      includeSubscriptionCache: false
+    });
+    const complete = context.buildCloudSyncPayload(config, {
+      includeSubscriptions: true,
+      includeSubscriptionCache: true
+    });
+    const withoutSubscriptions = context.buildCloudSyncPayload(config, {
+      includeSubscriptions: false
+    });
+
+    expect(compact.system).toEqual({
+      language: 'zh-CN',
+      theme: {
+        mode: 'dark',
+        automation: { night: { start: '21:00', end: '07:00' } }
+      }
+    });
+    expect(compact.proxies[0]).not.toHaveProperty('is_new');
+    expect(compact.proxies[0]).toMatchObject({
+      id: 'proxy-a',
+      scenarioId: 'scenario-a',
+      order: 0
+    });
+    expect(compact.subscriptions[0]).not.toHaveProperty('cache');
+    expect(complete.subscriptions[0].cache).toEqual({
+      content: 'downloaded rules',
+      last_fetch_time: 123
+    });
+    expect(withoutSubscriptions).not.toHaveProperty('subscriptions');
+  });
+
   test('scheduled pull replaces local configuration while preserving local sync access settings', async () => {
     const localConfig = {
       version: 5,
       system: {
         theme_mode: 'light',
         sync: {
-          type: 'native',
-          auto_mode: 'pull',
-          interval_minutes: 30,
-          gist: { token: 'local-secret', filename: 'local.json', gist_id: 'local-id' }
+          native: { auto_mode: 'pull', interval_minutes: 30 },
+          gist: {
+            token: 'local-secret',
+            filename: 'local.json',
+            gist_id: 'local-id',
+            auto_mode: 'push',
+            interval_minutes: 1440
+          }
         }
       },
       scenarios: { current: 'local', lists: [{ id: 'local', proxies: [] }] },
@@ -322,11 +417,31 @@ describe('Worker applyProxy async handling', () => {
     const remoteConfig = {
       version: 5,
       system: {
-        theme_mode: 'dark',
-        sync: { type: 'gist', auto_mode: 'push', interval_minutes: 1440, gist: {} }
+        language: 'en',
+        theme: {
+          mode: 'dark',
+          automation: { night: { start: '21:00', end: '07:00' } }
+        }
       },
-      scenarios: { current: 'remote', lists: [{ id: 'remote', proxies: [] }] },
-      subscriptions: [{ id: 'remote-subscription' }]
+      proxies: [{
+        id: 'remote-proxy',
+        name: 'Remote Proxy',
+        scenarioId: 'remote',
+        order: 0
+      }],
+      scenarios: {
+        current: 'remote',
+        lists: [{ id: 'remote', name: 'Remote', order: 0 }]
+      },
+      subscriptions: [{
+        id: 'remote-subscription',
+        name: 'Remote Rules',
+        enabled: true,
+        order: 0,
+        type: 'autoproxy',
+        url: 'https://example.com/rules.txt',
+        cache: { content: 'remote rules' }
+      }]
     };
     const context = loadWorkerContext();
     const remoteJson = JSON.stringify(remoteConfig);
@@ -352,16 +467,36 @@ describe('Worker applyProxy async handling', () => {
 
     const savedConfig = storageSet.mock.calls.at(-1)[0].config;
     expect(savedConfig.system.theme_mode).toBe('dark');
-    expect(savedConfig.scenarios).toEqual(remoteConfig.scenarios);
-    expect(savedConfig.subscriptions).toEqual(remoteConfig.subscriptions);
-    expect(savedConfig.system.sync).toMatchObject({
-      type: 'native',
-      auto_mode: 'pull',
-      interval_minutes: 30,
-      last_sync_direction: 'pull',
-      gist: { token: 'local-secret', filename: 'local.json', gist_id: 'local-id' }
+    expect(savedConfig.system.app_language).toBe('en');
+    expect(savedConfig.scenarios.lists[0].proxies).toEqual([{
+      id: 'remote-proxy',
+      name: 'Remote Proxy'
+    }]);
+    expect(savedConfig.subscriptions[0]).toMatchObject({
+      id: 'remote-subscription',
+      current: 'autoproxy',
+      lists: {
+        autoproxy: {
+          url: 'https://example.com/rules.txt',
+          content: 'remote rules'
+        }
+      }
     });
-    expect(savedConfig.system.sync.last_sync_at).toEqual(expect.any(String));
+    expect(savedConfig.system.sync).toMatchObject({
+      native: {
+        auto_mode: 'pull',
+        interval_minutes: 30,
+        last_sync_direction: 'pull'
+      },
+      gist: {
+        token: 'local-secret',
+        filename: 'local.json',
+        gist_id: 'local-id',
+        auto_mode: 'push',
+        interval_minutes: 1440
+      }
+    });
+    expect(savedConfig.system.sync.native.last_sync_at).toEqual(expect.any(String));
     expect(savedConfig.updated_at).toEqual(expect.any(String));
   });
 

@@ -397,26 +397,6 @@ html[data-config-options-initializing] .config-file-options .slider-modern::befo
   color: #94a3b8;
 }
 
-/* Sync Config Panel */
-.sync-config-panel {
-  background-color: #f8fafc;
-  padding: 24px;
-  border-top: none;
-  border-radius: 0 0 8px 8px;
-}
-
-[data-theme="dark"] .sync-config-panel {
-  background-color: #0f172a;
-}
-
-.sync-config-summary {
-  border-bottom: 1px solid #f1f5f9;
-}
-
-[data-theme="dark"] .sync-config-summary {
-  border-bottom-color: #334155;
-}
-
 .config-actions {
   display: flex;
   gap: 15px;

@@ -21,10 +21,14 @@ function setupModules(config) {
   };
   window.SyncModule = {
     getSyncConfig: jest.fn(() => ({
-      type: 'native',
-      auto_mode: 'pull',
-      interval_minutes: 30,
-      gist: { token: 'local-secret', filename: 'proxy_assistant_config.json', gist_id: 'local-gist' }
+      native: { auto_mode: 'pull', interval_minutes: 30 },
+      gist: {
+        token: 'local-secret',
+        filename: 'proxy_assistant_config.json',
+        gist_id: 'local-gist',
+        auto_mode: 'off',
+        interval_minutes: 360
+      }
     })),
     setSyncConfig: jest.fn(),
     updateSyncUI: jest.fn()
@@ -154,7 +158,7 @@ describe('proxy color configuration', () => {
   test('does not consume scenario IDs while normalizing an existing configuration', () => {
     jest.useFakeTimers().setSystemTime(new Date(2026, 7, 20, 1, 2, 3));
     const config = {
-      version: 6,
+      version: 5,
       system: { app_language: 'en', theme_mode: 'light' },
       scenarios: {
         current: 'scenario_20250213134422',
@@ -238,6 +242,37 @@ describe('proxy color configuration', () => {
     expect(proxy.subscription_ids).toEqual([subscription.id]);
   });
 
+  test('migrates the released v4 sync selection into one v5 service schedule', () => {
+    const config = {
+      version: 4,
+      system: {
+        sync: {
+          type: 'gist',
+          auto_mode: 'pull',
+          interval_minutes: 30,
+          gist: { token: 'legacy-token', filename: 'legacy.json', gist_id: 'legacy-id' }
+        }
+      },
+      scenarios: { current: 'default', lists: [] },
+      subscriptions: []
+    };
+    const { ConfigModule } = setupModules(config);
+
+    const migrated = ConfigModule.migrateConfig(config);
+
+    expect(migrated.version).toBe(5);
+    expect(migrated.system.sync).toMatchObject({
+      native: { auto_mode: 'off', interval_minutes: 360 },
+      gist: {
+        token: 'legacy-token',
+        filename: 'legacy.json',
+        gist_id: 'legacy-id',
+        auto_mode: 'pull',
+        interval_minutes: 30
+      }
+    });
+  });
+
   test('preserves color when building export and sync data', () => {
     const config = {
       version: 4,
@@ -261,6 +296,16 @@ describe('proxy color configuration', () => {
     const exported = ConfigModule.buildConfigData();
 
     expect(exported.scenarios.lists[0].proxies[0].color).toBe('#FF0000');
+    expect(exported.system.sync).toEqual({
+      native: { auto_mode: 'pull', interval_minutes: 30 },
+      gist: {
+        token: '',
+        filename: 'proxy_assistant_config.json',
+        gist_id: '',
+        auto_mode: 'off',
+        interval_minutes: 360
+      }
+    });
     expect(ConfigModule.PROXY_EXPORT_KEYS).toContain('color');
   });
 
@@ -316,7 +361,7 @@ describe('proxy color configuration', () => {
     };
     const { ConfigModule } = setupModules(config);
     const edited = {
-      version: 6,
+      version: 5,
       system: {
         language: 'en',
         theme: {
@@ -328,7 +373,7 @@ describe('proxy color configuration', () => {
             }
           }
         },
-        sync: { type: 'gist', gist: { token: 'remote-secret' } }
+        sync: { native: { auto_mode: 'off' }, gist: { token: 'remote-secret', auto_mode: 'push' } }
       },
       scenarios: { current: 'scenario-b', lists: [] },
       subscriptions: []
@@ -339,15 +384,20 @@ describe('proxy color configuration', () => {
     expect(window.StorageModule.setConfig).toHaveBeenCalledWith(applied);
     expect(window.StorageModule.save).toHaveBeenCalledTimes(1);
     expect(applied.system.sync).toEqual({
-      type: 'native',
-      auto_mode: 'pull',
-      interval_minutes: 30,
-      last_sync_at: null,
-      last_sync_direction: null,
+      native: {
+        auto_mode: 'pull',
+        interval_minutes: 30,
+        last_sync_at: null,
+        last_sync_direction: null
+      },
       gist: {
         token: 'local-secret',
         filename: 'proxy_assistant_config.json',
-        gist_id: 'local-gist'
+        gist_id: 'local-gist',
+        auto_mode: 'off',
+        interval_minutes: 360,
+        last_sync_at: null,
+        last_sync_direction: null
       }
     });
     expect(window.ThemeModule.setThemeMode).toHaveBeenCalledWith('dark');
@@ -406,15 +456,20 @@ describe('proxy color configuration', () => {
         night_mode_start: '22:00',
         night_mode_end: '06:00',
         sync: {
-          type: 'native',
-          auto_mode: 'pull',
-          interval_minutes: 30,
-          last_sync_at: null,
-          last_sync_direction: null,
+          native: {
+            auto_mode: 'pull',
+            interval_minutes: 30,
+            last_sync_at: null,
+            last_sync_direction: null
+          },
           gist: {
             token: 'local-secret',
             filename: 'proxy_assistant_config.json',
-            gist_id: 'local-gist'
+            gist_id: 'local-gist',
+            auto_mode: 'off',
+            interval_minutes: 360,
+            last_sync_at: null,
+            last_sync_direction: null
           }
         }
       },
@@ -475,7 +530,7 @@ describe('proxy color configuration', () => {
 
     const editable = ConfigModule.buildEditableConfigData();
 
-    expect(editable.version).toBe(6);
+    expect(editable.version).toBe(5);
     expect(editable.updated_at).toBe('2026-08-20T06:30:00.000Z');
     expect(Object.keys(editable).indexOf('proxies')).toBeLessThan(Object.keys(editable).indexOf('scenarios'));
     expect(Object.keys(editable.scenarios.lists[0])).toEqual([
@@ -646,7 +701,7 @@ describe('proxy color configuration', () => {
     };
     const { ConfigModule } = setupModules(config);
     const edited = {
-      version: 6,
+      version: 5,
       system: { app_language: 'en', theme_mode: 'light' },
       scenarios: { current: 'scenario-a', lists: [] },
       subscriptions: [{
@@ -689,7 +744,7 @@ describe('proxy color configuration', () => {
     };
     const { ConfigModule } = setupModules(config);
     const edited = {
-      version: 6,
+      version: 5,
       updated_at: '2026-08-20T06:30:00.000Z',
       system: { app_language: 'en', theme_mode: 'light' },
       scenarios: {
