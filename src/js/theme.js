@@ -123,6 +123,7 @@ function saveThemeSettings() {
     config.system.theme_mode = themeMode;
     config.system.night_mode_start = nightModeStart;
     config.system.night_mode_end = nightModeEnd;
+    config.updated_at = new Date().toISOString();
     chrome.storage.local.set({ config: config });
   });
 }

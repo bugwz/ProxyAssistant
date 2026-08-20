@@ -34,9 +34,13 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg>
           <span data-i18n="nav_subscriptions">规则订阅</span>
         </button>
-        <button type="button" class="main-nav-item" data-main-page="config" aria-controls="page-config" title="配置与同步" data-i18n-title="nav_config">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h4m4 0h7"></path><circle cx="10" cy="7" r="2"></circle><path d="m16 4 3 3-3 3"></path><path d="M20 17h-4m-4 0H5"></path><circle cx="14" cy="17" r="2"></circle><path d="m8 14-3 3 3 3"></path></svg>
-          <span data-i18n="nav_config">配置与同步</span>
+        <button type="button" class="main-nav-item" data-main-page="config" aria-controls="page-config" title="配置文件" data-i18n-title="nav_config">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path><path d="M14 3v5h4"></path><path d="M8 13h7"></path><path d="M8 17h5"></path></svg>
+          <span data-i18n="nav_config">配置文件</span>
+        </button>
+        <button type="button" class="main-nav-item" data-main-page="sync" aria-controls="page-sync" title="云同步" data-i18n-title="nav_sync">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5A4.5 4.5 0 1 1 8 9.6a5.5 5.5 0 0 1 10.5 1.9A3.5 3.5 0 1 1 18 18.5H7Z"></path></svg>
+          <span data-i18n="nav_sync">云同步</span>
         </button>
         <button type="button" class="main-nav-item" data-main-page="diagnostics" aria-controls="page-diagnostics" title="代理诊断" data-i18n-title="nav_diagnostics">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="4.5"></circle><path d="m14 14 4 4"></path><path d="M10.5 8v2.5l1.5 1"></path></svg>
@@ -133,38 +137,130 @@
       <section class="main-page" id="page-config" data-page="config" hidden>
         <div class="page-heading">
           <div>
-            <h1 data-i18n="nav_config">配置与同步</h1>
+            <h1 data-i18n="nav_config">配置文件</h1>
             <p data-i18n="config_desc">管理系统配置</p>
           </div>
         </div>
-        <div class="system-config-list config-file-section">
+        <div class="system-config-list config-options-section">
           <div class="config-row">
             <div class="config-row-left">
-              <div class="config-row-title" data-i18n="config_management">配置文件</div>
-              <div class="config-row-desc" data-i18n="config_desc">管理系统配置</div>
+              <div class="config-row-title" data-i18n="config_management">配置选项</div>
+              <div class="config-row-desc" data-i18n="config_options_desc">控制配置文件中包含的内容</div>
+            </div>
+          </div>
+          <div class="config-file-options">
+            <div class="config-file-option">
+              <div>
+                <div class="config-file-option-title" data-i18n="include_subscriptions">包含规则订阅配置</div>
+                <div class="config-file-option-desc" data-i18n="include_subscriptions_desc">保留订阅名称、地址、格式和刷新周期</div>
+              </div>
+              <label class="switch-modern">
+                <input type="checkbox" id="config-include-subscriptions" checked>
+                <span class="slider-modern"></span>
+              </label>
+            </div>
+            <div class="config-file-option">
+              <div>
+                <div class="config-file-option-title" data-i18n="include_subscription_cache">包含订阅缓存内容</div>
+                <div class="config-file-option-desc" data-i18n="include_subscription_cache_desc">包含已下载内容、解析规则、统计和更新时间，文件体积会明显增大</div>
+              </div>
+              <label class="switch-modern">
+                <input type="checkbox" id="config-include-subscription-cache">
+                <span class="slider-modern"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="system-config-list current-config-section">
+          <div class="config-row">
+            <div class="config-row-left">
+              <div class="config-current-title-line">
+                <div class="config-row-title" data-i18n="current_config">当前配置</div>
+                <span id="config-editor-state" class="config-editor-state" data-i18n="config_readonly">只读</span>
+              </div>
+              <div class="config-row-desc" data-i18n="config_editor_desc">查看当前生效的 JSON 配置，编辑保存后立即应用</div>
             </div>
             <div class="config-row-right">
               <div class="config-actions">
-                <button type="button" class="export-btn">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14V5"></path><path d="m9.5 8.5 2.5-2.5 2.5 2.5"></path><path d="M5 15.5v2A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5v-2"></path></svg>
-                  <span data-i18n="export_config">导出</span>
+                <button type="button" id="edit-config-btn" class="control-btn primary-control-btn">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"></path></svg>
+                  <span data-i18n="edit_config">编辑</span>
                 </button>
                 <button type="button" class="import-json-btn">
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v9"></path><path d="m15 10-3 3-3-3"></path><path d="M5 15.5v2A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5v-2"></path></svg>
                   <span data-i18n="import_config">导入</span>
                 </button>
+                <button type="button" class="export-btn">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14V5"></path><path d="m9.5 8.5 2.5-2.5 2.5 2.5"></path><path d="M5 15.5v2A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5v-2"></path></svg>
+                  <span data-i18n="export_config">导出</span>
+                </button>
                 <input type="file" id="json-file-input" accept=".json" class="json-file-input" />
               </div>
             </div>
+          </div>
+          <div class="config-editor-panel">
+            <label class="sr-only" for="config-json-editor" data-i18n="current_config">当前配置</label>
+            <div class="config-json-editor-shell">
+              <div class="config-json-toolbar">
+                <div class="config-json-meta" aria-label="配置文件信息" data-i18n-aria-label="config_file_info">
+                  <span class="config-json-meta-item">
+                    <span class="config-json-meta-label" data-i18n="config_file_version">版本</span>
+                    <strong id="config-json-version" class="config-json-meta-value">-</strong>
+                  </span>
+                  <span class="config-json-meta-item">
+                    <span class="config-json-meta-label" data-i18n="config_file_size">大小</span>
+                    <strong id="config-json-size" class="config-json-meta-value">-</strong>
+                  </span>
+                  <span class="config-json-meta-item">
+                    <span class="config-json-meta-label" data-i18n="config_last_updated">上次更新时间</span>
+                    <strong id="config-json-updated-at" class="config-json-meta-value" data-i18n="config_never_updated">暂无记录</strong>
+                  </span>
+                </div>
+                <div class="config-json-toolbar-actions">
+                  <button type="button" id="copy-config-json-btn" class="config-json-toolbar-btn" title="复制配置" aria-label="复制配置" data-i18n-title="copy_config">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="10" height="10" rx="2"></rect><path d="M7 15H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1"></path></svg>
+                  </button>
+                  <button type="button" id="toggle-config-json-fold-btn" class="config-json-toolbar-btn" data-action="collapse" title="全部折叠" aria-label="全部折叠" data-i18n-title="collapse_json">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 5 5 5 5-5"></path><path d="m7 19 5-5 5 5"></path></svg>
+                  </button>
+                </div>
+              </div>
+              <div id="config-json-code" class="config-json-code" role="textbox" aria-multiline="true"></div>
+            </div>
+            <textarea id="config-json-editor" class="config-json-source" readonly spellcheck="false"></textarea>
+            <div id="config-editor-actions" class="config-editor-actions" hidden>
+              <button type="button" id="format-config-btn" class="control-btn">
+                <span data-i18n="format_config">格式化</span>
+              </button>
+              <button type="button" id="cancel-config-edit-btn" class="control-btn">
+                <span data-i18n="cancel">取消</span>
+              </button>
+              <button type="button" id="apply-config-btn" class="control-btn primary-control-btn">
+                <span data-i18n="save_and_apply">保存并应用</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="main-page" id="page-sync" data-page="sync" hidden>
+        <div class="page-heading">
+          <div>
+            <h1 data-i18n="nav_sync">云同步</h1>
+            <p data-i18n="cloud_sync_page_desc">将本地配置与云端保持同步</p>
           </div>
         </div>
         <div class="system-config-list cloud-sync-section">
           <div class="config-row sync-config-summary">
             <div class="config-row-left">
-              <div class="config-row-title" data-i18n="cloud_sync_settings">云同步方式</div>
+              <div class="config-row-title" data-i18n="cloud_sync_settings">云同步</div>
               <div class="config-row-desc">
-                <span data-i18n="cloud_sync_desc">选择您的云同步方式，当前云同步方式: </span>
+                <span data-i18n="cloud_sync_desc">当前：</span>
                 <span id="sync-status-badge" class="sync-status-badge"></span>
+                <span class="sync-summary-separator" aria-hidden="true">·</span>
+                <span data-i18n="sync_last_time">上次同步时间</span>
+                <span id="sync-last-time" class="sync-last-time" data-i18n="sync_never">尚未同步</span>
               </div>
             </div>
             <div class="config-row-right">
@@ -180,8 +276,13 @@
           </div>
           <div class="sync-config-panel">
             <div class="sync-config-content">
-              <div class="form-item with-margin-bottom">
-                <label data-i18n="sync_method">同步方式</label>
+              <div class="sync-settings-section">
+                <div class="sync-section-heading">
+                  <div class="sync-section-title" data-i18n="sync_connection_title">同步连接</div>
+                  <div class="sync-section-desc" data-i18n="sync_connection_desc">选择一种同步服务并配置连接信息</div>
+                </div>
+                <div class="form-item with-margin-bottom">
+                  <label data-i18n="sync_method">同步方式</label>
                 <div class="lh-select sync-selector" data-type="sync_mode">
                   <div class="lh-select-k">
                     <span class="lh-select-value" id="current-sync-display" data-i18n="sync_native">浏览器原生同步</span>
@@ -241,6 +342,42 @@
                   <div class="quota-text" id="quota-usage-text"></div>
                   <div class="quota-bar"><div class="quota-bar-fill" id="quota-bar-fill"></div></div>
                   <div class="quota-warning" id="quota-warning"></div>
+                </div>
+              </div>
+              </div>
+
+              <div class="sync-settings-section sync-schedule-section">
+                <div class="sync-section-heading">
+                  <div class="sync-section-title" data-i18n="sync_schedule_title">定时同步</div>
+                  <div class="sync-section-desc" data-i18n="sync_schedule_desc">按固定周期自动执行一个同步方向</div>
+                </div>
+                <div class="form-grid sync-schedule-grid">
+                  <div class="form-item full-width">
+                    <label for="sync-auto-mode" data-i18n="sync_auto_mode">自动同步（只能选择定时推送或定时拉取）</label>
+                    <select id="sync-auto-mode">
+                      <option value="off" data-i18n="sync_auto_off">不启用</option>
+                      <option value="push" data-i18n="sync_auto_push">定时推送</option>
+                      <option value="pull" data-i18n="sync_auto_pull">定时拉取</option>
+                    </select>
+                  </div>
+                  <div class="form-item full-width">
+                    <label for="sync-interval" data-i18n="sync_interval">同步周期</label>
+                    <select id="sync-interval">
+                      <option value="15" data-i18n="sync_interval_15m">每 15 分钟</option>
+                      <option value="30" data-i18n="sync_interval_30m">每 30 分钟</option>
+                      <option value="60" data-i18n="sync_interval_1h">每 1 小时</option>
+                      <option value="360" data-i18n="sync_interval_6h">每 6 小时</option>
+                      <option value="720" data-i18n="sync_interval_12h">每 12 小时</option>
+                      <option value="1440" data-i18n="sync_interval_1d">每天</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="sync-pull-warning" role="note">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.7 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0Z"></path></svg>
+                  <div>
+                    <strong data-i18n="sync_pull_overwrite_title">拉取覆盖规则</strong>
+                    <span data-i18n="sync_pull_overwrite_desc">手动或定时拉取都会以远程配置完整覆盖本地配置，本地差异不会保留；同步连接与定时设置保留在本机。</span>
+                  </div>
                 </div>
               </div>
             </div>

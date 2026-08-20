@@ -39,6 +39,7 @@ describe('StorageModule subscription synchronization', () => {
   let storageModule;
 
   beforeEach(() => {
+    delete window.ConfigModule;
     chromeMock = {
       runtime: {
         lastError: null,
@@ -54,6 +55,28 @@ describe('StorageModule subscription synchronization', () => {
     storageModule = loadStorageModule(chromeMock);
   });
 
+  afterEach(() => {
+    delete window.ConfigModule;
+  });
+
+  test('persists a normalized configuration after loading migrated IDs', async () => {
+    const storedConfig = createConfig('rules');
+    const normalizedConfig = JSON.parse(JSON.stringify(storedConfig));
+    normalizedConfig.scenarios.current = 'scenario_20250213134422';
+    normalizedConfig.scenarios.lists[0].id = 'scenario_20250213134422';
+    window.ConfigModule = {
+      migrateConfig: jest.fn(() => normalizedConfig)
+    };
+    chromeMock.storage.local.get.mockImplementation((keys, callback) => callback({ config: storedConfig }));
+
+    await storageModule.init();
+
+    expect(chromeMock.storage.local.set).toHaveBeenCalledTimes(1);
+    const payload = chromeMock.storage.local.set.mock.calls[0][0];
+    expect(payload.config.scenarios.current).toBe('scenario_20250213134422');
+    expect(payload.config.updated_at).toBe(payload.config_updated_at);
+  });
+
   test('merges refreshed subscriptions without replacing local edits', async () => {
     const cachedConfig = createConfig('old content');
     const refreshedConfig = createConfig('new content');
@@ -63,7 +86,9 @@ describe('StorageModule subscription synchronization', () => {
 
     expect(storageModule.isSubscriptionOnlyChange(createConfig('old content'), refreshedConfig)).toBe(true);
 
+    refreshedConfig.updated_at = '2026-08-20T06:30:00.000Z';
     storageModule.mergeSubscriptionChanges(refreshedConfig);
+    expect(storageModule.getConfigUpdatedAt()).toBe('2026-08-20T06:30:00.000Z');
     await storageModule.save();
 
     const savedConfig = chromeMock.storage.local.set.mock.calls[0][0].config;
@@ -71,6 +96,9 @@ describe('StorageModule subscription synchronization', () => {
     expect(savedProxy.name).toBe('Unsaved draft');
     expect(savedProxy.subscription_ids).toEqual(['subscription-1']);
     expect(savedConfig.subscriptions[0].lists.autoproxy.content).toBe('new content');
+    expect(chromeMock.storage.local.set.mock.calls[0][0].config_updated_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(savedConfig.updated_at).toBe(chromeMock.storage.local.set.mock.calls[0][0].config_updated_at);
+    expect(storageModule.getConfigUpdatedAt()).toBe(chromeMock.storage.local.set.mock.calls[0][0].config_updated_at);
   });
 
   test('does not classify general config edits as subscription-only', () => {
@@ -101,6 +129,7 @@ describe('StorageModule subscription synchronization', () => {
       'subscription-2',
       'subscription-1'
     ]);
+    expect(storageModule.getSubscriptions().map(item => item.order)).toEqual([0, 1]);
   });
 
   test('falls back to the last-used strategy when a selected proxy is deleted or moved', () => {

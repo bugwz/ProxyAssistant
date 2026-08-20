@@ -3,11 +3,33 @@
 // ==========================================
 
 const SYNC_CHUNK_SIZE = 7 * 1024;
+const SYNC_INTERVALS = [15, 30, 60, 360, 720, 1440];
 
-let syncConfig = {
-  type: 'native',
-  gist: { token: '', filename: 'proxy_assistant_config.json', gist_id: '' }
-};
+function normalizeSyncConfig(config) {
+  const source = config || {};
+  const type = source.type === 'gist' ? 'gist' : 'native';
+  const autoMode = ['push', 'pull'].includes(source.auto_mode) ? source.auto_mode : 'off';
+  const requestedInterval = Number(source.interval_minutes);
+  const intervalMinutes = SYNC_INTERVALS.includes(requestedInterval) ? requestedInterval : 360;
+
+  return {
+    ...source,
+    type: type,
+    auto_mode: autoMode,
+    interval_minutes: intervalMinutes,
+    last_sync_at: typeof source.last_sync_at === 'string' ? source.last_sync_at : null,
+    last_sync_direction: ['push', 'pull'].includes(source.last_sync_direction)
+      ? source.last_sync_direction
+      : null,
+    gist: {
+      token: source.gist?.token || '',
+      filename: source.gist?.filename || 'proxy_assistant_config.json',
+      gist_id: source.gist?.gist_id || ''
+    }
+  };
+}
+
+let syncConfig = normalizeSyncConfig();
 
 // ==========================================
 // Sync Chunked Storage Helpers
@@ -61,6 +83,7 @@ function isValidMeta(meta) {
 // ==========================================
 
 function updateSyncUI() {
+  syncConfig = normalizeSyncConfig(syncConfig);
   const type = syncConfig.type || 'native';
 
   const $badge = $('#sync-status-badge');
@@ -72,6 +95,31 @@ function updateSyncUI() {
   const $selectedOption = $(`.sync-selector li[data-value="${type}"]`);
   if ($selectedOption.length) {
     $('#current-sync-display').text($selectedOption.text());
+  }
+
+  $('#sync-auto-mode').val(syncConfig.auto_mode).trigger('change');
+  $('#sync-interval')
+    .val(String(syncConfig.interval_minutes))
+    .prop('disabled', syncConfig.auto_mode === 'off')
+    .trigger('change');
+
+  const $lastSyncTime = $('#sync-last-time');
+  if (syncConfig.last_sync_at) {
+    const lastSyncDate = new Date(syncConfig.last_sync_at);
+    if (!Number.isNaN(lastSyncDate.getTime())) {
+      const locale = I18n.getCurrentLanguage ? I18n.getCurrentLanguage() : undefined;
+      $lastSyncTime.text(new Intl.DateTimeFormat(locale, {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(lastSyncDate));
+    } else {
+      $lastSyncTime.text(I18n.t('sync_never'));
+    }
+  } else {
+    $lastSyncTime.text(I18n.t('sync_never'));
   }
 
   $('.sync-panel').hide();
@@ -270,6 +318,13 @@ async function manualPush() {
     } else if (type === 'gist') {
       await pushToGist(data);
     }
+    syncConfig.last_sync_at = new Date().toISOString();
+    syncConfig.last_sync_direction = 'push';
+    if (StorageModule) {
+      StorageModule.setSyncConfig(syncConfig);
+      await StorageModule.save();
+    }
+    updateSyncUI();
     showTip(I18n.t('push_success'), false);
   } catch (e) {
     console.log("Sync Push Error:", e);
@@ -301,24 +356,13 @@ async function manualPull() {
         ? ConfigModule.migrateConfig(remoteData)
         : remoteData;
 
-      // Preserve local sync config
-      const localSyncConfig = syncConfig;
-
-      // Merge sync config
-      if (data.system && data.system.sync) {
-        const remoteSync = data.system.sync;
-        data.system.sync = {
-          type: remoteSync.type || localSyncConfig.type,
-          gist: {
-            token: localSyncConfig.gist?.token || '',
-            filename: remoteSync.gist?.filename || localSyncConfig.gist?.filename || 'proxy_assistant_config.json',
-            gist_id: remoteSync.gist?.gist_id || localSyncConfig.gist?.gist_id || ''
-          }
-        };
-      } else {
-        data.system = data.system || {};
-        data.system.sync = localSyncConfig;
-      }
+      // Remote data replaces the complete local configuration. The local
+      // connection credentials and schedule remain local so future pulls work.
+      const localSyncConfig = normalizeSyncConfig(syncConfig);
+      localSyncConfig.last_sync_at = new Date().toISOString();
+      localSyncConfig.last_sync_direction = 'pull';
+      data.system = data.system || {};
+      data.system.sync = localSyncConfig;
 
       // Parse subscription rules
       if (data.scenarios && data.scenarios.lists) {
@@ -334,7 +378,7 @@ async function manualPull() {
         StorageModule.setConfig(data);
         await StorageModule.save();
 
-        syncConfig = data.system.sync;
+        syncConfig = normalizeSyncConfig(data.system.sync);
 
         if (window.SubscriptionModule && window.SubscriptionModule.scheduleAllBackgroundRefreshes) {
           window.SubscriptionModule.scheduleAllBackgroundRefreshes(data);
@@ -355,13 +399,16 @@ async function manualPull() {
         const toSave = {
           config: data
         };
+        const updatedAt = new Date().toISOString();
+        data.updated_at = updatedAt;
+        toSave.config_updated_at = updatedAt;
 
         chrome.storage.local.set(toSave, function () {
           if (chrome.runtime.lastError) {
             showTip(I18n.t('pull_failed') + ': ' + chrome.runtime.lastError.message, true);
             return;
           }
-          syncConfig = data.system.sync;
+          syncConfig = normalizeSyncConfig(data.system.sync);
           if (typeof loadSettings === 'function') {
             loadSettings();
           }
@@ -430,6 +477,7 @@ async function pushToGist(data) {
           const config = result.config || {};
           if (!config.system) config.system = {};
           config.system.sync = syncConfig;
+          config.updated_at = new Date().toISOString();
           chrome.storage.local.set({ config: config });
         });
       }
@@ -449,6 +497,7 @@ async function pushToGist(data) {
         const config = result.config || {};
         if (!config.system) config.system = {};
         config.system.sync = syncConfig;
+        config.updated_at = new Date().toISOString();
         chrome.storage.local.set({ config: config });
       });
     }
@@ -474,6 +523,7 @@ async function pullFromGist() {
           const config = result.config || {};
           if (!config.system) config.system = {};
           config.system.sync = syncConfig;
+          config.updated_at = new Date().toISOString();
           chrome.storage.local.set({ config: config });
         });
       }
@@ -621,6 +671,7 @@ async function testGistConnection() {
         const config = result.config || {};
         if (!config.system) config.system = {};
         config.system.sync = syncConfig;
+        config.updated_at = new Date().toISOString();
         chrome.storage.local.set({ config: config });
       });
     }
@@ -641,8 +692,9 @@ window.SyncModule = {
   testGistConnection,
   updateSyncUI,
   updateNativeQuotaInfo,
+  normalizeSyncConfig,
   getSyncConfig: () => syncConfig,
-  setSyncConfig: (config) => { syncConfig = config; },
+  setSyncConfig: (config) => { syncConfig = normalizeSyncConfig(config); },
   chunkString,
   calculateChecksum,
   buildSyncMeta,

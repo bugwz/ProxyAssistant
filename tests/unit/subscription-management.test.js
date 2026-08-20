@@ -105,6 +105,7 @@ describe('subscription management cards', () => {
     $('#add-subscription-btn').trigger('click');
 
     expect(storageModule.addSubscription).toHaveBeenCalledTimes(1);
+    expect(subscriptions[0].id).toMatch(/^subscription_\d{14}$/);
     expect($('.subscription-card')).toHaveLength(1);
     expect($('.subscription-card').hasClass('collapsed')).toBe(false);
     expect($('.subscription-name-input')).toHaveLength(1);
@@ -134,6 +135,24 @@ describe('subscription management cards', () => {
     expect($('.subscription-last-updated').text()).toBe('2026-08-19 10:54');
     expect($('.subscription-card-header').text()).not.toContain('4317');
     expect($('.subscription-card-header').text()).not.toContain('33');
+  });
+
+  test('renders subscription cards according to their order field', () => {
+    $('#add-subscription-btn').trigger('click');
+    $('#add-subscription-btn').trigger('click');
+    const firstId = subscriptions[0].id;
+    const secondId = subscriptions[1].id;
+    subscriptions[0].order = 1;
+    subscriptions[1].order = 0;
+
+    subscriptionModule.renderManagementList();
+
+    expect($('.subscription-card').map(function () {
+      return $(this).data('id');
+    }).get()).toEqual([secondId, firstId]);
+    expect($('.subscription-card .proxy-index').map(function () {
+      return $(this).text();
+    }).get()).toEqual(['#1', '#2']);
   });
 
   test('expands and collapses only subscription management cards', () => {
@@ -179,6 +198,11 @@ describe('subscription management cards', () => {
 
   test('saves card fields and refreshes proxy selectors', async () => {
     $('#add-subscription-btn').trigger('click');
+    subscriptions[0].lists.pac = {
+      url: 'https://example.com/unused.pac',
+      refresh_interval: 360,
+      process_rule: '{}'
+    };
     $('.subscription-name-input').val('Shared Rules');
     $('.subscription-url-input').val('https://example.com/rules.txt');
     $('.subscription-card-refresh').val('360');
@@ -189,6 +213,7 @@ describe('subscription management cards', () => {
     expect(subscriptions[0].name).toBe('Shared Rules');
     expect(subscriptions[0].lists.autoproxy.url).toBe('https://example.com/rules.txt');
     expect(subscriptions[0].lists.autoproxy.refresh_interval).toBe(360);
+    expect(Object.keys(subscriptions[0].lists)).toEqual(['autoproxy']);
     expect(storageModule.save).toHaveBeenCalledTimes(1);
     expect(proxyModule.renderList).toHaveBeenCalledTimes(1);
   });

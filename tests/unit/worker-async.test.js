@@ -272,6 +272,99 @@ describe('Worker applyProxy async handling', () => {
     );
   });
 
+  test('schedules only one cloud sync direction at the selected interval', () => {
+    const context = loadWorkerContext();
+    context.chrome.alarms.create.mockClear();
+    context.chrome.alarms.clear.mockClear();
+
+    context.scheduleCloudSync({
+      system: {
+        sync: {
+          auto_mode: 'pull',
+          interval_minutes: 30
+        }
+      }
+    });
+
+    expect(context.chrome.alarms.create).toHaveBeenCalledWith('cloud-sync-schedule', {
+      delayInMinutes: 30,
+      periodInMinutes: 30
+    });
+
+    context.scheduleCloudSync({ system: { sync: { auto_mode: 'off', interval_minutes: 30 } } });
+    expect(context.chrome.alarms.clear).toHaveBeenCalledWith('cloud-sync-schedule');
+  });
+
+  test('stores the configuration update time inside every background config write', async () => {
+    const context = loadWorkerContext();
+    await context.setStorageValues({ config: { version: 5 } });
+
+    const payload = context.chrome.storage.local.set.mock.calls.at(-1)[0];
+    expect(payload.config.updated_at).toEqual(expect.any(String));
+    expect(payload.config_updated_at).toBe(payload.config.updated_at);
+  });
+
+  test('scheduled pull replaces local configuration while preserving local sync access settings', async () => {
+    const localConfig = {
+      version: 5,
+      system: {
+        theme_mode: 'light',
+        sync: {
+          type: 'native',
+          auto_mode: 'pull',
+          interval_minutes: 30,
+          gist: { token: 'local-secret', filename: 'local.json', gist_id: 'local-id' }
+        }
+      },
+      scenarios: { current: 'local', lists: [{ id: 'local', proxies: [] }] },
+      subscriptions: [{ id: 'local-subscription' }]
+    };
+    const remoteConfig = {
+      version: 5,
+      system: {
+        theme_mode: 'dark',
+        sync: { type: 'gist', auto_mode: 'push', interval_minutes: 1440, gist: {} }
+      },
+      scenarios: { current: 'remote', lists: [{ id: 'remote', proxies: [] }] },
+      subscriptions: [{ id: 'remote-subscription' }]
+    };
+    const context = loadWorkerContext();
+    const remoteJson = JSON.stringify(remoteConfig);
+    const storageSet = jest.fn((payload, callback) => callback && callback());
+    context.chrome.storage.local.get = jest.fn((keys, callback) => callback({ config: localConfig }));
+    context.chrome.storage.local.set = storageSet;
+    context.chrome.storage.sync = {
+      get: jest.fn((keys, callback) => {
+        if (keys === 'meta') {
+          callback({
+            meta: {
+              chunks: { start: 0, end: 0 },
+              checksum: context.calculateCloudSyncChecksum(remoteJson)
+            }
+          });
+        } else {
+          callback({ 'data.0': remoteJson });
+        }
+      })
+    };
+
+    await expect(context.runScheduledCloudSync()).resolves.toBe(true);
+
+    const savedConfig = storageSet.mock.calls.at(-1)[0].config;
+    expect(savedConfig.system.theme_mode).toBe('dark');
+    expect(savedConfig.scenarios).toEqual(remoteConfig.scenarios);
+    expect(savedConfig.subscriptions).toEqual(remoteConfig.subscriptions);
+    expect(savedConfig.system.sync).toMatchObject({
+      type: 'native',
+      auto_mode: 'pull',
+      interval_minutes: 30,
+      last_sync_direction: 'pull',
+      gist: { token: 'local-secret', filename: 'local.json', gist_id: 'local-id' }
+    });
+    expect(savedConfig.system.sync.last_sync_at).toEqual(expect.any(String));
+    expect(savedConfig.updated_at).toEqual(expect.any(String));
+  });
+
   test('waits for proxy.settings.set before persisting manual state', async () => {
     let applySettingsCallback = null;
     const storageSet = jest.fn((payload, callback) => {

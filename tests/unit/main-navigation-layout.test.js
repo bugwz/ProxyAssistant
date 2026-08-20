@@ -39,15 +39,17 @@ describe('main sidebar layout', () => {
       'scenarios',
       'subscriptions',
       'config',
+      'sync',
       'diagnostics',
       'appearance',
       'about'
     ]);
-    expect(navItems.slice(0, 4).map(item => item.textContent.trim())).toEqual([
+    expect(navItems.slice(0, 5).map(item => item.textContent.trim())).toEqual([
       '代理节点',
       '代理场景',
       '规则订阅',
-      '配置与同步'
+      '配置文件',
+      '云同步'
     ]);
     navItems.forEach(item => {
       expect(pageDocument.getElementById(item.getAttribute('aria-controls'))).not.toBeNull();
@@ -68,20 +70,68 @@ describe('main sidebar layout', () => {
     expect(pageDocument.querySelector('#page-subscriptions .page-heading p').dataset.i18n).toBe('subscription_management_desc');
     const configPage = pageDocument.querySelector('#page-config');
     const configSections = configPage.querySelectorAll(':scope > .system-config-list');
-    const configFileSection = configPage.querySelector('.config-file-section');
-    const cloudSyncSection = configPage.querySelector('.cloud-sync-section');
+    const configOptionsSection = configPage.querySelector('.config-options-section');
+    const currentConfigSection = configPage.querySelector('.current-config-section');
+    const syncPage = pageDocument.querySelector('#page-sync');
+    const cloudSyncSection = syncPage.querySelector('.cloud-sync-section');
     expect(configSections).toHaveLength(2);
-    expect(configFileSection.querySelector('.config-row-title').textContent.trim()).toBe('配置文件');
-    expect(configFileSection.querySelector('.export-btn')).not.toBeNull();
-    expect(configFileSection.querySelector('.import-json-btn')).not.toBeNull();
+    expect(configOptionsSection.querySelector('.config-row-title').textContent.trim()).toBe('配置选项');
+    expect(configOptionsSection.querySelector('#config-include-subscriptions').checked).toBe(true);
+    expect(configOptionsSection.querySelector('#config-include-subscription-cache').checked).toBe(false);
+    expect(currentConfigSection.querySelector('.config-row-title').textContent.trim()).toBe('当前配置');
+    expect(Array.from(currentConfigSection.querySelectorAll('.config-actions button')).map(button => button.id || button.className)).toEqual([
+      'edit-config-btn',
+      'import-json-btn',
+      'export-btn'
+    ]);
+    expect(currentConfigSection.querySelector('#config-json-editor').readOnly).toBe(true);
+    expect(currentConfigSection.querySelector('#config-json-code')).not.toBeNull();
+    expect(currentConfigSection.querySelector('#copy-config-json-btn svg')).not.toBeNull();
+    expect(currentConfigSection.querySelector('#toggle-config-json-fold-btn').getAttribute('title')).toBe('全部折叠');
+    expect(currentConfigSection.querySelector('#toggle-config-json-fold-btn svg')).not.toBeNull();
+    const editorShell = currentConfigSection.querySelector('.config-json-editor-shell');
+    const editorToolbar = editorShell.querySelector(':scope > .config-json-toolbar');
+    expect(editorToolbar).not.toBeNull();
+    expect(editorToolbar.querySelector('.config-json-meta')).not.toBeNull();
+    expect(editorToolbar.querySelector('#config-json-version')).not.toBeNull();
+    expect(editorToolbar.querySelector('#config-json-size')).not.toBeNull();
+    expect(editorToolbar.querySelector('#config-json-updated-at')).not.toBeNull();
+    expect(editorToolbar.querySelector('.config-json-toolbar-actions #copy-config-json-btn')).not.toBeNull();
+    expect(editorToolbar.querySelector('.config-json-toolbar-actions #toggle-config-json-fold-btn')).not.toBeNull();
+    expect(editorShell.querySelector(':scope > #config-json-code')).not.toBeNull();
+    expect(currentConfigSection.querySelector('#format-config-btn')).not.toBeNull();
+    expect(currentConfigSection.querySelector('#cancel-config-edit-btn')).not.toBeNull();
+    expect(currentConfigSection.querySelector('#apply-config-btn')).not.toBeNull();
+    expect(syncPage.querySelector('.page-heading h1').textContent.trim()).toBe('云同步');
     expect(cloudSyncSection.querySelector('.sync-config-panel')).not.toBeNull();
     expect(cloudSyncSection.querySelector('#sync-options')).not.toBeNull();
     expect(cloudSyncSection.querySelector('#sync-push-btn')).not.toBeNull();
     expect(cloudSyncSection.querySelector('#sync-pull-btn')).not.toBeNull();
     expect(cloudSyncSection.querySelector('#save-sync-config')).not.toBeNull();
+    expect(Array.from(cloudSyncSection.querySelector('#sync-auto-mode').options).map(option => option.value)).toEqual([
+      'off',
+      'push',
+      'pull'
+    ]);
+    expect(Array.from(cloudSyncSection.querySelector('#sync-interval').options).map(option => option.value)).toEqual([
+      '15',
+      '30',
+      '60',
+      '360',
+      '720',
+      '1440'
+    ]);
+    expect(cloudSyncSection.querySelector('.sync-pull-warning').textContent).toContain('远程配置完整覆盖本地配置');
+    expect(cloudSyncSection.querySelector('#sync-last-time')).not.toBeNull();
     expect(pageDocument.querySelector('.sync-config-tip')).toBeNull();
     expect(pageDocument.querySelector('head script').getAttribute('src')).toBe('./js/main-navigation-bootstrap.js');
     expect(pageDocument.querySelector('.main-nav-item.active')).toBeNull();
+    expect(fs.readFileSync(mainCssPath, 'utf8')).toContain(
+      'html[data-initial-main-page="sync"] .main-page[data-page="sync"]'
+    );
+    expect(fs.readFileSync(mainCssPath, 'utf8')).toContain(
+      '.config-json-line[hidden]'
+    );
   });
 
   test('restores the saved page before the navigation markup is rendered', () => {
@@ -94,7 +144,7 @@ describe('main sidebar layout', () => {
     window.localStorage.setItem('proxyAssistant.activeMainPage', 'sync');
     window.eval(fs.readFileSync(navigationBootstrapPath, 'utf8'));
 
-    expect(document.documentElement.dataset.initialMainPage).toBe('config');
+    expect(document.documentElement.dataset.initialMainPage).toBe('sync');
 
     window.localStorage.setItem('proxyAssistant.activeMainPage', 'removed-page');
     window.eval(fs.readFileSync(navigationBootstrapPath, 'utf8'));

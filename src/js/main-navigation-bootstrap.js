@@ -6,6 +6,7 @@
     'scenarios',
     'subscriptions',
     'config',
+    'sync',
     'diagnostics',
     'appearance',
     'about'
@@ -14,7 +15,7 @@
 
   try {
     const storedPageId = window.localStorage.getItem(storageKey);
-    const savedPageId = storedPageId === 'sync' ? 'config' : storedPageId;
+    const savedPageId = storedPageId;
     if (pageIds.includes(savedPageId)) {
       pageId = savedPageId;
       if (storedPageId !== savedPageId) {

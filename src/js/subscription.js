@@ -15,6 +15,26 @@ const SubscriptionModule = (function () {
     'switchy_omega': 'Switchy Omega',
     'pac': 'PAC'
   };
+  let lastFallbackSubscriptionIdTime = 0;
+
+  function generateSubscriptionId() {
+    if (window.ConfigModule && typeof window.ConfigModule.generateSubscriptionId === 'function') {
+      return window.ConfigModule.generateSubscriptionId();
+    }
+
+    const currentSecond = Math.floor(Date.now() / 1000) * 1000;
+    const timestamp = Math.max(currentSecond, lastFallbackSubscriptionIdTime + 1000);
+    const date = new Date(timestamp);
+    const pad = value => String(value).padStart(2, '0');
+    lastFallbackSubscriptionIdTime = timestamp;
+    return 'subscription_'
+      + date.getFullYear()
+      + pad(date.getMonth() + 1)
+      + pad(date.getDate())
+      + pad(date.getHours())
+      + pad(date.getMinutes())
+      + pad(date.getSeconds());
+  }
 
   function init() {
     bindEvents();
@@ -70,8 +90,9 @@ const SubscriptionModule = (function () {
     $('#add-subscription-btn').on('click', function () {
       const subscription = {
         ...getEmptyConfig(),
-        id: `subscription-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        id: generateSubscriptionId(),
         name: '',
+        order: StorageModule.getSubscriptions().length,
         is_new: true
       };
       StorageModule.addSubscription(subscription);
@@ -623,34 +644,35 @@ const SubscriptionModule = (function () {
     const oldSubscription = currentSubscriptionId ? StorageModule.getSubscription(currentSubscriptionId) : null;
     const oldUrl = oldSubscription?.lists?.[format]?.url || '';
     const savedSubscription = {
-        id: currentSubscriptionId || `subscription-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        id: currentSubscriptionId || generateSubscriptionId(),
         name: name,
+        order: Number.isInteger(oldSubscription?.order)
+          ? oldSubscription.order
+          : StorageModule.getSubscriptions().length,
         enabled: subscriptionConfig.enabled !== false,
         current: subscriptionConfig.current,
         lists: {}
     };
 
-      Object.keys(subscriptionConfig.lists).forEach(key => {
-        const item = subscriptionConfig.lists[key];
-        const includeRulesStr = item.include_rules || '';
-        const bypassRulesStr = item.bypass_rules || '';
-        const saveItem = {
-          url: item.url,
-          content: item.content,
-          decoded_content: item.decoded_content || '',
-          include_rules: includeRulesStr,
-          bypass_rules: bypassRulesStr,
-          include_lines: includeRulesStr ? includeRulesStr.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0,
-          bypass_lines: bypassRulesStr ? bypassRulesStr.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0,
-          refresh_interval: item.refresh_interval,
-          reverse: item.reverse,
-          last_fetch_time: item.last_fetch_time
-        };
-        if (key === 'pac') {
-          saveItem.process_rule = item.process_rule || '';
-        }
-        savedSubscription.lists[key] = saveItem;
-      });
+      const item = subscriptionConfig.lists[format];
+      const includeRulesStr = item.include_rules || '';
+      const bypassRulesStr = item.bypass_rules || '';
+      const saveItem = {
+        url: item.url,
+        content: item.content,
+        decoded_content: item.decoded_content || '',
+        include_rules: includeRulesStr,
+        bypass_rules: bypassRulesStr,
+        include_lines: includeRulesStr ? includeRulesStr.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0,
+        bypass_lines: bypassRulesStr ? bypassRulesStr.split(/\r\n|\r|\n/).filter(line => line.trim()).length : 0,
+        refresh_interval: item.refresh_interval,
+        reverse: item.reverse,
+        last_fetch_time: item.last_fetch_time
+      };
+      if (format === 'pac') {
+        saveItem.process_rule = item.process_rule || '';
+      }
+      savedSubscription.lists[format] = saveItem;
 
       if (oldSubscription) {
         StorageModule.updateSubscription(currentSubscriptionId, savedSubscription);
@@ -1747,6 +1769,7 @@ const SubscriptionModule = (function () {
       }
     }
     if (item.content) updateSubscriptionParsedData(format, item);
+    subscription.lists = { [format]: item };
     delete subscription.is_new;
 
     StorageModule.save().then(function () {
@@ -1925,7 +1948,14 @@ const SubscriptionModule = (function () {
       expandedIds.add($(this).data('id'));
     });
 
-    const subscriptions = typeof StorageModule.getSubscriptions === 'function' ? StorageModule.getSubscriptions().slice() : [];
+    const subscriptions = typeof StorageModule.getSubscriptions === 'function'
+      ? StorageModule.getSubscriptions().map((subscription, index) => ({
+        subscription: subscription,
+        order: Number.isInteger(subscription.order) && subscription.order >= 0 ? subscription.order : index,
+        index: index
+      })).sort((left, right) => left.order - right.order || left.index - right.index)
+        .map(entry => entry.subscription)
+      : [];
     if (!subscriptions.length) {
       $list.html(`<div class="subscription-manage-empty">${I18n.t('subscription_empty_list')}</div>`);
       managementExpansionMode = 'auto';

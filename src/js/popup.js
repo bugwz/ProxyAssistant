@@ -1027,6 +1027,7 @@ function handleAddToBypass(hostname, $btn) {
     }
 
     // Save to local storage
+    config.updated_at = new Date().toISOString();
     chrome.storage.local.set({
       config: config,
       state: { proxy: { mode: mode, current: proxy } }
@@ -1127,6 +1128,7 @@ function handleRemoveFromBypass(hostname, $btn) {
     }
 
     // Save to local storage
+    config.updated_at = new Date().toISOString();
     chrome.storage.local.set({
       config: config,
       state: { proxy: { mode: mode, current: proxy } }

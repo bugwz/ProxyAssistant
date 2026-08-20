@@ -33,17 +33,20 @@ describe('main header icon markup', () => {
     expect(pullButton.querySelector('path:nth-child(2)').getAttribute('d')).toBe('M12 9v6');
   });
 
-  test('configuration navigation combines adjustment controls with sync arrows', () => {
+  test('configuration and cloud sync navigation use distinct file and cloud icons', () => {
     const mainHtmlPath = path.join(__dirname, '../../src/main.html');
     const pageDocument = new DOMParser().parseFromString(fs.readFileSync(mainHtmlPath, 'utf8'), 'text/html');
-    const icon = pageDocument.querySelector('[data-main-page="config"] svg');
+    const configIcon = pageDocument.querySelector('[data-main-page="config"] svg');
+    const syncIcon = pageDocument.querySelector('[data-main-page="sync"] svg');
 
-    expect(Array.from(icon.querySelectorAll('circle')).map(circle => circle.getAttribute('cy'))).toEqual(['7', '17']);
-    expect(Array.from(icon.querySelectorAll('path')).map(path => path.getAttribute('d'))).toEqual([
-      'M4 7h4m4 0h7',
-      'm16 4 3 3-3 3',
-      'M20 17h-4m-4 0H5',
-      'm8 14-3 3 3 3'
+    expect(Array.from(configIcon.querySelectorAll('path')).map(path => path.getAttribute('d'))).toEqual([
+      'M6 3h8l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z',
+      'M14 3v5h4',
+      'M8 13h7',
+      'M8 17h5'
+    ]);
+    expect(Array.from(syncIcon.querySelectorAll('path')).map(path => path.getAttribute('d'))).toEqual([
+      'M7 18.5A4.5 4.5 0 1 1 8 9.6a5.5 5.5 0 0 1 10.5 1.9A3.5 3.5 0 1 1 18 18.5H7Z'
     ]);
   });
 

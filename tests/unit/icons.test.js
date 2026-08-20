@@ -12,8 +12,10 @@ describe('MainIcons', () => {
     const eyeOffIcon = MainIcons.render('eyeOff');
     const scenarioSwitchIcon = MainIcons.render('scenarioSwitch');
     const tagIcon = MainIcons.render('tag');
+    const foldAllIcon = MainIcons.render('foldAll');
+    const unfoldAllIcon = MainIcons.render('unfoldAll');
 
-    [testAllIcon, chevronDownIcon, eyeOffIcon, scenarioSwitchIcon, tagIcon].forEach((svg) => {
+    [testAllIcon, chevronDownIcon, eyeOffIcon, scenarioSwitchIcon, tagIcon, foldAllIcon, unfoldAllIcon].forEach((svg) => {
       expect(svg).toContain('<svg');
       expect(svg).toContain('viewBox="0 0 24 24"');
       expect(svg).toContain('stroke="currentColor"');
