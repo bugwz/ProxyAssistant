@@ -1,0 +1,125 @@
+.page-heading {
+  min-height: 44px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.page-heading h1 {
+  margin: 0;
+  color: #172033;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.page-heading p {
+  margin: 6px 0 0;
+  color: #768191;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.primary-control-btn,
+.control-btn.primary-control-btn {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+  color: #ffffff;
+}
+
+.primary-control-btn:hover,
+.control-btn.primary-control-btn:hover {
+  background-color: #3154e8;
+  border-color: #3154e8;
+  color: #ffffff;
+}
+
+.proxy-toolbar {
+  min-height: 62px;
+  padding: 12px 14px;
+  box-sizing: border-box;
+  background-color: #ffffff;
+  border: 1px solid #e2e6eb;
+  border-radius: 8px;
+}
+
+.current-scenario-summary {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.current-scenario-summary .current-scenario-label {
+  color: #8a94a3;
+  font-size: 10px;
+}
+
+.current-scenario-summary strong {
+  overflow: hidden;
+  color: #253043;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scenario-manage-panel {
+  padding: 20px;
+  background-color: #ffffff;
+  border: 1px solid #e2e6eb;
+  border-radius: 8px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  color: #1e2854;
+  padding: 10px 0;
+}
+
+.logo img {
+  width: 48px;
+  height: 48px;
+}
+
+.logo-text {
+  font-size: 24px;
+  font-weight: bold;
+  color: #1e2854;
+}
+
+[data-theme="dark"] .logo-text {
+  color: #f1f5f9;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333333;
+  margin-top: 20px;
+}
+
+.section-title.system-config-title {
+  margin-top: 40px;
+}
+
+[data-theme="dark"] .section-title {
+  color: #e4e4e7;
+}
+
+[data-theme="dark"] .section-title.system-config-title {
+  color: #e4e4e7;
+}
+
+.section-subtitle {
+  font-size: 14px;
+  color: #666;
+}
+
+[data-theme="dark"] .section-subtitle {
+  color: #a1a1aa;
+}
+

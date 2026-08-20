@@ -1,0 +1,407 @@
+.subscription-manage-list {
+  display: grid;
+  gap: 10px;
+}
+
+.subscription-manage-item {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 18px;
+  border: 1px solid #e2e6ec;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.subscription-manage-main {
+  min-width: 0;
+}
+
+.subscription-manage-title-row,
+.subscription-manage-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.subscription-format-chip,
+.subscription-status-chip {
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #eef2ff;
+  color: #3154e8;
+  font-size: 11px;
+}
+
+.subscription-status-chip {
+  background: #eaf8f0;
+  color: #16834b;
+}
+
+.subscription-status-chip.disabled {
+  background: #f0f1f3;
+  color: #747d89;
+}
+
+.subscription-manage-url,
+.subscription-manage-meta {
+  overflow: hidden;
+  margin-top: 7px;
+  color: #697386;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subscription-manage-empty {
+  padding: 48px 20px;
+  border: 1px dashed #d6dbe3;
+  color: #7b8491;
+  text-align: center;
+}
+
+.subscription-card .subscription-card-header {
+  cursor: pointer;
+}
+
+.subscription-card .header-left {
+  min-width: 0;
+}
+
+.proxy-type-badge.subscription-type-badge {
+  width: auto;
+  max-width: 104px;
+  padding: 3px 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background-color: #eef2ff;
+  color: #3154e8;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+body[data-theme="dark"] .proxy-type-badge.subscription-type-badge {
+  background-color: #27345a;
+  color: #b9c5ff;
+}
+
+.subscription-title-preview {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subscription-last-updated {
+  color: #7a8493;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+body[data-theme="dark"] .subscription-last-updated {
+  color: #94a3b8;
+}
+
+.subscription-card-collapse,
+.proxy-card-collapse,
+.scenario-card-collapse {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  flex: 0 0 28px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #667085;
+  cursor: pointer;
+}
+
+.subscription-card-collapse svg,
+.proxy-card-collapse svg,
+.scenario-card-collapse svg {
+  transition: transform 0.18s ease;
+}
+
+.subscription-card:not(.collapsed) .subscription-card-collapse svg,
+.proxy-card:not(.collapsed) .proxy-card-collapse svg,
+.scenario-card:not(.collapsed) .scenario-card-collapse svg {
+  transform: rotate(180deg);
+}
+
+.subscription-card-form {
+  margin-bottom: 18px;
+}
+
+.subscription-card-select {
+  width: 100%;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid #d7dce3;
+  border-radius: 5px;
+  background: #fff;
+  color: #283445;
+  cursor: pointer;
+  font: inherit;
+}
+
+.subscription-card-select option {
+  cursor: pointer;
+}
+
+.subscription-card-content-panel {
+  overflow: hidden;
+  border: 1px solid #e2e6ec;
+  border-radius: 6px;
+  background: #f9fafb;
+}
+
+.subscription-card-tabs {
+  display: flex;
+  overflow-x: auto;
+  border-bottom: 1px solid #e2e6ec;
+  background: #fff;
+}
+
+.subscription-card-tab {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #667085;
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.subscription-card-tab.active {
+  border-bottom-color: #3154e8;
+  color: #3154e8;
+  font-weight: 600;
+}
+
+.subscription-card-pane {
+  display: none;
+}
+
+.subscription-card-pane.active {
+  display: block;
+}
+
+.subscription-card-pane textarea {
+  width: 100%;
+  min-height: 150px;
+  display: block;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #344054;
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.subscription-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-top: 1px solid #e2e6ec;
+  color: #7a8493;
+  font-size: 11px;
+}
+
+body[data-theme="dark"] .subscription-title-preview,
+body[data-theme="dark"] .subscription-card-pane textarea {
+  color: #e5e7eb;
+}
+
+body[data-theme="dark"] .subscription-card-select,
+body[data-theme="dark"] .subscription-card-tabs,
+body[data-theme="dark"] .subscription-card-content-panel {
+  border-color: #3a414b;
+  background: #20252b;
+  color: #e5e7eb;
+}
+
+.proxy-subscription-select {
+  position: relative;
+}
+
+.proxy-subscription-trigger {
+  width: 100%;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  color: #1e293b;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.proxy-subscription-trigger:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(65, 100, 245, 0.14);
+}
+
+.proxy-subscription-trigger svg {
+  flex: 0 0 auto;
+  transition: transform 0.2s ease;
+}
+
+.proxy-subscription-select.open .proxy-subscription-trigger svg {
+  transform: rotate(180deg);
+}
+
+.proxy-subscription-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proxy-subscription-menu {
+  position: absolute;
+  z-index: var(--layer-dropdown);
+  top: calc(100% + 5px);
+  right: 0;
+  left: 0;
+  display: none;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.proxy-subscription-select.open .proxy-subscription-menu {
+  display: block;
+}
+
+.proxy-subscription-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  box-sizing: border-box;
+  margin: 8px;
+  padding: 0 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #64748b;
+  background: #fff;
+}
+
+.proxy-subscription-search-row:focus-within {
+  border-color: #4164f5;
+  box-shadow: 0 0 0 3px rgba(65, 100, 245, 0.1);
+}
+
+.proxy-subscription-search-row svg {
+  flex: 0 0 auto;
+}
+
+.proxy-subscription-search {
+  width: 100%;
+  min-width: 0;
+  height: 100% !important;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: 0;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #1e293b !important;
+  font: inherit;
+  font-size: 13px;
+}
+
+.proxy-subscription-options {
+  max-height: 210px;
+  overflow-y: auto;
+  padding: 5px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.proxy-subscription-option {
+  display: flex !important;
+  align-items: center;
+  gap: 9px;
+  min-height: 34px;
+  padding: 0 7px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.proxy-subscription-option:hover {
+  background: #f3f5f8;
+}
+
+.proxy-subscription-option input {
+  width: 15px !important;
+  height: 15px !important;
+  margin: 0;
+  accent-color: #4164f5;
+}
+
+.proxy-subscription-no-options {
+  padding: 16px;
+  color: #7b8491;
+  text-align: center;
+}
+
+body[data-theme="dark"] .subscription-manage-item,
+body[data-theme="dark"] .proxy-subscription-trigger,
+body[data-theme="dark"] .proxy-subscription-menu {
+  border-color: #3a414b;
+  background: #20252b;
+}
+
+body[data-theme="dark"] .proxy-subscription-trigger,
+body[data-theme="dark"] .proxy-subscription-search {
+  color: #f1f5f9 !important;
+}
+
+body[data-theme="dark"] .proxy-subscription-search-row {
+  border-color: #334155;
+  background: #0f172a;
+  color: #94a3b8;
+}
+
+body[data-theme="dark"] .proxy-subscription-search-row:focus-within {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+}
+
+body[data-theme="dark"] .proxy-subscription-options {
+  border-top-color: #334155;
+}
+
+body[data-theme="dark"] .proxy-subscription-option:hover {
+  background: #2a3038;
+}
+

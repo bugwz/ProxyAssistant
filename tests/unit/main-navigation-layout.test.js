@@ -7,6 +7,14 @@ const navigationBootstrapPath = path.join(__dirname, '../../src/js/main-navigati
 const mainCssPath = path.join(__dirname, '../../src/css/main.css');
 const jqueryPath = path.join(__dirname, '../../src/js/jquery.js');
 
+function readMainCss() {
+  const entryCss = fs.readFileSync(mainCssPath, 'utf8');
+  const importedCss = Array.from(entryCss.matchAll(/@import url\(['"](.+?)['"]\);/g))
+    .map(([, importPath]) => fs.readFileSync(path.join(path.dirname(mainCssPath), importPath), 'utf8'));
+
+  return importedCss.join('\n');
+}
+
 describe('main sidebar layout', () => {
   afterEach(() => {
     jest.useRealTimers();
@@ -126,10 +134,10 @@ describe('main sidebar layout', () => {
     expect(pageDocument.querySelector('.sync-config-tip')).toBeNull();
     expect(pageDocument.querySelector('head script').getAttribute('src')).toBe('./js/main-navigation-bootstrap.js');
     expect(pageDocument.querySelector('.main-nav-item.active')).toBeNull();
-    expect(fs.readFileSync(mainCssPath, 'utf8')).toContain(
+    expect(readMainCss()).toContain(
       'html[data-initial-main-page="sync"] .main-page[data-page="sync"]'
     );
-    expect(fs.readFileSync(mainCssPath, 'utf8')).toContain(
+    expect(readMainCss()).toContain(
       '.config-json-line[hidden]'
     );
   });
@@ -244,7 +252,7 @@ describe('main sidebar layout', () => {
       expect(dialog.getAttribute('aria-labelledby')).toBeTruthy();
     });
 
-    const css = fs.readFileSync(mainCssPath, 'utf8');
+    const css = readMainCss();
     expect(css).toMatch(/\.scenario-card-header \.scenario-drag-handle\s*\{[^}]*width:\s*20px;[^}]*height:\s*20px;/s);
     expect(css).toMatch(/\.scenario-condition-row\s*\{[^}]*grid-template-columns:\s*minmax\(0, 0\.7fr\) minmax\(0, 0\.7fr\) minmax\(0, 2\.6fr\) 72px;/s);
     expect(css).toMatch(/\.scenario-time-value\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1\.3fr\) minmax\(0, 1fr\) 12px minmax\(0, 1fr\);/s);
@@ -305,7 +313,7 @@ describe('main sidebar layout', () => {
 
     $.fn.outerHeight = originalOuterHeight;
 
-    const css = fs.readFileSync(mainCssPath, 'utf8');
+    const css = readMainCss();
     expect(css).toMatch(/\.system-config-list\s*\{[^}]*overflow:\s*visible;/s);
     expect(css).toMatch(/\.lh-select\.dropdown-open\s*\{[^}]*z-index:\s*var\(--layer-dropdown\);/s);
   });
@@ -355,7 +363,7 @@ describe('main sidebar layout', () => {
     $('.scenario-default-proxy-select').val('').trigger('change');
     expect($container.find('.native-select-value').text()).toBe('暂无可用代理');
 
-    const css = fs.readFileSync(mainCssPath, 'utf8');
+    const css = readMainCss();
     expect(css).toMatch(/\.native-select-source\s*\{[^}]*clip-path:\s*inset\(50%\)\s*!important;/s);
     expect(css).toMatch(/\.native-select-enhanced\.dropdown-open \.select-icon\s*\{[^}]*transform:\s*rotate\(180deg\);/s);
   });
