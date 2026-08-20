@@ -57,7 +57,7 @@ describe('main sidebar layout', () => {
       '代理场景',
       '规则订阅',
       '配置文件',
-      '云同步'
+      '云端同步'
     ]);
     navItems.forEach(item => {
       expect(pageDocument.getElementById(item.getAttribute('aria-controls'))).not.toBeNull();
@@ -110,27 +110,24 @@ describe('main sidebar layout', () => {
     expect(editorShell.querySelector(':scope > #config-json-code')).not.toBeNull();
     expect(currentConfigSection.querySelector('#config-json-code').getAttribute('role')).toBe('textbox');
     expect(currentConfigSection.querySelector('#config-json-code').getAttribute('aria-readonly')).toBe('true');
-    expect(syncPage.querySelector('.page-heading h1').textContent.trim()).toBe('云同步');
-    expect(cloudSyncSection.querySelector('.sync-config-panel')).not.toBeNull();
-    expect(cloudSyncSection.querySelector('#sync-options')).not.toBeNull();
-    expect(cloudSyncSection.querySelector('#sync-push-btn')).not.toBeNull();
-    expect(cloudSyncSection.querySelector('#sync-pull-btn')).not.toBeNull();
+    expect(syncPage.querySelector('.page-heading h1').textContent.trim()).toBe('云端同步');
+    expect(syncPage.querySelector(':scope > .cloud-sync-section')).toBe(cloudSyncSection);
+    expect(cloudSyncSection.querySelector(':scope > .sync-config-content > .sync-service-list')).not.toBeNull();
+    expect(cloudSyncSection.querySelectorAll('.sync-service-card')).toHaveLength(2);
+    expect(cloudSyncSection.querySelectorAll('[data-sync-action="push"]')).toHaveLength(2);
+    expect(cloudSyncSection.querySelectorAll('[data-sync-action="pull"]')).toHaveLength(2);
     expect(cloudSyncSection.querySelector('#save-sync-config')).not.toBeNull();
-    expect(Array.from(cloudSyncSection.querySelector('#sync-auto-mode').options).map(option => option.value)).toEqual([
-      'off',
-      'push',
-      'pull'
-    ]);
-    expect(Array.from(cloudSyncSection.querySelector('#sync-interval').options).map(option => option.value)).toEqual([
-      '15',
-      '30',
-      '60',
-      '360',
-      '720',
-      '1440'
-    ]);
+    ['native', 'gist'].forEach(type => {
+      expect(Array.from(cloudSyncSection.querySelector(`#${type}-sync-auto-mode`).options).map(option => option.value)).toEqual([
+        'off', 'push', 'pull'
+      ]);
+      expect(Array.from(cloudSyncSection.querySelector(`#${type}-sync-interval`).options).map(option => option.value)).toEqual([
+        '15', '30', '60', '360', '720', '1440'
+      ]);
+      expect(cloudSyncSection.querySelector(`#${type}-sync-last-time`)).not.toBeNull();
+    });
     expect(cloudSyncSection.querySelector('.sync-pull-warning').textContent).toContain('远程配置完整覆盖本地配置');
-    expect(cloudSyncSection.querySelector('#sync-last-time')).not.toBeNull();
+    expect(cloudSyncSection.querySelector('.sync-config-summary')).toBeNull();
     expect(pageDocument.querySelector('.sync-config-tip')).toBeNull();
     expect(pageDocument.querySelector('head script').getAttribute('src')).toBe('./js/main-navigation-bootstrap.js');
     expect(pageDocument.querySelector('.main-nav-item.active')).toBeNull();

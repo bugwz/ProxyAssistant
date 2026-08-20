@@ -644,10 +644,6 @@ input:checked+.slider-modern:before {
   width: 150px;
 }
 
-.lh-select.sync-selector {
-  width: 100%;
-}
-
 [data-theme="dark"] .lh-select {
   background-color: #0f172a;
   border-color: #334155;
@@ -1026,4 +1022,3 @@ input:checked+.slider-modern:before {
   background-color: rgba(255, 255, 255, 0.05);
   border-color: #818cf8;
 }
-

@@ -17,9 +17,19 @@ const SUBSCRIPTION_ALARM_PREFIX = 'subscription___';
 const LEGACY_SUBSCRIPTION_ALARM_PREFIX = 'subscription_';
 const SCENARIO_AUTOMATION_ALARM = 'scenario-automation-next';
 const CLOUD_SYNC_ALARM = 'cloud-sync-schedule';
+const CLOUD_SYNC_SERVICES = ['native', 'gist'];
 const CLOUD_SYNC_CHUNK_SIZE = 7 * 1024;
+const CONFIG_FILE_OPTIONS_STORAGE_KEY = 'config_file_options';
+const CLOUD_SYNC_PROXY_KEYS = [
+  'enabled', 'id', 'name', 'protocol', 'ip', 'port', 'username', 'password',
+  'bypass_rules', 'include_rules', 'fallback_policy', 'color', 'subscription_ids'
+];
+const CLOUD_SYNC_SUBSCRIPTION_CACHE_KEYS = [
+  'content', 'decoded_content', 'include_rules', 'bypass_rules',
+  'include_lines', 'bypass_lines', 'last_fetch_time'
+];
 let scenarioAutomationEvaluation = null;
-let cloudSyncInProgress = false;
+let cloudSyncQueue = Promise.resolve();
 
 function getStorageValues(keys) {
   return new Promise((resolve, reject) => {
@@ -71,25 +81,215 @@ function calculateCloudSyncChecksum(value) {
   return `crc:${Math.abs(hash).toString(16)}`;
 }
 
-function buildCloudSyncPayload(config) {
-  const payload = JSON.parse(JSON.stringify(config || {}));
-  const sync = payload.system?.sync || {};
-  payload.system = payload.system || {};
-  payload.system.sync = {
-    type: sync.type === 'gist' ? 'gist' : 'native',
-    auto_mode: ['push', 'pull'].includes(sync.auto_mode) ? sync.auto_mode : 'off',
-    interval_minutes: Number(sync.interval_minutes) || 360,
-    gist: {
+function normalizeWorkerSyncConfig(sync) {
+  const source = sync && typeof sync === 'object' ? sync : {};
+  const normalizeService = (service, defaults = {}) => {
+    const serviceSource = service && typeof service === 'object' ? service : {};
+    return {
+      ...defaults,
+      ...serviceSource,
+      auto_mode: ['push', 'pull'].includes(serviceSource.auto_mode) ? serviceSource.auto_mode : 'off',
+      interval_minutes: [15, 30, 60, 360, 720, 1440].includes(Number(serviceSource.interval_minutes))
+        ? Number(serviceSource.interval_minutes)
+        : 360
+    };
+  };
+
+  if (source.native || source.gist?.auto_mode !== undefined) {
+    return {
+      native: normalizeService(source.native),
+      gist: normalizeService(source.gist, {
+        token: '',
+        filename: 'proxy_assistant_config.json',
+        gist_id: ''
+      })
+    };
+  }
+
+  const legacyType = source.type === 'gist' ? 'gist' : 'native';
+  const legacyService = {
+    auto_mode: source.auto_mode,
+    interval_minutes: source.interval_minutes,
+    last_sync_at: source.last_sync_at,
+    last_sync_direction: source.last_sync_direction
+  };
+  return {
+    native: normalizeService(legacyType === 'native' ? legacyService : {}),
+    gist: normalizeService(legacyType === 'gist' ? { ...source.gist, ...legacyService } : source.gist, {
       token: '',
-      filename: sync.gist?.filename || 'proxy_assistant_config.json',
+      filename: 'proxy_assistant_config.json',
       gist_id: ''
+    })
+  };
+}
+
+function buildCloudSyncPayload(config, options = {}) {
+  const includeSubscriptions = options.includeSubscriptions !== false;
+  const includeSubscriptionCache = options.includeSubscriptionCache === true;
+  const source = JSON.parse(JSON.stringify(config || {}));
+  const system = source.system || {};
+  const payload = {
+    version: 5,
+    updated_at: typeof source.updated_at === 'string' ? source.updated_at : null,
+    system: {
+      ...system,
+      language: system.app_language || system.language || 'zh-CN',
+      theme: system.theme || {
+        mode: system.theme_mode || 'light',
+        automation: {
+          night: {
+            start: system.night_mode_start || '22:00',
+            end: system.night_mode_end || '06:00'
+          }
+        }
+      }
+    },
+    proxies: [],
+    scenarios: {
+      current: source.scenarios?.current || null,
+      lists: []
     }
   };
+  delete payload.system.app_language;
+  delete payload.system.theme_mode;
+  delete payload.system.night_mode_start;
+  delete payload.system.night_mode_end;
+  delete payload.system.sync;
+
+  payload.scenarios.lists = (source.scenarios?.lists || []).map((scenario, scenarioOrder) => {
+    const scenarioData = {};
+    Object.entries(scenario).forEach(([key, value]) => {
+      if (key === 'proxies') return;
+      scenarioData[key] = value;
+      if (key === 'name') scenarioData.order = scenarioOrder;
+    });
+    if (!Object.prototype.hasOwnProperty.call(scenarioData, 'order')) scenarioData.order = scenarioOrder;
+
+    (scenario.proxies || []).forEach((proxy, proxyOrder) => {
+      const proxyData = {};
+      CLOUD_SYNC_PROXY_KEYS.forEach(key => {
+        if (key === 'enabled') {
+          proxyData.enabled = proxy.enabled !== undefined ? proxy.enabled : proxy.disabled !== true;
+        } else if (Object.prototype.hasOwnProperty.call(proxy, key)) {
+          proxyData[key] = proxy[key];
+        }
+      });
+      proxyData.order = proxyOrder;
+      proxyData.scenarioId = scenarioData.id;
+      payload.proxies.push(proxyData);
+    });
+    return scenarioData;
+  });
+  payload.scenarios.lists.sort((left, right) => String(left.id || '').localeCompare(String(right.id || '')));
+  payload.proxies.sort((left, right) => String(left.id || '').localeCompare(String(right.id || '')));
+
+  if (includeSubscriptions) {
+    payload.subscriptions = (source.subscriptions || []).map((subscription, subscriptionOrder) => {
+      const type = subscription.current || 'autoproxy';
+      const config = JSON.parse(JSON.stringify(subscription.lists?.[type] || {}));
+      const cache = {};
+      CLOUD_SYNC_SUBSCRIPTION_CACHE_KEYS.forEach(key => {
+        if (includeSubscriptionCache && Object.prototype.hasOwnProperty.call(config, key)) cache[key] = config[key];
+        delete config[key];
+      });
+      delete config.cache;
+      const item = {
+        enabled: subscription.enabled !== false,
+        id: subscription.id,
+        name: subscription.name,
+        order: Number.isInteger(subscription.order) && subscription.order >= 0
+          ? subscription.order
+          : subscriptionOrder,
+        type,
+        url: config.url || '',
+        reverse: config.reverse === true,
+        refresh_interval: Number(config.refresh_interval) || 0
+      };
+      delete config.url;
+      delete config.reverse;
+      delete config.refresh_interval;
+      Object.assign(item, config);
+      if (includeSubscriptionCache && Object.keys(cache).length) item.cache = cache;
+      return item;
+    });
+    payload.subscriptions.sort((left, right) => String(left.id || '').localeCompare(String(right.id || '')));
+  }
+
   return payload;
 }
 
-async function pushNativeCloudConfig(config) {
-  const json = JSON.stringify(buildCloudSyncPayload(config));
+function inflateCloudSyncPayload(remoteConfig, localConfig) {
+  const data = JSON.parse(JSON.stringify(remoteConfig || {}));
+  const system = data.system || {};
+  if (Object.prototype.hasOwnProperty.call(system, 'language')) {
+    system.app_language = system.language || 'zh-CN';
+    delete system.language;
+  }
+  if (system.theme) {
+    const night = system.theme.automation?.night || {};
+    system.theme_mode = system.theme.mode || 'light';
+    system.night_mode_start = night.start || '22:00';
+    system.night_mode_end = night.end || '06:00';
+    delete system.theme;
+  }
+  data.system = system;
+
+  if (Array.isArray(data.proxies)) {
+    const scenarios = data.scenarios?.lists || [];
+    scenarios.sort((left, right) => (left.order || 0) - (right.order || 0));
+    const scenarioMap = new Map(scenarios.map(scenario => {
+      delete scenario.order;
+      scenario.proxies = [];
+      return [scenario.id, scenario];
+    }));
+    const fallbackScenario = scenarioMap.get(data.scenarios?.current) || scenarios[0];
+    data.proxies.forEach(proxy => {
+      const scenario = scenarioMap.get(proxy.scenarioId) || fallbackScenario;
+      if (!scenario) return;
+      const item = { ...proxy };
+      const order = Number.isInteger(item.order) ? item.order : Number.MAX_SAFE_INTEGER;
+      delete item.order;
+      delete item.scenarioId;
+      scenario.proxies.push({ item, order });
+    });
+    scenarios.forEach(scenario => {
+      scenario.proxies = scenario.proxies
+        .sort((left, right) => left.order - right.order)
+        .map(entry => entry.item);
+    });
+    delete data.proxies;
+  }
+
+  if (Array.isArray(data.subscriptions)) {
+    data.subscriptions = data.subscriptions.map(subscription => {
+      if (!subscription.type || subscription.lists) return subscription;
+      const type = subscription.type;
+      const list = {};
+      Object.entries(subscription).forEach(([key, value]) => {
+        if (!['id', 'name', 'order', 'type', 'enabled'].includes(key)) list[key] = value;
+      });
+      if (list.cache && typeof list.cache === 'object') {
+        Object.assign(list, list.cache);
+        delete list.cache;
+      }
+      return {
+        id: subscription.id,
+        name: subscription.name,
+        order: subscription.order,
+        enabled: subscription.enabled !== false,
+        current: type,
+        lists: { [type]: list }
+      };
+    });
+  } else {
+    data.subscriptions = JSON.parse(JSON.stringify(localConfig?.subscriptions || []));
+  }
+  data.system.sync = normalizeWorkerSyncConfig(localConfig?.system?.sync);
+  return data;
+}
+
+async function pushNativeCloudConfig(config, options) {
+  const json = JSON.stringify(buildCloudSyncPayload(config, options));
   const chunks = [];
   for (let index = 0; index < json.length; index += CLOUD_SYNC_CHUNK_SIZE) {
     chunks.push(json.substring(index, index + CLOUD_SYNC_CHUNK_SIZE));
@@ -155,7 +355,7 @@ async function findCloudSyncGist(token, filename) {
   return '';
 }
 
-async function pushGistCloudConfig(config) {
+async function pushGistCloudConfig(config, options) {
   const sync = config.system?.sync || {};
   const token = sync.gist?.token;
   const filename = sync.gist?.filename || 'proxy_assistant_config.json';
@@ -163,7 +363,7 @@ async function pushGistCloudConfig(config) {
 
   let gistId = sync.gist?.gist_id || '';
   if (!gistId) gistId = await findCloudSyncGist(token, filename);
-  const files = { [filename]: { content: JSON.stringify(buildCloudSyncPayload(config), null, 2) } };
+  const files = { [filename]: { content: JSON.stringify(buildCloudSyncPayload(config, options), null, 2) } };
   const response = await fetch(gistId ? `https://api.github.com/gists/${gistId}` : 'https://api.github.com/gists', {
     method: gistId ? 'PATCH' : 'POST',
     headers: {
@@ -205,38 +405,38 @@ async function pullGistCloudConfig(config) {
   return JSON.parse(content);
 }
 
-async function runScheduledCloudSync() {
-  if (cloudSyncInProgress) return false;
-  cloudSyncInProgress = true;
-
+async function executeScheduledCloudSync(type) {
   try {
-    const stored = await getStorageValues(['config']);
+    const stored = await getStorageValues(['config', CONFIG_FILE_OPTIONS_STORAGE_KEY]);
     const localConfig = stored.config;
-    const sync = localConfig?.system?.sync;
-    const direction = sync?.auto_mode;
+    const configFileOptions = stored[CONFIG_FILE_OPTIONS_STORAGE_KEY] || {};
+    const sync = normalizeWorkerSyncConfig(localConfig?.system?.sync);
+    if (localConfig?.system) localConfig.system.sync = sync;
+    const service = sync?.[type];
+    const direction = service?.auto_mode;
     if (!localConfig || !['push', 'pull'].includes(direction)) return false;
 
     if (direction === 'push') {
-      if (sync.type === 'gist') await pushGistCloudConfig(localConfig);
-      else await pushNativeCloudConfig(localConfig);
-      sync.last_sync_at = new Date().toISOString();
-      sync.last_sync_direction = 'push';
+      if (type === 'gist') await pushGistCloudConfig(localConfig, configFileOptions);
+      else await pushNativeCloudConfig(localConfig, configFileOptions);
+      service.last_sync_at = new Date().toISOString();
+      service.last_sync_direction = 'push';
       await setStorageValues({ config: localConfig });
     } else {
-      const remoteConfig = sync.type === 'gist'
+      const remoteConfig = type === 'gist'
         ? await pullGistCloudConfig(localConfig)
         : await pullNativeCloudConfig();
       if (!remoteConfig || typeof remoteConfig !== 'object') {
         throw new Error('Remote cloud configuration is invalid');
       }
 
-      sync.last_sync_at = new Date().toISOString();
-      sync.last_sync_direction = 'pull';
-      remoteConfig.system = remoteConfig.system || {};
-      remoteConfig.system.sync = sync;
-      await setStorageValues({ config: remoteConfig });
-      scheduleAllBackgroundRefreshes(remoteConfig);
-      evaluateScenarioAutomation(remoteConfig);
+      service.last_sync_at = new Date().toISOString();
+      service.last_sync_direction = 'pull';
+      const inflatedConfig = inflateCloudSyncPayload(remoteConfig, localConfig);
+      inflatedConfig.system.sync = sync;
+      await setStorageValues({ config: inflatedConfig });
+      scheduleAllBackgroundRefreshes(inflatedConfig);
+      evaluateScenarioAutomation(inflatedConfig);
     }
 
     console.log(`[Worker] Scheduled cloud ${direction} completed`);
@@ -244,30 +444,41 @@ async function runScheduledCloudSync() {
   } catch (error) {
     console.info('[Worker] Scheduled cloud sync failed:', error);
     return false;
-  } finally {
-    cloudSyncInProgress = false;
   }
 }
 
+function runScheduledCloudSync(type = 'native') {
+  if (!CLOUD_SYNC_SERVICES.includes(type)) return Promise.resolve(false);
+  const task = cloudSyncQueue.then(() => executeScheduledCloudSync(type));
+  cloudSyncQueue = task.catch(() => false);
+  return task;
+}
+
 function scheduleCloudSync(config) {
-  const sync = config?.system?.sync || {};
-  const intervalMinutes = Number(sync.interval_minutes);
-  const shouldSchedule = ['push', 'pull'].includes(sync.auto_mode)
-    && [15, 30, 60, 360, 720, 1440].includes(intervalMinutes);
+  const sync = normalizeWorkerSyncConfig(config?.system?.sync);
+  chrome.alarms.clear(CLOUD_SYNC_ALARM);
 
-  if (!shouldSchedule) {
-    chrome.alarms.clear(CLOUD_SYNC_ALARM);
-    return;
-  }
+  CLOUD_SYNC_SERVICES.forEach(type => {
+    const service = sync[type] || {};
+    const intervalMinutes = Number(service.interval_minutes);
+    const alarmName = `${CLOUD_SYNC_ALARM}-${type}`;
+    const shouldSchedule = ['push', 'pull'].includes(service.auto_mode)
+      && [15, 30, 60, 360, 720, 1440].includes(intervalMinutes);
 
-  chrome.alarms.get(CLOUD_SYNC_ALARM, existingAlarm => {
-    if (existingAlarm?.periodInMinutes === intervalMinutes) return;
-    const createAlarm = () => chrome.alarms.create(CLOUD_SYNC_ALARM, {
-      delayInMinutes: intervalMinutes,
-      periodInMinutes: intervalMinutes
+    if (!shouldSchedule) {
+      chrome.alarms.clear(alarmName);
+      return;
+    }
+
+    chrome.alarms.get(alarmName, existingAlarm => {
+      if (existingAlarm?.periodInMinutes === intervalMinutes) return;
+      const createAlarm = () => chrome.alarms.create(alarmName, {
+        delayInMinutes: intervalMinutes,
+        periodInMinutes: intervalMinutes
+      });
+      if (existingAlarm) chrome.alarms.clear(alarmName, createAlarm);
+      else createAlarm();
     });
-    if (existingAlarm) chrome.alarms.clear(CLOUD_SYNC_ALARM, createAlarm);
-    else createAlarm();
   });
 }
 
@@ -1383,8 +1594,8 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     chrome.storage.local.get(['config'], result => {
       if (result.config) evaluateScenarioAutomation(result.config);
     });
-  } else if (alarm.name === CLOUD_SYNC_ALARM) {
-    runScheduledCloudSync();
+  } else if (alarm.name.startsWith(`${CLOUD_SYNC_ALARM}-`)) {
+    runScheduledCloudSync(alarm.name.substring(CLOUD_SYNC_ALARM.length + 1));
   } else if (alarm.name.startsWith(SUBSCRIPTION_ALARM_PREFIX)) {
     const alarmName = alarm.name.replace(SUBSCRIPTION_ALARM_PREFIX, '');
     const lastSeparatorIndex = alarmName.lastIndexOf('___');

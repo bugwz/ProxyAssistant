@@ -97,12 +97,21 @@ const StorageModule = (function () {
         night_mode_start: '22:00',
         night_mode_end: '06:00',
         sync: {
-          type: 'native',
-          auto_mode: 'off',
-          interval_minutes: 360,
-          last_sync_at: null,
-          last_sync_direction: null,
-          gist: { token: '', filename: 'proxy_assistant_config.json', gist_id: '' }
+          native: {
+            auto_mode: 'off',
+            interval_minutes: 360,
+            last_sync_at: null,
+            last_sync_direction: null
+          },
+          gist: {
+            token: '',
+            filename: 'proxy_assistant_config.json',
+            gist_id: '',
+            auto_mode: 'off',
+            interval_minutes: 360,
+            last_sync_at: null,
+            last_sync_direction: null
+          }
         }
       },
       scenarios: {
@@ -433,12 +442,16 @@ const StorageModule = (function () {
 
   function getSyncConfig() {
     return getSystemSetting('sync') || {
-      type: 'native',
-      auto_mode: 'off',
-      interval_minutes: 360,
-      last_sync_at: null,
-      last_sync_direction: null,
-      gist: { token: '', filename: 'proxy_assistant_config.json', gist_id: '' }
+      native: { auto_mode: 'off', interval_minutes: 360, last_sync_at: null, last_sync_direction: null },
+      gist: {
+        token: '',
+        filename: 'proxy_assistant_config.json',
+        gist_id: '',
+        auto_mode: 'off',
+        interval_minutes: 360,
+        last_sync_at: null,
+        last_sync_direction: null
+      }
     };
   }
 

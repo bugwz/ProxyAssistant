@@ -12,7 +12,7 @@ const PROXY_EXPORT_KEYS = [
   'bypass_rules', 'include_rules', 'fallback_policy', 'color', 'subscription_ids'
 ];
 const DEFAULT_SCENARIO_WEEKDAYS = [1, 2, 3, 4, 5];
-const CONFIG_FILE_VERSION = 6;
+const CONFIG_FILE_VERSION = 5;
 const SUBSCRIPTION_CACHE_KEYS = [
   'content', 'decoded_content', 'include_rules', 'bypass_rules',
   'include_lines', 'bypass_lines', 'last_fetch_time'
@@ -72,6 +72,52 @@ function normalizeConfigProxyColor(color) {
   return /^#[0-9A-F]{6}$/.test(normalized) ? normalized : '';
 }
 
+function normalizeSyncSettings(sync) {
+  const source = sync && typeof sync === 'object' ? sync : {};
+  const intervals = [15, 30, 60, 360, 720, 1440];
+  const normalizeService = (service, defaults = {}) => {
+    const serviceSource = service && typeof service === 'object' ? service : {};
+    const intervalMinutes = Number(serviceSource.interval_minutes);
+    return {
+      ...defaults,
+      ...serviceSource,
+      auto_mode: ['push', 'pull'].includes(serviceSource.auto_mode) ? serviceSource.auto_mode : 'off',
+      interval_minutes: intervals.includes(intervalMinutes) ? intervalMinutes : 360,
+      last_sync_at: typeof serviceSource.last_sync_at === 'string' ? serviceSource.last_sync_at : null,
+      last_sync_direction: ['push', 'pull'].includes(serviceSource.last_sync_direction)
+        ? serviceSource.last_sync_direction
+        : null
+    };
+  };
+
+  if (source.native || source.gist?.auto_mode !== undefined) {
+    return {
+      native: normalizeService(source.native),
+      gist: normalizeService(source.gist, {
+        token: '',
+        filename: 'proxy_assistant_config.json',
+        gist_id: ''
+      })
+    };
+  }
+
+  const legacyType = source.type === 'gist' ? 'gist' : 'native';
+  const legacyService = {
+    auto_mode: source.auto_mode,
+    interval_minutes: source.interval_minutes,
+    last_sync_at: source.last_sync_at,
+    last_sync_direction: source.last_sync_direction
+  };
+  return {
+    native: normalizeService(legacyType === 'native' ? legacyService : {}),
+    gist: normalizeService(legacyType === 'gist' ? { ...source.gist, ...legacyService } : source.gist, {
+      token: '',
+      filename: 'proxy_assistant_config.json',
+      gist_id: ''
+    })
+  };
+}
+
 // ==========================================
 // Config Migration
 // ==========================================
@@ -81,7 +127,7 @@ function migrateConfig(config) {
   config = inflateConfigFileSystem(config);
 
   // If already in new format (with version and system), return directly
-  if ([4, 5, CONFIG_FILE_VERSION].includes(config.version) && config.system && config.scenarios) {
+  if ([4, CONFIG_FILE_VERSION].includes(config.version) && config.system && config.scenarios) {
     return normalizeConfig(config);
   }
 
@@ -215,12 +261,7 @@ function migrateConfig(config) {
   }
 
   if (config.sync_config) {
-    if (config.sync_config.type) v5.system.sync.type = config.sync_config.type;
-    if (config.sync_config.gist) v5.system.sync.gist = { ...v5.system.sync.gist, ...config.sync_config.gist };
-    applyIf(config.sync_config.auto_mode, v5.system.sync, 'auto_mode');
-    applyIf(config.sync_config.interval_minutes, v5.system.sync, 'interval_minutes');
-    applyIf(config.sync_config.last_sync_at, v5.system.sync, 'last_sync_at');
-    applyIf(config.sync_config.last_sync_direction, v5.system.sync, 'last_sync_direction');
+    v5.system.sync = normalizeSyncSettings(config.sync_config);
   }
 
   applyIf(sourceSystem.appLanguage || sourceSystem.app_language, v5.system, 'app_language');
@@ -229,12 +270,7 @@ function migrateConfig(config) {
   applyIf(sourceSystem.nightModeEnd || sourceSystem.night_mode_end, v5.system, 'night_mode_end');
 
   if (sourceSystem.sync) {
-    if (sourceSystem.sync.type) v5.system.sync.type = sourceSystem.sync.type;
-    if (sourceSystem.sync.gist) v5.system.sync.gist = { ...v5.system.sync.gist, ...sourceSystem.sync.gist };
-    applyIf(sourceSystem.sync.auto_mode, v5.system.sync, 'auto_mode');
-    applyIf(sourceSystem.sync.interval_minutes, v5.system.sync, 'interval_minutes');
-    applyIf(sourceSystem.sync.last_sync_at, v5.system.sync, 'last_sync_at');
-    applyIf(sourceSystem.sync.last_sync_direction, v5.system.sync, 'last_sync_direction');
+    v5.system.sync = normalizeSyncSettings(sourceSystem.sync);
   }
 
   if (sourceSystem.settings) {
@@ -253,14 +289,7 @@ function getDefaultSystemConfig() {
     theme_mode: 'light',
     night_mode_start: '22:00',
     night_mode_end: '06:00',
-    sync: {
-      type: 'native',
-      auto_mode: 'off',
-      interval_minutes: 360,
-      last_sync_at: null,
-      last_sync_direction: null,
-      gist: { token: '', filename: 'proxy_assistant_config.json', gist_id: '' }
-    }
+    sync: normalizeSyncSettings()
   };
 }
 
@@ -367,21 +396,8 @@ function normalizeConfig(config) {
   if (!config.system) {
     config.system = getDefaultSystemConfig();
   }
-  const defaultSync = getDefaultSystemConfig().sync;
   const sourceSync = config.system.sync || {};
-  const intervalMinutes = Number(sourceSync.interval_minutes);
-  config.system.sync = {
-    ...defaultSync,
-    ...sourceSync,
-    type: sourceSync.type === 'gist' ? 'gist' : 'native',
-    auto_mode: ['push', 'pull'].includes(sourceSync.auto_mode) ? sourceSync.auto_mode : 'off',
-    interval_minutes: [15, 30, 60, 360, 720, 1440].includes(intervalMinutes) ? intervalMinutes : 360,
-    last_sync_at: typeof sourceSync.last_sync_at === 'string' ? sourceSync.last_sync_at : null,
-    last_sync_direction: ['push', 'pull'].includes(sourceSync.last_sync_direction)
-      ? sourceSync.last_sync_direction
-      : null,
-    gist: { ...defaultSync.gist, ...(sourceSync.gist || {}) }
-  };
+  config.system.sync = normalizeSyncSettings(sourceSync);
   if (!Array.isArray(config.subscriptions)) {
     config.subscriptions = [];
   }
@@ -429,15 +445,18 @@ function normalizeConfig(config) {
 function buildConfigData(includeInternalState = false) {
   const config = StorageModule ? StorageModule.getConfig() : getDefaultConfig();
 
-  const syncConfig = window.SyncModule ? window.SyncModule.getSyncConfig() : null;
+  const syncConfig = normalizeSyncSettings(window.SyncModule ? window.SyncModule.getSyncConfig() : null);
   var syncForExport = {
-    type: syncConfig?.type || 'native',
-    auto_mode: syncConfig?.auto_mode || 'off',
-    interval_minutes: syncConfig?.interval_minutes || 360,
+    native: {
+      auto_mode: syncConfig.native.auto_mode,
+      interval_minutes: syncConfig.native.interval_minutes
+    },
     gist: {
       token: '',
-      filename: syncConfig?.gist?.filename || 'proxy_assistant_config.json',
-      gist_id: ''
+      filename: syncConfig.gist.filename || 'proxy_assistant_config.json',
+      gist_id: '',
+      auto_mode: syncConfig.gist.auto_mode,
+      interval_minutes: syncConfig.gist.interval_minutes
     }
   };
 
@@ -703,13 +722,7 @@ function getLocalSyncConfig() {
   const localSync = window.SyncModule && window.SyncModule.getSyncConfig
     ? window.SyncModule.getSyncConfig()
     : config.system?.sync;
-  const defaultSync = getDefaultSystemConfig().sync;
-  const sourceSync = localSync || {};
-  return JSON.parse(JSON.stringify({
-    ...defaultSync,
-    ...sourceSync,
-    gist: { ...defaultSync.gist, ...(sourceSync.gist || {}) }
-  }));
+  return JSON.parse(JSON.stringify(normalizeSyncSettings(localSync)));
 }
 
 function expandSubscriptionCache(rawData) {

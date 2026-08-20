@@ -66,24 +66,18 @@ function setupBaseDom() {
     <div id="pac-script-content"></div>
     <div id="pac-script-wrapper"></div>
     <button id="save-sync-config"></button>
-    <button id="sync-pull-btn"></button>
-    <button id="sync-push-btn"></button>
+    <button id="native-sync-pull-btn" data-sync-service="native" data-sync-action="pull"></button>
+    <button id="native-sync-push-btn" data-sync-service="native" data-sync-action="push"></button>
+    <button id="gist-sync-pull-btn" data-sync-service="gist" data-sync-action="pull"></button>
+    <button id="gist-sync-push-btn" data-sync-service="gist" data-sync-action="push"></button>
     <button id="test-sync-connection"></button>
-    <div class="sync-selector">
-      <ul class="lh-select-op"><li data-value="gist">GitHub Gist</li></ul>
-    </div>
     <div id="gist-token-eye"><input type="checkbox"></div>
     <input id="gist-token" />
     <input id="gist-filename" />
-    <select id="sync-auto-mode">
-      <option value="off">Off</option>
-      <option value="push">Push</option>
-      <option value="pull">Pull</option>
-    </select>
-    <select id="sync-interval">
-      <option value="30">30</option>
-      <option value="360">360</option>
-    </select>
+    <select id="native-sync-auto-mode" class="sync-auto-mode" data-sync-service="native"><option value="off">Off</option><option value="push">Push</option><option value="pull">Pull</option></select>
+    <select id="native-sync-interval" class="sync-interval" data-sync-service="native"><option value="30">30</option><option value="360">360</option></select>
+    <select id="gist-sync-auto-mode" class="sync-auto-mode" data-sync-service="gist"><option value="off">Off</option><option value="push">Push</option><option value="pull">Pull</option></select>
+    <select id="gist-sync-interval" class="sync-interval" data-sync-service="gist"><option value="30">30</option><option value="360">360</option></select>
     <div class="export-btn"></div>
     <div class="import-json-btn"></div>
     <input id="json-file-input" />
@@ -226,7 +220,7 @@ describe('main UI state flow', () => {
     global.SyncModule = {
       setSyncConfig: jest.fn(),
       updateSyncUI: jest.fn(),
-      getSyncConfig: jest.fn(() => ({ type: 'native', gist: {} })),
+      getSyncConfig: jest.fn(() => ({ native: {}, gist: {} })),
       updateNativeQuotaInfo: jest.fn(),
       manualPull: jest.fn(),
       manualPush: jest.fn(),
@@ -251,7 +245,7 @@ describe('main UI state flow', () => {
     };
     global.StorageModule = {
       init: jest.fn(() => Promise.resolve()),
-      getConfig: jest.fn(() => ({ system: { app_language: 'zh-CN', sync: { type: 'native', gist: {} } } })),
+      getConfig: jest.fn(() => ({ system: { app_language: 'zh-CN', sync: { native: {}, gist: {} } } })),
       getConfigUpdatedAt: jest.fn(() => '2026-08-20T06:30:00.000Z'),
       getProxies: jest.fn(() => []),
       save: jest.fn(() => Promise.resolve()),
@@ -384,13 +378,14 @@ describe('main UI state flow', () => {
     expect(global.ConfigModule.buildEditableConfigData).not.toHaveBeenCalled();
   });
 
-  test('refreshes the cloud sync summary after a background configuration update', async () => {
+  test('refreshes both cloud sync service settings after a background configuration update', async () => {
     const updatedSync = {
-      type: 'native',
-      auto_mode: 'pull',
-      interval_minutes: 30,
-      last_sync_at: '2026-08-19T08:00:00.000Z',
-      gist: {}
+      native: {
+        auto_mode: 'pull',
+        interval_minutes: 30,
+        last_sync_at: '2026-08-19T08:00:00.000Z'
+      },
+      gist: { auto_mode: 'push', interval_minutes: 360 }
     };
     global.StorageModule.getConfig.mockReturnValue({ system: { sync: updatedSync } });
     window.eval(fs.readFileSync(mainJsPath, 'utf8'));
@@ -406,7 +401,7 @@ describe('main UI state flow', () => {
   });
 
   test('saves the cloud sync fields from the cloud sync page', async () => {
-    let currentSyncConfig = { type: 'native', gist: {} };
+    let currentSyncConfig = { native: {}, gist: {} };
     global.SyncModule.getSyncConfig.mockImplementation(() => currentSyncConfig);
     global.SyncModule.setSyncConfig.mockImplementation(config => {
       currentSyncConfig = config;
@@ -414,26 +409,46 @@ describe('main UI state flow', () => {
     window.eval(fs.readFileSync(mainJsPath, 'utf8'));
     window.bindGlobalEvents();
 
-    $('.sync-selector li[data-value="gist"]').trigger('click');
     $('#gist-token').val('test-token');
     $('#gist-filename').val('shared-config.json');
-    $('#sync-auto-mode').val('pull');
-    $('#sync-interval').val('30');
+    $('#native-sync-auto-mode').val('push');
+    $('#native-sync-interval').val('360');
+    $('#gist-sync-auto-mode').val('pull');
+    $('#gist-sync-interval').val('30');
     $('#save-sync-config').trigger('click');
     await Promise.resolve();
     await Promise.resolve();
 
     expect(global.StorageModule.setSyncConfig).toHaveBeenCalledWith({
-      type: 'gist',
-      auto_mode: 'pull',
-      interval_minutes: 30,
+      native: { auto_mode: 'push', interval_minutes: 360 },
       gist: {
         token: 'test-token',
-        filename: 'shared-config.json'
+        filename: 'shared-config.json',
+        auto_mode: 'pull',
+        interval_minutes: 30
       }
     });
     expect(global.StorageModule.save).toHaveBeenCalledTimes(1);
     expect(global.SyncModule.updateSyncUI).toHaveBeenCalled();
+  });
+
+  test('runs push and pull for each cloud sync service independently', () => {
+    window.eval(fs.readFileSync(mainJsPath, 'utf8'));
+    window.bindGlobalEvents();
+
+    $('#native-sync-push-btn').trigger('click');
+    $('#gist-sync-push-btn').trigger('click');
+    $('#native-sync-pull-btn').trigger('click');
+    $('#gist-sync-pull-btn').trigger('click');
+
+    const configFileOptions = {
+      includeSubscriptions: true,
+      includeSubscriptionCache: false
+    };
+    expect(global.SyncModule.manualPush).toHaveBeenNthCalledWith(1, 'native', configFileOptions);
+    expect(global.SyncModule.manualPush).toHaveBeenNthCalledWith(2, 'gist', configFileOptions);
+    expect(global.SyncModule.manualPull).toHaveBeenNthCalledWith(1, 'native');
+    expect(global.SyncModule.manualPull).toHaveBeenNthCalledWith(2, 'gist');
   });
 
   test('renders the current JSON configuration as read-only content', () => {
@@ -453,20 +468,20 @@ describe('main UI state flow', () => {
   });
 
   test('shows configuration version, UTF-8 file size, and last update time in the editor header', () => {
-    const config = { version: 6, name: '代理配置' };
+    const config = { version: 5, name: '代理配置' };
     global.ConfigModule.buildEditableConfigData.mockReturnValue(config);
     window.eval(fs.readFileSync(mainJsPath, 'utf8'));
     window.refreshConfigEditor(true);
 
     const formatted = JSON.stringify(config, null, 2);
-    expect($('#config-json-version').text()).toBe('v6');
+    expect($('#config-json-version').text()).toBe('v5');
     expect($('#config-json-size').text()).toBe(`${new Blob([formatted]).size} B`);
     expect($('#config-json-updated-at').text()).not.toBe('config_never_updated');
   });
 
   test('returns to the first line after refreshing the configuration editor', () => {
     const config = {
-      version: 6,
+      version: 5,
       system: { app_language: 'zh-CN' },
       scenarios: { current: 'default', lists: [] }
     };
@@ -501,6 +516,10 @@ describe('main UI state flow', () => {
       includeSubscriptions: false,
       includeSubscriptionCache: false
     });
+    expect(global.SyncModule.updateNativeQuotaInfo).toHaveBeenLastCalledWith({
+      includeSubscriptions: false,
+      includeSubscriptionCache: false
+    });
     expect(global.UtilsModule.showTip).toHaveBeenLastCalledWith('config_options_updated', false);
     expect(global.UtilsModule.showTip).toHaveBeenCalledTimes(2);
 
@@ -527,7 +546,7 @@ describe('main UI state flow', () => {
 
   test('folds and expands read-only JSON structures', () => {
     const config = {
-      version: 6,
+      version: 5,
       system: { app_language: 'zh-CN' },
       scenarios: { current: 'default', lists: [] }
     };
@@ -556,7 +575,7 @@ describe('main UI state flow', () => {
 
   test('copies the complete JSON configuration when content is folded', async () => {
     const config = {
-      version: 6,
+      version: 5,
       system: { app_language: 'zh-CN' },
       scenarios: { current: 'default', lists: [] }
     };
