@@ -16,7 +16,10 @@ const inProgressFetches = new Set();
 const SUBSCRIPTION_ALARM_PREFIX = 'subscription___';
 const LEGACY_SUBSCRIPTION_ALARM_PREFIX = 'subscription_';
 const SCENARIO_AUTOMATION_ALARM = 'scenario-automation-next';
+const CLOUD_SYNC_ALARM = 'cloud-sync-schedule';
+const CLOUD_SYNC_CHUNK_SIZE = 7 * 1024;
 let scenarioAutomationEvaluation = null;
+let cloudSyncInProgress = false;
 
 function getStorageValues(keys) {
   return new Promise((resolve, reject) => {
@@ -32,6 +35,11 @@ function getStorageValues(keys) {
 
 function setStorageValues(values) {
   return new Promise((resolve, reject) => {
+    if (Object.prototype.hasOwnProperty.call(values, 'config')) {
+      const updatedAt = new Date().toISOString();
+      values.config.updated_at = updatedAt;
+      values.config_updated_at = updatedAt;
+    }
     chrome.storage.local.set(values, () => {
       if (chrome.runtime.lastError) {
         reject(new Error(chrome.runtime.lastError.message || 'Failed to write storage'));
@@ -39,6 +47,227 @@ function setStorageValues(values) {
       }
       resolve();
     });
+  });
+}
+
+function callStorageArea(area, method, value) {
+  return new Promise((resolve, reject) => {
+    area[method](value, result => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message || `Sync storage ${method} failed`));
+        return;
+      }
+      resolve(result);
+    });
+  });
+}
+
+function calculateCloudSyncChecksum(value) {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = ((hash << 5) - hash) + value.charCodeAt(i);
+    hash &= hash;
+  }
+  return `crc:${Math.abs(hash).toString(16)}`;
+}
+
+function buildCloudSyncPayload(config) {
+  const payload = JSON.parse(JSON.stringify(config || {}));
+  const sync = payload.system?.sync || {};
+  payload.system = payload.system || {};
+  payload.system.sync = {
+    type: sync.type === 'gist' ? 'gist' : 'native',
+    auto_mode: ['push', 'pull'].includes(sync.auto_mode) ? sync.auto_mode : 'off',
+    interval_minutes: Number(sync.interval_minutes) || 360,
+    gist: {
+      token: '',
+      filename: sync.gist?.filename || 'proxy_assistant_config.json',
+      gist_id: ''
+    }
+  };
+  return payload;
+}
+
+async function pushNativeCloudConfig(config) {
+  const json = JSON.stringify(buildCloudSyncPayload(config));
+  const chunks = [];
+  for (let index = 0; index < json.length; index += CLOUD_SYNC_CHUNK_SIZE) {
+    chunks.push(json.substring(index, index + CLOUD_SYNC_CHUNK_SIZE));
+  }
+
+  const values = {
+    meta: {
+      version: 4,
+      chunks: { start: 0, end: chunks.length - 1 },
+      totalSize: json.length,
+      checksum: calculateCloudSyncChecksum(json)
+    }
+  };
+  chunks.forEach((chunk, index) => {
+    values[`data.${index}`] = chunk;
+  });
+
+  const existing = await callStorageArea(chrome.storage.sync, 'get', null) || {};
+  await callStorageArea(chrome.storage.sync, 'set', values);
+  const staleKeys = Object.keys(existing).filter(key => (
+    /^data\.\d+$/.test(key) && !Object.prototype.hasOwnProperty.call(values, key)
+  ));
+  if (staleKeys.length) await callStorageArea(chrome.storage.sync, 'remove', staleKeys);
+}
+
+async function pullNativeCloudConfig() {
+  const metaResult = await callStorageArea(chrome.storage.sync, 'get', 'meta') || {};
+  const meta = metaResult.meta;
+  if (!meta?.chunks || typeof meta.chunks.start !== 'number' || typeof meta.chunks.end !== 'number') {
+    throw new Error('Invalid or missing cloud sync metadata');
+  }
+
+  const keys = [];
+  for (let index = meta.chunks.start; index <= meta.chunks.end; index += 1) {
+    keys.push(`data.${index}`);
+  }
+  const values = await callStorageArea(chrome.storage.sync, 'get', keys) || {};
+  const chunks = keys.map(key => {
+    if (typeof values[key] !== 'string') throw new Error(`Missing cloud sync chunk: ${key}`);
+    return values[key];
+  });
+  const json = chunks.join('');
+  if (calculateCloudSyncChecksum(json) !== meta.checksum) {
+    throw new Error('Cloud sync checksum mismatch');
+  }
+  return JSON.parse(json);
+}
+
+async function findCloudSyncGist(token, filename) {
+  for (let page = 1; page <= 10; page += 1) {
+    const response = await fetch(`https://api.github.com/gists?page=${page}&per_page=100`, {
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+    if (!response.ok) throw new Error(`GitHub Gist lookup failed (${response.status})`);
+    const gists = await response.json();
+    const match = gists.find(gist => gist.files?.[filename]);
+    if (match) return match.id;
+    if (!gists.length) break;
+  }
+  return '';
+}
+
+async function pushGistCloudConfig(config) {
+  const sync = config.system?.sync || {};
+  const token = sync.gist?.token;
+  const filename = sync.gist?.filename || 'proxy_assistant_config.json';
+  if (!token) throw new Error('GitHub Gist token is required');
+
+  let gistId = sync.gist?.gist_id || '';
+  if (!gistId) gistId = await findCloudSyncGist(token, filename);
+  const files = { [filename]: { content: JSON.stringify(buildCloudSyncPayload(config), null, 2) } };
+  const response = await fetch(gistId ? `https://api.github.com/gists/${gistId}` : 'https://api.github.com/gists', {
+    method: gistId ? 'PATCH' : 'POST',
+    headers: {
+      'Authorization': `token ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(gistId ? { files } : {
+      description: 'Proxy Assistant Configuration',
+      public: false,
+      files
+    })
+  });
+  if (!response.ok) throw new Error(`GitHub Gist push failed (${response.status})`);
+  const result = await response.json();
+  sync.gist.gist_id = result.id || gistId;
+}
+
+async function pullGistCloudConfig(config) {
+  const sync = config.system?.sync || {};
+  const token = sync.gist?.token;
+  const filename = sync.gist?.filename || 'proxy_assistant_config.json';
+  if (!token) throw new Error('GitHub Gist token is required');
+
+  let gistId = sync.gist?.gist_id || '';
+  if (!gistId) gistId = await findCloudSyncGist(token, filename);
+  if (!gistId) throw new Error('GitHub Gist configuration was not found');
+  const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+    headers: {
+      'Authorization': `token ${token}`,
+      'Accept': 'application/vnd.github.v3+json'
+    }
+  });
+  if (!response.ok) throw new Error(`GitHub Gist pull failed (${response.status})`);
+  const result = await response.json();
+  const content = result.files?.[filename]?.content;
+  if (!content) throw new Error('GitHub Gist configuration file was not found');
+  sync.gist.gist_id = gistId;
+  return JSON.parse(content);
+}
+
+async function runScheduledCloudSync() {
+  if (cloudSyncInProgress) return false;
+  cloudSyncInProgress = true;
+
+  try {
+    const stored = await getStorageValues(['config']);
+    const localConfig = stored.config;
+    const sync = localConfig?.system?.sync;
+    const direction = sync?.auto_mode;
+    if (!localConfig || !['push', 'pull'].includes(direction)) return false;
+
+    if (direction === 'push') {
+      if (sync.type === 'gist') await pushGistCloudConfig(localConfig);
+      else await pushNativeCloudConfig(localConfig);
+      sync.last_sync_at = new Date().toISOString();
+      sync.last_sync_direction = 'push';
+      await setStorageValues({ config: localConfig });
+    } else {
+      const remoteConfig = sync.type === 'gist'
+        ? await pullGistCloudConfig(localConfig)
+        : await pullNativeCloudConfig();
+      if (!remoteConfig || typeof remoteConfig !== 'object') {
+        throw new Error('Remote cloud configuration is invalid');
+      }
+
+      sync.last_sync_at = new Date().toISOString();
+      sync.last_sync_direction = 'pull';
+      remoteConfig.system = remoteConfig.system || {};
+      remoteConfig.system.sync = sync;
+      await setStorageValues({ config: remoteConfig });
+      scheduleAllBackgroundRefreshes(remoteConfig);
+      evaluateScenarioAutomation(remoteConfig);
+    }
+
+    console.log(`[Worker] Scheduled cloud ${direction} completed`);
+    return true;
+  } catch (error) {
+    console.info('[Worker] Scheduled cloud sync failed:', error);
+    return false;
+  } finally {
+    cloudSyncInProgress = false;
+  }
+}
+
+function scheduleCloudSync(config) {
+  const sync = config?.system?.sync || {};
+  const intervalMinutes = Number(sync.interval_minutes);
+  const shouldSchedule = ['push', 'pull'].includes(sync.auto_mode)
+    && [15, 30, 60, 360, 720, 1440].includes(intervalMinutes);
+
+  if (!shouldSchedule) {
+    chrome.alarms.clear(CLOUD_SYNC_ALARM);
+    return;
+  }
+
+  chrome.alarms.get(CLOUD_SYNC_ALARM, existingAlarm => {
+    if (existingAlarm?.periodInMinutes === intervalMinutes) return;
+    const createAlarm = () => chrome.alarms.create(CLOUD_SYNC_ALARM, {
+      delayInMinutes: intervalMinutes,
+      periodInMinutes: intervalMinutes
+    });
+    if (existingAlarm) chrome.alarms.clear(CLOUD_SYNC_ALARM, createAlarm);
+    else createAlarm();
   });
 }
 
@@ -876,6 +1105,7 @@ async function fetchSubscriptionBackground(proxyId, format, url, maxRetries = 3)
       }
 
       await new Promise((resolve, reject) => {
+        config.updated_at = new Date().toISOString();
         chrome.storage.local.set({ config: config }, () => {
           if (chrome.runtime.lastError) {
             reject(new Error(`Storage set error: ${chrome.runtime.lastError.message}`));
@@ -1153,6 +1383,8 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     chrome.storage.local.get(['config'], result => {
       if (result.config) evaluateScenarioAutomation(result.config);
     });
+  } else if (alarm.name === CLOUD_SYNC_ALARM) {
+    runScheduledCloudSync();
   } else if (alarm.name.startsWith(SUBSCRIPTION_ALARM_PREFIX)) {
     const alarmName = alarm.name.replace(SUBSCRIPTION_ALARM_PREFIX, '');
     const lastSeparatorIndex = alarmName.lastIndexOf('___');
@@ -1201,6 +1433,7 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
       setTimeout(() => {
         scheduleAllBackgroundRefreshes(newConfig);
         evaluateScenarioAutomation(newConfig);
+        scheduleCloudSync(newConfig);
       }, 1000);
     }
   }
@@ -1286,6 +1519,7 @@ function restoreProxySettings() {
       if (configResult.config) {
         scheduleAllBackgroundRefreshes(configResult.config);
         evaluateScenarioAutomation(configResult.config);
+        scheduleCloudSync(configResult.config);
       }
     });
   });

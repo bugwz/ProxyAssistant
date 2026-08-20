@@ -12,6 +12,11 @@ const PROXY_EXPORT_KEYS = [
   'bypass_rules', 'include_rules', 'fallback_policy', 'color', 'subscription_ids'
 ];
 const DEFAULT_SCENARIO_WEEKDAYS = [1, 2, 3, 4, 5];
+const CONFIG_FILE_VERSION = 6;
+const SUBSCRIPTION_CACHE_KEYS = [
+  'content', 'decoded_content', 'include_rules', 'bypass_rules',
+  'include_lines', 'bypass_lines', 'last_fetch_time'
+];
 
 function normalizeScenarioAutomation(automation) {
   const source = automation && typeof automation === 'object' ? automation : {};
@@ -73,14 +78,16 @@ function normalizeConfigProxyColor(color) {
 
 function migrateConfig(config) {
   if (!config) return getDefaultConfig();
+  config = inflateConfigFileSystem(config);
 
   // If already in new format (with version and system), return directly
-  if ((config.version === 4 || config.version === 5) && config.system && config.scenarios) {
+  if ([4, 5, CONFIG_FILE_VERSION].includes(config.version) && config.system && config.scenarios) {
     return normalizeConfig(config);
   }
 
   // Migrate from old format
   const v5 = getDefaultConfig();
+  if (typeof config.updated_at === 'string') v5.updated_at = config.updated_at;
 
   // Migrate proxy data
   const migrateProxy = (p) => {
@@ -210,6 +217,10 @@ function migrateConfig(config) {
   if (config.sync_config) {
     if (config.sync_config.type) v5.system.sync.type = config.sync_config.type;
     if (config.sync_config.gist) v5.system.sync.gist = { ...v5.system.sync.gist, ...config.sync_config.gist };
+    applyIf(config.sync_config.auto_mode, v5.system.sync, 'auto_mode');
+    applyIf(config.sync_config.interval_minutes, v5.system.sync, 'interval_minutes');
+    applyIf(config.sync_config.last_sync_at, v5.system.sync, 'last_sync_at');
+    applyIf(config.sync_config.last_sync_direction, v5.system.sync, 'last_sync_direction');
   }
 
   applyIf(sourceSystem.appLanguage || sourceSystem.app_language, v5.system, 'app_language');
@@ -220,6 +231,10 @@ function migrateConfig(config) {
   if (sourceSystem.sync) {
     if (sourceSystem.sync.type) v5.system.sync.type = sourceSystem.sync.type;
     if (sourceSystem.sync.gist) v5.system.sync.gist = { ...v5.system.sync.gist, ...sourceSystem.sync.gist };
+    applyIf(sourceSystem.sync.auto_mode, v5.system.sync, 'auto_mode');
+    applyIf(sourceSystem.sync.interval_minutes, v5.system.sync, 'interval_minutes');
+    applyIf(sourceSystem.sync.last_sync_at, v5.system.sync, 'last_sync_at');
+    applyIf(sourceSystem.sync.last_sync_direction, v5.system.sync, 'last_sync_direction');
   }
 
   if (sourceSystem.settings) {
@@ -236,6 +251,7 @@ function getDefaultConfig() {
   const defaultScenarioId = generateScenarioId();
   return {
     version: 5,
+    updated_at: null,
     system: {
       app_language: I18n.getCurrentLanguage ? I18n.getCurrentLanguage() : 'zh-CN',
       theme_mode: 'light',
@@ -243,6 +259,10 @@ function getDefaultConfig() {
       night_mode_end: '06:00',
       sync: {
         type: 'native',
+        auto_mode: 'off',
+        interval_minutes: 360,
+        last_sync_at: null,
+        last_sync_direction: null,
         gist: { token: '', filename: 'proxy_assistant_config.json', gist_id: '' }
       }
     },
@@ -261,6 +281,77 @@ function getDefaultConfig() {
   };
 }
 
+function normalizeConfigEntityIds(config) {
+  const scenarios = config.scenarios?.lists || [];
+  const subscriptions = config.subscriptions || [];
+  const scenarioIdMap = new Map();
+  const proxyIdMap = new Map();
+  const subscriptionIdMap = new Map();
+  const usedScenarioIds = new Set();
+  const usedProxyIds = new Set();
+  const usedSubscriptionIds = new Set();
+  const isExpectedId = (id, prefix) => new RegExp(`^${prefix}_\\d{14}$`).test(id || '');
+
+  const orderedSubscriptions = subscriptions.map((subscription, index) => ({
+    subscription: subscription,
+    order: Number.isInteger(subscription.order) && subscription.order >= 0 ? subscription.order : index,
+    index: index
+  }));
+  orderedSubscriptions.sort((left, right) => left.order - right.order || left.index - right.index);
+  subscriptions.splice(0, subscriptions.length, ...orderedSubscriptions.map((entry, order) => {
+    entry.subscription.order = order;
+    return entry.subscription;
+  }));
+
+  subscriptions.forEach(subscription => {
+    const oldId = subscription.id;
+    const newId = isExpectedId(oldId, 'subscription') && !usedSubscriptionIds.has(oldId)
+      ? oldId
+      : generateSubscriptionId();
+    subscription.id = newId;
+    usedSubscriptionIds.add(newId);
+    if (oldId !== undefined && !subscriptionIdMap.has(oldId)) subscriptionIdMap.set(oldId, newId);
+  });
+
+  scenarios.forEach(scenario => {
+    const oldId = scenario.id;
+    const newId = isExpectedId(oldId, 'scenario') && !usedScenarioIds.has(oldId)
+      ? oldId
+      : generateScenarioId();
+    scenario.id = newId;
+    usedScenarioIds.add(newId);
+    if (oldId !== undefined && !scenarioIdMap.has(oldId)) scenarioIdMap.set(oldId, newId);
+
+    (scenario.proxies || []).forEach(proxy => {
+      const oldProxyId = proxy.id;
+      const newProxyId = isExpectedId(oldProxyId, 'proxy') && !usedProxyIds.has(oldProxyId)
+        ? oldProxyId
+        : generateProxyId();
+      proxy.id = newProxyId;
+      usedProxyIds.add(newProxyId);
+      if (oldProxyId !== undefined && !proxyIdMap.has(oldProxyId)) proxyIdMap.set(oldProxyId, newProxyId);
+    });
+  });
+
+  if (scenarioIdMap.has(config.scenarios.current)) {
+    config.scenarios.current = scenarioIdMap.get(config.scenarios.current);
+  }
+
+  scenarios.forEach(scenario => {
+    if (proxyIdMap.has(scenario.defaultProxyId)) {
+      scenario.defaultProxyId = proxyIdMap.get(scenario.defaultProxyId);
+    }
+    if (proxyIdMap.has(scenario.lastProxyId)) {
+      scenario.lastProxyId = proxyIdMap.get(scenario.lastProxyId);
+    }
+    (scenario.proxies || []).forEach(proxy => {
+      proxy.subscription_ids = (proxy.subscription_ids || []).map(subscriptionId => (
+        subscriptionIdMap.get(subscriptionId) || subscriptionId
+      ));
+    });
+  });
+}
+
 function normalizeConfig(config) {
   // Ensure config format is correct
   if (!config.scenarios) {
@@ -272,9 +363,26 @@ function normalizeConfig(config) {
   if (!config.system) {
     config.system = getDefaultConfig().system;
   }
+  const defaultSync = getDefaultConfig().system.sync;
+  const sourceSync = config.system.sync || {};
+  const intervalMinutes = Number(sourceSync.interval_minutes);
+  config.system.sync = {
+    ...defaultSync,
+    ...sourceSync,
+    type: sourceSync.type === 'gist' ? 'gist' : 'native',
+    auto_mode: ['push', 'pull'].includes(sourceSync.auto_mode) ? sourceSync.auto_mode : 'off',
+    interval_minutes: [15, 30, 60, 360, 720, 1440].includes(intervalMinutes) ? intervalMinutes : 360,
+    last_sync_at: typeof sourceSync.last_sync_at === 'string' ? sourceSync.last_sync_at : null,
+    last_sync_direction: ['push', 'pull'].includes(sourceSync.last_sync_direction)
+      ? sourceSync.last_sync_direction
+      : null,
+    gist: { ...defaultSync.gist, ...(sourceSync.gist || {}) }
+  };
   if (!Array.isArray(config.subscriptions)) {
     config.subscriptions = [];
   }
+  normalizeConfigEntityIds(config);
+  config.updated_at = typeof config.updated_at === 'string' ? config.updated_at : null;
   config.version = 5;
 
   const knownSubscriptionIds = new Set(config.subscriptions.map(item => item.id));
@@ -289,12 +397,13 @@ function normalizeConfig(config) {
         proxy.color = normalizeConfigProxyColor(proxy.color);
         if (!Array.isArray(proxy.subscription_ids)) proxy.subscription_ids = [];
         if (proxy.subscription) {
-          const subscriptionId = `subscription-${proxy.id}`;
+          const subscriptionId = generateSubscriptionId();
           if (!knownSubscriptionIds.has(subscriptionId)) {
             config.subscriptions.push({
               ...proxy.subscription,
               id: subscriptionId,
-              name: proxy.name || I18n.t('subscription_config_title')
+              name: proxy.name || I18n.t('subscription_config_title'),
+              order: config.subscriptions.length
             });
             knownSubscriptionIds.add(subscriptionId);
           }
@@ -319,6 +428,8 @@ function buildConfigData(includeInternalState = false) {
   const syncConfig = window.SyncModule ? window.SyncModule.getSyncConfig() : null;
   var syncForExport = {
     type: syncConfig?.type || 'native',
+    auto_mode: syncConfig?.auto_mode || 'off',
+    interval_minutes: syncConfig?.interval_minutes || 360,
     gist: {
       token: '',
       filename: syncConfig?.gist?.filename || 'proxy_assistant_config.json',
@@ -398,14 +509,25 @@ function buildConfigData(includeInternalState = false) {
   const formattedScenarios = config.scenarios.lists.map(s => ({
     id: s.id,
     name: s.name,
-    proxies: processProxies(s.proxies),
     defaultProxyId: s.defaultProxyId || null,
     lastProxyId: s.lastProxyId || null,
-    automation: normalizeScenarioAutomation(s.automation)
+    automation: normalizeScenarioAutomation(s.automation),
+    proxies: processProxies(s.proxies)
   }));
+
+  const formattedSubscriptions = (config.subscriptions || []).map(subscription => {
+    const current = subscription.current || 'autoproxy';
+    const currentList = subscription.lists?.[current];
+    return {
+      ...subscription,
+      current: current,
+      lists: currentList ? { [current]: JSON.parse(JSON.stringify(currentList)) } : {}
+    };
+  });
 
   return {
     version: 5,
+    updated_at: typeof config.updated_at === 'string' ? config.updated_at : null,
     system: {
       app_language: I18n.getCurrentLanguage ? I18n.getCurrentLanguage() : (config.system?.app_language || 'zh-CN'),
       theme_mode: currentThemeMode,
@@ -417,8 +539,128 @@ function buildConfigData(includeInternalState = false) {
       current: config.scenarios.current,
       lists: formattedScenarios
     },
-    subscriptions: config.subscriptions || []
+    subscriptions: formattedSubscriptions
   };
+}
+
+function buildConfigFileData(options = {}) {
+  const includeSubscriptions = options.includeSubscriptions !== false;
+  const includeSubscriptionCache = options.includeSubscriptionCache === true;
+  const data = buildConfigData(false);
+  data.version = CONFIG_FILE_VERSION;
+  if (data.system) delete data.system.sync;
+  if (data.system) {
+    const system = data.system;
+    data.system = {
+      ...system,
+      language: system.app_language || 'zh-CN',
+      theme: {
+        mode: system.theme_mode || 'light',
+        automation: {
+          night: {
+            start: system.night_mode_start || '22:00',
+            end: system.night_mode_end || '06:00'
+          }
+        }
+      }
+    };
+    delete data.system.app_language;
+    delete data.system.theme_mode;
+    delete data.system.night_mode_start;
+    delete data.system.night_mode_end;
+  }
+
+  const proxies = [];
+  data.scenarios.lists = (data.scenarios.lists || []).map((scenario, scenarioOrder) => {
+    const scenarioData = {};
+    Object.entries(scenario).forEach(([key, value]) => {
+      if (key === 'proxies') return;
+      scenarioData[key] = value;
+      if (key === 'name') scenarioData.order = scenarioOrder;
+    });
+    if (!Object.prototype.hasOwnProperty.call(scenarioData, 'order')) {
+      scenarioData.order = scenarioOrder;
+    }
+    (scenario.proxies || []).forEach((proxy, order) => {
+      const proxyData = {};
+      Object.entries(proxy).forEach(([key, value]) => {
+        proxyData[key] = value;
+        if (key === 'name') proxyData.order = order;
+      });
+      if (!Object.prototype.hasOwnProperty.call(proxyData, 'order')) proxyData.order = order;
+      proxyData.scenarioId = scenarioData.id;
+      proxies.push(proxyData);
+    });
+    return scenarioData;
+  });
+  data.scenarios.lists.sort((left, right) => {
+    const leftId = String(left.id || '');
+    const rightId = String(right.id || '');
+    if (leftId === rightId) return 0;
+    return leftId < rightId ? -1 : 1;
+  });
+  proxies.sort((left, right) => {
+    const leftId = String(left.id || '');
+    const rightId = String(right.id || '');
+    if (leftId === rightId) return 0;
+    return leftId < rightId ? -1 : 1;
+  });
+
+  const subscriptions = data.subscriptions;
+  const scenarios = data.scenarios;
+  delete data.subscriptions;
+  delete data.scenarios;
+  data.proxies = proxies;
+  data.scenarios = scenarios;
+
+  if (!includeSubscriptions) {
+    return data;
+  }
+
+  data.subscriptions = (subscriptions || []).map((subscription, subscriptionOrder) => {
+    const type = subscription.current || 'autoproxy';
+    const config = JSON.parse(JSON.stringify(subscription.lists?.[type] || {}));
+    const cache = {};
+    SUBSCRIPTION_CACHE_KEYS.forEach(key => {
+      if (includeSubscriptionCache && Object.prototype.hasOwnProperty.call(config, key)) {
+        cache[key] = config[key];
+      }
+      delete config[key];
+    });
+    delete config.cache;
+    const remainingConfig = { ...config };
+    delete remainingConfig.url;
+    delete remainingConfig.reverse;
+    delete remainingConfig.refresh_interval;
+
+    const item = {
+      enabled: subscription.enabled !== false,
+      id: subscription.id,
+      name: subscription.name,
+      order: Number.isInteger(subscription.order) && subscription.order >= 0
+        ? subscription.order
+        : subscriptionOrder,
+      type: type,
+      url: config.url || '',
+      reverse: config.reverse === true,
+      refresh_interval: Number(config.refresh_interval) || 0,
+      ...remainingConfig
+    };
+    if (includeSubscriptionCache && Object.keys(cache).length) item.cache = cache;
+    return item;
+  });
+  data.subscriptions.sort((left, right) => {
+    const leftId = String(left.id || '');
+    const rightId = String(right.id || '');
+    if (leftId === rightId) return 0;
+    return leftId < rightId ? -1 : 1;
+  });
+
+  return data;
+}
+
+function buildEditableConfigData(options = {}) {
+  return buildConfigFileData(options);
 }
 
 // ==========================================
@@ -436,8 +678,8 @@ function getLocalTimestamp() {
   return year + month + day + hours + minutes + seconds;
 }
 
-function exportConfig() {
-  var configBundle = buildConfigData(false); // Do not include internal state
+function exportConfig(options = {}) {
+  var configBundle = buildConfigFileData(options);
   var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(configBundle, null, 4));
   var downloadAnchorNode = document.createElement('a');
   var timestamp = getLocalTimestamp();
@@ -452,6 +694,190 @@ function exportConfig() {
 // Import Config
 // ==========================================
 
+function getLocalSyncConfig() {
+  const config = StorageModule ? StorageModule.getConfig() : getDefaultConfig();
+  const localSync = window.SyncModule && window.SyncModule.getSyncConfig
+    ? window.SyncModule.getSyncConfig()
+    : config.system?.sync;
+  return JSON.parse(JSON.stringify(localSync || getDefaultConfig().system.sync));
+}
+
+function expandSubscriptionCache(rawData) {
+  if (!rawData || typeof rawData !== 'object') return rawData;
+  const data = JSON.parse(JSON.stringify(rawData));
+  (data.subscriptions || []).forEach(subscription => {
+    Object.values(subscription.lists || {}).forEach(list => {
+      const cache = list.cache;
+      if (!cache || typeof cache !== 'object') return;
+      SUBSCRIPTION_CACHE_KEYS.forEach(key => {
+        if (Object.prototype.hasOwnProperty.call(cache, key)) {
+          list[key] = cache[key];
+        }
+      });
+      delete list.cache;
+    });
+  });
+  return data;
+}
+
+function inflateConfigFileSystem(rawData) {
+  if (!rawData || typeof rawData !== 'object' || !rawData.system) return rawData;
+  const hasLanguage = Object.prototype.hasOwnProperty.call(rawData.system, 'language');
+  if (!hasLanguage && !rawData.system.theme) return rawData;
+  const data = JSON.parse(JSON.stringify(rawData));
+  if (hasLanguage) {
+    data.system.app_language = data.system.language || data.system.app_language || 'zh-CN';
+    delete data.system.language;
+  }
+  if (data.system.theme) {
+    const theme = data.system.theme;
+    const night = theme.automation?.night || {};
+    data.system.theme_mode = theme.mode || data.system.theme_mode || 'light';
+    data.system.night_mode_start = night.start || data.system.night_mode_start || '22:00';
+    data.system.night_mode_end = night.end || data.system.night_mode_end || '06:00';
+    delete data.system.theme;
+  }
+  return data;
+}
+
+function inflateConfigFileProxies(rawData) {
+  if (!rawData || typeof rawData !== 'object' || !Array.isArray(rawData.proxies)) return rawData;
+  const data = JSON.parse(JSON.stringify(rawData));
+  const scenarios = data.scenarios?.lists || [];
+  const orderedScenarios = scenarios.map((scenario, index) => ({
+    scenario: scenario,
+    order: Number.isInteger(scenario.order) && scenario.order >= 0 ? scenario.order : index,
+    index: index
+  }));
+  orderedScenarios.sort((left, right) => left.order - right.order || left.index - right.index);
+  data.scenarios.lists = orderedScenarios.map(entry => entry.scenario);
+  const scenarioMap = new Map(scenarios.map(scenario => {
+    delete scenario.order;
+    scenario.proxies = [];
+    return [scenario.id, scenario];
+  }));
+  const fallbackScenario = scenarioMap.get(data.scenarios?.current) || scenarios[0];
+
+  data.proxies.forEach(proxy => {
+    const scenario = scenarioMap.get(proxy.scenarioId) || fallbackScenario;
+    if (!scenario) return;
+    const item = { ...proxy };
+    const order = Number.isInteger(item.order) && item.order >= 0 ? item.order : Number.MAX_SAFE_INTEGER;
+    delete item.scenarioId;
+    delete item.order;
+    scenario.proxies.push({ item: item, order: order });
+  });
+
+  scenarios.forEach(scenario => {
+    scenario.proxies = scenario.proxies
+      .sort((left, right) => left.order - right.order || String(left.item.id || '').localeCompare(String(right.item.id || '')))
+      .map(entry => entry.item);
+  });
+  delete data.proxies;
+  return data;
+}
+
+function inflateConfigFileSubscriptions(rawData) {
+  if (!rawData || typeof rawData !== 'object' || !Array.isArray(rawData.subscriptions)) return rawData;
+  const data = JSON.parse(JSON.stringify(rawData));
+  data.subscriptions = data.subscriptions.map(subscription => {
+    if (!subscription.type || subscription.lists) return subscription;
+    const type = subscription.type;
+    const config = {};
+    Object.entries(subscription).forEach(([key, value]) => {
+      if (!['id', 'name', 'order', 'type', 'enabled'].includes(key)) config[key] = value;
+    });
+    return {
+      id: subscription.id,
+      name: subscription.name,
+      order: subscription.order,
+      enabled: subscription.enabled !== false,
+      current: type,
+      lists: { [type]: config }
+    };
+  });
+  return data;
+}
+
+function prepareConfigForApply(rawData, options = {}) {
+  const expandedData = expandSubscriptionCache(
+    inflateConfigFileSubscriptions(inflateConfigFileProxies(rawData))
+  );
+  const sourceHasSubscriptions = Object.prototype.hasOwnProperty.call(expandedData || {}, 'subscriptions');
+  const preserveOmittedSubscriptionCache = options.preserveOmittedSubscriptionCache !== false;
+  const localConfig = StorageModule ? StorageModule.getConfig() : getDefaultConfig();
+  const data = migrateConfig(expandedData);
+
+  if (window.SubscriptionModule && window.SubscriptionModule.parseProxyListSubscriptions) {
+    SubscriptionModule.parseProxyListSubscriptions(
+      data.scenarios?.lists?.flatMap(s => s.proxies) || []
+    );
+  }
+
+  data.system = data.system || {};
+  data.system.sync = getLocalSyncConfig();
+
+  if (!sourceHasSubscriptions) {
+    data.subscriptions = JSON.parse(JSON.stringify(localConfig.subscriptions || []));
+  } else if (preserveOmittedSubscriptionCache) {
+    const localSubscriptions = new Map(
+      (localConfig.subscriptions || []).map(subscription => [subscription.id, subscription])
+    );
+    const localSubscriptionsByIdentity = new Map(
+      (localConfig.subscriptions || []).map(subscription => [
+        `${subscription.name || ''}\u0000${subscription.current || ''}`,
+        subscription
+      ])
+    );
+    data.subscriptions = (data.subscriptions || []).map(subscription => {
+      const localSubscription = localSubscriptions.get(subscription.id)
+        || localSubscriptionsByIdentity.get(`${subscription.name || ''}\u0000${subscription.current || ''}`);
+      if (!localSubscription) return subscription;
+
+      Object.entries(subscription.lists || {}).forEach(([format, list]) => {
+        const localList = localSubscription.lists?.[format];
+        if (!localList) return;
+        SUBSCRIPTION_CACHE_KEYS.forEach(key => {
+          if (!Object.prototype.hasOwnProperty.call(list, key) && Object.prototype.hasOwnProperty.call(localList, key)) {
+            list[key] = localList[key];
+          }
+        });
+      });
+      return subscription;
+    });
+  }
+  return data;
+}
+
+function applyConfigData(rawData, options = {}) {
+  const data = prepareConfigForApply(rawData, options);
+
+  if (window.StorageModule) {
+    StorageModule.setConfig(data);
+    return StorageModule.save().then(() => {
+      applyImportedSettings(data);
+
+      if (window.SubscriptionModule && window.SubscriptionModule.scheduleAllBackgroundRefreshes) {
+        window.SubscriptionModule.scheduleAllBackgroundRefreshes(data);
+      }
+
+      return data;
+    });
+  }
+
+  return new Promise((resolve, reject) => {
+    data.updated_at = new Date().toISOString();
+    chrome.storage.local.set({ config: data }, function () {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message || 'Failed to save configuration'));
+        return;
+      }
+      applyImportedSettings(data);
+      resolve(data);
+    });
+  });
+}
+
 function importConfig(e) {
   var file = e.target.files[0];
   if (!file) return;
@@ -460,57 +886,11 @@ function importConfig(e) {
     try {
       var rawData = JSON.parse(e.target.result);
       if (rawData) {
-        const data = migrateConfig(rawData);
-
-        // Parse subscription content
-        if (window.SubscriptionModule && window.SubscriptionModule.parseProxyListSubscriptions) {
-          SubscriptionModule.parseProxyListSubscriptions(
-            data.scenarios?.lists?.flatMap(s => s.proxies) || []
-          );
-        }
-
-        // Preserve local sync config
-        const syncConfig = window.SyncModule ? window.SyncModule.getSyncConfig() : null;
-        const localSyncConfig = syncConfig || {
-          type: 'native',
-          gist: { token: '', filename: 'proxy_assistant_config.json', gist_id: '' }
-        };
-
-        // Merge sync config
-        if (data.system && data.system.sync) {
-          const remoteSync = data.system.sync;
-          data.system.sync = {
-            type: remoteSync.type || localSyncConfig.type,
-            gist: {
-              token: remoteSync.gist?.token || localSyncConfig.gist?.token || '',
-              filename: remoteSync.gist?.filename || localSyncConfig.gist?.filename || 'proxy_assistant_config.json',
-              gist_id: remoteSync.gist?.gist_id || localSyncConfig.gist?.gist_id || ''
-            }
-          };
-        } else {
-          data.system = data.system || {};
-          data.system.sync = localSyncConfig;
-        }
-
-        // Save to storage
-        if (window.StorageModule) {
-          StorageModule.setConfig(data);
-          StorageModule.save().then(() => {
-            applyImportedSettings(data);
-
-            if (window.SubscriptionModule && window.SubscriptionModule.scheduleAllBackgroundRefreshes) {
-              window.SubscriptionModule.scheduleAllBackgroundRefreshes(data);
-            }
-
-            UtilsModule.showTip(I18n.t('save_success'), false);
-          });
-        } else {
-          // Fallback
-          chrome.storage.local.set({ config: data }, function () {
-            applyImportedSettings(data);
-            UtilsModule.showTip(I18n.t('save_success'), false);
-          });
-        }
+        applyConfigData(rawData).then(() => {
+          UtilsModule.showTip(I18n.t('save_success'), false);
+        }).catch(err => {
+          UtilsModule.showTip(I18n.t('save_failed') + ': ' + err.message, true);
+        });
       }
     } catch (err) {
       alert(I18n.t('alert_parse_error') + ': ' + err.message);
@@ -561,8 +941,23 @@ function cleanProtocol(protocol) {
   return 'http';
 }
 
+const lastGeneratedIdTimes = {};
+
+function formatIdTimestamp(date) {
+  const pad = value => String(value).padStart(2, '0');
+  return date.getFullYear()
+    + pad(date.getMonth() + 1)
+    + pad(date.getDate())
+    + pad(date.getHours())
+    + pad(date.getMinutes())
+    + pad(date.getSeconds());
+}
+
 function generateId(prefix) {
-  return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 11);
+  const currentSecond = Math.floor(Date.now() / 1000) * 1000;
+  const timestamp = Math.max(currentSecond, (lastGeneratedIdTimes[prefix] || 0) + 1000);
+  lastGeneratedIdTimes[prefix] = timestamp;
+  return prefix + formatIdTimestamp(new Date(timestamp));
 }
 
 function generateProxyId() {
@@ -573,14 +968,22 @@ function generateScenarioId() {
   return generateId('scenario_');
 }
 
+function generateSubscriptionId() {
+  return generateId('subscription_');
+}
+
 window.ConfigModule = {
   migrateConfig,
   buildConfigData,
+  buildConfigFileData,
+  buildEditableConfigData,
+  applyConfigData,
   exportConfig,
   importConfig,
   getDefaultConfig,
   generateProxyId,
   generateScenarioId,
+  generateSubscriptionId,
   PROXY_STATE_KEYS,
   PROXY_EXPORT_KEYS
 };

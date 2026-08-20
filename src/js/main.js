@@ -35,6 +35,12 @@ window.onScenariosReorder = function (scenarios) {
 // Initialization
 // ==========================================
 const MAIN_NAVIGATION_STORAGE_KEY = 'proxyAssistant.activeMainPage';
+const CONFIG_INCLUDE_SUBSCRIPTIONS_KEY = 'proxyAssistant.config.includeSubscriptions';
+const CONFIG_INCLUDE_SUBSCRIPTION_CACHE_KEY = 'proxyAssistant.config.includeSubscriptionCache';
+const CONFIG_UPDATED_AT_KEY = 'config_updated_at';
+let configEditorSnapshot = '';
+let configEditorRenderedText = '';
+let configLastUpdatedAt = null;
 
 document.addEventListener('DOMContentLoaded', function () {
   I18n.init(function () {
@@ -66,6 +72,7 @@ function initMainNavigation() {
     const pageId = $(this).data('main-page');
     if (switchMainPage(pageId)) {
       saveActiveMainPage(pageId);
+      if (pageId === 'config') refreshConfigEditor();
     }
   });
 
@@ -83,7 +90,7 @@ function initMainNavigation() {
 function getSavedActiveMainPage() {
   try {
     const savedPageId = window.localStorage.getItem(MAIN_NAVIGATION_STORAGE_KEY);
-    return savedPageId === 'sync' ? 'config' : (savedPageId || 'proxies');
+    return savedPageId || 'proxies';
   } catch (error) {
     return 'proxies';
   }
@@ -173,6 +180,268 @@ function loadSettings() {
   // Update UI (but don't re-init theme UI since ThemeModule.initTheme() already did it)
   SyncModule.updateSyncUI();
   refreshMainView();
+  initConfigFileOptions();
+  refreshConfigEditor(true);
+}
+
+function getStoredConfigOption(key, defaultValue) {
+  try {
+    const value = window.localStorage.getItem(key);
+    return value === null ? defaultValue : value === 'true';
+  } catch (error) {
+    return defaultValue;
+  }
+}
+
+function initConfigFileOptions() {
+  const includeSubscriptions = getStoredConfigOption(CONFIG_INCLUDE_SUBSCRIPTIONS_KEY, true);
+  const includeSubscriptionCache = getStoredConfigOption(CONFIG_INCLUDE_SUBSCRIPTION_CACHE_KEY, false);
+  $('#config-include-subscriptions').prop('checked', includeSubscriptions);
+  $('#config-include-subscription-cache')
+    .prop('checked', includeSubscriptionCache)
+    .prop('disabled', !includeSubscriptions);
+}
+
+function getConfigFileOptions() {
+  const includeSubscriptions = $('#config-include-subscriptions').prop('checked') !== false;
+  return {
+    includeSubscriptions,
+    includeSubscriptionCache: includeSubscriptions && $('#config-include-subscription-cache').prop('checked') === true
+  };
+}
+
+function saveConfigFileOptions() {
+  const options = getConfigFileOptions();
+  try {
+    window.localStorage.setItem(CONFIG_INCLUDE_SUBSCRIPTIONS_KEY, String(options.includeSubscriptions));
+    window.localStorage.setItem(
+      CONFIG_INCLUDE_SUBSCRIPTION_CACHE_KEY,
+      String($('#config-include-subscription-cache').prop('checked') === true)
+    );
+  } catch (error) {
+    // The switches still work for the current page when local storage is unavailable.
+  }
+  return options;
+}
+
+function getJsonFoldRanges(lines) {
+  const ranges = new Map();
+  const stack = [];
+  let inString = false;
+  let escaped = false;
+
+  lines.forEach((line, lineIndex) => {
+    for (let charIndex = 0; charIndex < line.length; charIndex += 1) {
+      const character = line[charIndex];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (character === '\\') escaped = true;
+        else if (character === '"') inString = false;
+        continue;
+      }
+      if (character === '"') {
+        inString = true;
+      } else if (character === '{' || character === '[') {
+        stack.push({ character, lineIndex });
+      } else if (character === '}' || character === ']') {
+        const expected = character === '}' ? '{' : '[';
+        const opening = stack.pop();
+        if (opening?.character === expected && opening.lineIndex < lineIndex) {
+          ranges.set(opening.lineIndex, lineIndex);
+        }
+      }
+    }
+  });
+
+  return ranges;
+}
+
+function collectConfigJsonCode() {
+  return $('#config-json-code .config-json-line-content').map(function () {
+    return $(this).text();
+  }).get().join('\n');
+}
+
+function syncConfigJsonSource() {
+  if (!$('#config-json-code').length) return;
+  const text = collectConfigJsonCode();
+  configEditorRenderedText = text;
+  $('#config-json-editor').val(text);
+  updateConfigJsonMetadata(text);
+}
+
+function renderConfigJsonCode(text) {
+  const $code = $('#config-json-code');
+  if (!$code.length) return;
+
+  const lines = String(text || '').split('\n');
+  const ranges = getJsonFoldRanges(lines);
+  const isEditing = !$('#config-json-editor').prop('readonly');
+  $code.empty();
+
+  lines.forEach((line, lineIndex) => {
+    const $line = $('<div class="config-json-line"></div>').attr('data-line-index', lineIndex);
+    const $gutter = $('<span class="config-json-gutter"></span>');
+    if (ranges.has(lineIndex)) {
+      $gutter.append(
+        $('<button type="button" class="config-json-fold" aria-expanded="true"></button>')
+          .attr('data-fold-end', ranges.get(lineIndex))
+      );
+    } else {
+      $gutter.append('<span class="config-json-fold-placeholder"></span>');
+    }
+    $gutter.append($('<span class="config-json-line-number"></span>').text(lineIndex + 1));
+    const $content = $('<span class="config-json-line-content"></span>')
+      .text(line)
+      .attr('contenteditable', isEditing ? 'true' : 'false')
+      .attr('spellcheck', 'false');
+    $line.append($gutter, $content);
+    $code.append($line);
+  });
+
+  configEditorRenderedText = String(text || '');
+  updateConfigJsonFoldAction();
+}
+
+function setConfigEditorText(text) {
+  const normalized = String(text || '');
+  configEditorRenderedText = normalized;
+  $('#config-json-editor').val(normalized);
+  renderConfigJsonCode(normalized);
+  updateConfigJsonMetadata(normalized);
+}
+
+function formatConfigFileSize(text) {
+  const bytes = typeof Blob === 'function'
+    ? new Blob([text]).size
+    : encodeURIComponent(text).replace(/%[0-9A-F]{2}|./gi, 'x').length;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatConfigUpdatedAt(value) {
+  if (!value) return I18n.t('config_never_updated');
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return I18n.t('config_never_updated');
+  return date.toLocaleString(I18n.getCurrentLanguage(), {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+}
+
+function updateConfigJsonMetadata(text = getConfigEditorText()) {
+  let version = '-';
+  try {
+    const data = JSON.parse(text);
+    if (data && data.version !== undefined && data.version !== null) {
+      version = `v${data.version}`;
+    }
+  } catch (error) {
+    // Keep the version placeholder while the edited JSON is incomplete.
+  }
+
+  $('#config-json-version').text(version);
+  $('#config-json-size').text(formatConfigFileSize(String(text || '')));
+  $('#config-json-updated-at')
+    .removeAttr('data-i18n')
+    .text(formatConfigUpdatedAt(configLastUpdatedAt));
+}
+
+function getConfigEditorText() {
+  const sourceText = $('#config-json-editor').val() || '';
+  if (!$('#config-json-code').length || sourceText !== configEditorRenderedText) return sourceText;
+  return collectConfigJsonCode();
+}
+
+function setJsonFoldState($line, shouldCollapse) {
+  const start = Number($line.attr('data-line-index'));
+  const end = Number($line.find('.config-json-fold').attr('data-fold-end'));
+  if (!Number.isFinite(end)) return;
+
+  const $lines = $('#config-json-code .config-json-line');
+  const $range = $lines.slice(start + 1, end + 1).prop('hidden', shouldCollapse);
+  if (!shouldCollapse) {
+    $range.removeClass('collapsed').find('.config-json-fold').attr('aria-expanded', 'true');
+  }
+  $line.toggleClass('collapsed', shouldCollapse);
+  $line.find('.config-json-fold').attr('aria-expanded', String(!shouldCollapse));
+  updateConfigJsonFoldAction();
+}
+
+function updateConfigJsonFoldAction() {
+  const $button = $('#toggle-config-json-fold-btn');
+  if (!$button.length) return;
+  const hasFoldableContent = $('#config-json-code .config-json-fold').length > 0;
+  const hasCollapsedContent = $('#config-json-code .config-json-line.collapsed').length > 0;
+  const action = hasCollapsedContent ? 'expand' : 'collapse';
+  const translationKey = action === 'expand' ? 'expand_json' : 'collapse_json';
+  $button
+    .attr('data-action', action)
+    .prop('disabled', !hasFoldableContent)
+    .attr('data-i18n-title', translationKey)
+    .attr('title', I18n.t(translationKey))
+    .attr('aria-label', I18n.t(translationKey))
+    .html(MainIcons.render(action === 'expand' ? 'unfoldAll' : 'foldAll', { width: 16, height: 16 }));
+}
+
+function focusConfigJsonLine(lineIndex, offset = 0) {
+  const element = $('#config-json-code .config-json-line-content').get(lineIndex);
+  if (!element) return;
+  const textNode = element.firstChild || element.appendChild(document.createTextNode(''));
+  const range = document.createRange();
+  range.setStart(textNode, Math.min(offset, textNode.textContent.length));
+  range.collapse(true);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+  element.focus();
+}
+
+function refreshConfigEditor(force = false) {
+  const $editor = $('#config-json-editor');
+  if (!$editor.length || (!force && !$editor.prop('readonly'))) return;
+
+  try {
+    const data = ConfigModule.buildEditableConfigData
+      ? ConfigModule.buildEditableConfigData(getConfigFileOptions())
+      : ConfigModule.buildConfigData(false);
+    const text = JSON.stringify(data, null, 2);
+    configLastUpdatedAt = typeof StorageModule.getConfigUpdatedAt === 'function'
+      ? StorageModule.getConfigUpdatedAt()
+      : configLastUpdatedAt;
+    configEditorSnapshot = text;
+    $editor.prop('readonly', true);
+    setConfigEditorText(text);
+    $('#config-editor-actions').prop('hidden', true);
+    $('#config-editor-state')
+      .removeClass('editing')
+      .text(I18n.t('config_readonly'));
+  } catch (error) {
+    console.info('Failed to render configuration editor:', error);
+  }
+}
+
+function setConfigEditorEditing(isEditing) {
+  const $editor = $('#config-json-editor');
+  $editor.prop('readonly', !isEditing);
+  $('#config-json-code')
+    .toggleClass('editing', isEditing)
+    .find('.config-json-line-content')
+    .attr('contenteditable', isEditing ? 'true' : 'false');
+  $('.config-json-editor-shell').toggleClass('editing', isEditing);
+  $('#config-editor-actions').prop('hidden', !isEditing);
+  $('#config-editor-state')
+    .toggleClass('editing', isEditing)
+    .text(I18n.t(isEditing ? 'config_editing' : 'config_readonly'));
+  $('#config-include-subscriptions, #config-include-subscription-cache').prop('disabled', isEditing);
+  if (!isEditing && !$('#config-include-subscriptions').prop('checked')) {
+    $('#config-include-subscription-cache').prop('disabled', true);
+  }
 }
 
 function refreshMainView(options) {
@@ -459,7 +728,19 @@ function initDropdowns() {
 
   // Listen for storage changes
   chrome.storage.onChanged.addListener(function (changes, namespace) {
+    if (namespace === 'local' && changes[CONFIG_UPDATED_AT_KEY]) {
+      configLastUpdatedAt = changes[CONFIG_UPDATED_AT_KEY].newValue || null;
+      updateConfigJsonMetadata();
+    }
+
     if (namespace === 'local' && changes.config) {
+      if (!changes[CONFIG_UPDATED_AT_KEY]) {
+        const updatedAt = changes.config.newValue?.updated_at || new Date().toISOString();
+        configLastUpdatedAt = updatedAt;
+        updateConfigJsonMetadata();
+        chrome.storage.local.set({ [CONFIG_UPDATED_AT_KEY]: updatedAt });
+      }
+
       if (StorageModule.isSubscriptionOnlyChange(changes.config.oldValue, changes.config.newValue)) {
         StorageModule.mergeSubscriptionChanges(changes.config.newValue);
         ProxyModule.updateSubscriptionLinesDisplay();
@@ -467,7 +748,13 @@ function initDropdowns() {
       }
 
       StorageModule.reload().then(() => {
+        const config = StorageModule.getConfig();
+        if (config?.system?.sync) {
+          SyncModule.setSyncConfig(config.system.sync);
+          SyncModule.updateSyncUI();
+        }
         refreshMainView();
+        refreshConfigEditor();
       });
     }
   });
@@ -492,6 +779,11 @@ function bindGlobalEvents() {
     else $toggle.removeClass('show-password').addClass('hide-password');
   });
 
+  $("#sync-auto-mode").on("change", function () {
+    const isDisabled = $(this).val() === 'off';
+    $("#sync-interval").prop('disabled', isDisabled).trigger('change');
+  });
+
   $("#save-sync-config").on("click", function () {
     UtilsModule.showProcessingTip(I18n.t('processing'));
     const config = SyncModule.getSyncConfig();
@@ -499,6 +791,8 @@ function bindGlobalEvents() {
       config.gist.token = $("#gist-token").val();
       config.gist.filename = $("#gist-filename").val() || 'proxy_assistant_config.json';
     }
+    config.auto_mode = $("#sync-auto-mode").val() || 'off';
+    config.interval_minutes = Number($("#sync-interval").val()) || 360;
 
     StorageModule.setSyncConfig(config);
     StorageModule.save().then(() => {
@@ -544,9 +838,156 @@ function bindGlobalEvents() {
     }
   });
 
-  $(".export-btn").on("click", ConfigModule.exportConfig);
+  $(".export-btn").on("click", function () {
+    ConfigModule.exportConfig(getConfigFileOptions());
+  });
   $(".import-json-btn").on("click", function () { $("#json-file-input").click(); });
   $("#json-file-input").on("change", ConfigModule.importConfig);
+
+  $('#config-include-subscriptions').on('change', function () {
+    $('#config-include-subscription-cache').prop('disabled', !$(this).prop('checked'));
+    saveConfigFileOptions();
+    refreshConfigEditor(true);
+  });
+
+  $('#config-include-subscription-cache').on('change', function () {
+    saveConfigFileOptions();
+    refreshConfigEditor(true);
+  });
+
+  $('#edit-config-btn').on('click', function () {
+    refreshConfigEditor(true);
+    configEditorSnapshot = getConfigEditorText();
+    setConfigEditorEditing(true);
+    focusConfigJsonLine(0);
+  });
+
+  $('#config-json-code').on('input', '.config-json-line-content', function () {
+    syncConfigJsonSource();
+  }).on('keydown', '.config-json-line-content', function (event) {
+    const $content = $(this);
+    const lineIndex = Number($content.closest('.config-json-line').attr('data-line-index'));
+    const selection = window.getSelection();
+    const offset = selection.rangeCount ? selection.getRangeAt(0).startOffset : $content.text().length;
+    const lineText = $content.text();
+
+    if (event.key === 'Backspace' && offset === 0 && lineIndex > 0) {
+      event.preventDefault();
+      const lines = collectConfigJsonCode().split('\n');
+      const previousLength = lines[lineIndex - 1].length;
+      lines.splice(lineIndex - 1, 2, lines[lineIndex - 1] + lines[lineIndex]);
+      setConfigEditorText(lines.join('\n'));
+      focusConfigJsonLine(lineIndex - 1, previousLength);
+      return;
+    }
+
+    if (event.key !== 'Enter' && event.key !== 'Tab') return;
+    event.preventDefault();
+
+    if (event.key === 'Tab') {
+      const updated = lineText.slice(0, offset) + '  ' + lineText.slice(offset);
+      $content.text(updated);
+      syncConfigJsonSource();
+      focusConfigJsonLine(lineIndex, offset + 2);
+      return;
+    }
+
+    const lines = collectConfigJsonCode().split('\n');
+    lines.splice(lineIndex, 1, lineText.slice(0, offset), lineText.slice(offset));
+    setConfigEditorText(lines.join('\n'));
+    focusConfigJsonLine(lineIndex + 1);
+  });
+
+  $('#config-json-code').on('click', '.config-json-fold', function () {
+    const $line = $(this).closest('.config-json-line');
+    setJsonFoldState($line, !$line.hasClass('collapsed'));
+  });
+
+  $('#toggle-config-json-fold-btn').on('click', function () {
+    const shouldExpand = $(this).attr('data-action') === 'expand';
+    if (shouldExpand) {
+      $('#config-json-code .config-json-line').prop('hidden', false).removeClass('collapsed');
+      $('#config-json-code .config-json-fold').attr('aria-expanded', 'true');
+      updateConfigJsonFoldAction();
+      return;
+    }
+
+    $('#config-json-code .config-json-line:has(.config-json-fold)').each(function () {
+      setJsonFoldState($(this), true);
+    });
+    updateConfigJsonFoldAction();
+  });
+
+  $('#copy-config-json-btn').on('click', function () {
+    const $button = $(this);
+    const copyText = getConfigEditorText();
+    const clipboard = navigator.clipboard;
+    if (!clipboard || typeof clipboard.writeText !== 'function') {
+      UtilsModule.showTip(I18n.t('copy_failed'), true);
+      return;
+    }
+
+    clipboard.writeText(copyText).then(() => {
+      $button
+        .html(MainIcons.render('check', { width: 16, height: 16 }))
+        .attr('title', I18n.t('copy_success'))
+        .attr('aria-label', I18n.t('copy_success'));
+      UtilsModule.showTip(I18n.t('copy_success'), false);
+      setTimeout(() => {
+        $button
+          .html(MainIcons.render('copy', { width: 16, height: 16 }))
+          .attr('title', I18n.t('copy_config'))
+          .attr('aria-label', I18n.t('copy_config'));
+      }, 1500);
+    }).catch(() => {
+      UtilsModule.showTip(I18n.t('copy_failed'), true);
+    });
+  });
+
+  $('#format-config-btn').on('click', function () {
+    try {
+      const data = JSON.parse(getConfigEditorText());
+      setConfigEditorText(JSON.stringify(data, null, 2));
+    } catch (error) {
+      UtilsModule.showTip(I18n.t('alert_parse_error') + ': ' + error.message, true);
+    }
+  });
+
+  $('#cancel-config-edit-btn').on('click', function () {
+    setConfigEditorText(configEditorSnapshot);
+    setConfigEditorEditing(false);
+  });
+
+  $('#apply-config-btn').on('click', function () {
+    let data;
+    try {
+      data = JSON.parse(getConfigEditorText());
+    } catch (error) {
+      UtilsModule.showTip(I18n.t('alert_parse_error') + ': ' + error.message, true);
+      return;
+    }
+
+    const $button = $(this).prop('disabled', true);
+    UtilsModule.showProcessingTip(I18n.t('processing'));
+    const configFileOptions = getConfigFileOptions();
+    ConfigModule.applyConfigData(data, {
+      preserveOmittedSubscriptionCache: !configFileOptions.includeSubscriptionCache
+    }).then(() => {
+      refreshMainView();
+      if (SubscriptionModule.renderManagementList) {
+        SubscriptionModule.renderManagementList();
+      }
+      if (ScenariosModule.renderScenarioManagementList) {
+        ScenariosModule.renderScenarioManagementList();
+      }
+      refreshConfigEditor(true);
+      UtilsModule.showTip(I18n.t('save_success'), false);
+    }).catch(error => {
+      UtilsModule.showTip(I18n.t('save_failed') + ': ' + error.message, true);
+    }).finally(() => {
+      $button.prop('disabled', false);
+    });
+  });
 
   $("#detect-proxy-btn").on("click", DetectionModule.detectProxy);
   $("#pac-details-btn").on("click", DetectionModule.showPacDetails);

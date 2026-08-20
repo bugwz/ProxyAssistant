@@ -58,6 +58,30 @@ function loadSyncModule(chromeMock) {
 }
 
 describe('native sync writes', () => {
+  test('normalizes one automatic direction and a supported interval', () => {
+    const { chromeMock } = createChromeMock();
+    const syncModule = loadSyncModule(chromeMock);
+
+    expect(syncModule.normalizeSyncConfig({
+      type: 'gist',
+      auto_mode: 'pull',
+      interval_minutes: 30,
+      gist: { token: 'token' }
+    })).toMatchObject({
+      type: 'gist',
+      auto_mode: 'pull',
+      interval_minutes: 30,
+      gist: { token: 'token', filename: 'proxy_assistant_config.json', gist_id: '' }
+    });
+    expect(syncModule.normalizeSyncConfig({
+      auto_mode: 'push,pull',
+      interval_minutes: 5
+    })).toMatchObject({
+      auto_mode: 'off',
+      interval_minutes: 360
+    });
+  });
+
   test('preserves the previous backup when writing fails', async () => {
     const previousItems = {
       meta: { version: 4, chunks: { start: 0, end: 0 }, checksum: 'crc:old' },

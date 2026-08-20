@@ -5,10 +5,12 @@
 const StorageModule = (function () {
   // In-memory config cache
   let configCache = null;
+  let configUpdatedAt = null;
   let isInitialized = false;
 
   // Storage key name
   const STORAGE_KEY = 'config';
+  const CONFIG_UPDATED_AT_KEY = 'config_updated_at';
 
   // ==========================================
   // Initialization
@@ -31,7 +33,7 @@ const StorageModule = (function () {
 
   function loadFromStorage() {
     return new Promise((resolve, reject) => {
-      chrome.storage.local.get([STORAGE_KEY], function (result) {
+      chrome.storage.local.get([STORAGE_KEY, CONFIG_UPDATED_AT_KEY], function (result) {
         if (chrome.runtime.lastError) {
           console.info('Storage load error:', chrome.runtime.lastError);
           configCache = getDefaultConfig();
@@ -39,7 +41,9 @@ const StorageModule = (function () {
           return;
         }
 
+        let storedConfigSnapshot = null;
         if (result.config) {
+          storedConfigSnapshot = JSON.stringify(result.config);
           // Use migrateConfig to ensure correct format
           if (window.ConfigModule && window.ConfigModule.migrateConfig) {
             configCache = window.ConfigModule.migrateConfig(result.config);
@@ -51,7 +55,29 @@ const StorageModule = (function () {
           configCache = getDefaultConfig();
         }
 
-        resolve(configCache);
+        configUpdatedAt = typeof configCache.updated_at === 'string'
+          ? configCache.updated_at
+          : (typeof result[CONFIG_UPDATED_AT_KEY] === 'string' ? result[CONFIG_UPDATED_AT_KEY] : null);
+        configCache.updated_at = configUpdatedAt;
+        const shouldPersistMigration = storedConfigSnapshot !== null
+          && storedConfigSnapshot !== JSON.stringify(configCache);
+        if (!shouldPersistMigration) {
+          resolve(configCache);
+          return;
+        }
+
+        const migratedAt = new Date().toISOString();
+        configCache.updated_at = migratedAt;
+        configUpdatedAt = migratedAt;
+        chrome.storage.local.set({
+          [STORAGE_KEY]: configCache,
+          [CONFIG_UPDATED_AT_KEY]: migratedAt
+        }, function () {
+          if (chrome.runtime.lastError) {
+            console.info('Storage migration save error:', chrome.runtime.lastError);
+          }
+          resolve(configCache);
+        });
       });
     });
   }
@@ -64,6 +90,7 @@ const StorageModule = (function () {
     const defaultId = window.ConfigModule.generateScenarioId();
     return {
       version: 5,
+      updated_at: null,
       system: {
         app_language: 'zh-CN',
         theme_mode: 'light',
@@ -71,6 +98,10 @@ const StorageModule = (function () {
         night_mode_end: '06:00',
         sync: {
           type: 'native',
+          auto_mode: 'off',
+          interval_minutes: 360,
+          last_sync_at: null,
+          last_sync_direction: null,
           gist: { token: '', filename: 'proxy_assistant_config.json', gist_id: '' }
         }
       },
@@ -103,12 +134,21 @@ const StorageModule = (function () {
         return;
       }
 
-      chrome.storage.local.set({ [STORAGE_KEY]: configCache }, function () {
+      const previousUpdatedAt = configCache.updated_at;
+      const updatedAt = new Date().toISOString();
+      configCache.updated_at = updatedAt;
+      chrome.storage.local.set({
+        [STORAGE_KEY]: configCache,
+        [CONFIG_UPDATED_AT_KEY]: updatedAt
+      }, function () {
         if (chrome.runtime.lastError) {
+          configCache.updated_at = previousUpdatedAt;
           console.info('Storage save error:', chrome.runtime.lastError);
           reject(chrome.runtime.lastError);
           return;
         }
+
+        configUpdatedAt = updatedAt;
 
         // Notify worker to refresh proxy
         chrome.runtime.sendMessage({ action: "refreshProxy" }, function () {
@@ -128,6 +168,10 @@ const StorageModule = (function () {
       return getDefaultConfig();
     }
     return configCache;
+  }
+
+  function getConfigUpdatedAt() {
+    return typeof configCache?.updated_at === 'string' ? configCache.updated_at : configUpdatedAt;
   }
 
   function setConfig(newConfig) {
@@ -155,11 +199,29 @@ const StorageModule = (function () {
 
   function mergeSubscriptionChanges(newConfig) {
     if (!configCache || !newConfig) return;
-    configCache.subscriptions = newConfig.subscriptions || [];
+    configCache.subscriptions = normalizeSubscriptionOrder(newConfig.subscriptions || []);
+    if (typeof newConfig.updated_at === 'string') {
+      configCache.updated_at = newConfig.updated_at;
+      configUpdatedAt = newConfig.updated_at;
+    }
   }
 
   function getSubscriptions() {
-    return configCache?.subscriptions || [];
+    if (!configCache) return [];
+    configCache.subscriptions = normalizeSubscriptionOrder(configCache.subscriptions || []);
+    return configCache.subscriptions;
+  }
+
+  function normalizeSubscriptionOrder(subscriptions) {
+    return subscriptions.map((subscription, index) => ({
+      subscription: subscription,
+      order: Number.isInteger(subscription.order) && subscription.order >= 0 ? subscription.order : index,
+      index: index
+    })).sort((left, right) => left.order - right.order || left.index - right.index)
+      .map((entry, order) => {
+        entry.subscription.order = order;
+        return entry.subscription;
+      });
   }
 
   function getSubscription(id) {
@@ -168,6 +230,7 @@ const StorageModule = (function () {
 
   function addSubscription(subscription) {
     if (!configCache.subscriptions) configCache.subscriptions = [];
+    subscription.order = configCache.subscriptions.length;
     configCache.subscriptions.push(subscription);
     return subscription;
   }
@@ -180,7 +243,7 @@ const StorageModule = (function () {
 
   function deleteSubscription(id) {
     if (!configCache) return;
-    configCache.subscriptions = getSubscriptions().filter(item => item.id !== id);
+    configCache.subscriptions = normalizeSubscriptionOrder(getSubscriptions().filter(item => item.id !== id));
     getScenarios().forEach(scenario => {
       (scenario.proxies || []).forEach(proxy => {
         proxy.subscription_ids = (proxy.subscription_ids || []).filter(subscriptionId => subscriptionId !== id);
@@ -190,7 +253,10 @@ const StorageModule = (function () {
 
   function reorderSubscriptions(newOrder) {
     if (!configCache) return;
-    configCache.subscriptions = newOrder;
+    configCache.subscriptions = newOrder.map((subscription, order) => {
+      subscription.order = order;
+      return subscription;
+    });
   }
 
   // ==========================================
@@ -361,7 +427,14 @@ const StorageModule = (function () {
   }
 
   function getSyncConfig() {
-    return getSystemSetting('sync') || { type: 'native', gist: { token: '', filename: 'proxy_assistant_config.json', gist_id: '' } };
+    return getSystemSetting('sync') || {
+      type: 'native',
+      auto_mode: 'off',
+      interval_minutes: 360,
+      last_sync_at: null,
+      last_sync_direction: null,
+      gist: { token: '', filename: 'proxy_assistant_config.json', gist_id: '' }
+    };
   }
 
   function setSyncConfig(syncConfig) {
@@ -374,6 +447,7 @@ const StorageModule = (function () {
 
   function clearCache() {
     configCache = null;
+    configUpdatedAt = null;
     isInitialized = false;
   }
 
@@ -394,6 +468,7 @@ const StorageModule = (function () {
     init,
     save,
     getConfig,
+    getConfigUpdatedAt,
     setConfig,
     isSubscriptionOnlyChange,
     mergeSubscriptionChanges,
@@ -425,7 +500,8 @@ const StorageModule = (function () {
     setSyncConfig,
     clearCache,
     reload,
-    STORAGE_KEY
+    STORAGE_KEY,
+    CONFIG_UPDATED_AT_KEY
   };
 })();
 

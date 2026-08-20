@@ -6,6 +6,18 @@
   --layer-notification: 2000;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 body {
   font-family: "Noto Sans SC", "Source Han Sans SC", "Source Han Sans CN", "思源黑体", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", "微软雅黑", sans-serif;
   min-width: 320px;
@@ -92,6 +104,7 @@ html[data-initial-main-page="proxies"] .main-nav-item[data-main-page="proxies"],
 html[data-initial-main-page="scenarios"] .main-nav-item[data-main-page="scenarios"],
 html[data-initial-main-page="subscriptions"] .main-nav-item[data-main-page="subscriptions"],
 html[data-initial-main-page="config"] .main-nav-item[data-main-page="config"],
+html[data-initial-main-page="sync"] .main-nav-item[data-main-page="sync"],
 html[data-initial-main-page="diagnostics"] .main-nav-item[data-main-page="diagnostics"],
 html[data-initial-main-page="appearance"] .main-nav-item[data-main-page="appearance"],
 html[data-initial-main-page="about"] .main-nav-item[data-main-page="about"] {
@@ -185,6 +198,7 @@ html[data-initial-main-page]:not([data-initial-main-page="proxies"]) .main-page[
 html[data-initial-main-page="scenarios"] .main-page[data-page="scenarios"],
 html[data-initial-main-page="subscriptions"] .main-page[data-page="subscriptions"],
 html[data-initial-main-page="config"] .main-page[data-page="config"],
+html[data-initial-main-page="sync"] .main-page[data-page="sync"],
 html[data-initial-main-page="diagnostics"] .main-page[data-page="diagnostics"],
 html[data-initial-main-page="appearance"] .main-page[data-page="appearance"],
 html[data-initial-main-page="about"] .main-page[data-page="about"] {
@@ -2183,6 +2197,367 @@ input:checked+.slider-modern:before {
   margin-top: 16px;
 }
 
+.config-editor-panel {
+  padding: 20px;
+}
+
+.current-config-section {
+  margin-top: 16px;
+}
+
+.config-file-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.config-file-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.config-file-option-title {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.config-file-option-desc {
+  margin-top: 3px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.config-file-option .switch-modern {
+  flex: 0 0 auto;
+}
+
+.config-file-option:has(input:disabled) {
+  opacity: 0.55;
+}
+
+[data-theme="dark"] .config-file-option {
+  border-color: #475569;
+  background: #172033;
+}
+
+@media (max-width: 900px) {
+  .config-file-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+.config-current-title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.config-editor-state {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.config-editor-state.editing {
+  background: #eef2ff;
+  color: #3154e8;
+}
+
+.config-json-editor-shell {
+  overflow: hidden;
+  border: 1px solid #dbe1e8;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.config-json-editor-shell.editing {
+  border-color: #8ea2ff;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(65, 100, 245, 0.1);
+}
+
+.config-json-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 38px;
+  box-sizing: border-box;
+  padding: 4px 8px 4px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.config-json-meta,
+.config-json-toolbar-actions,
+.config-json-meta-item {
+  display: flex;
+  align-items: center;
+}
+
+.config-json-meta {
+  min-width: 0;
+  gap: 16px;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.config-json-meta-item {
+  flex: 0 0 auto;
+  gap: 5px;
+}
+
+.config-json-meta-label {
+  color: #94a3b8;
+}
+
+.config-json-meta-value {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.config-json-toolbar-actions {
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.config-json-editor-shell.editing .config-json-toolbar {
+  background: #ffffff;
+}
+
+.config-json-toolbar-btn {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.config-json-toolbar-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.config-json-toolbar-btn:hover {
+  background: #f1f5f9;
+  color: #3154e8;
+}
+
+.config-json-toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.config-json-toolbar-btn:disabled:hover {
+  background: transparent;
+  color: #64748b;
+}
+
+.config-json-source {
+  display: none;
+}
+
+.config-json-code {
+  width: 100%;
+  min-height: 420px;
+  max-height: 68vh;
+  box-sizing: border-box;
+  overflow: auto;
+  padding: 10px 0;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  background: #f8fafc;
+  color: #334155;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.65;
+  tab-size: 2;
+}
+
+.config-json-code.editing {
+  background: #ffffff;
+}
+
+.config-json-line {
+  min-width: max-content;
+  display: flex;
+  align-items: flex-start;
+  min-height: 20px;
+  padding-right: 16px;
+}
+
+.config-json-line[hidden] {
+  display: none;
+}
+
+.config-json-line:hover {
+  background: rgba(65, 100, 245, 0.05);
+}
+
+.config-json-gutter {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 58px;
+  flex: 0 0 58px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  box-sizing: border-box;
+  padding-right: 8px;
+  background: #f8fafc;
+  color: #94a3b8;
+  user-select: none;
+}
+
+.config-json-code.editing .config-json-gutter {
+  background: #ffffff;
+}
+
+.config-json-fold,
+.config-json-fold-placeholder {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+}
+
+.config-json-fold {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.config-json-fold::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.config-json-line.collapsed .config-json-fold::before {
+  transform: rotate(-45deg);
+}
+
+.config-json-line-number {
+  min-width: 24px;
+  text-align: right;
+}
+
+.config-json-line-content {
+  min-width: 1px;
+  flex: 1 0 auto;
+  white-space: pre;
+  outline: none;
+}
+
+.config-json-line.collapsed .config-json-line-content::after {
+  content: '  …';
+  color: #94a3b8;
+}
+
+.config-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.config-editor-actions[hidden] {
+  display: none;
+}
+
+[data-theme="dark"] .config-editor-state {
+  background: #334155;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .config-editor-state.editing {
+  background: #293250;
+  color: #aab8ff;
+}
+
+[data-theme="dark"] .config-json-toolbar-btn {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .config-json-meta-label {
+  color: #64748b;
+}
+
+[data-theme="dark"] .config-json-meta-value {
+  color: #a8b4c5;
+}
+
+[data-theme="dark"] .config-json-editor-shell {
+  border-color: #475569;
+  background: #111827;
+}
+
+[data-theme="dark"] .config-json-editor-shell.editing {
+  border-color: #7185e8;
+  background: #172033;
+}
+
+[data-theme="dark"] .config-json-toolbar {
+  border-bottom-color: #334155;
+  background: #111827;
+}
+
+[data-theme="dark"] .config-json-editor-shell.editing .config-json-toolbar {
+  background: #172033;
+}
+
+[data-theme="dark"] .config-json-toolbar-btn:hover {
+  background: #273449;
+  color: #aab8ff;
+}
+
+[data-theme="dark"] .config-json-code {
+  background: #111827;
+  color: #dbe4f0;
+}
+
+[data-theme="dark"] .config-json-code.editing {
+  background: #172033;
+}
+
+[data-theme="dark"] .config-json-gutter,
+[data-theme="dark"] .config-json-code.editing .config-json-gutter {
+  background: #111827;
+}
+
+[data-theme="dark"] .config-json-code.editing .config-json-gutter {
+  background: #172033;
+}
+
 .config-row {
   display: flex;
   flex-wrap: nowrap;
@@ -2693,6 +3068,92 @@ input:checked+.slider-modern:before {
 
 .sync-config-content {
   margin-bottom: 20px;
+}
+
+.sync-settings-section + .sync-settings-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .sync-settings-section + .sync-settings-section {
+  border-top-color: #334155;
+}
+
+.sync-section-heading {
+  margin-bottom: 16px;
+}
+
+.sync-section-title {
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .sync-section-title {
+  color: #f1f5f9;
+}
+
+.sync-section-desc {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+[data-theme="dark"] .sync-section-desc {
+  color: #94a3b8;
+}
+
+.sync-schedule-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sync-schedule-grid .form-item.full-width {
+  grid-column: span 1;
+}
+
+.sync-pull-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  background-color: #fff7ed;
+  color: #9a3412;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.sync-pull-warning svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.sync-pull-warning strong,
+.sync-pull-warning span {
+  display: block;
+}
+
+[data-theme="dark"] .sync-pull-warning {
+  border-color: #7c2d12;
+  background-color: rgba(124, 45, 18, 0.18);
+  color: #fdba74;
+}
+
+.sync-summary-separator {
+  margin: 0 6px;
+}
+
+.sync-last-time {
+  margin-left: 4px;
+  color: #475569;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .sync-last-time {
+  color: #cbd5e1;
 }
 
 .sync-config-footer {
@@ -6274,6 +6735,14 @@ body[data-theme="dark"] .scenario-secondary-btn {
   .time-input-group {
     max-width: 100%;
     flex-wrap: wrap;
+  }
+
+  .sync-schedule-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sync-schedule-grid .form-item.full-width {
+    grid-column: 1;
   }
 
   .about-version-header {

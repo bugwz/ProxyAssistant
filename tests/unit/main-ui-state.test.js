@@ -75,9 +75,33 @@ function setupBaseDom() {
     <div id="gist-token-eye"><input type="checkbox"></div>
     <input id="gist-token" />
     <input id="gist-filename" />
+    <select id="sync-auto-mode">
+      <option value="off">Off</option>
+      <option value="push">Push</option>
+      <option value="pull">Pull</option>
+    </select>
+    <select id="sync-interval">
+      <option value="30">30</option>
+      <option value="360">360</option>
+    </select>
     <div class="export-btn"></div>
     <div class="import-json-btn"></div>
     <input id="json-file-input" />
+    <button id="edit-config-btn"></button>
+    <textarea id="config-json-editor" readonly></textarea>
+    <span id="config-editor-state"></span>
+    <div id="config-editor-actions" hidden></div>
+    <button id="format-config-btn"></button>
+    <button id="cancel-config-edit-btn"></button>
+    <button id="apply-config-btn"></button>
+    <button id="toggle-config-json-fold-btn" data-action="collapse"></button>
+    <button id="copy-config-json-btn"></button>
+    <span id="config-json-version"></span>
+    <span id="config-json-size"></span>
+    <span id="config-json-updated-at"></span>
+    <div id="config-json-code"></div>
+    <input type="checkbox" id="config-include-subscriptions" checked />
+    <input type="checkbox" id="config-include-subscription-cache" />
     <button id="detect-proxy-btn"></button>
     <button id="pac-details-btn"></button>
     <div id="language-options"><li data-value="zh-CN">简体中文</li></div>
@@ -178,6 +202,7 @@ function loadProxyModule(deps) {
 describe('main UI state flow', () => {
   beforeEach(() => {
     jest.resetModules();
+    window.localStorage.clear();
     resetGlobals();
     setupBaseDom();
     loadJQuery();
@@ -229,6 +254,7 @@ describe('main UI state flow', () => {
     global.StorageModule = {
       init: jest.fn(() => Promise.resolve()),
       getConfig: jest.fn(() => ({ system: { app_language: 'zh-CN', sync: { type: 'native', gist: {} } } })),
+      getConfigUpdatedAt: jest.fn(() => '2026-08-20T06:30:00.000Z'),
       getProxies: jest.fn(() => []),
       save: jest.fn(() => Promise.resolve()),
       reload: jest.fn(() => Promise.resolve()),
@@ -250,9 +276,16 @@ describe('main UI state flow', () => {
     };
     global.ConfigModule = {
       exportConfig: jest.fn(),
-      importConfig: jest.fn()
+      importConfig: jest.fn(),
+      buildConfigData: jest.fn(() => ({ version: 5, scenarios: { lists: [] } })),
+      buildEditableConfigData: jest.fn(() => ({ version: 5, scenarios: { lists: [] } })),
+      applyConfigData: jest.fn(() => Promise.resolve())
     };
     global.generateProxyId = jest.fn(() => 'generated-proxy-id');
+    Object.defineProperty(window.navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: jest.fn(() => Promise.resolve()) }
+    });
     global.chrome = {
       runtime: {
         lastError: null,
@@ -336,7 +369,28 @@ describe('main UI state flow', () => {
     expect(global.StorageModule.reload).not.toHaveBeenCalled();
   });
 
-  test('saves the inline cloud sync fields from the config page', async () => {
+  test('refreshes the cloud sync summary after a background configuration update', async () => {
+    const updatedSync = {
+      type: 'native',
+      auto_mode: 'pull',
+      interval_minutes: 30,
+      last_sync_at: '2026-08-19T08:00:00.000Z',
+      gist: {}
+    };
+    global.StorageModule.getConfig.mockReturnValue({ system: { sync: updatedSync } });
+    window.eval(fs.readFileSync(mainJsPath, 'utf8'));
+    window.initDropdowns();
+
+    const listener = global.chrome.storage.onChanged.addListener.mock.calls[0][0];
+    listener({ config: { oldValue: {}, newValue: { system: { sync: updatedSync } } } }, 'local');
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(global.SyncModule.setSyncConfig).toHaveBeenCalledWith(updatedSync);
+    expect(global.SyncModule.updateSyncUI).toHaveBeenCalled();
+  });
+
+  test('saves the cloud sync fields from the cloud sync page', async () => {
     let currentSyncConfig = { type: 'native', gist: {} };
     global.SyncModule.getSyncConfig.mockImplementation(() => currentSyncConfig);
     global.SyncModule.setSyncConfig.mockImplementation(config => {
@@ -348,12 +402,16 @@ describe('main UI state flow', () => {
     $('.sync-selector li[data-value="gist"]').trigger('click');
     $('#gist-token').val('test-token');
     $('#gist-filename').val('shared-config.json');
+    $('#sync-auto-mode').val('pull');
+    $('#sync-interval').val('30');
     $('#save-sync-config').trigger('click');
     await Promise.resolve();
     await Promise.resolve();
 
     expect(global.StorageModule.setSyncConfig).toHaveBeenCalledWith({
       type: 'gist',
+      auto_mode: 'pull',
+      interval_minutes: 30,
       gist: {
         token: 'test-token',
         filename: 'shared-config.json'
@@ -361,6 +419,122 @@ describe('main UI state flow', () => {
     });
     expect(global.StorageModule.save).toHaveBeenCalledTimes(1);
     expect(global.SyncModule.updateSyncUI).toHaveBeenCalled();
+  });
+
+  test('edits, validates, and applies the current JSON configuration', async () => {
+    const initialConfig = { version: 5, scenarios: { current: 'a', lists: [] } };
+    const editedConfig = { version: 5, scenarios: { current: 'b', lists: [] } };
+    let activeConfig = initialConfig;
+    global.ConfigModule.buildEditableConfigData.mockImplementation(() => activeConfig);
+    global.ConfigModule.applyConfigData.mockImplementation(data => {
+      activeConfig = data;
+      return Promise.resolve(data);
+    });
+    window.eval(fs.readFileSync(mainJsPath, 'utf8'));
+    window.bindGlobalEvents();
+    window.refreshConfigEditor(true);
+
+    expect($('#config-json-editor').prop('readonly')).toBe(true);
+    expect(JSON.parse($('#config-json-editor').val())).toEqual(initialConfig);
+
+    $('#edit-config-btn').trigger('click');
+    $('#config-json-editor').val(JSON.stringify(editedConfig));
+    $('#apply-config-btn').trigger('click');
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(global.ConfigModule.applyConfigData).toHaveBeenCalledWith(editedConfig, {
+      preserveOmittedSubscriptionCache: true
+    });
+    expect(global.ProxyModule.setList).toHaveBeenCalled();
+    expect(global.ProxyModule.renderList).toHaveBeenCalled();
+    expect($('#config-json-editor').prop('readonly')).toBe(true);
+    expect(JSON.parse($('#config-json-editor').val())).toEqual(editedConfig);
+  });
+
+  test('shows configuration version, UTF-8 file size, and last update time in the editor header', () => {
+    const config = { version: 6, name: '代理配置' };
+    global.ConfigModule.buildEditableConfigData.mockReturnValue(config);
+    window.eval(fs.readFileSync(mainJsPath, 'utf8'));
+    window.refreshConfigEditor(true);
+
+    const formatted = JSON.stringify(config, null, 2);
+    expect($('#config-json-version').text()).toBe('v6');
+    expect($('#config-json-size').text()).toBe(`${new Blob([formatted]).size} B`);
+    expect($('#config-json-updated-at').text()).not.toBe('config_never_updated');
+  });
+
+  test('controls subscription definitions and cached content in the configuration file', () => {
+    window.eval(fs.readFileSync(mainJsPath, 'utf8'));
+    window.bindGlobalEvents();
+
+    $('#config-include-subscription-cache').prop('checked', true).trigger('change');
+    expect(global.ConfigModule.buildEditableConfigData).toHaveBeenLastCalledWith({
+      includeSubscriptions: true,
+      includeSubscriptionCache: true
+    });
+
+    $('#config-include-subscriptions').prop('checked', false).trigger('change');
+    expect($('#config-include-subscription-cache').prop('disabled')).toBe(true);
+    expect(global.ConfigModule.buildEditableConfigData).toHaveBeenLastCalledWith({
+      includeSubscriptions: false,
+      includeSubscriptionCache: false
+    });
+
+    $('.export-btn').trigger('click');
+    expect(global.ConfigModule.exportConfig).toHaveBeenCalledWith({
+      includeSubscriptions: false,
+      includeSubscriptionCache: false
+    });
+  });
+
+  test('folds and expands JSON structures while preserving editable content', () => {
+    const config = {
+      version: 6,
+      system: { app_language: 'zh-CN' },
+      scenarios: { current: 'default', lists: [] }
+    };
+    global.ConfigModule.buildEditableConfigData.mockReturnValue(config);
+    window.eval(fs.readFileSync(mainJsPath, 'utf8'));
+    window.bindGlobalEvents();
+    window.refreshConfigEditor(true);
+
+    const $rootLine = $('#config-json-code .config-json-line').first();
+    expect($rootLine.find('.config-json-fold')).toHaveLength(1);
+
+    expect($('#toggle-config-json-fold-btn').attr('data-action')).toBe('collapse');
+    $('#toggle-config-json-fold-btn').trigger('click');
+    expect($('#config-json-code .config-json-line').eq(1).prop('hidden')).toBe(true);
+
+    expect($('#toggle-config-json-fold-btn').attr('data-action')).toBe('expand');
+    $('#toggle-config-json-fold-btn').trigger('click');
+    expect($('#config-json-code .config-json-line').eq(1).prop('hidden')).toBe(false);
+    expect($('#toggle-config-json-fold-btn').attr('data-action')).toBe('collapse');
+
+    $('#edit-config-btn').trigger('click');
+    expect($('#config-json-code').hasClass('editing')).toBe(true);
+    expect($('#config-json-code .config-json-line-content').first().attr('contenteditable')).toBe('true');
+    $('#config-json-code .config-json-line').first().find('.config-json-fold').trigger('click');
+    expect($('#config-json-code .config-json-line').eq(1).prop('hidden')).toBe(true);
+    expect(JSON.parse($('#config-json-editor').val())).toEqual(config);
+  });
+
+  test('copies the complete JSON configuration when content is folded', async () => {
+    const config = {
+      version: 6,
+      system: { app_language: 'zh-CN' },
+      scenarios: { current: 'default', lists: [] }
+    };
+    global.ConfigModule.buildEditableConfigData.mockReturnValue(config);
+    window.eval(fs.readFileSync(mainJsPath, 'utf8'));
+    window.bindGlobalEvents();
+    window.refreshConfigEditor(true);
+    $('#toggle-config-json-fold-btn').trigger('click');
+    $('#copy-config-json-btn').trigger('click');
+    await Promise.resolve();
+
+    expect(window.navigator.clipboard.writeText).toHaveBeenCalledWith(JSON.stringify(config, null, 2));
+    expect(global.UtilsModule.showTip).toHaveBeenCalledWith('copy_success', false);
   });
 
   test('switchScenario keeps the current scenario when worker activation fails', async () => {
