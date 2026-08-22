@@ -66,12 +66,9 @@ const StorageModule = (function () {
           return;
         }
 
-        const migratedAt = new Date().toISOString();
-        configCache.updated_at = migratedAt;
-        configUpdatedAt = migratedAt;
         chrome.storage.local.set({
           [STORAGE_KEY]: configCache,
-          [CONFIG_UPDATED_AT_KEY]: migratedAt
+          [CONFIG_UPDATED_AT_KEY]: configUpdatedAt
         }, function () {
           if (chrome.runtime.lastError) {
             console.info('Storage migration save error:', chrome.runtime.lastError);

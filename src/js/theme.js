@@ -6,25 +6,32 @@ let themeMode = 'light';
 let nightModeStart = '22:00';
 let nightModeEnd = '06:00';
 let themeInterval = null;
+let themeTransitionTimer = null;
+let appliedTheme = null;
+
+const THEME_TRANSITION_MS = 280;
+
+function applyThemeSettings(config) {
+  if (config.system) {
+    themeMode = config.system.theme_mode || 'light';
+    nightModeStart = config.system.night_mode_start || '22:00';
+    nightModeEnd = config.system.night_mode_end || '06:00';
+  }
+
+  updateThemeUI();
+}
 
 function loadThemeSettings() {
   chrome.storage.local.get(['config'], function (result) {
-    const config = result.config || {};
-
-    if (config.system) {
-      themeMode = config.system.theme_mode || 'light';
-      nightModeStart = config.system.night_mode_start || '22:00';
-      nightModeEnd = config.system.night_mode_end || '06:00';
-    }
-
-    updateThemeUI();
+    applyThemeSettings(result.config || {});
   });
 }
 
-function initTheme() {
-  loadThemeSettings();
+function initTheme(config) {
+  if (config) applyThemeSettings(config);
+  else loadThemeSettings();
 
-  $('.theme-btn').on('click', function () {
+  $('.theme-btn').off('click.themeMode').on('click.themeMode', function () {
     const mode = $(this).data('theme');
     $('.theme-btn').removeClass('active');
     $(this).addClass('active');
@@ -38,7 +45,7 @@ function initTheme() {
     setThemeMode(mode);
   });
 
-  $('#night-mode-start, #night-mode-end').on('change', function () {
+  $('#night-mode-start, #night-mode-end').off('change.themeMode').on('change.themeMode', function () {
     nightModeStart = $('#night-mode-start').val();
     nightModeEnd = $('#night-mode-end').val();
     saveThemeSettings();
@@ -77,10 +84,35 @@ function setThemeMode(mode) {
 }
 
 function applyTheme(theme) {
-  if (theme === 'dark') {
-    $('body').attr('data-theme', 'dark');
-  } else {
-    $('body').removeAttr('data-theme');
+  const nextTheme = theme === 'dark' ? 'dark' : 'light';
+  const $body = $('body');
+  const currentTheme = $body.attr('data-theme') === 'dark' ? 'dark' : 'light';
+  const prefersReducedMotion = typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const shouldTransition = appliedTheme !== null
+    && currentTheme !== nextTheme
+    && !prefersReducedMotion;
+
+  if (themeTransitionTimer) {
+    clearTimeout(themeTransitionTimer);
+    themeTransitionTimer = null;
+  }
+  $body.removeClass('theme-transitioning');
+
+  if (shouldTransition) {
+    $body.addClass('theme-transitioning');
+    void document.body.offsetWidth;
+  }
+
+  if (nextTheme === 'dark') $body.attr('data-theme', 'dark');
+  else $body.removeAttr('data-theme');
+  appliedTheme = nextTheme;
+
+  if (shouldTransition) {
+    themeTransitionTimer = setTimeout(function () {
+      $body.removeClass('theme-transitioning');
+      themeTransitionTimer = null;
+    }, THEME_TRANSITION_MS + 40);
   }
 }
 

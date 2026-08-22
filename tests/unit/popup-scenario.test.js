@@ -130,6 +130,18 @@ function loadPopupContext() {
 }
 
 describe('popup scenario switching', () => {
+  test('uses the diagnostics disabled color for disabled popup status', () => {
+    const context = loadPopupContext();
+    const popupCssPath = path.join(__dirname, '../../src/css/popup.css');
+    const popupCss = fs.readFileSync(popupCssPath, 'utf8');
+
+    context.updateStatusDisplay('disabled', null);
+
+    expect(context.__jqueryMocks.statusDisplay.css).toHaveBeenCalledWith('color', 'var(--disabled-status-color)');
+    expect(popupCss).toMatch(/--disabled-status-color:\s*#94a3b8;/);
+    expect(popupCss).toMatch(/\.mode-btn\[data-mode="disabled"\]\.active\s*{\s*color:\s*var\(--disabled-status-color\);/);
+  });
+
   test('applies the previous manual proxy without prewriting state', () => {
     const context = loadPopupContext();
     const previousManualProxy = { name: 'Previous', ip: '127.0.0.1', port: '8080' };

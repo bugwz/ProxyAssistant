@@ -8,6 +8,7 @@
     'config',
     'sync',
     'diagnostics',
+    'runtime-logs',
     'appearance',
     'about'
   ];

@@ -88,22 +88,6 @@ html[data-config-options-initializing] .config-file-options .slider-modern::befo
   }
 }
 
-.config-current-title-line {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.config-editor-state {
-  flex: 0 0 auto;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: #f1f5f9;
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 600;
-}
-
 .config-json-editor-shell {
   overflow: hidden;
   border: 1px solid #dbe1e8;
@@ -133,6 +117,7 @@ html[data-config-options-initializing] .config-file-options .slider-modern::befo
 .config-json-meta {
   min-width: 0;
   gap: 16px;
+  flex-wrap: wrap;
   color: #64748b;
   font-size: 11px;
   line-height: 1.4;
@@ -192,6 +177,29 @@ html[data-config-options-initializing] .config-file-options .slider-modern::befo
 
 .config-json-source {
   display: none;
+}
+
+.config-json-code-wrapper {
+  position: relative;
+  min-height: 420px;
+}
+
+.config-json-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-height: 420px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.config-json-code-wrapper.is-refreshing .config-json-loading {
+  display: flex;
 }
 
 .config-json-code {
@@ -292,11 +300,6 @@ html[data-config-options-initializing] .config-file-options .slider-modern::befo
   color: #94a3b8;
 }
 
-[data-theme="dark"] .config-editor-state {
-  background: #334155;
-  color: #cbd5e1;
-}
-
 [data-theme="dark"] .config-json-toolbar-btn {
   color: #94a3b8;
 }
@@ -327,6 +330,11 @@ html[data-config-options-initializing] .config-file-options .slider-modern::befo
 [data-theme="dark"] .config-json-code {
   background: #111827;
   color: #dbe4f0;
+}
+
+[data-theme="dark"] .config-json-loading {
+  background: #111827;
+  color: #94a3b8;
 }
 
 [data-theme="dark"] .config-json-gutter {
@@ -403,7 +411,8 @@ html[data-config-options-initializing] .config-file-options .slider-modern::befo
 }
 
 .export-btn,
-.import-json-btn {
+.import-json-btn,
+.config-refresh-btn {
   padding: 8px 16px;
   font-size: 13px;
   font-weight: 600;
@@ -420,20 +429,44 @@ html[data-config-options-initializing] .config-file-options .slider-modern::befo
 }
 
 .export-btn:hover,
-.import-json-btn:hover {
+.import-json-btn:hover,
+.config-refresh-btn:hover {
   background-color: #e2e8f0;
   color: #1e293b;
 }
 
 [data-theme="dark"] .export-btn,
-[data-theme="dark"] .import-json-btn {
+[data-theme="dark"] .import-json-btn,
+[data-theme="dark"] .config-refresh-btn {
   background-color: var(--bg-primary);
   border-color: var(--border-color);
   color: #e4e4e7;
 }
 
 [data-theme="dark"] .export-btn:hover,
-[data-theme="dark"] .import-json-btn:hover {
+[data-theme="dark"] .import-json-btn:hover,
+[data-theme="dark"] .config-refresh-btn:hover {
   background-color: var(--border-color);
   color: #f1f5f9;
+}
+
+.config-refresh-btn:disabled {
+  opacity: 0.65;
+  cursor: pointer;
+}
+
+.config-refresh-btn:disabled .config-refresh-icon {
+  animation: config-refresh-spin 0.8s linear infinite;
+}
+
+@keyframes config-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .config-refresh-btn:disabled .config-refresh-icon {
+    animation: none;
+  }
 }

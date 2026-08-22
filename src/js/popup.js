@@ -18,9 +18,6 @@ function getProxyDisplayColor(color) {
 
 document.addEventListener('DOMContentLoaded', function () {
   I18n.init(function () {
-    // Initialize theme mode first
-    initThemeMode();
-    // Initialize mode switcher and app
     initApp();
   });
 });
@@ -33,10 +30,12 @@ function initApp() {
   chrome.storage.local.get(['config', 'state'], function (result) {
     if (chrome.runtime.lastError) {
       console.log('Error loading settings:', chrome.runtime.lastError);
+      finishPopupUIInitialization();
       return;
     }
 
     const config = result.config;
+    applyConfiguredTheme(config?.system || {});
     if (!config) {
       const defaultId = window.ConfigModule.generateScenarioId();
       scenarios = [{ id: defaultId, name: I18n.t('scenario_default'), proxies: [] }];
@@ -70,13 +69,21 @@ function initApp() {
     renderScenarioSelector();
     updateScenarioVisibility();
 
-    list_init();
+    list_init(finishPopupUIInitialization);
     initBypassButton();
     updateBypassButton();
     updateCurrentSiteDisplay();
   });
 
   bindGlobalEvents();
+}
+
+function finishPopupUIInitialization() {
+  if (typeof window.finishUIInitialization === 'function') {
+    window.finishUIInitialization();
+    return;
+  }
+  document.documentElement.removeAttribute('data-ui-initializing');
 }
 
 function getProxySubscriptions(proxy) {
@@ -256,18 +263,23 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
 // ==========================================
 // Theme Logic
 // ==========================================
-function initThemeMode() {
-  chrome.storage.local.get(['config'], function (items) {
-    if (chrome.runtime.lastError) {
-      console.log('Error getting config:', chrome.runtime.lastError);
-      return;
-    }
-    const config = items.config || {};
-    const settings = config.system || {};
-    themeMode = settings.theme_mode || 'light';
-
+function applyConfiguredTheme(settings) {
+  themeMode = settings.theme_mode || 'light';
+  if (themeMode !== 'auto') {
     applyTheme(themeMode);
-  });
+    return;
+  }
+
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const start = (settings.night_mode_start || '22:00').split(':').map(Number);
+  const end = (settings.night_mode_end || '06:00').split(':').map(Number);
+  const startMinutes = start[0] * 60 + start[1];
+  const endMinutes = end[0] * 60 + end[1];
+  const isDark = startMinutes < endMinutes
+    ? currentMinutes >= startMinutes && currentMinutes < endMinutes
+    : currentMinutes >= startMinutes || currentMinutes < endMinutes;
+  applyTheme(isDark ? 'dark' : 'light');
 }
 
 function applyTheme(mode) {
@@ -372,7 +384,7 @@ function updateStatusDisplay(mode, currentProxy) {
 
   if (mode === 'disabled') {
     $statusValue.text(I18n.t('status_disabled')).attr('data-i18n', 'status_disabled');
-    $statusValue.css('color', 'var(--danger-color)'); // Red for disabled mode
+    $statusValue.css('color', 'var(--disabled-status-color)');
   } else if (mode === 'auto') {
     // Auto mode - show current proxy name
     if (currentProxy && (currentProxy.name || currentProxy.ip)) {
@@ -480,10 +492,12 @@ function updateRefreshIndicator() {
 // ==========================================
 // Proxy List Logic
 // ==========================================
-function list_init() {
+function list_init(onComplete) {
+  const complete = typeof onComplete === 'function' ? onComplete : function () {};
   chrome.storage.local.get(['state'], function (result) {
     if (chrome.runtime.lastError) {
       console.log('Error getting settings:', chrome.runtime.lastError);
+      complete();
       return;
     }
     const currentProxy = result.state?.proxy?.current;
@@ -573,6 +587,7 @@ function list_init() {
           updateStatusDisplay('auto', null);
         }
       }
+      complete();
     });
   });
 }

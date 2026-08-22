@@ -132,7 +132,7 @@ function updateSyncUI() {
 
   $('#gist-token').val(syncConfig.gist.token);
   $('#gist-filename').val(syncConfig.gist.filename || 'proxy_assistant_config.json');
-  $('#test-sync-connection').show();
+  $('.test-sync-connection').show();
   updateNativeQuotaInfo();
 }
 
@@ -684,6 +684,19 @@ async function testGistConnection() {
   }
 }
 
+async function testNativeConnection() {
+  await new Promise((resolve, reject) => {
+    chrome.storage.sync.get(null, function () {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+      } else {
+        resolve();
+      }
+    });
+  });
+  return I18n.t('sync_native_connection_success');
+}
+
 // Export for use
 window.SyncModule = {
   nativePush,
@@ -692,6 +705,7 @@ window.SyncModule = {
   manualPull,
   pushToGist,
   pullFromGist,
+  testNativeConnection,
   testGistConnection,
   updateSyncUI,
   updateNativeQuotaInfo,

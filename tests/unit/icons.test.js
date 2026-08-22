@@ -31,9 +31,12 @@ describe('MainIcons', () => {
     expect(tagIcon).toContain('M6 3h12v18l-6-4-6 4V3Z');
     expect(tagIcon).toContain('M6 7h12');
     expect(disabledCircleIcon).toContain('M8 12h8');
-    expect(manualModeIcon).toContain('M8.5 16V8l3.5 5 3.5-5v8');
-    expect(autoModeIcon).toContain('m8.5 16 3.5-8 3.5 8');
+    expect(manualModeIcon).toContain('M9 15V9l3 4 3-4v6');
+    expect(autoModeIcon).toContain('m9 15 3-6 3 6');
+    expect(autoModeIcon).toContain('M10.5 12.5h3');
     expect(manualModeIcon).toContain('<circle cx="12" cy="12" r="9"/>');
     expect(autoModeIcon).toContain('<circle cx="12" cy="12" r="9"/>');
+    expect(manualModeIcon).toContain('M9 15V9l3 4 3-4v6" stroke-width="1.5"');
+    expect(autoModeIcon.match(/stroke-width="1\.5"/g)).toHaveLength(2);
   });
 });

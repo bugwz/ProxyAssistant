@@ -136,6 +136,29 @@ describe('native sync writes', () => {
     await expect(syncModule.nativePull()).resolves.toEqual(newData);
   });
 
+  test('tests browser sync storage without writing configuration data', async () => {
+    const { chromeMock } = createChromeMock({ meta: { version: 4 } });
+    const syncModule = loadSyncModule(chromeMock);
+
+    await expect(syncModule.testNativeConnection()).resolves.toBe('sync_native_connection_success');
+
+    expect(chromeMock.storage.sync.get).toHaveBeenCalledWith(null, expect.any(Function));
+    expect(chromeMock.storage.sync.set).not.toHaveBeenCalled();
+    expect(chromeMock.storage.sync.remove).not.toHaveBeenCalled();
+  });
+
+  test('reports browser sync storage connection errors', async () => {
+    const { chromeMock } = createChromeMock();
+    chromeMock.storage.sync.get.mockImplementationOnce((keys, callback) => {
+      chromeMock.runtime.lastError = { message: 'Sync storage unavailable' };
+      callback();
+      chromeMock.runtime.lastError = null;
+    });
+    const syncModule = loadSyncModule(chromeMock);
+
+    await expect(syncModule.testNativeConnection()).rejects.toThrow('Sync storage unavailable');
+  });
+
   test('calculates native quota from the configuration file rules', () => {
     const { chromeMock } = createChromeMock();
     const options = {

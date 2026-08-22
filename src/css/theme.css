@@ -28,6 +28,15 @@ body[data-theme="dark"] {
   color: var(--text-primary);
 }
 
+body.theme-transitioning,
+body.theme-transitioning *,
+body.theme-transitioning *::before,
+body.theme-transitioning *::after {
+  transition-property: background-color, color, border-color, box-shadow, fill, stroke !important;
+  transition-duration: 280ms !important;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
 /* Light/Dark mode toggle buttons */
 .theme-toggle-container {
   display: flex;
@@ -51,7 +60,7 @@ body[data-theme="dark"] {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 180ms ease, color 180ms ease, opacity 180ms ease;
   background-color: transparent;
   color: #475569;
 }
@@ -100,6 +109,7 @@ html[data-initial-main-page="subscriptions"] body[data-theme="dark"] .main-nav-i
 html[data-initial-main-page="config"] body[data-theme="dark"] .main-nav-item[data-main-page="config"],
 html[data-initial-main-page="sync"] body[data-theme="dark"] .main-nav-item[data-main-page="sync"],
 html[data-initial-main-page="diagnostics"] body[data-theme="dark"] .main-nav-item[data-main-page="diagnostics"],
+html[data-initial-main-page="runtime-logs"] body[data-theme="dark"] .main-nav-item[data-main-page="runtime-logs"],
 html[data-initial-main-page="appearance"] body[data-theme="dark"] .main-nav-item[data-main-page="appearance"],
 html[data-initial-main-page="about"] body[data-theme="dark"] .main-nav-item[data-main-page="about"] {
   background-color: #293250;
@@ -115,9 +125,10 @@ body[data-theme="dark"] .sidebar-github-link {
   color: #aab2bf;
 }
 
-body[data-theme="dark"] .sidebar-github-link:hover {
+body[data-theme="dark"] .sidebar-github-link:hover,
+body[data-theme="dark"] .sidebar-github-link:active {
   color: #ffffff;
-  background-color: #282d35;
+  background-color: transparent;
 }
 
 body[data-theme="dark"] .main-content {
@@ -403,4 +414,13 @@ body[data-theme="dark"] .add-btn:hover {
 body[data-theme="dark"] .list-bottom-buttons {
   background-color: #2d2d2d;
   border-color: #4a4a4a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.theme-transitioning,
+  body.theme-transitioning *,
+  body.theme-transitioning *::before,
+  body.theme-transitioning *::after {
+    transition: none !important;
+  }
 }

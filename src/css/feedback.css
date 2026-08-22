@@ -391,7 +391,7 @@
 }
 
 .sync-service-card {
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid #dbe3ec;
   border-radius: 10px;
   background-color: #ffffff;
@@ -490,11 +490,10 @@
 .sync-service-last-time {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 6px;
-  margin-top: 12px;
   color: #64748b;
   font-size: 11px;
+  white-space: nowrap;
 }
 
 .sync-service-last-time strong {
@@ -533,7 +532,7 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  margin-top: 16px;
+  margin-bottom: 16px;
   padding: 12px 14px;
   border: 1px solid #fed7aa;
   border-radius: 8px;
@@ -559,15 +558,24 @@
   color: #fdba74;
 }
 
-.sync-config-footer {
+.sync-service-footer {
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding-top: 15px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin-top: 16px;
+  padding-top: 16px;
   border-top: 1px solid #e2e8f0;
 }
 
-[data-theme="dark"] .sync-config-footer {
+.sync-service-footer-actions {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+[data-theme="dark"] .sync-service-footer {
   border-top-color: #334155;
 }
 
@@ -749,9 +757,9 @@
   color: #818cf8;
 }
 
-/* Sync Config Footer Buttons - Optimized Style */
-.sync-config-footer .btn-test,
-.sync-config-footer .btn-save {
+/* Sync service card actions */
+.sync-service-footer .btn-test,
+.sync-service-footer .btn-save {
   padding: 8px 24px;
   font-size: 13px;
   font-weight: 600;
@@ -766,20 +774,20 @@
 }
 
 /* Test Connection Button - Light Mode */
-.sync-config-footer .btn-test {
+.sync-service-footer .btn-test {
   background-color: #f1f5f9;
   color: #475569;
   border: 1px solid #e2e8f0;
 }
 
 /* Save Button - Light Mode */
-.sync-config-footer .btn-save {
+.sync-service-footer .btn-save {
   background-color: #4164f5;
   color: white;
   border: 1px solid #4164f5;
 }
 
-.sync-config-footer .btn-save:hover {
+.sync-service-footer .btn-save:hover {
   background-color: #3050d0;
   border-color: #3050d0;
 }
