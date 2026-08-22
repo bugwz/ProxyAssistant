@@ -424,3 +424,96 @@ body[data-theme="dark"] .list-bottom-buttons {
     transition: none !important;
   }
 }
+
+/* Custom theme semantic color overrides */
+body[data-custom-theme="true"] {
+  --bg-primary: var(--custom-theme-surface);
+  --bg-secondary: var(--custom-theme-surface-alt);
+  --text-primary: var(--custom-theme-text);
+  --text-secondary: var(--custom-theme-muted-text);
+  --border-color: var(--custom-theme-border);
+  --accent-color: var(--custom-theme-accent);
+  --header-bg: var(--custom-theme-accent);
+  background-color: var(--custom-theme-background);
+  color: var(--custom-theme-text);
+}
+
+html body[data-custom-theme="true"] {
+  background-color: var(--custom-theme-background);
+}
+
+body[data-custom-theme="true"] .main-content {
+  background-color: var(--custom-theme-background);
+}
+
+body[data-custom-theme="true"] .main-sidebar,
+body[data-custom-theme="true"] .system-config-list,
+body[data-custom-theme="true"] .proxy-card,
+body[data-custom-theme="true"] .scenario-manage-panel,
+body[data-custom-theme="true"] .sync-service-card,
+body[data-custom-theme="true"] .about-version-panel {
+  background-color: var(--custom-theme-surface);
+  border-color: var(--custom-theme-border);
+}
+
+body[data-custom-theme="true"] .main-nav-item:hover,
+body[data-custom-theme="true"] .control-btn:hover,
+body[data-custom-theme="true"] .lh-select-op li:hover {
+  background-color: var(--custom-theme-surface-alt);
+}
+
+body[data-custom-theme="true"] .main-nav-item.active,
+html[data-initial-main-page] body[data-custom-theme="true"] .main-nav-item.active,
+body[data-custom-theme="true"] .lh-select-op li.selected-option {
+  background-color: var(--custom-theme-selection-background);
+  color: var(--custom-theme-accent);
+}
+
+body[data-custom-theme="true"] .page-heading h1,
+body[data-custom-theme="true"] .appearance-section > h2,
+body[data-custom-theme="true"] .config-row-title,
+body[data-custom-theme="true"] .sidebar-logo-text,
+body[data-custom-theme="true"] .lh-select-value,
+body[data-custom-theme="true"] .lh-select-op li,
+body[data-custom-theme="true"] .form-item label {
+  color: var(--custom-theme-text);
+}
+
+body[data-custom-theme="true"] .page-heading p,
+body[data-custom-theme="true"] .config-row-desc,
+body[data-custom-theme="true"] .main-nav-item,
+body[data-custom-theme="true"] .select-icon {
+  color: var(--custom-theme-muted-text);
+}
+
+body[data-custom-theme="true"] .config-row,
+body[data-custom-theme="true"] .main-sidebar,
+body[data-custom-theme="true"] .lh-select,
+body[data-custom-theme="true"] .lh-select-op,
+body[data-custom-theme="true"] .custom-theme-editor,
+body[data-custom-theme="true"] input,
+body[data-custom-theme="true"] textarea {
+  border-color: var(--custom-theme-border);
+}
+
+body[data-custom-theme="true"] .lh-select,
+body[data-custom-theme="true"] .lh-select-op,
+body[data-custom-theme="true"] .custom-theme-editor,
+body[data-custom-theme="true"] .form-item input,
+body[data-custom-theme="true"] .form-item textarea,
+body[data-custom-theme="true"] .time-input-group input[type="time"] {
+  background-color: var(--custom-theme-input-background);
+  color: var(--custom-theme-text);
+}
+
+body[data-custom-theme="true"] .primary-control-btn,
+body[data-custom-theme="true"] .control-btn.primary-control-btn {
+  border-color: var(--custom-theme-accent);
+  background-color: var(--custom-theme-accent);
+  color: var(--custom-theme-accent-text);
+}
+
+body[data-custom-theme="true"] a,
+body[data-custom-theme="true"] .config-json-key {
+  color: var(--custom-theme-accent);
+}

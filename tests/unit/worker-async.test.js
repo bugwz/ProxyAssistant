@@ -436,6 +436,11 @@ describe('Worker applyProxy async handling', () => {
       system: {
         app_language: 'zh-CN',
         theme_mode: 'dark',
+        custom_theme: {
+          name: 'Ocean',
+          base: 'dark',
+          colors: { accent: '#506070' }
+        },
         night_mode_start: '21:00',
         night_mode_end: '07:00',
         sync: {
@@ -487,9 +492,22 @@ describe('Worker applyProxy async handling', () => {
       language: 'zh-CN',
       theme: {
         mode: 'dark',
+        custom: {
+          name: 'Ocean',
+          base: 'dark',
+          colors: { accent: '#506070' }
+        },
         automation: { night: { start: '21:00', end: '07:00' } }
       }
     });
+    expect(Object.keys(compact)).toEqual([
+      'version',
+      'proxies',
+      'scenarios',
+      'subscriptions',
+      'system',
+      'updated_at'
+    ]);
     expect(compact.proxies[0]).not.toHaveProperty('is_new');
     expect(compact.proxies[0]).toMatchObject({
       id: 'proxy-a',

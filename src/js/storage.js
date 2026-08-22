@@ -91,6 +91,9 @@ const StorageModule = (function () {
       system: {
         app_language: 'zh-CN',
         theme_mode: 'light',
+        custom_theme: window.ThemeModule && window.ThemeModule.normalizeCustomTheme
+          ? window.ThemeModule.normalizeCustomTheme(null)
+          : null,
         night_mode_start: '22:00',
         night_mode_end: '06:00',
         sync: {

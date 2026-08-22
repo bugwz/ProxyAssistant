@@ -611,14 +611,15 @@
         <div class="page-heading">
           <div>
             <h1 data-i18n="nav_appearance">界面设置</h1>
-            <p data-i18n="theme_settings_desc">选择白天模式、夜间模式或自动切换</p>
+            <p data-i18n="appearance_settings_desc">设置界面语言与显示主题</p>
           </div>
         </div>
-        <div class="system-config-list">
+        <section class="appearance-section" aria-labelledby="appearance-language-heading">
+          <h2 id="appearance-language-heading" data-i18n="language_settings">语言设置</h2>
+          <div class="system-config-list">
           <div class="config-row">
           <div class="config-row-left">
-              <div class="config-row-title" data-i18n="language_settings">语言设置</div>
-              <div class="config-row-desc" data-i18n="select_language">选择语言</div>
+              <div class="config-row-title" data-i18n="select_language">选择语言</div>
           </div>
           <div class="config-row-right">
                <div class="lh-select language-selector">
@@ -641,18 +642,24 @@
                </div>
           </div>
       </div>
+          </div>
+        </section>
 
+        <section class="appearance-section" aria-labelledby="appearance-theme-heading">
+          <h2 id="appearance-theme-heading" data-i18n="theme_settings">主题设置</h2>
+          <div class="system-config-list">
           <div class="config-row">
           <div class="config-row-left">
-              <div class="config-row-title" data-i18n="theme_settings">主题模式</div>
-              <div class="config-row-desc" data-i18n="theme_settings_desc">选择白天模式、夜间模式或自动切换</div>
+              <div class="config-row-title" data-i18n="theme_preset">选择主题</div>
+              <div class="config-row-desc" data-i18n="theme_preset_desc">使用预设主题或创建自定义配色</div>
           </div>
           <div class="config-row-right">
-              <div class="theme-selector">
-                  <button class="theme-btn" data-theme="light" data-i18n="theme_light">白天</button>
-                  <button class="theme-btn" data-theme="dark" data-i18n="theme_dark">夜间</button>
-                  <button class="theme-btn" data-theme="auto" data-i18n="theme_auto">自动</button>
-              </div>
+              <select id="theme-preset-select" class="native-select-source" aria-label="选择主题" data-i18n-aria-label="theme_preset">
+                <option value="light" data-i18n="theme_light">白天</option>
+                <option value="dark" data-i18n="theme_dark">夜间</option>
+                <option value="auto" data-i18n="theme_auto">自动</option>
+                <option value="custom" data-i18n="theme_custom">自定义</option>
+              </select>
           </div>
       </div>
 
@@ -671,7 +678,22 @@
           </div>
       </div>
 
-        </div>
+          <div class="custom-theme-row" hidden>
+            <div class="custom-theme-heading">
+              <div>
+                <div class="config-row-title" data-i18n="custom_theme_json">主题代码（JSON）</div>
+                <div class="config-row-desc" data-i18n="custom_theme_json_desc">替换模板中的颜色值并应用</div>
+              </div>
+              <div class="custom-theme-actions">
+                <button type="button" class="control-btn" id="reset-custom-theme-btn" data-i18n="restore_template">恢复模板</button>
+                <button type="button" class="control-btn primary-control-btn" id="apply-custom-theme-btn" data-i18n="apply_theme">应用主题</button>
+              </div>
+            </div>
+            <textarea id="custom-theme-json" class="custom-theme-editor" spellcheck="false" aria-label="主题代码（JSON）" data-i18n-aria-label="custom_theme_json"></textarea>
+            <div id="custom-theme-error" class="custom-theme-error" role="alert" aria-live="polite" hidden></div>
+          </div>
+          </div>
+        </section>
       </section>
 
       <section class="main-page" id="page-about" data-page="about" hidden>

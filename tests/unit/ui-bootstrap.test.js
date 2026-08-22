@@ -20,7 +20,9 @@ describe('UI first-paint bootstrap', () => {
     jest.useFakeTimers();
     document.documentElement.setAttribute('data-ui-initializing', '');
     document.documentElement.removeAttribute('data-initial-theme');
+    document.documentElement.removeAttribute('style');
     document.body.removeAttribute('data-theme');
+    document.body.removeAttribute('data-custom-theme');
   });
 
   afterEach(() => {
@@ -65,5 +67,37 @@ describe('UI first-paint bootstrap', () => {
 
     jest.advanceTimersByTime(1);
     expect(document.documentElement.hasAttribute('data-ui-initializing')).toBe(false);
+  });
+
+  test('restores a custom theme before the first paint', () => {
+    runBootstrap({
+      system: {
+        theme_mode: 'custom',
+        custom_theme: {
+          base: 'light',
+          colors: {
+            background: '#102030',
+            accent: '#405060'
+          }
+        }
+      }
+    });
+
+    expect(document.documentElement.dataset.initialTheme).toBe('light');
+    expect(document.body.dataset.customTheme).toBe('true');
+    expect(document.documentElement.style.getPropertyValue('--custom-theme-background')).toBe('#102030');
+    expect(document.documentElement.style.getPropertyValue('--custom-theme-accent')).toBe('#405060');
+  });
+
+  test('uses light mode when a custom theme does not define a base', () => {
+    runBootstrap({
+      system: {
+        theme_mode: 'custom',
+        custom_theme: { colors: { background: '#102030' } }
+      }
+    });
+
+    expect(document.documentElement.dataset.initialTheme).toBe('light');
+    expect(document.body.hasAttribute('data-theme')).toBe(false);
   });
 });

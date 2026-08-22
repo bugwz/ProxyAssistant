@@ -249,6 +249,7 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
   if (namespace === 'local' && changes.config) {
     const newConfig = changes.config.newValue;
     if (newConfig) {
+      applyConfiguredTheme(newConfig.system || {});
       subscriptions = newConfig.subscriptions || [];
       scenarios = newConfig.scenarios?.lists || [];
       currentScenarioId = newConfig.scenarios?.current || 'default';
@@ -265,6 +266,11 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
 // ==========================================
 function applyConfiguredTheme(settings) {
   themeMode = settings.theme_mode || 'light';
+  if (themeMode === 'custom') {
+    const customTheme = settings.custom_theme || {};
+    applyTheme(customTheme.base === 'dark' ? 'dark' : 'light', customTheme);
+    return;
+  }
   if (themeMode !== 'auto') {
     applyTheme(themeMode);
     return;
@@ -282,7 +288,34 @@ function applyConfiguredTheme(settings) {
   applyTheme(isDark ? 'dark' : 'light');
 }
 
-function applyTheme(mode) {
+function applyTheme(mode, customTheme) {
+  const colorVariables = {
+    background: '--custom-theme-background',
+    surface: '--custom-theme-surface',
+    surface_alt: '--custom-theme-surface-alt',
+    text: '--custom-theme-text',
+    muted_text: '--custom-theme-muted-text',
+    border: '--custom-theme-border',
+    accent: '--custom-theme-accent',
+    accent_text: '--custom-theme-accent-text',
+    input_background: '--custom-theme-input-background',
+    selection_background: '--custom-theme-selection-background'
+  };
+  const rootStyle = document.documentElement?.style;
+  const isCustom = customTheme && customTheme.colors && typeof customTheme.colors === 'object';
+
+  if (rootStyle) {
+    Object.entries(colorVariables).forEach(([key, variable]) => {
+      const value = customTheme?.colors?.[key];
+      if (isCustom && typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value)) {
+        rootStyle.setProperty(variable, value);
+      } else if (!isCustom) {
+        rootStyle.removeProperty(variable);
+      }
+    });
+  }
+  if (isCustom) $('body').attr('data-custom-theme', 'true');
+  else $('body').removeAttr('data-custom-theme');
   if (mode === 'dark') {
     $('body').attr('data-theme', 'dark');
   } else {

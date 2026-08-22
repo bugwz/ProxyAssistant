@@ -641,7 +641,7 @@ input:checked+.slider-modern:before {
 }
 
 .lh-select.language-selector {
-  width: 150px;
+  width: 128px;
 }
 
 [data-theme="dark"] .lh-select {

@@ -118,6 +118,13 @@ function normalizeSyncSettings(sync) {
   };
 }
 
+function normalizeCustomThemeSetting(value) {
+  if (window.ThemeModule && typeof window.ThemeModule.normalizeCustomTheme === 'function') {
+    return window.ThemeModule.normalizeCustomTheme(value);
+  }
+  return value && typeof value === 'object' ? JSON.parse(JSON.stringify(value)) : null;
+}
+
 // ==========================================
 // Config Migration
 // ==========================================
@@ -249,6 +256,7 @@ function migrateConfig(config) {
   // Migrate settings from various possible sources
   applyIf(sourceSettings.appLanguage || sourceSettings.app_language, v5.system, 'app_language');
   applyIf(sourceSettings.themeMode || sourceSettings.theme_mode, v5.system, 'theme_mode');
+  applyIf(sourceSettings.customTheme || sourceSettings.custom_theme, v5.system, 'custom_theme');
   applyIf(sourceSettings.nightModeStart || sourceSettings.night_mode_start, v5.system, 'night_mode_start');
   applyIf(sourceSettings.nightModeEnd || sourceSettings.night_mode_end, v5.system, 'night_mode_end');
 
@@ -256,6 +264,7 @@ function migrateConfig(config) {
 
   if (config.themeSettings) {
     applyIf(config.themeSettings.mode, v5.system, 'theme_mode');
+    applyIf(config.themeSettings.customTheme || config.themeSettings.custom_theme, v5.system, 'custom_theme');
     applyIf(config.themeSettings.startTime || config.themeSettings.start_time, v5.system, 'night_mode_start');
     applyIf(config.themeSettings.endTime || config.themeSettings.end_time, v5.system, 'night_mode_end');
   }
@@ -266,6 +275,7 @@ function migrateConfig(config) {
 
   applyIf(sourceSystem.appLanguage || sourceSystem.app_language, v5.system, 'app_language');
   applyIf(sourceSystem.themeMode || sourceSystem.theme_mode, v5.system, 'theme_mode');
+  applyIf(sourceSystem.customTheme || sourceSystem.custom_theme, v5.system, 'custom_theme');
   applyIf(sourceSystem.nightModeStart || sourceSystem.night_mode_start, v5.system, 'night_mode_start');
   applyIf(sourceSystem.nightModeEnd || sourceSystem.night_mode_end, v5.system, 'night_mode_end');
 
@@ -276,6 +286,7 @@ function migrateConfig(config) {
   if (sourceSystem.settings) {
     applyIf(sourceSystem.settings.appLanguage || sourceSystem.settings.app_language, v5.system, 'app_language');
     applyIf(sourceSystem.settings.themeMode || sourceSystem.settings.theme_mode, v5.system, 'theme_mode');
+    applyIf(sourceSystem.settings.customTheme || sourceSystem.settings.custom_theme, v5.system, 'custom_theme');
     applyIf(sourceSystem.settings.nightModeStart || sourceSystem.settings.night_mode_start, v5.system, 'night_mode_start');
     applyIf(sourceSystem.settings.nightModeEnd || sourceSystem.settings.night_mode_end, v5.system, 'night_mode_end');
   }
@@ -287,6 +298,7 @@ function getDefaultSystemConfig() {
   return {
     app_language: I18n.getCurrentLanguage ? I18n.getCurrentLanguage() : 'zh-CN',
     theme_mode: 'light',
+    custom_theme: normalizeCustomThemeSetting(null),
     night_mode_start: '22:00',
     night_mode_end: '06:00',
     sync: normalizeSyncSettings()
@@ -396,6 +408,14 @@ function normalizeConfig(config) {
   if (!config.system) {
     config.system = getDefaultSystemConfig();
   }
+  const defaultSystem = getDefaultSystemConfig();
+  config.system.app_language = config.system.app_language || defaultSystem.app_language;
+  config.system.theme_mode = ['light', 'dark', 'auto', 'custom'].includes(config.system.theme_mode)
+    ? config.system.theme_mode
+    : defaultSystem.theme_mode;
+  config.system.night_mode_start = config.system.night_mode_start || defaultSystem.night_mode_start;
+  config.system.night_mode_end = config.system.night_mode_end || defaultSystem.night_mode_end;
+  config.system.custom_theme = normalizeCustomThemeSetting(config.system.custom_theme);
   const sourceSync = config.system.sync || {};
   config.system.sync = normalizeSyncSettings(sourceSync);
   if (!Array.isArray(config.subscriptions)) {
@@ -466,6 +486,9 @@ function buildConfigData(includeInternalState = false) {
     start: config.system?.night_mode_start || '22:00',
     end: config.system?.night_mode_end || '06:00'
   };
+  const currentCustomTheme = themeModule.getCustomTheme
+    ? themeModule.getCustomTheme()
+    : normalizeCustomThemeSetting(config.system?.custom_theme);
 
   // Process proxy list - filter out internal state variables
   const processProxies = (proxies) => {
@@ -550,20 +573,31 @@ function buildConfigData(includeInternalState = false) {
 
   return {
     version: 5,
-    updated_at: typeof config.updated_at === 'string' ? config.updated_at : null,
-    system: {
-      app_language: I18n.getCurrentLanguage ? I18n.getCurrentLanguage() : (config.system?.app_language || 'zh-CN'),
-      theme_mode: currentThemeMode,
-      night_mode_start: nightTimes.start,
-      night_mode_end: nightTimes.end,
-      sync: syncForExport
-    },
     scenarios: {
       current: config.scenarios.current,
       lists: formattedScenarios
     },
-    subscriptions: formattedSubscriptions
+    subscriptions: formattedSubscriptions,
+    system: {
+      app_language: I18n.getCurrentLanguage ? I18n.getCurrentLanguage() : (config.system?.app_language || 'zh-CN'),
+      theme_mode: currentThemeMode,
+      custom_theme: currentCustomTheme,
+      night_mode_start: nightTimes.start,
+      night_mode_end: nightTimes.end,
+      sync: syncForExport
+    },
+    updated_at: typeof config.updated_at === 'string' ? config.updated_at : null
   };
+}
+
+function orderConfigFileData(data) {
+  const ordered = { version: data.version };
+  if (Object.prototype.hasOwnProperty.call(data, 'proxies')) ordered.proxies = data.proxies;
+  if (Object.prototype.hasOwnProperty.call(data, 'scenarios')) ordered.scenarios = data.scenarios;
+  if (Object.prototype.hasOwnProperty.call(data, 'subscriptions')) ordered.subscriptions = data.subscriptions;
+  if (Object.prototype.hasOwnProperty.call(data, 'system')) ordered.system = data.system;
+  if (Object.prototype.hasOwnProperty.call(data, 'updated_at')) ordered.updated_at = data.updated_at;
+  return ordered;
 }
 
 function buildConfigFileData(options = {}) {
@@ -574,21 +608,24 @@ function buildConfigFileData(options = {}) {
   if (data.system) delete data.system.sync;
   if (data.system) {
     const system = data.system;
-    data.system = {
-      ...system,
-      language: system.app_language || 'zh-CN',
-      theme: {
-        mode: system.theme_mode || 'light',
-        automation: {
-          night: {
-            start: system.night_mode_start || '22:00',
-            end: system.night_mode_end || '06:00'
-          }
+    const theme = {
+      mode: system.theme_mode || 'light',
+      automation: {
+        night: {
+          start: system.night_mode_start || '22:00',
+          end: system.night_mode_end || '06:00'
         }
       }
     };
+    if (system.custom_theme) theme.custom = system.custom_theme;
+    data.system = {
+      ...system,
+      language: system.app_language || 'zh-CN',
+      theme: theme
+    };
     delete data.system.app_language;
     delete data.system.theme_mode;
+    delete data.system.custom_theme;
     delete data.system.night_mode_start;
     delete data.system.night_mode_end;
   }
@@ -637,7 +674,7 @@ function buildConfigFileData(options = {}) {
   data.scenarios = scenarios;
 
   if (!includeSubscriptions) {
-    return data;
+    return orderConfigFileData(data);
   }
 
   data.subscriptions = (subscriptions || []).map((subscription, subscriptionOrder) => {
@@ -679,7 +716,7 @@ function buildConfigFileData(options = {}) {
     return leftId < rightId ? -1 : 1;
   });
 
-  return data;
+  return orderConfigFileData(data);
 }
 
 function buildEditableConfigData(options = {}) {
@@ -756,6 +793,7 @@ function inflateConfigFileSystem(rawData) {
     const theme = data.system.theme;
     const night = theme.automation?.night || {};
     data.system.theme_mode = theme.mode || data.system.theme_mode || 'light';
+    data.system.custom_theme = theme.custom || data.system.custom_theme;
     data.system.night_mode_start = night.start || data.system.night_mode_start || '22:00';
     data.system.night_mode_end = night.end || data.system.night_mode_end || '06:00';
     delete data.system.theme;
@@ -954,12 +992,14 @@ function applyImportedSettings(data) {
       $('#current-language-display').text($(`#language-options li[data-value="${systemData.app_language}"]`).text());
     }
     if (systemData.theme_mode && window.ThemeModule) {
-      window.ThemeModule.setThemeMode(systemData.theme_mode);
+      if (systemData.custom_theme) {
+        window.ThemeModule.setCustomTheme(systemData.custom_theme);
+      }
       window.ThemeModule.setNightModeTimes(
         systemData.night_mode_start || '22:00',
         systemData.night_mode_end || '06:00'
       );
-      window.ThemeModule.updateThemeUI();
+      window.ThemeModule.setThemeMode(systemData.theme_mode);
     }
     if (systemData.sync && window.SyncModule) {
       window.SyncModule.setSyncConfig(systemData.sync);
