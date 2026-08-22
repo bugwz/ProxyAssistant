@@ -115,23 +115,41 @@ describe('main page translated section labels', () => {
     });
   });
 
-  test('runtime status navigation label should be translated in every language', () => {
+  test('proxy status navigation label should be translated in every language', () => {
     const expectations = {
-      'zh-CN': '运行状态',
-      'zh-TW': '運行狀態',
-      'en': 'Runtime Status',
-      'ja': '稼働状況',
-      'fr': 'État de fonctionnement',
-      'de': 'Betriebsstatus',
-      'es': 'Estado operativo',
-      'ko': '실행 상태',
-      'pt': 'Status operacional',
-      'ru': 'Состояние работы'
+      'zh-CN': '代理状态',
+      'zh-TW': '代理狀態',
+      'en': 'Proxy Status',
+      'ja': 'プロキシ状態',
+      'fr': 'État du proxy',
+      'de': 'Proxy-Status',
+      'es': 'Estado del proxy',
+      'ko': '프록시 상태',
+      'pt': 'Status do proxy',
+      'ru': 'Состояние прокси'
     };
 
     Object.entries(expectations).forEach(([lang, label]) => {
       window.I18n.setLanguage(lang);
       expect(window.I18n.t('nav_diagnostics')).toBe(label);
+    });
+  });
+
+  test('runtime log interface uses internationalized labels in every language', () => {
+    ['zh-CN', 'zh-TW', 'en', 'ja', 'fr', 'de', 'es', 'ko', 'pt', 'ru'].forEach(lang => {
+      window.I18n.setLanguage(lang);
+      expect(window.I18n.t('runtime_logs_title')).not.toBe('runtime_logs_title');
+      expect(window.I18n.t('runtime_log_level_error')).not.toBe('runtime_log_level_error');
+      expect(window.I18n.t('runtime_log_event_proxy_apply_failed')).not.toBe('runtime_log_event_proxy_apply_failed');
+      expect(window.I18n.t('runtime_logs_clear_confirm_title')).not.toBe('runtime_logs_clear_confirm_title');
+      expect(window.I18n.t('runtime_logs_clear_confirm_message')).not.toBe('runtime_logs_clear_confirm_message');
+      expect(window.I18n.t('pac_details_title')).not.toBe('pac_details_title');
+      expect(window.I18n.t('pac_fetching')).not.toBe('pac_fetching');
+      expect(window.I18n.t('pac_last_fetched')).not.toBe('pac_last_fetched');
+      expect(window.I18n.t('config_last_fetched')).not.toBe('config_last_fetched');
+      expect(window.I18n.t('config_refresh')).not.toBe('config_refresh');
+      expect(window.I18n.t('config_fetching')).not.toBe('config_fetching');
+      expect(window.I18n.t('config_file_size_details')).not.toBe('config_file_size_details');
     });
   });
 

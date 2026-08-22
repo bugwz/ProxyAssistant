@@ -11,6 +11,25 @@
   min-height: 78px;
 }
 
+.diagnostics-refresh-icon {
+  transform-origin: center;
+}
+
+.diagnostics-card .refresh-control-btn:disabled {
+  opacity: 0.65;
+  cursor: pointer;
+}
+
+.diagnostics-card .control-btn:disabled .diagnostics-refresh-icon {
+  animation: diagnostics-refresh-spin 0.8s linear infinite;
+}
+
+@keyframes diagnostics-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .diagnostics-detection-card .proxy-detection-content {
   min-height: 0;
   padding: 24px 20px 26px;
@@ -18,9 +37,17 @@
   text-align: left;
 }
 
+.diagnostics-detection-card .detection-value {
+  transition: opacity 180ms ease;
+}
+
+.diagnostics-detection-card .proxy-detection-content.is-refreshing .detection-value {
+  opacity: 0.55;
+}
+
 .diagnostics-card .detection-overview {
   display: grid;
-  grid-template-columns: minmax(0, 20%) repeat(2, minmax(0, 40%));
+  grid-template-columns: minmax(0, 30%) minmax(0, 70%);
   margin-bottom: 16px;
   overflow: hidden;
   border: 1px solid #e2e8f0;
@@ -84,10 +111,6 @@
   padding: 18px 20px 16px;
 }
 
-.diagnostics-card .detection-info-group + .detection-info-group {
-  border-left: 1px solid #e2e8f0;
-}
-
 .diagnostics-card .detection-info-group h3 {
   margin: 0 0 14px;
   color: #1e293b;
@@ -97,7 +120,7 @@
 
 .diagnostics-card .detection-info-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   column-gap: 20px;
 }
 
@@ -111,7 +134,7 @@
   border-bottom: 1px solid #eef0f2;
 }
 
-.diagnostics-card .detection-row:nth-last-child(-n + 2) {
+.diagnostics-card .detection-row:nth-last-child(-n + 3) {
   border-bottom: none;
 }
 
@@ -126,35 +149,380 @@
 }
 
 .diagnostics-pac-card .pac-details-content {
-  padding: 22px 20px 24px;
+  padding: 20px;
   margin: 0;
 }
 
-.diagnostics-pac-card .pac-info-section {
-  margin: 0 0 24px;
-  padding: 0 16px;
-  background-color: #f8fafc;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
+.diagnostics-pac-card .pac-script-wrapper.collapsed {
+  display: none;
 }
 
-.diagnostics-pac-card .pac-script-section {
-  margin-top: 0;
+.diagnostics-pac-card .pac-script-wrapper {
+  position: relative;
+}
+
+.diagnostics-pac-card .pac-script-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+  background-color: #f8fafc;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.diagnostics-pac-card .pac-details-content.is-refreshing .pac-script-loading {
+  display: flex;
 }
 
 .diagnostics-pac-card .pac-script-content {
+  width: 100%;
   min-height: 260px;
   max-height: 420px;
   box-sizing: border-box;
+  margin: 0;
+  overflow: auto;
+  padding: 10px 0;
+  border: 0;
+  border-radius: 0;
+  background: #f8fafc;
+  color: #334155;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.65;
+  tab-size: 2;
+  word-break: normal;
 }
 
-.diagnostics-pac-card .pac-rules-count-info {
-  min-height: 28px;
+.diagnostics-pac-card .pac-script-content .config-json-line {
+  min-height: 20px;
 }
 
-body[data-theme="dark"] .diagnostics-pac-card .pac-info-section {
-  background-color: #21262d;
-  border-color: #3b424d;
+body[data-theme="dark"] .diagnostics-pac-card .pac-script-content {
+  background: #111827;
+  color: #dbe4f0;
+}
+
+body[data-theme="dark"] .diagnostics-pac-card .pac-script-loading {
+  background-color: #111827;
+  color: #94a3b8;
+}
+
+.diagnostics-log-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.runtime-log-filter {
+  width: 150px;
+}
+
+.runtime-log-content {
+  min-height: 320px;
+  padding: 20px;
+}
+
+.runtime-log-shell {
+  min-height: 320px;
+  background: #f8fafc;
+}
+
+.runtime-log-meta-toolbar {
+  justify-content: space-between;
+}
+
+.runtime-log-live-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1.5px solid #94a3b8;
+  border-radius: 50%;
+}
+
+.runtime-log-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #94a3b8;
+  transform: scale(0.72);
+  transform-origin: center;
+}
+
+.runtime-log-live-btn[aria-pressed="true"] .runtime-log-live-indicator {
+  border-color: #65a30d;
+}
+
+.runtime-log-live-btn[aria-pressed="true"] .runtime-log-live-dot {
+  background: #22c55e;
+  animation: runtime-log-live-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes runtime-log-live-pulse {
+  0%, 100% {
+    transform: scale(0.72);
+    opacity: 0.7;
+  }
+
+  50% {
+    transform: scale(1.25);
+    opacity: 1;
+  }
+}
+
+.runtime-log-wrapper {
+  position: relative;
+  min-height: 281px;
+}
+
+.runtime-log-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 281px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.runtime-log-shell.is-refreshing .runtime-log-loading {
+  display: flex;
+}
+
+.runtime-log-list {
+  max-height: 560px;
+  overflow: auto;
+  background: #f8fafc;
+  color: #334155;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.runtime-log-item {
+  display: grid;
+  grid-template-columns: 44px max-content max-content minmax(0, 1fr);
+  align-items: start;
+  gap: 6px;
+  min-height: 26px;
+  box-sizing: border-box;
+  padding: 4px 16px 4px 0;
+}
+
+.runtime-log-item:hover {
+  background: rgba(65, 100, 245, 0.05);
+}
+
+.runtime-log-gutter {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  align-self: stretch;
+  display: flex;
+  justify-content: flex-end;
+  box-sizing: border-box;
+  padding-right: 8px;
+  background: #f8fafc;
+  color: #94a3b8;
+  user-select: none;
+}
+
+.runtime-log-line-number {
+  min-width: 24px;
+  text-align: right;
+}
+
+.runtime-log-level {
+  color: #475569;
+  font-weight: 400;
+}
+
+.runtime-log-meta-toolbar .config-json-meta-item:not(#runtime-log-total-info) .config-json-meta-label,
+.runtime-log-meta-toolbar .config-json-meta-item:not(#runtime-log-total-info) .config-json-meta-value {
+  font-weight: 400;
+}
+
+.runtime-log-error .runtime-log-level {
+  color: #dc2626;
+}
+
+.runtime-log-warning .runtime-log-level {
+  color: #8a7300;
+}
+
+#runtime-log-warning-info .config-json-meta-label,
+#runtime-log-warning-info .config-json-meta-value {
+  color: #8a7300;
+}
+
+#runtime-log-error-info .config-json-meta-label,
+#runtime-log-error-info .config-json-meta-value {
+  color: #dc2626;
+}
+
+.runtime-log-time {
+  min-width: 0;
+  overflow: hidden;
+  color: #7c8798;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runtime-log-message {
+  min-width: 0;
+  color: #1e293b;
+  font: inherit;
+  overflow-wrap: anywhere;
+}
+
+.runtime-log-empty {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #8a94a3;
+  font-size: 13px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.runtime-log-empty[hidden] {
+  display: none;
+}
+
+html.runtime-logs-page-active,
+body.runtime-logs-page-active {
+  height: 100%;
+  overflow: hidden;
+}
+
+body.runtime-logs-page-active .main-container,
+body.runtime-logs-page-active .main-content {
+  height: 100dvh;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+body.runtime-logs-page-active #page-runtime-logs {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+body.runtime-logs-page-active #page-runtime-logs > .page-heading,
+body.runtime-logs-page-active .runtime-log-meta-toolbar {
+  flex: 0 0 auto;
+}
+
+body.runtime-logs-page-active .diagnostics-logs-card,
+body.runtime-logs-page-active .runtime-log-content,
+body.runtime-logs-page-active .runtime-log-shell {
+  min-height: 0;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+body.runtime-logs-page-active .runtime-log-wrapper {
+  min-height: 0;
+  display: grid;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+body.runtime-logs-page-active .runtime-log-list,
+body.runtime-logs-page-active .runtime-log-empty,
+body.runtime-logs-page-active .runtime-log-loading {
+  grid-area: 1 / 1;
+  min-height: 0;
+  max-height: none;
+}
+
+body.runtime-logs-page-active .runtime-log-list {
+  height: 100%;
+  overflow: auto;
+}
+
+body[data-theme="dark"] .runtime-log-list,
+body[data-theme="dark"] .runtime-log-shell,
+body[data-theme="dark"] .runtime-log-gutter,
+body[data-theme="dark"] .runtime-log-loading {
+  background: #111827;
+}
+
+body[data-theme="dark"] .runtime-log-live-indicator {
+  border-color: #64748b;
+}
+
+body[data-theme="dark"] .runtime-log-live-dot {
+  background: #64748b;
+}
+
+body[data-theme="dark"] .runtime-log-live-btn[aria-pressed="true"] .runtime-log-live-indicator {
+  border-color: #4d7c0f;
+}
+
+body[data-theme="dark"] .runtime-log-live-btn[aria-pressed="true"] .runtime-log-live-dot {
+  background: #4ade80;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .runtime-log-live-btn[aria-pressed="true"] .runtime-log-live-dot {
+    animation: none;
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+body[data-theme="dark"] .runtime-log-list {
+  color: #dbe4f0;
+}
+
+body[data-theme="dark"] .runtime-log-level {
+  color: #cbd5e1;
+}
+
+body[data-theme="dark"] .runtime-log-error .runtime-log-level {
+  color: #fca5a5;
+}
+
+body[data-theme="dark"] .runtime-log-warning .runtime-log-level {
+  color: #d4b94f;
+}
+
+body[data-theme="dark"] #runtime-log-warning-info .config-json-meta-label,
+body[data-theme="dark"] #runtime-log-warning-info .config-json-meta-value {
+  color: #d4b94f;
+}
+
+body[data-theme="dark"] #runtime-log-error-info .config-json-meta-label,
+body[data-theme="dark"] #runtime-log-error-info .config-json-meta-value {
+  color: #fca5a5;
+}
+
+body[data-theme="dark"] .runtime-log-message {
+  color: #f1f5f9;
+}
+
+body[data-theme="dark"] .runtime-log-time {
+  color: #9aa6b5;
 }
 
 body[data-theme="dark"] .diagnostics-card .detection-checked-time {
@@ -170,16 +538,24 @@ body[data-theme="dark"] .diagnostics-card .detection-summary {
   border-right-color: #3b424d;
 }
 
-body[data-theme="dark"] .diagnostics-card .detection-info-group + .detection-info-group {
-  border-left-color: #3b424d;
-}
-
 body[data-theme="dark"] .diagnostics-card .detection-info-group h3 {
   color: #f1f5f9;
 }
 
 body[data-theme="dark"] .diagnostics-card .detection-row {
   border-bottom-color: #353a43;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .diagnostics-card .control-btn:disabled .diagnostics-refresh-icon,
+  .diagnostics-card .detection-status-icon .spin {
+    animation: none;
+  }
+
+  .diagnostics-detection-card .detection-value {
+    transition: none;
+  }
+
 }
 
 @media (max-width: 680px) {
@@ -200,8 +576,16 @@ body[data-theme="dark"] .diagnostics-card .detection-row {
     border-top: 1px solid #e2e8f0;
   }
 
-  .diagnostics-card .detection-info-group + .detection-info-group {
-    border-left: none;
+  .diagnostics-card .detection-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .diagnostics-card .detection-row:nth-last-child(-n + 3) {
+    border-bottom: 1px solid #eef0f2;
+  }
+
+  .diagnostics-card .detection-row:nth-last-child(-n + 2) {
+    border-bottom: none;
   }
 
   .diagnostics-card .detection-error-group {
@@ -213,10 +597,33 @@ body[data-theme="dark"] .diagnostics-card .detection-row {
   }
 
   .diagnostics-pac-card .pac-details-content {
-    padding: 18px 16px 20px;
+    padding: 16px;
   }
 
   .diagnostics-pac-card .pac-script-content {
     min-height: 220px;
+  }
+
+  .diagnostics-log-actions {
+    align-items: stretch;
+  }
+
+  .diagnostics-log-actions {
+    width: 100%;
+  }
+
+  .runtime-log-filter {
+    flex: 1 1 auto;
+    width: auto;
+  }
+
+  .runtime-log-content {
+    padding: 0 14px 14px;
+  }
+
+  .runtime-log-item {
+    grid-template-columns: 40px max-content max-content minmax(0, 1fr);
+    gap: 4px;
+    padding-right: 10px;
   }
 }

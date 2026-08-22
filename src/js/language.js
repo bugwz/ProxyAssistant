@@ -21,6 +21,10 @@ function initLanguage() {
       .find('.lh-select-op').hide().removeClass('drop-up');
 
     I18n.setLanguage(lang, { persist: false });
+    $('select.native-select-source').trigger('change');
+    if (typeof DetectionModule !== 'undefined' && typeof DetectionModule.renderRuntimeLogs === 'function') {
+      DetectionModule.renderRuntimeLogs();
+    }
 
     const config = StorageModule.getConfig();
     if (config && config.system) {

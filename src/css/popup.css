@@ -20,6 +20,7 @@
   --success-color: #22c55e;
   --warning-color: #f97316;
   --danger-color: #ef4444;
+  --disabled-status-color: #94a3b8;
 
   --header-bg: linear-gradient(135deg, #4164f5 0%, #3050d0 100%);
   --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.05);
@@ -56,6 +57,7 @@
   --success-color: #4ade80;
   --warning-color: #fb923c;
   --danger-color: #f87171;
+  --disabled-status-color: #94a3b8;
 
   --header-bg: #1a1a1a;
   --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.3);
@@ -68,6 +70,18 @@
 }
 
 /* ========== Base Styles ========== */
+html[data-ui-initializing] {
+  background-color: #ffffff;
+}
+
+html[data-ui-initializing][data-initial-theme="dark"] {
+  background-color: #212121;
+}
+
+html[data-ui-initializing] body {
+  visibility: hidden;
+}
+
 html,
 body {
   padding: 0;
@@ -239,7 +253,7 @@ body {
 }
 
 .mode-btn[data-mode="disabled"].active {
-  color: var(--danger-color);
+  color: var(--disabled-status-color);
 }
 
 .mode-btn[data-mode="manual"].active {

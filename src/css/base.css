@@ -6,6 +6,18 @@
   --layer-notification: 2000;
 }
 
+html[data-ui-initializing] {
+  background-color: #f6f7f9;
+}
+
+html[data-ui-initializing][data-initial-theme="dark"] {
+  background-color: #15181d;
+}
+
+html[data-ui-initializing] body {
+  visibility: hidden;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -106,6 +118,7 @@ html[data-initial-main-page="subscriptions"] .main-nav-item[data-main-page="subs
 html[data-initial-main-page="config"] .main-nav-item[data-main-page="config"],
 html[data-initial-main-page="sync"] .main-nav-item[data-main-page="sync"],
 html[data-initial-main-page="diagnostics"] .main-nav-item[data-main-page="diagnostics"],
+html[data-initial-main-page="runtime-logs"] .main-nav-item[data-main-page="runtime-logs"],
 html[data-initial-main-page="appearance"] .main-nav-item[data-main-page="appearance"],
 html[data-initial-main-page="about"] .main-nav-item[data-main-page="about"] {
   background-color: #eef2ff;
@@ -154,13 +167,15 @@ html[data-initial-main-page="about"] .main-nav-item[data-main-page="about"] {
   width: 24px;
   height: 24px;
   color: #697386;
+  background-color: transparent;
   border-radius: 4px;
-  transition: color 0.2s ease, background-color 0.2s ease;
+  transition: color 0.2s ease;
 }
 
-.sidebar-github-link:hover {
+.sidebar-github-link:hover,
+.sidebar-github-link:active {
   color: #182235;
-  background-color: #f0f2f5;
+  background-color: transparent;
 }
 
 .sidebar-github-link:focus {
@@ -200,8 +215,8 @@ html[data-initial-main-page="subscriptions"] .main-page[data-page="subscriptions
 html[data-initial-main-page="config"] .main-page[data-page="config"],
 html[data-initial-main-page="sync"] .main-page[data-page="sync"],
 html[data-initial-main-page="diagnostics"] .main-page[data-page="diagnostics"],
+html[data-initial-main-page="runtime-logs"] .main-page[data-page="runtime-logs"],
 html[data-initial-main-page="appearance"] .main-page[data-page="appearance"],
 html[data-initial-main-page="about"] .main-page[data-page="about"] {
   display: block !important;
 }
-

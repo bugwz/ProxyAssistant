@@ -59,8 +59,9 @@ describe('StorageModule subscription synchronization', () => {
     delete window.ConfigModule;
   });
 
-  test('persists a normalized configuration after loading migrated IDs', async () => {
+  test('persists a normalized configuration without changing its update time', async () => {
     const storedConfig = createConfig('rules');
+    storedConfig.updated_at = '2026-08-20T06:30:00.000Z';
     const normalizedConfig = JSON.parse(JSON.stringify(storedConfig));
     normalizedConfig.scenarios.current = 'scenario_20250213134422';
     normalizedConfig.scenarios.lists[0].id = 'scenario_20250213134422';
@@ -74,7 +75,25 @@ describe('StorageModule subscription synchronization', () => {
     expect(chromeMock.storage.local.set).toHaveBeenCalledTimes(1);
     const payload = chromeMock.storage.local.set.mock.calls[0][0];
     expect(payload.config.scenarios.current).toBe('scenario_20250213134422');
-    expect(payload.config.updated_at).toBe(payload.config_updated_at);
+    expect(payload.config.updated_at).toBe('2026-08-20T06:30:00.000Z');
+    expect(payload.config_updated_at).toBe('2026-08-20T06:30:00.000Z');
+  });
+
+  test('does not write or update the timestamp when loading an unchanged configuration', async () => {
+    const storedConfig = createConfig('rules');
+    storedConfig.updated_at = '2026-08-20T06:30:00.000Z';
+    window.ConfigModule = {
+      migrateConfig: jest.fn(config => config)
+    };
+    chromeMock.storage.local.get.mockImplementation((keys, callback) => callback({
+      config: storedConfig,
+      config_updated_at: storedConfig.updated_at
+    }));
+
+    await storageModule.init();
+
+    expect(chromeMock.storage.local.set).not.toHaveBeenCalled();
+    expect(storageModule.getConfigUpdatedAt()).toBe('2026-08-20T06:30:00.000Z');
   });
 
   test('merges refreshed subscriptions without replacing local edits', async () => {

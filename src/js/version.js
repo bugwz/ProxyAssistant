@@ -10,8 +10,21 @@ const versionIcons = {
   link: MainIcons.render('externalLink', { width: 16, height: 16 })
 };
 
+const MIN_VERSION_REFRESH_FEEDBACK_MS = 600;
 let loadedLanguage = null;
 let versionInfoPromise = null;
+
+function waitForVersionRefreshFeedback(startTime) {
+  const remainingTime = MIN_VERSION_REFRESH_FEEDBACK_MS - (Date.now() - startTime);
+  return remainingTime > 0
+    ? new Promise(resolve => setTimeout(resolve, remainingTime))
+    : Promise.resolve();
+}
+
+function getGitHubRefreshButton() {
+  const label = I18n.t('config_refresh');
+  return `<button class="version-row-retry-btn github-refresh-btn" data-source="github" title="${label}" aria-label="${label}">${MainIcons.render('refresh', { width: 14, height: 14, className: 'version-refresh-icon' })}</button>`;
+}
 
 async function loadVersionInfo() {
   const currentLanguage = I18n.getCurrentLanguage();
@@ -105,13 +118,16 @@ async function checkStoreVersion(currentVersion, isRetry = false) {
   </a>`);
 }
 
-async function checkGitHubVersion(currentVersion) {
+async function checkGitHubVersion(currentVersion, isRetry = false) {
   const $el = $("#github-version-value");
   const GITHUB_API_URL = 'https://api.github.com/repos/bugwz/ProxyAssistant/releases/latest';
   const MAX_RETRIES = 3;
   const RETRY_DELAYS = [1000, 2000, 3000];
+  const refreshStartedAt = Date.now();
 
-  $el.html(`<span class="version-status-icon">${versionIcons.loading}</span> <span>${I18n.t('version_checking')}</span>`);
+  if (!isRetry) {
+    $el.html(`<span class="version-status-icon">${versionIcons.loading}</span> <span>${I18n.t('version_checking')}</span>`);
+  }
 
   async function fetchWithRetry(attempt = 0) {
     const controller = new AbortController();
@@ -128,6 +144,7 @@ async function checkGitHubVersion(currentVersion) {
       if (response.ok) {
         const data = await response.json();
         const version = data.tag_name.replace(/^v/, '');
+        if (isRetry) await waitForVersionRefreshFeedback(refreshStartedAt);
         updateVersionUI($el, version, currentVersion, data.html_url);
         return true;
       } else if (response.status === 403 || response.status === 429 || response.status >= 500) {
@@ -151,7 +168,8 @@ async function checkGitHubVersion(currentVersion) {
     await fetchWithRetry();
   } catch (e) {
     console.info("GitHub version check failed after retries:", e);
-    const refreshBtn = `<button class="version-row-retry-btn github-refresh-btn" data-source="github">${MainIcons.render('refresh', { width: 14, height: 14 })}</button>`;
+    if (isRetry) await waitForVersionRefreshFeedback(refreshStartedAt);
+    const refreshBtn = getGitHubRefreshButton();
     const errorHtml = `<span class="version-status-icon">${versionIcons.error}</span>
       <span style="color: #ef4444; font-size: 12px;">${I18n.t('version_error') || 'Failed'}</span>`;
     $el.html(errorHtml + refreshBtn);
@@ -174,7 +192,7 @@ function updateVersionUI($el, remoteVersion, currentVersion, url) {
 
   $el.html(html);
 
-  const refreshBtn = `<button class="version-row-retry-btn github-refresh-btn" data-source="github">${MainIcons.render('refresh', { width: 14, height: 14 })}</button>`;
+  const refreshBtn = getGitHubRefreshButton();
   $el.append(refreshBtn);
 }
 

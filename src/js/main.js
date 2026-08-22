@@ -39,7 +39,9 @@ const CONFIG_INCLUDE_SUBSCRIPTIONS_KEY = 'proxyAssistant.config.includeSubscript
 const CONFIG_INCLUDE_SUBSCRIPTION_CACHE_KEY = 'proxyAssistant.config.includeSubscriptionCache';
 const CONFIG_FILE_OPTIONS_STORAGE_KEY = 'config_file_options';
 const CONFIG_UPDATED_AT_KEY = 'config_updated_at';
+const MIN_CONFIG_REFRESH_FEEDBACK_MS = 600;
 let configLastUpdatedAt = null;
+let configLastFetchedAt = null;
 
 document.addEventListener('DOMContentLoaded', function () {
   initConfigFileOptions();
@@ -55,16 +57,27 @@ function initApp() {
   // Initialize storage module
   StorageModule.init().then(() => {
     LanguageModule.initLanguage();
-    ThemeModule.initTheme();
+    ThemeModule.initTheme(StorageModule.getConfig());
     ScenariosModule.init();
     ProxyModule.init();
     SubscriptionModule.init();
     initDropdowns();
+    DetectionModule.initRuntimeLogs();
     loadSettings();
     bindGlobalEvents();
+    finishMainUIInitialization();
   }).catch(err => {
     console.info('Failed to initialize storage:', err);
+    finishMainUIInitialization();
   });
+}
+
+function finishMainUIInitialization() {
+  if (typeof window.finishUIInitialization === 'function') {
+    window.finishUIInitialization();
+    return;
+  }
+  document.documentElement.removeAttribute('data-ui-initializing');
 }
 
 function initMainNavigation() {
@@ -110,6 +123,8 @@ function switchMainPage(pageId) {
 
   if (!$targetPage.length || !$targetNav.length) return false;
 
+  $('html, body').toggleClass('runtime-logs-page-active', pageId === 'runtime-logs');
+
   $('.main-nav-item')
     .removeClass('active')
     .removeAttr('aria-current');
@@ -131,6 +146,10 @@ function switchMainPage(pageId) {
   if (pageId === 'diagnostics' && typeof DetectionModule !== 'undefined') {
     if (DetectionModule.detectProxy) DetectionModule.detectProxy();
     if (DetectionModule.showPacDetails) DetectionModule.showPacDetails();
+  }
+
+  if (pageId === 'runtime-logs' && typeof DetectionModule !== 'undefined' && DetectionModule.loadRuntimeLogs) {
+    DetectionModule.loadRuntimeLogs();
   }
 
   if (pageId === 'scenarios' && typeof ScenariosModule !== 'undefined' && ScenariosModule.renderScenarioManagementList) {
@@ -249,6 +268,16 @@ function saveConfigFileOptions() {
     // The switches still work for the current page when local storage is unavailable.
   }
   persistConfigFileOptions(options);
+  chrome.runtime.sendMessage({
+    action: 'recordRuntimeLog',
+    level: 'info',
+    category: 'system',
+    event: 'config_file_options_updated',
+    details: options
+  }, function () {
+    // The option itself is already saved; logging must not block the UI.
+    void chrome.runtime.lastError;
+  });
   return options;
 }
 
@@ -334,6 +363,14 @@ function formatConfigFileSize(text) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function getCompactConfigText(text) {
+  try {
+    return JSON.stringify(JSON.parse(text));
+  } catch (error) {
+    return text;
+  }
+}
+
 function formatConfigUpdatedAt(value) {
   if (!value) return I18n.t('config_never_updated');
   const date = new Date(value);
@@ -360,10 +397,18 @@ function updateConfigJsonMetadata(text = getConfigEditorText()) {
   }
 
   $('#config-json-version').text(version);
-  $('#config-json-size').text(formatConfigFileSize(String(text || '')));
+  const formattedText = String(text || '');
+  const sizeDetails = I18n.t('config_file_size_details');
+  $('#config-json-size')
+    .text(`${formatConfigFileSize(formattedText)} / ${formatConfigFileSize(getCompactConfigText(formattedText))}`)
+    .attr('title', sizeDetails)
+    .attr('data-i18n-title', 'config_file_size_details');
   $('#config-json-updated-at')
     .removeAttr('data-i18n')
     .text(formatConfigUpdatedAt(configLastUpdatedAt));
+  $('#config-json-last-fetched-at')
+    .removeAttr('data-i18n')
+    .text(formatConfigUpdatedAt(configLastFetchedAt));
 }
 
 function getConfigEditorText() {
@@ -403,7 +448,7 @@ function updateConfigJsonFoldAction() {
 
 function refreshConfigEditor(force = false) {
   const $editor = $('#config-json-editor');
-  if (!$editor.length) return;
+  if (!$editor.length) return false;
 
   try {
     const data = ConfigModule.buildEditableConfigData
@@ -413,13 +458,46 @@ function refreshConfigEditor(force = false) {
     configLastUpdatedAt = typeof StorageModule.getConfigUpdatedAt === 'function'
       ? StorageModule.getConfigUpdatedAt()
       : configLastUpdatedAt;
+    configLastFetchedAt = new Date();
     $editor.prop('readonly', true);
     setConfigEditorText(text, { resetScroll: true });
-    $('#config-editor-state')
-      .text(I18n.t('config_readonly'));
+    return true;
   } catch (error) {
     console.info('Failed to render configuration editor:', error);
+    return false;
   }
+}
+
+function refreshConfigEditorWithFeedback() {
+  const refreshStartedAt = Date.now();
+  const $button = $('#refresh-config-json-btn').prop('disabled', true);
+  const $wrapper = $('#config-json-code-wrapper');
+  const previousHeight = $wrapper[0]?.getBoundingClientRect().height;
+  if (previousHeight > 0) {
+    $wrapper.css('height', `${previousHeight}px`);
+  }
+  $wrapper
+    .addClass('is-refreshing')
+    .attr('aria-busy', 'true');
+  const $loading = $('#config-json-loading').attr('aria-hidden', 'false');
+  $('#config-json-editor').val('');
+  $('#config-json-code').empty();
+  $('#copy-config-json-btn, #toggle-config-json-fold-btn').prop('disabled', true);
+
+  const remainingTime = MIN_CONFIG_REFRESH_FEEDBACK_MS - (Date.now() - refreshStartedAt);
+  const feedbackDelay = remainingTime > 0
+    ? new Promise(resolve => setTimeout(resolve, remainingTime))
+    : Promise.resolve();
+
+  return feedbackDelay.then(() => refreshConfigEditor(true)).finally(() => {
+    $wrapper
+      .removeClass('is-refreshing')
+      .attr('aria-busy', 'false')
+      .css('height', '');
+    $loading.attr('aria-hidden', 'true');
+    $button.prop('disabled', false);
+    $('#copy-config-json-btn').prop('disabled', false);
+  });
 }
 
 function refreshMainView(options) {
@@ -512,7 +590,7 @@ function syncNativeSelect($select) {
 function enhanceNativeSelects(root) {
   const $root = $(root || document);
   let $selects = $root.is('select') ? $root : $root.find('select');
-  $selects = $selects.filter(':not([multiple])').not('.native-select-source');
+  $selects = $selects.filter(':not([multiple])');
 
   $selects.each(function () {
     const $select = $(this);
@@ -757,15 +835,16 @@ function bindGlobalEvents() {
     $(`#${type}-sync-interval`).prop('disabled', isDisabled).trigger('change');
   });
 
-  $("#save-sync-config").on("click", function () {
+  $(".save-sync-config").on("click", function () {
+    const type = $(this).data('sync-service');
     UtilsModule.showProcessingTip(I18n.t('processing'));
     const config = SyncModule.getSyncConfig();
-    config.gist.token = $("#gist-token").val();
-    config.gist.filename = $("#gist-filename").val() || 'proxy_assistant_config.json';
-    ['native', 'gist'].forEach(type => {
-      config[type].auto_mode = $(`#${type}-sync-auto-mode`).val() || 'off';
-      config[type].interval_minutes = Number($(`#${type}-sync-interval`).val()) || 360;
-    });
+    config[type].auto_mode = $(`#${type}-sync-auto-mode`).val() || 'off';
+    config[type].interval_minutes = Number($(`#${type}-sync-interval`).val()) || 360;
+    if (type === 'gist') {
+      config.gist.token = $("#gist-token").val();
+      config.gist.filename = $("#gist-filename").val() || 'proxy_assistant_config.json';
+    }
 
     StorageModule.setSyncConfig(config);
     StorageModule.save().then(() => {
@@ -786,18 +865,24 @@ function bindGlobalEvents() {
     SyncModule.manualPush($(this).data('sync-service'), getConfigFileOptions());
   });
 
-  $("#test-sync-connection").on("click", async function () {
+  $(".test-sync-connection").on("click", async function () {
     const $btn = $(this);
+    const type = $btn.data('sync-service');
     const originalText = $btn.find('span').text();
     UtilsModule.showProcessingTip(I18n.t('processing'));
     $btn.prop('disabled', true).find('span').text(I18n.t('testing'));
 
     try {
-      const config = SyncModule.getSyncConfig();
-      config.gist.token = $("#gist-token").val();
-      config.gist.filename = $("#gist-filename").val() || 'proxy_assistant_config.json';
-      SyncModule.setSyncConfig(config);
-      const resultMsg = await SyncModule.testGistConnection();
+      let resultMsg;
+      if (type === 'gist') {
+        const config = SyncModule.getSyncConfig();
+        config.gist.token = $("#gist-token").val();
+        config.gist.filename = $("#gist-filename").val() || 'proxy_assistant_config.json';
+        SyncModule.setSyncConfig(config);
+        resultMsg = await SyncModule.testGistConnection();
+      } else {
+        resultMsg = await SyncModule.testNativeConnection();
+      }
 
       UtilsModule.showTip(resultMsg, false);
 
@@ -811,6 +896,7 @@ function bindGlobalEvents() {
   $(".export-btn").on("click", function () {
     ConfigModule.exportConfig(getConfigFileOptions());
   });
+  $('#refresh-config-json-btn').on('click', refreshConfigEditorWithFeedback);
   $(".import-json-btn").on("click", function () { $("#json-file-input").click(); });
   $("#json-file-input").on("change", ConfigModule.importConfig);
 
@@ -876,22 +962,25 @@ function bindGlobalEvents() {
   });
 
   $("#detect-proxy-btn").on("click", DetectionModule.detectProxy);
-  $("#pac-details-btn").on("click", function () {
-    DetectionModule.updatePacDetails();
+  $("#pac-details-btn").on("click", function (event) {
+    DetectionModule.updatePacDetails(event);
   });
 
   $(document).on("click", ".version-row-retry-btn", function () {
-    const source = $(this).data("source");
+    const $button = $(this);
+    if ($button.prop('disabled')) return;
+
+    const source = $button.data("source");
     const currentVersion = chrome.runtime.getManifest().version;
-    $(this).prop("disabled", true).text(I18n.t('version_checking'));
+    $button.prop('disabled', true).addClass('is-refreshing');
 
     if (source === "github") {
-      VersionModule.checkGitHubVersion(currentVersion).finally(() => {
-        $(this).prop("disabled", false);
+      VersionModule.checkGitHubVersion(currentVersion, true).finally(() => {
+        $button.prop('disabled', false).removeClass('is-refreshing');
       });
     } else if (source === "store") {
       VersionModule.checkStoreVersion(currentVersion, true).finally(() => {
-        $(this).prop("disabled", false);
+        $button.prop('disabled', false).removeClass('is-refreshing');
       });
     }
   });
@@ -938,35 +1027,47 @@ $(".delete-tip-confirm-btn").on("click", function () {
 $(".delete-tip").hide();
 
 $("#pac-copy-btn").on("click", function () {
-  var script = $("#pac-script-content").text();
-  var $btn = $(this);
-  var copyIcon = MainIcons.render('copy', { width: 16, height: 16 });
-  var checkIcon = MainIcons.render('check', { width: 16, height: 16 });
+  const $content = $('#pac-script-content');
+  const script = $content.data('script') ?? $content.text();
+  const $button = $(this);
+  const clipboard = navigator.clipboard;
+  if (!clipboard || typeof clipboard.writeText !== 'function') {
+    UtilsModule.showTip(I18n.t('copy_failed'), true);
+    return;
+  }
 
-  navigator.clipboard.writeText(script).then(function () {
-    $btn.html(checkIcon);
-    setTimeout(function () { $btn.html(copyIcon); }, 2000);
-  }).catch(function (err) { console.log("Failed to copy:", err); });
+  clipboard.writeText(script).then(function () {
+    $button
+      .html(MainIcons.render('check', { width: 16, height: 16 }))
+      .attr('title', I18n.t('copy_success'))
+      .attr('aria-label', I18n.t('copy_success'));
+    UtilsModule.showTip(I18n.t('copy_success'), false);
+    setTimeout(function () {
+      $button
+        .html(MainIcons.render('copy', { width: 16, height: 16 }))
+        .attr('title', I18n.t('copy_config'))
+        .attr('aria-label', I18n.t('copy_config'));
+    }, 1500);
+  }).catch(function () {
+    UtilsModule.showTip(I18n.t('copy_failed'), true);
+  });
 });
 
 $("#pac-toggle-btn").on("click", function () {
-  var $btn = $(this);
-  var $wrapper = $("#pac-script-wrapper");
-  var isExpanded = !$wrapper.hasClass("collapsed");
+  const $button = $(this);
+  const $wrapper = $('#pac-script-wrapper');
+  const shouldExpand = $button.attr('data-action') === 'expand';
+  const action = shouldExpand ? 'collapse' : 'expand';
+  const translationKey = shouldExpand ? 'collapse_all' : 'expand_all';
 
-  if (isExpanded) {
-    $wrapper.addClass("collapsed");
-    $btn
-      .removeClass("expanded")
-      .attr('aria-expanded', 'false')
-      .attr('title', I18n.t('expand_all'));
-  } else {
-    $wrapper.removeClass("collapsed");
-    $btn
-      .addClass("expanded")
-      .attr('aria-expanded', 'true')
-      .attr('title', I18n.t('collapse_all'));
-  }
+  $wrapper.toggleClass('collapsed', !shouldExpand);
+  $button
+    .attr('data-action', action)
+    .attr('aria-expanded', String(shouldExpand))
+    .attr('data-i18n-title', translationKey)
+    .attr('title', I18n.t(translationKey))
+    .attr('aria-label', I18n.t(translationKey))
+    .html(MainIcons.render(shouldExpand ? 'foldAll' : 'unfoldAll', { width: 16, height: 16 }));
 });
 
 // ==========================================

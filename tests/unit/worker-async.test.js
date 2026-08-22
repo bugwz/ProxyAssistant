@@ -136,6 +136,115 @@ function loadWorkerContext(overrides = {}) {
 }
 
 describe('Worker applyProxy async handling', () => {
+  test('stores bounded redacted runtime logs and exposes message actions', async () => {
+    const storedValues = {};
+    const context = loadWorkerContext({
+      chrome: {
+        storage: {
+          local: {
+            get: jest.fn((keys, callback) => {
+              const result = {};
+              keys.forEach(key => { result[key] = storedValues[key]; });
+              callback(result);
+            }),
+            set: jest.fn((values, callback) => {
+              Object.assign(storedValues, values);
+              if (callback) callback();
+            })
+          }
+        }
+      }
+    });
+
+    for (let index = 0; index < 205; index += 1) {
+      await context.appendRuntimeLog('error', 'proxy', 'proxy_apply_failed', {
+        index,
+        password: 'private-password',
+        nested: { token: 'private-token' }
+      });
+    }
+
+    const logs = JSON.parse(JSON.stringify(await context.getRuntimeLogs()));
+    expect(logs).toHaveLength(200);
+    expect(logs[0].details.index).toBe(5);
+    expect(logs[199].details.index).toBe(204);
+    expect(logs[199].details.password).toBe('[redacted]');
+    expect(logs[199].details.nested.token).toBe('[redacted]');
+
+    const getResponse = await new Promise(resolve => {
+      context.__onMessageListener({ action: 'getRuntimeLogs' }, {}, resolve);
+    });
+    expect(getResponse.success).toBe(true);
+    expect(getResponse.logs).toHaveLength(200);
+
+    const clearResponse = await new Promise(resolve => {
+      context.__onMessageListener({ action: 'clearRuntimeLogs' }, {}, resolve);
+    });
+    expect(clearResponse).toEqual({ success: true });
+    expect(storedValues.runtime_logs).toEqual([]);
+  });
+
+  test('audits configuration writes by entity and ignores navigation-only state', async () => {
+    const storedValues = {};
+    const context = loadWorkerContext({
+      chrome: {
+        storage: {
+          local: {
+            get: jest.fn((keys, callback) => {
+              const result = {};
+              keys.forEach(key => { result[key] = storedValues[key]; });
+              callback(result);
+            }),
+            set: jest.fn((values, callback) => {
+              Object.assign(storedValues, values);
+              if (callback) callback();
+            })
+          }
+        }
+      }
+    });
+    const oldConfig = {
+      system: { theme_mode: 'light' },
+      scenarios: {
+        current: 'scenario-1',
+        lists: [{
+          id: 'scenario-1',
+          name: 'Default',
+          proxies: [
+            { id: 'proxy-1', name: 'One', ip: '127.0.0.1', port: 8080 },
+            { id: 'proxy-2', name: 'Two', ip: '127.0.0.2', port: 8080 }
+          ]
+        }]
+      },
+      subscriptions: [{ id: 'sub-1', name: 'Rules', order: 0, enabled: true }]
+    };
+    const newConfig = JSON.parse(JSON.stringify(oldConfig));
+    newConfig.system.theme_mode = 'dark';
+    newConfig.scenarios.lists[0].proxies.reverse();
+    newConfig.scenarios.lists[0].proxies[0].name = 'Two renamed';
+    newConfig.subscriptions.push({ id: 'sub-2', name: 'Extra rules', order: 1, enabled: true });
+
+    context.auditRuntimeConfigChanges(oldConfig, newConfig);
+    await context.getRuntimeLogs();
+
+    const events = storedValues.runtime_logs.map(log => log.event);
+    expect(events).toEqual(expect.arrayContaining([
+      'proxy_updated',
+      'proxy_reordered',
+      'subscription_added',
+      'system_settings_updated'
+    ]));
+    expect(events).not.toContain('navigation_changed');
+
+    await context.clearRuntimeLogs();
+    context.auditRuntimeConfigChanges(
+      { version: 5, updated_at: 'old' },
+      { version: 6, updated_at: 'new' }
+    );
+    await context.getRuntimeLogs();
+    expect(storedValues.runtime_logs.map(log => log.event)).toEqual(['configuration_updated']);
+  });
+
   test('responds to applyProxy only after async apply completes', async () => {
     const context = loadWorkerContext();
     const response = { success: true };

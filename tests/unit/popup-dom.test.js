@@ -215,6 +215,8 @@ describe('popup DOM interactions', () => {
 
     setupPopupDom({ config, state });
 
+    expect(document.documentElement.hasAttribute('data-ui-initializing')).toBe(false);
+    expect(document.querySelector('head script').getAttribute('src')).toBe('./js/ui-bootstrap.js');
     expect($('.scenario-btn').html()).toContain('M12 3 4 7l8 4 8-4-8-4Z');
     expect($('.scenario-btn').html()).toContain('m4 12 8 4 8-4');
     expect($('.scenario-btn').html()).toContain('m4 17 8 4 8-4');

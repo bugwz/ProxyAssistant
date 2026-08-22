@@ -56,16 +56,18 @@ function setupBaseDom() {
     <div class="delete-tip-close-btn"></div>
     <div class="delete-tip-cancel-btn"></div>
     <div class="delete-tip-confirm-btn"></div>
-    <div id="pac-copy-btn"></div>
-    <div id="pac-toggle-btn"></div>
+    <button id="pac-copy-btn"></button>
+    <button id="pac-toggle-btn" data-action="collapse" aria-expanded="true"></button>
     <div id="pac-script-content"></div>
     <div id="pac-script-wrapper"></div>
-    <button id="save-sync-config"></button>
+    <button id="native-save-sync-config" class="save-sync-config" data-sync-service="native"></button>
+    <button id="gist-save-sync-config" class="save-sync-config" data-sync-service="gist"></button>
     <button id="native-sync-pull-btn" data-sync-service="native" data-sync-action="pull"></button>
     <button id="native-sync-push-btn" data-sync-service="native" data-sync-action="push"></button>
     <button id="gist-sync-pull-btn" data-sync-service="gist" data-sync-action="pull"></button>
     <button id="gist-sync-push-btn" data-sync-service="gist" data-sync-action="push"></button>
-    <button id="test-sync-connection"></button>
+    <button id="native-test-sync-connection" class="test-sync-connection" data-sync-service="native"><span>Test</span></button>
+    <button id="gist-test-sync-connection" class="test-sync-connection" data-sync-service="gist"><span>Test</span></button>
     <div id="gist-token-eye"><input type="checkbox"></div>
     <input id="gist-token" />
     <input id="gist-filename" />
@@ -75,15 +77,19 @@ function setupBaseDom() {
     <select id="gist-sync-interval" class="sync-interval" data-sync-service="gist"><option value="30">30</option><option value="360">360</option></select>
     <div class="export-btn"></div>
     <div class="import-json-btn"></div>
+    <button id="refresh-config-json-btn"></button>
     <input id="json-file-input" />
     <textarea id="config-json-editor" readonly></textarea>
-    <span id="config-editor-state"></span>
     <button id="toggle-config-json-fold-btn" data-action="collapse"></button>
     <button id="copy-config-json-btn"></button>
     <span id="config-json-version"></span>
     <span id="config-json-size"></span>
     <span id="config-json-updated-at"></span>
-    <div id="config-json-code"></div>
+    <span id="config-json-last-fetched-at"></span>
+    <div id="config-json-code-wrapper">
+      <div id="config-json-loading" aria-hidden="true"><span>config_fetching</span></div>
+      <div id="config-json-code"></div>
+    </div>
     <div class="config-file-options">
       <input type="checkbox" id="config-include-subscriptions" checked />
       <input type="checkbox" id="config-include-subscription-cache" />
@@ -219,6 +225,7 @@ describe('main UI state flow', () => {
       updateNativeQuotaInfo: jest.fn(),
       manualPull: jest.fn(),
       manualPush: jest.fn(),
+      testNativeConnection: jest.fn(),
       testGistConnection: jest.fn()
     };
     global.DetectionModule = {
@@ -395,7 +402,7 @@ describe('main UI state flow', () => {
     expect(global.SyncModule.updateSyncUI).toHaveBeenCalled();
   });
 
-  test('saves the cloud sync fields from the cloud sync page', async () => {
+  test('saves each cloud sync service from its own card', async () => {
     let currentSyncConfig = { native: {}, gist: {} };
     global.SyncModule.getSyncConfig.mockImplementation(() => currentSyncConfig);
     global.SyncModule.setSyncConfig.mockImplementation(config => {
@@ -410,11 +417,20 @@ describe('main UI state flow', () => {
     $('#native-sync-interval').val('360');
     $('#gist-sync-auto-mode').val('pull');
     $('#gist-sync-interval').val('30');
-    $('#save-sync-config').trigger('click');
+    $('#native-save-sync-config').trigger('click');
     await Promise.resolve();
     await Promise.resolve();
 
     expect(global.StorageModule.setSyncConfig).toHaveBeenCalledWith({
+      native: { auto_mode: 'push', interval_minutes: 360 },
+      gist: {}
+    });
+
+    $('#gist-save-sync-config').trigger('click');
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(global.StorageModule.setSyncConfig).toHaveBeenLastCalledWith({
       native: { auto_mode: 'push', interval_minutes: 360 },
       gist: {
         token: 'test-token',
@@ -423,7 +439,7 @@ describe('main UI state flow', () => {
         interval_minutes: 30
       }
     });
-    expect(global.StorageModule.save).toHaveBeenCalledTimes(1);
+    expect(global.StorageModule.save).toHaveBeenCalledTimes(2);
     expect(global.SyncModule.updateSyncUI).toHaveBeenCalled();
   });
 
@@ -446,6 +462,33 @@ describe('main UI state flow', () => {
     expect(global.SyncModule.manualPull).toHaveBeenNthCalledWith(2, 'gist');
   });
 
+  test('tests the connection for the service card that was clicked', async () => {
+    global.SyncModule.testNativeConnection.mockResolvedValue('native-connected');
+    global.SyncModule.testGistConnection.mockResolvedValue('gist-connected');
+    window.eval(fs.readFileSync(mainJsPath, 'utf8'));
+    window.bindGlobalEvents();
+
+    $('#native-test-sync-connection').trigger('click');
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(global.SyncModule.testNativeConnection).toHaveBeenCalledTimes(1);
+    expect(global.SyncModule.testGistConnection).not.toHaveBeenCalled();
+    expect($('#native-test-sync-connection').prop('disabled')).toBe(false);
+
+    $('#gist-token').val('test-token');
+    $('#gist-filename').val('shared-config.json');
+    $('#gist-test-sync-connection').trigger('click');
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(global.SyncModule.testGistConnection).toHaveBeenCalledTimes(1);
+    expect(global.SyncModule.setSyncConfig).toHaveBeenCalledWith(expect.objectContaining({
+      gist: expect.objectContaining({ token: 'test-token', filename: 'shared-config.json' })
+    }));
+    expect($('#gist-test-sync-connection').prop('disabled')).toBe(false);
+  });
+
   test('renders the current JSON configuration as read-only content', () => {
     const config = { version: 5, scenarios: { current: 'a', lists: [] } };
     global.ConfigModule.buildEditableConfigData.mockReturnValue(config);
@@ -462,16 +505,87 @@ describe('main UI state flow', () => {
     expect(global.ConfigModule.applyConfigData).not.toHaveBeenCalled();
   });
 
-  test('shows configuration version, UTF-8 file size, and last update time in the editor header', () => {
+  test('shows configuration version, file size, update time, and fetch time in the editor header', () => {
     const config = { version: 5, name: '代理配置' };
     global.ConfigModule.buildEditableConfigData.mockReturnValue(config);
     window.eval(fs.readFileSync(mainJsPath, 'utf8'));
     window.refreshConfigEditor(true);
 
     const formatted = JSON.stringify(config, null, 2);
+    const compact = JSON.stringify(config);
     expect($('#config-json-version').text()).toBe('v5');
-    expect($('#config-json-size').text()).toBe(`${new Blob([formatted]).size} B`);
+    expect($('#config-json-size').text()).toBe(`${new Blob([formatted]).size} B / ${new Blob([compact]).size} B`);
+    expect($('#config-json-size').attr('title')).toBe('config_file_size_details');
     expect($('#config-json-updated-at').text()).not.toBe('config_never_updated');
+    expect($('#config-json-last-fetched-at').text()).not.toBe('config_never_updated');
+  });
+
+  test('shows fetching feedback before refreshing the current configuration', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(2026, 7, 22, 8, 0, 0));
+    global.ConfigModule.buildEditableConfigData.mockReturnValue({ version: 5, refreshed: true });
+    window.eval(fs.readFileSync(mainJsPath, 'utf8'));
+    window.bindGlobalEvents();
+    $('#config-json-code-wrapper')[0].getBoundingClientRect = jest.fn(() => ({ height: 486 }));
+
+    $('#refresh-config-json-btn').trigger('click');
+
+    expect($('#refresh-config-json-btn').prop('disabled')).toBe(true);
+    expect($('#config-json-editor').val()).toBe('');
+    expect($('#config-json-code').text()).toBe('');
+    expect($('#config-json-code-wrapper').hasClass('is-refreshing')).toBe(true);
+    expect($('#config-json-code-wrapper').attr('aria-busy')).toBe('true');
+    expect($('#config-json-loading').attr('aria-hidden')).toBe('false');
+    expect($('#config-json-loading').text()).toBe('config_fetching');
+    expect($('#config-json-code-wrapper')[0].style.height).toBe('486px');
+
+    await jest.advanceTimersByTimeAsync(599);
+    expect($('#refresh-config-json-btn').prop('disabled')).toBe(true);
+
+    await jest.advanceTimersByTimeAsync(1);
+    await Promise.resolve();
+
+    expect($('#refresh-config-json-btn').prop('disabled')).toBe(false);
+    expect(JSON.parse($('#config-json-editor').val())).toEqual({ version: 5, refreshed: true });
+    expect($('#config-json-code-wrapper').hasClass('is-refreshing')).toBe(false);
+    expect($('#config-json-code-wrapper').attr('aria-busy')).toBe('false');
+    expect($('#config-json-loading').attr('aria-hidden')).toBe('true');
+    expect($('#config-json-code-wrapper')[0].style.height).toBe('');
+    expect($('#config-json-last-fetched-at').text()).not.toBe('config_never_updated');
+    jest.useRealTimers();
+  });
+
+  test('keeps the version refresh icon in place and blocks repeated clicks', async () => {
+    let resolveRefresh;
+    global.VersionModule.checkGitHubVersion.mockImplementation(() => new Promise(resolve => {
+      resolveRefresh = resolve;
+    }));
+    document.body.insertAdjacentHTML('beforeend', `
+      <div id="github-version-value">
+        <button type="button" class="version-row-retry-btn" data-source="github">
+          <svg class="version-refresh-icon"></svg>
+        </button>
+      </div>
+    `);
+    window.eval(fs.readFileSync(mainJsPath, 'utf8'));
+    window.bindGlobalEvents();
+
+    const $button = $('.version-row-retry-btn');
+    $button.trigger('click');
+    $button.trigger('click');
+
+    expect(global.VersionModule.checkGitHubVersion).toHaveBeenCalledTimes(1);
+    expect(global.VersionModule.checkGitHubVersion).toHaveBeenCalledWith('test-version', true);
+    expect($button.prop('disabled')).toBe(true);
+    expect($button.hasClass('is-refreshing')).toBe(true);
+    expect($button.find('.version-refresh-icon')).toHaveLength(1);
+
+    resolveRefresh();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect($button.prop('disabled')).toBe(false);
+    expect($button.hasClass('is-refreshing')).toBe(false);
   });
 
   test('returns to the first line after refreshing the configuration editor', () => {
@@ -584,6 +698,32 @@ describe('main UI state flow', () => {
 
     expect(window.navigator.clipboard.writeText).toHaveBeenCalledWith(JSON.stringify(config, null, 2));
     expect(global.UtilsModule.showTip).toHaveBeenCalledWith('copy_success', false);
+  });
+
+  test('copies the complete PAC script and toggles its code panel', async () => {
+    const script = 'function FindProxyForURL(url, host) {\n  return "DIRECT";\n}';
+    $('#pac-script-content')
+      .data('script', script)
+      .html('<div><span class="config-json-line-number">1</span><span>function FindProxyForURL(url, host) {</span></div>');
+    window.eval(fs.readFileSync(mainJsPath, 'utf8'));
+    window.bindGlobalEvents();
+
+    $('#pac-toggle-btn').trigger('click');
+    expect($('#pac-script-wrapper').hasClass('collapsed')).toBe(true);
+    expect($('#pac-toggle-btn').attr('data-action')).toBe('expand');
+    expect($('#pac-toggle-btn').attr('aria-expanded')).toBe('false');
+    expect($('#pac-toggle-btn').attr('title')).toBe('expand_all');
+
+    $('#pac-copy-btn').trigger('click');
+    await Promise.resolve();
+    expect(window.navigator.clipboard.writeText).toHaveBeenCalledWith(script);
+    expect(global.UtilsModule.showTip).toHaveBeenCalledWith('copy_success', false);
+
+    $('#pac-toggle-btn').trigger('click');
+    expect($('#pac-script-wrapper').hasClass('collapsed')).toBe(false);
+    expect($('#pac-toggle-btn').attr('data-action')).toBe('collapse');
+    expect($('#pac-toggle-btn').attr('aria-expanded')).toBe('true');
+    expect($('#pac-toggle-btn').attr('title')).toBe('collapse_all');
   });
 
   test('switchScenario keeps the current scenario when worker activation fails', async () => {

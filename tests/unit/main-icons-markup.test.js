@@ -25,17 +25,22 @@ describe('main header icon markup', () => {
 
   test('cloud sync actions should use upload and download icons', () => {
     const mainHtmlPath = path.join(__dirname, '../../src/main.html');
+    const iconsPath = path.join(__dirname, '../../src/js/icons.js');
     const pageDocument = new DOMParser().parseFromString(fs.readFileSync(mainHtmlPath, 'utf8'), 'text/html');
+    const MainIcons = require(iconsPath);
+    const pushIconDocument = new DOMParser().parseFromString(MainIcons.render('syncPush'), 'text/html');
+    const pullIconDocument = new DOMParser().parseFromString(MainIcons.render('syncPull'), 'text/html');
     const pushButtons = pageDocument.querySelectorAll('[data-sync-action="push"]');
     const pullButtons = pageDocument.querySelectorAll('[data-sync-action="pull"]');
+    const getPaths = root => Array.from(root.querySelectorAll('path')).map(path => path.getAttribute('d'));
 
     expect(pushButtons).toHaveLength(2);
     expect(pullButtons).toHaveLength(2);
     pushButtons.forEach(button => {
-      expect(button.querySelector('path:nth-child(2)').getAttribute('d')).toBe('M12 15V9');
+      expect(getPaths(button)).toEqual(getPaths(pushIconDocument));
     });
     pullButtons.forEach(button => {
-      expect(button.querySelector('path:nth-child(2)').getAttribute('d')).toBe('M12 9v6');
+      expect(getPaths(button)).toEqual(getPaths(pullIconDocument));
     });
   });
 
@@ -45,6 +50,10 @@ describe('main header icon markup', () => {
     const serviceCards = Array.from(pageDocument.querySelectorAll('.sync-service-card'));
 
     expect(serviceCards.map(card => card.dataset.syncService)).toEqual(['native', 'gist']);
+    const gistIcon = serviceCards[1].querySelector('.sync-service-icon-gist svg');
+    const sidebarGitHubIcon = pageDocument.querySelector('.sidebar-github-link svg');
+    expect(gistIcon.getAttribute('fill')).toBe('currentColor');
+    expect(gistIcon.querySelector('path').getAttribute('d')).toBe(sidebarGitHubIcon.querySelector('path').getAttribute('d'));
     expect(serviceCards[0].querySelector('#native-config #quota-bar-fill')).toBeTruthy();
     expect(serviceCards[1].querySelector('#gist-config #gist-token')).toBeTruthy();
     expect(serviceCards[1].querySelector('#gist-config #gist-filename')).toBeTruthy();
@@ -67,6 +76,19 @@ describe('main header icon markup', () => {
     ]);
   });
 
+  test('display settings navigation uses a monitor with a light-dark indicator', () => {
+    const mainHtmlPath = path.join(__dirname, '../../src/main.html');
+    const pageDocument = new DOMParser().parseFromString(fs.readFileSync(mainHtmlPath, 'utf8'), 'text/html');
+    const icon = pageDocument.querySelector('[data-main-page="appearance"] svg');
+
+    expect(icon.querySelector('rect').getAttribute('width')).toBe('18');
+    expect(icon.querySelector('circle').getAttribute('r')).toBe('3');
+    expect(Array.from(icon.querySelectorAll('path')).map(path => path.getAttribute('d'))).toEqual([
+      'M12 7v6',
+      'M8 21h8M12 17v4'
+    ]);
+  });
+
   test('config import and export buttons should use balanced mirrored tray icons', () => {
     const mainHtmlPath = path.join(__dirname, '../../src/main.html');
     const html = fs.readFileSync(mainHtmlPath, 'utf8');
@@ -78,20 +100,53 @@ describe('main header icon markup', () => {
     expect(html).toContain('M5 15.5v2A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5v-2');
   });
 
-  test('proxy and PAC refresh buttons should use refresh semantics', () => {
+  test('current configuration refresh action precedes import and uses refresh semantics', () => {
     const mainHtmlPath = path.join(__dirname, '../../src/main.html');
     const pageDocument = new DOMParser().parseFromString(fs.readFileSync(mainHtmlPath, 'utf8'), 'text/html');
-    const refreshPaths = Array.from(pageDocument.querySelectorAll('#detect-proxy-btn path')).map(path => path.getAttribute('d'));
-    const pacPaths = Array.from(pageDocument.querySelectorAll('#pac-details-btn path')).map(path => path.getAttribute('d'));
+    const actions = Array.from(pageDocument.querySelectorAll('.current-config-section .config-actions button'));
+    const refreshButton = actions[0];
 
-    expect(refreshPaths).toEqual([
-      'M20 5v5h-5',
-      'M4 19v-5h5',
-      'M6.5 10A7 7 0 0 1 18 7l2 3',
-      'M17.5 14A7 7 0 0 1 6 17l-2-3'
+    expect(refreshButton.id).toBe('refresh-config-json-btn');
+    expect(refreshButton.querySelector('span').getAttribute('data-i18n')).toBe('config_refresh');
+    expect(Array.from(refreshButton.querySelectorAll('path')).map(path => path.getAttribute('d'))).toEqual([
+      'M21 12a9 9 0 1 1-2.64-6.36L21 8',
+      'M21 3v5h-5'
     ]);
-    expect(pacPaths).toEqual(refreshPaths);
+  });
+
+  test('diagnostics refresh buttons should share refresh semantics and styling', () => {
+    const mainHtmlPath = path.join(__dirname, '../../src/main.html');
+    const pageDocument = new DOMParser().parseFromString(fs.readFileSync(mainHtmlPath, 'utf8'), 'text/html');
+    const refreshButtonIds = ['detect-proxy-btn', 'refresh-runtime-logs-btn', 'pac-details-btn'];
+    const expectedPaths = [
+      'M21 12a9 9 0 1 1-2.64-6.36L21 8',
+      'M21 3v5h-5'
+    ];
+
+    refreshButtonIds.forEach(id => {
+      const button = pageDocument.querySelector(`#${id}`);
+      expect(button.classList.contains('control-btn')).toBe(true);
+      expect(button.classList.contains('refresh-control-btn')).toBe(true);
+      expect(Array.from(button.querySelectorAll('path')).map(path => path.getAttribute('d'))).toEqual(expectedPaths);
+      expect(button.querySelector('svg').classList.contains('diagnostics-refresh-icon')).toBe(true);
+    });
     expect(pageDocument.querySelector('#pac-details-btn span').getAttribute('data-i18n')).toBe('proxy_detection_button');
+    expect(pageDocument.querySelector('#refresh-runtime-logs-btn span').getAttribute('data-i18n')).toBe('runtime_logs_refresh');
+  });
+
+  test('runtime log clear action uses the shared icon and text button style', () => {
+    const mainHtmlPath = path.join(__dirname, '../../src/main.html');
+    const pageDocument = new DOMParser().parseFromString(fs.readFileSync(mainHtmlPath, 'utf8'), 'text/html');
+    const clearButton = pageDocument.querySelector('#clear-runtime-logs-btn');
+
+    expect(clearButton.getAttribute('class')).toBe('control-btn');
+    expect(clearButton.querySelector('span').getAttribute('data-i18n')).toBe('runtime_logs_clear');
+    expect(Array.from(clearButton.querySelectorAll('path')).map(path => path.getAttribute('d'))).toEqual([
+      'M3 6h18',
+      'M8 6V4h8v2',
+      'm19 6-1 14H6L5 6',
+      'M10 11v5M14 11v5'
+    ]);
   });
 
   test('about page displays complete version information', () => {

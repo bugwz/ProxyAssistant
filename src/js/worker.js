@@ -20,6 +20,9 @@ const CLOUD_SYNC_ALARM = 'cloud-sync-schedule';
 const CLOUD_SYNC_SERVICES = ['native', 'gist'];
 const CLOUD_SYNC_CHUNK_SIZE = 7 * 1024;
 const CONFIG_FILE_OPTIONS_STORAGE_KEY = 'config_file_options';
+const RUNTIME_LOG_STORAGE_KEY = 'runtime_logs';
+const RUNTIME_LOG_LIMIT = 200;
+const RUNTIME_LOG_LEVELS = ['info', 'warning', 'error'];
 const CLOUD_SYNC_PROXY_KEYS = [
   'enabled', 'id', 'name', 'protocol', 'ip', 'port', 'username', 'password',
   'bypass_rules', 'include_rules', 'fallback_policy', 'color', 'subscription_ids'
@@ -30,6 +33,199 @@ const CLOUD_SYNC_SUBSCRIPTION_CACHE_KEYS = [
 ];
 let scenarioAutomationEvaluation = null;
 let cloudSyncQueue = Promise.resolve();
+let runtimeLogQueue = Promise.resolve();
+
+function sanitizeRuntimeLogValue(value, key = '', depth = 0) {
+  if (/password|token|secret|authorization|credential/i.test(key)) return '[redacted]';
+  if (depth > 3) return '[truncated]';
+  if (typeof value === 'string') return value.slice(0, 500);
+  if (typeof value === 'number' || typeof value === 'boolean' || value === null) return value;
+  if (Array.isArray(value)) {
+    return value.slice(0, 20).map(item => sanitizeRuntimeLogValue(item, '', depth + 1));
+  }
+  if (value && typeof value === 'object') {
+    return Object.keys(value).slice(0, 20).reduce((safeValue, childKey) => {
+      safeValue[childKey] = sanitizeRuntimeLogValue(value[childKey], childKey, depth + 1);
+      return safeValue;
+    }, {});
+  }
+  return String(value || '');
+}
+
+function appendRuntimeLog(level, category, event, details = {}) {
+  const normalizedLevel = RUNTIME_LOG_LEVELS.includes(level) ? level : 'info';
+  const entry = {
+    id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    time: new Date().toISOString(),
+    level: normalizedLevel,
+    category: String(category || 'system').slice(0, 40),
+    event: String(event || 'unknown').slice(0, 80),
+    details: sanitizeRuntimeLogValue(details)
+  };
+
+  runtimeLogQueue = runtimeLogQueue
+    .then(() => getStorageValues([RUNTIME_LOG_STORAGE_KEY]))
+    .then(result => {
+      const logs = Array.isArray(result[RUNTIME_LOG_STORAGE_KEY])
+        ? result[RUNTIME_LOG_STORAGE_KEY].slice(-(RUNTIME_LOG_LIMIT - 1))
+        : [];
+      logs.push(entry);
+      return setStorageValues({ [RUNTIME_LOG_STORAGE_KEY]: logs });
+    })
+    .catch(error => {
+      console.info('[Worker] Failed to save runtime log:', error);
+    });
+
+  return runtimeLogQueue;
+}
+
+function getRuntimeLogs() {
+  return runtimeLogQueue.then(() => getStorageValues([RUNTIME_LOG_STORAGE_KEY])).then(result => (
+    Array.isArray(result[RUNTIME_LOG_STORAGE_KEY]) ? result[RUNTIME_LOG_STORAGE_KEY] : []
+  ));
+}
+
+function clearRuntimeLogs() {
+  const clearOperation = runtimeLogQueue.then(() => setStorageValues({ [RUNTIME_LOG_STORAGE_KEY]: [] }));
+  runtimeLogQueue = clearOperation.catch(() => {});
+  return clearOperation;
+}
+
+function runtimeLogValuesEqual(left, right) {
+  return JSON.stringify(left === undefined ? null : left)
+    === JSON.stringify(right === undefined ? null : right);
+}
+
+function getRuntimeLogEntityMap(items) {
+  return new Map((Array.isArray(items) ? items : []).map(item => [String(item.id), item]));
+}
+
+function appendEntityChangeLogs(category, oldItems, newItems, options) {
+  const oldMap = getRuntimeLogEntityMap(oldItems);
+  const newMap = getRuntimeLogEntityMap(newItems);
+  let changeCount = 0;
+
+  newMap.forEach((item, id) => {
+    const oldItem = oldMap.get(id);
+    if (!oldItem) {
+      appendRuntimeLog('info', category, options.addedEvent, { name: item.name || id });
+      changeCount += 1;
+      return;
+    }
+    if (!runtimeLogValuesEqual(options.comparable(oldItem), options.comparable(item))) {
+      appendRuntimeLog('info', category, options.updatedEvent, { name: item.name || oldItem.name || id });
+      changeCount += 1;
+    }
+  });
+
+  oldMap.forEach((item, id) => {
+    if (!newMap.has(id)) {
+      appendRuntimeLog('info', category, options.deletedEvent, { name: item.name || id });
+      changeCount += 1;
+    }
+  });
+
+  const oldOrder = (Array.isArray(oldItems) ? oldItems : []).map(item => String(item.id));
+  const newOrder = (Array.isArray(newItems) ? newItems : []).map(item => String(item.id));
+  if (oldOrder.length === newOrder.length
+    && oldOrder.every(id => newMap.has(id))
+    && !runtimeLogValuesEqual(oldOrder, newOrder)) {
+    appendRuntimeLog('info', category, options.reorderedEvent, { count: newOrder.length });
+    changeCount += 1;
+  }
+  return changeCount;
+}
+
+function getProxyComparable(proxy) {
+  const copy = { ...proxy };
+  delete copy.id;
+  delete copy.show_password;
+  return copy;
+}
+
+function getScenarioComparable(scenario) {
+  return {
+    name: scenario.name,
+    defaultProxyId: scenario.defaultProxyId,
+    automation: scenario.automation
+  };
+}
+
+function getSubscriptionComparable(subscription) {
+  const copy = { ...subscription };
+  delete copy.id;
+  delete copy.order;
+  return copy;
+}
+
+function auditRuntimeConfigChanges(oldConfig, newConfig) {
+  if (!oldConfig || !newConfig) return;
+  let changeCount = 0;
+
+  const oldScenarios = oldConfig.scenarios?.lists || [];
+  const newScenarios = newConfig.scenarios?.lists || [];
+  changeCount += appendEntityChangeLogs('scenario', oldScenarios, newScenarios, {
+    addedEvent: 'scenario_added',
+    updatedEvent: 'scenario_updated',
+    deletedEvent: 'scenario_deleted',
+    reorderedEvent: 'scenario_reordered',
+    comparable: getScenarioComparable
+  });
+
+  const oldScenarioMap = getRuntimeLogEntityMap(oldScenarios);
+  const newScenarioMap = getRuntimeLogEntityMap(newScenarios);
+  newScenarioMap.forEach((scenario, scenarioId) => {
+    if (!oldScenarioMap.has(scenarioId)) return;
+    changeCount += appendEntityChangeLogs('proxy', oldScenarioMap.get(scenarioId).proxies, scenario.proxies, {
+      addedEvent: 'proxy_added',
+      updatedEvent: 'proxy_updated',
+      deletedEvent: 'proxy_deleted',
+      reorderedEvent: 'proxy_reordered',
+      comparable: getProxyComparable
+    });
+  });
+
+  changeCount += appendEntityChangeLogs('subscription', oldConfig.subscriptions, newConfig.subscriptions, {
+    addedEvent: 'subscription_added',
+    updatedEvent: 'subscription_updated',
+    deletedEvent: 'subscription_deleted',
+    reorderedEvent: 'subscription_reordered',
+    comparable: getSubscriptionComparable
+  });
+
+  if (!runtimeLogValuesEqual(oldConfig.system, newConfig.system)) {
+    appendRuntimeLog('info', 'system', 'system_settings_updated');
+    changeCount += 1;
+  }
+
+  if (!runtimeLogValuesEqual(oldConfig.scenarios?.current, newConfig.scenarios?.current)) {
+    // Scenario activation already records its success or failure with richer context.
+    changeCount += 1;
+  }
+
+  const oldComparable = { ...oldConfig };
+  const newComparable = { ...newConfig };
+  delete oldComparable.updated_at;
+  delete newComparable.updated_at;
+  if (changeCount === 0 && !runtimeLogValuesEqual(oldComparable, newComparable)) {
+    appendRuntimeLog('info', 'system', 'configuration_updated');
+  }
+}
+
+function recordProxyResult(mode, result, proxyInfo) {
+  if (result?.success) {
+    const event = mode === 'auto'
+      ? 'proxy_auto_enabled'
+      : (mode === 'disabled' ? 'proxy_disabled' : 'proxy_manual_enabled');
+    appendRuntimeLog('info', 'proxy', event, {
+      proxyName: proxyInfo?.name || ''
+    });
+    return;
+  }
+  appendRuntimeLog('error', 'proxy', 'proxy_apply_failed', {
+    error: result?.error || 'Unknown error'
+  });
+}
 
 function getStorageValues(keys) {
   return new Promise((resolve, reject) => {
@@ -646,6 +842,7 @@ const stateLoadedPromise = new Promise(resolve => {
 // Listener for extension installation or update
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('Proxy Assistant installed/updated');
+  appendRuntimeLog('info', 'system', details.reason === 'install' ? 'extension_installed' : 'extension_updated');
 
   if (details.reason === 'install') {
     turnOffProxy();
@@ -1344,6 +1541,10 @@ async function fetchSubscriptionBackground(proxyId, format, url, maxRetries = 3)
       }
 
       console.log(`[Worker] Background fetch completed for proxy: ${proxyId}, updated: ${updated}`);
+      appendRuntimeLog('info', 'subscription', 'subscription_refreshed', {
+        subscriptionName: subscription?.name || proxyId,
+        updated: updated
+      });
       return;
     } catch (error) {
       lastError = error;
@@ -1357,6 +1558,10 @@ async function fetchSubscriptionBackground(proxyId, format, url, maxRetries = 3)
   }
 
   console.info(`[Worker] All ${maxRetries} attempts failed for proxy: ${proxyId}, last error: ${lastError?.message}`);
+  appendRuntimeLog('error', 'subscription', 'subscription_refresh_failed', {
+    subscriptionName: proxyId,
+    error: lastError?.message || 'Unknown error'
+  });
 }
 
 // Unified function to schedule or clear subscription alarm
@@ -1638,6 +1843,8 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'local' && changes.config) {
     const newConfig = changes.config.newValue;
     const oldConfig = changes.config.oldValue;
+
+    auditRuntimeConfigChanges(oldConfig, newConfig);
 
     if (newConfig) {
       console.log('[Worker] Config changed, scheduling alarms...');
@@ -2710,29 +2917,43 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "applyProxy") {
       applyProxySettings(message.proxyInfo)
         .then(result => {
+          recordProxyResult('manual', result, message.proxyInfo);
           sendResponse(result);
           if (result?.success) rememberCurrentScenarioProxy(message.proxyInfo);
         })
         .catch((error) => {
+          appendRuntimeLog('error', 'proxy', 'proxy_apply_failed', { error: error.message });
           sendResponse({ success: false, error: error.message });
         });
       return true;
     } else if (message.action === "setProxyMode") {
       applyProxySettings(message.proxyInfo, message.mode)
         .then(result => {
+          recordProxyResult(message.mode, result, message.proxyInfo);
           sendResponse(result);
           if (result?.success && message.mode === 'manual') {
             rememberCurrentScenarioProxy(message.proxyInfo);
           }
         })
         .catch((error) => {
+          appendRuntimeLog('error', 'proxy', 'proxy_apply_failed', { error: error.message });
           sendResponse({ success: false, error: error.message });
         });
       return true;
     } else if (message.action === 'activateScenario') {
       activateScenario(message.scenarioId, message.source || 'manual')
-        .then(sendResponse)
+        .then(result => {
+          appendRuntimeLog(result?.success ? 'info' : 'error', 'scenario', result?.success ? 'scenario_activated' : 'scenario_activation_failed', {
+            scenarioId: message.scenarioId,
+            error: result?.error || ''
+          });
+          sendResponse(result);
+        })
         .catch(error => {
+          appendRuntimeLog('error', 'scenario', 'scenario_activation_failed', {
+            scenarioId: message.scenarioId,
+            error: error.message
+          });
           sendResponse({ success: false, error: error.message });
         });
       return true;
@@ -2740,15 +2961,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       applyProxySettings()
         .then(sendResponse)
         .catch((error) => {
+          appendRuntimeLog('error', 'proxy', 'proxy_apply_failed', { error: error.message });
           sendResponse({ success: false, error: error.message });
         });
       return true;
     } else if (message.action === "turnOffProxy") {
       turnOffProxy()
         .then(() => {
+          appendRuntimeLog('info', 'proxy', 'proxy_disabled');
           sendResponse({ success: true });
         })
         .catch((error) => {
+          appendRuntimeLog('error', 'proxy', 'proxy_apply_failed', { error: error.message });
           sendResponse({ success: false, error: error.message });
         });
       return true;
@@ -2760,6 +2984,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
       });
       return true; // Keep message channel open for async response
+    } else if (message.action === 'getRuntimeLogs') {
+      getRuntimeLogs()
+        .then(logs => sendResponse({ success: true, logs: logs }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+    } else if (message.action === 'clearRuntimeLogs') {
+      clearRuntimeLogs()
+        .then(() => sendResponse({ success: true }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+    } else if (message.action === 'recordRuntimeLog') {
+      appendRuntimeLog(
+        message.level,
+        message.category,
+        message.event,
+        message.details
+      )
+        .then(() => sendResponse({ success: true }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
     } else if (message.action === "testProxyConnection") {
       testProxyConnection(message.proxyInfo, sendResponse);
       return true;
@@ -2802,6 +3046,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
   } catch (error) {
     console.log("Error handling message:", error);
+    appendRuntimeLog('error', 'system', 'worker_error', { error: error.message });
     sendResponse({ success: false, error: error.message });
   }
 

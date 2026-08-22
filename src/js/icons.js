@@ -72,14 +72,14 @@
       '<path d="M10.5 13h3"/>'
     ].join(''),
     syncPush: [
-      '<path d="M7 18.5A4.5 4.5 0 1 1 8 9.6a5.5 5.5 0 0 1 10.5 1.9A3.5 3.5 0 1 1 18 18.5H7Z"/>',
-      '<path d="M12 15V9"/>',
-      '<path d="m9.5 11.5 2.5-2.5 2.5 2.5"/>'
+      '<path d="M12 15V3"/>',
+      '<path d="m7 8 5-5 5 5"/>',
+      '<path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>'
     ].join(''),
     syncPull: [
-      '<path d="M7 18.5A4.5 4.5 0 1 1 8 9.6a5.5 5.5 0 0 1 10.5 1.9A3.5 3.5 0 1 1 18 18.5H7Z"/>',
-      '<path d="M12 9v6"/>',
-      '<path d="m14.5 12.5-2.5 2.5-2.5-2.5"/>'
+      '<path d="M12 3v12"/>',
+      '<path d="m7 10 5 5 5-5"/>',
+      '<path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>'
     ].join(''),
     export: [
       '<path d="M12 14V5"/>',
@@ -127,12 +127,12 @@
     ].join(''),
     manualMode: [
       '<circle cx="12" cy="12" r="9"/>',
-      '<path d="M8.5 16V8l3.5 5 3.5-5v8"/>'
+      '<path d="M9 15V9l3 4 3-4v6" stroke-width="1.5"/>'
     ].join(''),
     autoMode: [
       '<circle cx="12" cy="12" r="9"/>',
-      '<path d="m8.5 16 3.5-8 3.5 8"/>',
-      '<path d="M10 13h4"/>'
+      '<path d="m9 15 3-6 3 6" stroke-width="1.5"/>',
+      '<path d="M10.5 12.5h3" stroke-width="1.5"/>'
     ].join(''),
     search: [
       '<circle cx="11" cy="11" r="7"/>',
@@ -198,6 +198,20 @@
       '<path d="m19 5-8 8"/>',
       '<path d="M11 19H5V13"/>',
       '<path d="m5 19 8-8"/>'
+    ].join(''),
+    sortAscending: [
+      '<path d="M4 18V6"/>',
+      '<path d="m1 9 3-3 3 3"/>',
+      '<path d="M11 7h10"/>',
+      '<path d="M11 12h7"/>',
+      '<path d="M11 17h4"/>'
+    ].join(''),
+    sortDescending: [
+      '<path d="M4 6v12"/>',
+      '<path d="m1 15 3 3 3-3"/>',
+      '<path d="M11 7h4"/>',
+      '<path d="M11 12h7"/>',
+      '<path d="M11 17h10"/>'
     ].join(''),
     subscription: [
       '<path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-11Z"/>',
