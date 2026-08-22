@@ -295,6 +295,13 @@ describe('proxy color configuration', () => {
 
     const exported = ConfigModule.buildConfigData();
 
+    expect(Object.keys(exported)).toEqual([
+      'version',
+      'scenarios',
+      'subscriptions',
+      'system',
+      'updated_at'
+    ]);
     expect(exported.scenarios.lists[0].proxies[0].color).toBe('#FF0000');
     expect(exported.system.sync).toEqual({
       native: { auto_mode: 'pull', interval_minutes: 30 },
@@ -307,6 +314,48 @@ describe('proxy color configuration', () => {
       }
     });
     expect(ConfigModule.PROXY_EXPORT_KEYS).toContain('color');
+  });
+
+  test('round-trips a custom theme through the v5 system configuration', () => {
+    const customTheme = {
+      name: 'Ocean',
+      base: 'dark',
+      colors: {
+        background: '#102030',
+        surface: '#203040',
+        surface_alt: '#304050',
+        text: '#F0F1F2',
+        muted_text: '#A0A1A2',
+        border: '#405060',
+        accent: '#506070',
+        accent_text: '#FFFFFF',
+        input_background: '#607080',
+        selection_background: '#708090'
+      }
+    };
+    const config = {
+      version: 5,
+      system: {
+        app_language: 'en',
+        theme_mode: 'custom',
+        custom_theme: customTheme,
+        night_mode_start: '22:00',
+        night_mode_end: '06:00'
+      },
+      scenarios: { current: 'scenario-a', lists: [] },
+      subscriptions: []
+    };
+    const { ConfigModule } = setupModules(config);
+    window.ThemeModule.getThemeMode.mockReturnValue('custom');
+    window.ThemeModule.getCustomTheme = jest.fn(() => customTheme);
+
+    const exported = ConfigModule.buildConfigFileData();
+    const imported = ConfigModule.migrateConfig(exported);
+
+    expect(exported.system.theme.mode).toBe('custom');
+    expect(exported.system.theme.custom).toEqual(customTheme);
+    expect(imported.system.theme_mode).toBe('custom');
+    expect(imported.system.custom_theme).toEqual(customTheme);
   });
 
   test('preserves scenario defaults and multi-condition automation', () => {
@@ -532,7 +581,14 @@ describe('proxy color configuration', () => {
 
     expect(editable.version).toBe(5);
     expect(editable.updated_at).toBe('2026-08-20T06:30:00.000Z');
-    expect(Object.keys(editable).indexOf('proxies')).toBeLessThan(Object.keys(editable).indexOf('scenarios'));
+    expect(Object.keys(editable)).toEqual([
+      'version',
+      'proxies',
+      'scenarios',
+      'subscriptions',
+      'system',
+      'updated_at'
+    ]);
     expect(Object.keys(editable.scenarios.lists[0])).toEqual([
       'id',
       'name',

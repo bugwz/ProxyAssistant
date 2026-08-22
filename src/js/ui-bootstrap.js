@@ -13,6 +13,9 @@
 
   function getInitialTheme(system) {
     const mode = system.theme_mode || 'light';
+    if (mode === 'custom') {
+      return system.custom_theme?.base === 'dark' ? 'dark' : 'light';
+    }
     if (mode !== 'auto') return mode === 'dark' ? 'dark' : 'light';
 
     const now = new Date();
@@ -24,13 +27,35 @@
     return isTimeInRange(currentMinutes, startMinutes, endMinutes) ? 'dark' : 'light';
   }
 
-  function applyInitialTheme(theme) {
+  function applyInitialTheme(theme, customTheme) {
     root.dataset.initialTheme = theme;
+    const colorVariables = {
+      background: '--custom-theme-background',
+      surface: '--custom-theme-surface',
+      surface_alt: '--custom-theme-surface-alt',
+      text: '--custom-theme-text',
+      muted_text: '--custom-theme-muted-text',
+      border: '--custom-theme-border',
+      accent: '--custom-theme-accent',
+      accent_text: '--custom-theme-accent-text',
+      input_background: '--custom-theme-input-background',
+      selection_background: '--custom-theme-selection-background'
+    };
+    const isCustom = customTheme && customTheme.colors && typeof customTheme.colors === 'object';
+    if (isCustom) {
+      Object.entries(colorVariables).forEach(([key, variable]) => {
+        const value = customTheme.colors[key];
+        if (typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value)) {
+          root.style.setProperty(variable, value);
+        }
+      });
+    }
 
     function applyToBody() {
       if (!document.body) return;
       if (theme === 'dark') document.body.setAttribute('data-theme', 'dark');
       else document.body.removeAttribute('data-theme');
+      if (isCustom) document.body.setAttribute('data-custom-theme', 'true');
     }
 
     applyToBody();
@@ -58,6 +83,9 @@
       return;
     }
     const system = result?.config?.system || {};
-    applyInitialTheme(getInitialTheme(system));
+    applyInitialTheme(
+      getInitialTheme(system),
+      system.theme_mode === 'custom' ? system.custom_theme : null
+    );
   });
 })();

@@ -324,21 +324,23 @@ function buildCloudSyncPayload(config, options = {}) {
   const includeSubscriptionCache = options.includeSubscriptionCache === true;
   const source = JSON.parse(JSON.stringify(config || {}));
   const system = source.system || {};
+  const theme = system.theme || {
+    mode: system.theme_mode || 'light',
+    automation: {
+      night: {
+        start: system.night_mode_start || '22:00',
+        end: system.night_mode_end || '06:00'
+      }
+    }
+  };
+  if (!system.theme && system.custom_theme) theme.custom = system.custom_theme;
   const payload = {
     version: 5,
     updated_at: typeof source.updated_at === 'string' ? source.updated_at : null,
     system: {
       ...system,
       language: system.app_language || system.language || 'zh-CN',
-      theme: system.theme || {
-        mode: system.theme_mode || 'light',
-        automation: {
-          night: {
-            start: system.night_mode_start || '22:00',
-            end: system.night_mode_end || '06:00'
-          }
-        }
-      }
+      theme: theme
     },
     proxies: [],
     scenarios: {
@@ -348,6 +350,7 @@ function buildCloudSyncPayload(config, options = {}) {
   };
   delete payload.system.app_language;
   delete payload.system.theme_mode;
+  delete payload.system.custom_theme;
   delete payload.system.night_mode_start;
   delete payload.system.night_mode_end;
   delete payload.system.sync;
@@ -411,7 +414,17 @@ function buildCloudSyncPayload(config, options = {}) {
     payload.subscriptions.sort((left, right) => String(left.id || '').localeCompare(String(right.id || '')));
   }
 
-  return payload;
+  const orderedPayload = {
+    version: payload.version,
+    proxies: payload.proxies,
+    scenarios: payload.scenarios
+  };
+  if (Object.prototype.hasOwnProperty.call(payload, 'subscriptions')) {
+    orderedPayload.subscriptions = payload.subscriptions;
+  }
+  orderedPayload.system = payload.system;
+  orderedPayload.updated_at = payload.updated_at;
+  return orderedPayload;
 }
 
 function inflateCloudSyncPayload(remoteConfig, localConfig) {
@@ -424,6 +437,7 @@ function inflateCloudSyncPayload(remoteConfig, localConfig) {
   if (system.theme) {
     const night = system.theme.automation?.night || {};
     system.theme_mode = system.theme.mode || 'light';
+    system.custom_theme = system.theme.custom || system.custom_theme;
     system.night_mode_start = night.start || '22:00';
     system.night_mode_end = night.end || '06:00';
     delete system.theme;

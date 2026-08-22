@@ -139,6 +139,15 @@
     flex-wrap: wrap;
   }
 
+  .custom-theme-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .custom-theme-actions {
+    flex-wrap: wrap;
+  }
+
   .sync-schedule-grid {
     grid-template-columns: minmax(0, 1fr);
   }

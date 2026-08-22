@@ -256,6 +256,27 @@ describe('main sidebar layout', () => {
     );
   });
 
+  test('separates language and theme settings with an enhanced preset source and JSON editor', () => {
+    const pageDocument = new DOMParser().parseFromString(fs.readFileSync(mainHtmlPath, 'utf8'), 'text/html');
+    const appearancePage = pageDocument.querySelector('#page-appearance');
+    const sections = appearancePage.querySelectorAll(':scope > .appearance-section');
+    const preset = appearancePage.querySelector('#theme-preset-select');
+
+    expect(sections).toHaveLength(2);
+    expect(sections[0].querySelector('h2').dataset.i18n).toBe('language_settings');
+    expect(sections[1].querySelector('h2').dataset.i18n).toBe('theme_settings');
+    expect(preset.classList.contains('native-select-source')).toBe(true);
+    expect(Array.from(preset.options).map(option => option.value)).toEqual([
+      'light',
+      'dark',
+      'auto',
+      'custom'
+    ]);
+    expect(appearancePage.querySelector('.custom-theme-row').hidden).toBe(true);
+    expect(appearancePage.querySelector('#custom-theme-json').getAttribute('spellcheck')).toBe('false');
+    expect(appearancePage.querySelector('#apply-custom-theme-btn')).not.toBeNull();
+  });
+
   test('restores the saved page before the navigation markup is rendered', () => {
     window.localStorage.setItem('proxyAssistant.activeMainPage', 'subscriptions');
 
