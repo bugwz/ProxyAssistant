@@ -5,6 +5,7 @@ const mainHtmlPath = path.join(__dirname, '../../src/main.html');
 const mainJsPath = path.join(__dirname, '../../src/js/main.js');
 const navigationBootstrapPath = path.join(__dirname, '../../src/js/main-navigation-bootstrap.js');
 const mainCssPath = path.join(__dirname, '../../src/css/main.css');
+const themeCssPath = path.join(__dirname, '../../src/css/theme.css');
 const jqueryPath = path.join(__dirname, '../../src/js/jquery.js');
 
 function readMainCss() {
@@ -44,6 +45,10 @@ describe('main sidebar layout', () => {
     expect(pageDocument.querySelector('#sidebar-version')).not.toBeNull();
     expect(pageDocument.querySelector('.sidebar-github-link').getAttribute('href')).toBe('https://github.com/bugwz/ProxyAssistant');
     expect(pageDocument.querySelector('.sidebar-github-link').getAttribute('target')).toBe('_blank');
+    expect(readMainCss()).toMatch(/\.sidebar-footer\s*\{[^}]*color:\s*#8a93a1;/s);
+    expect(readMainCss()).toMatch(/\.sidebar-github-link\s*\{[^}]*color:\s*inherit;/s);
+    expect(fs.readFileSync(themeCssPath, 'utf8')).toMatch(/body\[data-theme="dark"\] \.sidebar-github-link\s*\{[^}]*color:\s*inherit;/s);
+    expect(fs.readFileSync(themeCssPath, 'utf8')).toMatch(/body\[data-custom-theme="true"\] \.sidebar-github-link\s*\{[^}]*color:\s*inherit;/s);
     expect(navItems.map(item => item.dataset.mainPage)).toEqual([
       'proxies',
       'scenarios',

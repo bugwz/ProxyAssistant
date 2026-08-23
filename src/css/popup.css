@@ -676,12 +676,13 @@ body {
 }
 
 .github-link {
+  width: 20px;
+  height: 20px;
   color: var(--text-secondary);
   text-decoration: none;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
+  justify-content: center;
   transition: color 0.2s;
 }
 

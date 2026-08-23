@@ -130,6 +130,16 @@ function loadPopupContext() {
 }
 
 describe('popup scenario switching', () => {
+  test('keeps light GitHub and custom-theme scenario controls visible', () => {
+    const popupCss = fs.readFileSync(path.join(__dirname, '../../src/css/popup.css'), 'utf8');
+    const themeCss = fs.readFileSync(path.join(__dirname, '../../src/css/theme.css'), 'utf8');
+
+    expect(popupCss).toMatch(/\.version-info\s*\{[^}]*color:\s*var\(--text-secondary\);/s);
+    expect(popupCss).toMatch(/\.github-link\s*\{[^}]*color:\s*var\(--text-secondary\);/s);
+    expect(themeCss).toMatch(/body\[data-custom-theme="true"\] \.github-link\s*\{[^}]*color:\s*var\(--custom-theme-muted-text\);/s);
+    expect(themeCss).toMatch(/body\[data-custom-theme="true"\] \.header-scenario-selector\s*\{[^}]*background-color:\s*transparent;[^}]*border-color:\s*transparent;/s);
+  });
+
   test('uses the diagnostics disabled color for disabled popup status', () => {
     const context = loadPopupContext();
     const popupCssPath = path.join(__dirname, '../../src/css/popup.css');

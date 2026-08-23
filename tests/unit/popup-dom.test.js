@@ -221,4 +221,15 @@ describe('popup DOM interactions', () => {
     expect($('.scenario-btn').html()).toContain('m4 12 8 4 8-4');
     expect($('.scenario-btn').html()).toContain('m4 17 8 4 8-4');
   });
+
+  test('GitHub footer link uses an icon-only accessible control', () => {
+    const pageDocument = new DOMParser().parseFromString(fs.readFileSync(popupHtmlPath, 'utf8'), 'text/html');
+    const githubLink = pageDocument.querySelector('.github-link');
+
+    expect(githubLink.textContent.trim()).toBe('');
+    expect(githubLink.querySelector('svg')).not.toBeNull();
+    expect(githubLink.getAttribute('aria-label')).toBe('GitHub');
+    expect(githubLink.getAttribute('title')).toBe('GitHub');
+    expect(githubLink.getAttribute('rel')).toBe('noopener noreferrer');
+  });
 });
