@@ -14,6 +14,12 @@ const ProxyModule = (function () {
     '#FF0000', '#FF8C00', '#FFD700', '#00B050',
     '#00AEEF', '#4164F5', '#8B5CF6', '#EC4899'
   ];
+  const SUBSCRIPTION_TYPE_NAMES = {
+    autoproxy: 'AutoProxy',
+    switchy_legacy: 'Switchy Legacy',
+    switchy_omega: 'Switchy Omega',
+    pac: 'PAC'
+  };
 
   function init() {
     // Load data from storage
@@ -356,9 +362,21 @@ const ProxyModule = (function () {
     const summary = selectedNames.length ? selectedNames.join(', ') : I18n.t('subscription_select_empty');
     const options = subscriptions.map(item => {
       const checked = selectedIds.includes(item.id) ? ' checked' : '';
+      const type = item.current || 'autoproxy';
+      const typeName = SUBSCRIPTION_TYPE_NAMES[type] || type;
+      const counts = SubscriptionModule.getSubscriptionLineCounts(item);
       return `<label class="proxy-subscription-option" data-search="${UtilsModule.escapeHtml(item.name.toLowerCase())}">
         <input type="checkbox" value="${UtilsModule.escapeHtml(item.id)}"${checked}>
-        <span>${UtilsModule.escapeHtml(item.name)}</span>
+        <span class="proxy-subscription-option-content">
+          <span class="proxy-subscription-option-identity">
+            <span class="proxy-subscription-option-type ${UtilsModule.escapeHtml(type)}">${UtilsModule.escapeHtml(typeName)}</span>
+            <span class="proxy-subscription-option-name">${UtilsModule.escapeHtml(item.name)}</span>
+          </span>
+          <span class="proxy-subscription-option-counts">
+            <span>${I18n.t('subscription_direct_count')} <strong>${counts.bypass_lines}</strong></span>
+            <span>${I18n.t('subscription_proxy_count')} <strong>${counts.include_lines}</strong></span>
+          </span>
+        </span>
       </label>`;
     }).join('');
 

@@ -362,10 +362,81 @@ body[data-theme="dark"] .subscription-card-content-panel {
 }
 
 .proxy-subscription-option input {
+  flex: 0 0 auto;
   width: 15px !important;
   height: 15px !important;
   margin: 0;
   accent-color: #4164f5;
+}
+
+.proxy-subscription-option-content,
+.proxy-subscription-option-identity,
+.proxy-subscription-option-counts {
+  display: flex;
+  align-items: center;
+}
+
+.proxy-subscription-option-content {
+  flex: 1 1 auto;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.proxy-subscription-option-identity {
+  gap: 7px;
+  min-width: 0;
+}
+
+.proxy-subscription-option-type {
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.proxy-type-badge.subscription-type-badge.autoproxy,
+.proxy-subscription-option-type.autoproxy {
+  background-color: #e8f0ff;
+  color: #2457d6;
+}
+
+.proxy-type-badge.subscription-type-badge.switchy_legacy,
+.proxy-subscription-option-type.switchy_legacy {
+  background-color: #e8f7ef;
+  color: #16734a;
+}
+
+.proxy-type-badge.subscription-type-badge.switchy_omega,
+.proxy-subscription-option-type.switchy_omega {
+  background-color: #fff4db;
+  color: #9a5b00;
+}
+
+.proxy-type-badge.subscription-type-badge.pac,
+.proxy-subscription-option-type.pac {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+}
+
+.proxy-subscription-option-name {
+  overflow: hidden;
+  color: #334155;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proxy-subscription-option-counts {
+  flex: 0 0 auto;
+  gap: 8px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.proxy-subscription-option-counts strong {
+  color: #334155;
+  font-variant-numeric: tabular-nums;
 }
 
 .proxy-subscription-no-options {
@@ -405,3 +476,35 @@ body[data-theme="dark"] .proxy-subscription-option:hover {
   background: #2a3038;
 }
 
+body[data-theme="dark"] .proxy-subscription-option-name,
+body[data-theme="dark"] .proxy-subscription-option-counts strong {
+  color: #e5e7eb;
+}
+
+body[data-theme="dark"] .proxy-subscription-option-counts {
+  color: #94a3b8;
+}
+
+body[data-theme="dark"] .proxy-type-badge.subscription-type-badge.autoproxy,
+body[data-theme="dark"] .proxy-subscription-option-type.autoproxy {
+  background-color: #1e365f;
+  color: #a9c7ff;
+}
+
+body[data-theme="dark"] .proxy-type-badge.subscription-type-badge.switchy_legacy,
+body[data-theme="dark"] .proxy-subscription-option-type.switchy_legacy {
+  background-color: #163d30;
+  color: #8ed8b5;
+}
+
+body[data-theme="dark"] .proxy-type-badge.subscription-type-badge.switchy_omega,
+body[data-theme="dark"] .proxy-subscription-option-type.switchy_omega {
+  background-color: #493718;
+  color: #f4ca74;
+}
+
+body[data-theme="dark"] .proxy-type-badge.subscription-type-badge.pac,
+body[data-theme="dark"] .proxy-subscription-option-type.pac {
+  background-color: #3b2452;
+  color: #d8b4fe;
+}

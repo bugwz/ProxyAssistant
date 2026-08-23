@@ -114,6 +114,7 @@ describe('subscription management cards', () => {
     expect($('.subscription-drag-handle')).toHaveLength(1);
     expect($('.subscription-card .proxy-index').text()).toBe('#1');
     expect($('.subscription-type-badge').text()).toBe('AutoProxy');
+    expect($('.subscription-type-badge').hasClass('autoproxy')).toBe(true);
     expect($('.subscription-title-preview').text()).toBe('subscription_unnamed');
     expect($('.subscription-last-updated').text()).toBe('-');
     expect($('.subscription-last-updated').attr('title')).toBe('subscription_last_updated');

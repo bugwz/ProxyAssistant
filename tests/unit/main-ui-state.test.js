@@ -1014,7 +1014,7 @@ describe('main UI state flow', () => {
       getCurrentScenario: jest.fn(() => ({ id: 'scenario-a', name: 'Scenario A' }))
     };
     global.SubscriptionModule = {
-      getSubscriptionLineCounts: jest.fn(() => ({ include_lines: 1, bypass_lines: 1 })),
+      getSubscriptionLineCounts: jest.fn(() => ({ include_lines: 12, bypass_lines: 3 })),
       getProxySubscriptions: jest.fn(proxy => proxy.subscription_ids.map(id => subscriptions.find(item => item.id === id))),
       getProxySubscriptionLineCounts: jest.fn(() => ({ include_lines: 1, bypass_lines: 1 })),
       openModal: jest.fn()
@@ -1051,6 +1051,10 @@ describe('main UI state flow', () => {
 
     expect($('.proxy-subscription-search')).toHaveLength(1);
     expect($('.proxy-subscription-option input:checked').val()).toBe('subscription-1');
+    expect($('.proxy-subscription-option-type').text()).toBe('AutoProxy');
+    expect($('.proxy-subscription-option-type').hasClass('autoproxy')).toBe(true);
+    expect($('.proxy-subscription-option-name').text()).toBe('Shared Rules');
+    expect($('.proxy-subscription-option-counts strong').map(function () { return $(this).text(); }).get()).toEqual(['3', '12']);
     $('.proxy-subscription-trigger').trigger('click');
     $('.proxy-subscription-search').val('missing').trigger('input');
     expect($('.proxy-subscription-option').css('display')).toBe('none');
