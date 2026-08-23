@@ -127,13 +127,13 @@ describe('subscription management cards', () => {
     subscriptions[0].lists.autoproxy.url = 'https://example.com/rules.txt';
     subscriptions[0].lists.autoproxy.include_lines = 4317;
     subscriptions[0].lists.autoproxy.bypass_lines = 33;
-    subscriptions[0].lists.autoproxy.last_fetch_time = new Date(2026, 7, 19, 10, 54).getTime();
+    subscriptions[0].lists.autoproxy.last_fetch_time = new Date(2026, 7, 19, 10, 54, 17).getTime();
 
     subscriptionModule.renderManagementList();
 
     expect($('.subscription-title-preview').text()).toBe('Shared Rules');
     expect($('.subscription-title-preview').text()).not.toContain('https://');
-    expect($('.subscription-last-updated').text()).toBe('2026-08-19 10:54');
+    expect($('.subscription-last-updated').text()).toBe('2026-08-19 10:54:17');
     expect($('.subscription-card-header').text()).not.toContain('4317');
     expect($('.subscription-card-header').text()).not.toContain('33');
   });

@@ -117,14 +117,11 @@ function updateSyncUI() {
     const $lastSyncTime = $(`#${type}-sync-last-time`);
     const lastSyncDate = service.last_sync_at ? new Date(service.last_sync_at) : null;
     if (lastSyncDate && !Number.isNaN(lastSyncDate.getTime())) {
-      const locale = I18n.getCurrentLanguage ? I18n.getCurrentLanguage() : undefined;
-      $lastSyncTime.text(new Intl.DateTimeFormat(locale, {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(lastSyncDate));
+      const pad = value => String(value).padStart(2, '0');
+      $lastSyncTime.text(
+        `${lastSyncDate.getFullYear()}-${pad(lastSyncDate.getMonth() + 1)}-${pad(lastSyncDate.getDate())}`
+        + ` ${pad(lastSyncDate.getHours())}:${pad(lastSyncDate.getMinutes())}:${pad(lastSyncDate.getSeconds())}`
+      );
     } else {
       $lastSyncTime.text(I18n.t('sync_never'));
     }

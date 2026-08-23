@@ -138,7 +138,7 @@ describe('diagnostics workspace', () => {
     ]);
     expect($('#pac-rules-count-text').text()).toBe('pac_rules_count');
     expect($('#pac-rules-count-value').text()).toBe('1');
-    expect($('#pac-last-fetched-at').text()).toMatch(/^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}$/);
+    expect($('#pac-last-fetched-at').text()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
     expect(chrome.storage.onChanged.addListener).toHaveBeenCalledTimes(1);
 
     const listener = chrome.storage.onChanged.addListener.mock.calls[0][0];
@@ -195,7 +195,7 @@ describe('diagnostics workspace', () => {
     expect($('#detection-details').text()).toContain('Node A');
     expect($('#detection-details').text()).toContain('Office');
     expect($('#detection-details').text()).toContain('proxy_auth_none');
-    expect($('#detection-checked-time').text()).toMatch(/^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}$/);
+    expect($('#detection-checked-time').text()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
     expect($('#detect-proxy-btn').prop('disabled')).toBe(false);
 
     chrome.proxy.settings.get.mockImplementation((options, callback) => callback({
@@ -362,7 +362,7 @@ describe('diagnostics workspace', () => {
 
     expect($('#pac-details-btn').prop('disabled')).toBe(false);
     expect($('#pac-script-content').text()).toContain('FindProxyForURL');
-    expect($('#pac-last-fetched-at').text()).toBe('2026/08/22 08:00:00');
+    expect($('#pac-last-fetched-at').text()).toBe('2026-08-22 08:00:00');
     expect($('.pac-details-content').hasClass('is-refreshing')).toBe(false);
     expect($('.pac-details-content').attr('aria-busy')).toBe('false');
     expect($('.pac-script-loading').attr('aria-hidden')).toBe('true');
@@ -406,10 +406,10 @@ describe('diagnostics workspace', () => {
       $('#runtime-log-count-error').text()
     ]).toEqual(['2', '1', '0', '1']);
     expect($('.runtime-log-line-number').map((index, element) => $(element).text()).get()).toEqual(['1', '2']);
-    expect($('.runtime-log-time').toArray().every(element => /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}$/.test($(element).text()))).toBe(true);
+    expect($('.runtime-log-time').toArray().every(element => /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test($(element).text()))).toBe(true);
     const firstLogFields = $('.runtime-log-item').first().children().map((index, element) => $(element).text()).get();
     expect(firstLogFields[0]).toBe('1');
-    expect(firstLogFields[1]).toMatch(/^2026\/08\/22 \d{2}:00:00$/);
+    expect(firstLogFields[1]).toMatch(/^2026-08-22 \d{2}:00:00$/);
     expect(firstLogFields.slice(2)).toEqual([
       'INFO',
       'Manual proxy enabled, proxy: node a'
@@ -525,8 +525,8 @@ describe('diagnostics workspace', () => {
 
     const copiedLines = window.navigator.clipboard.writeText.mock.calls[0][0].split('\n');
     expect(copiedLines).toHaveLength(2);
-    expect(copiedLines[0]).toMatch(/^2026\/08\/22 \d{2}:01:00 ERRO Rule subscription refresh failed, error: http 500$/);
-    expect(copiedLines[1]).toMatch(/^2026\/08\/22 \d{2}:00:00 INFO Manual proxy enabled, proxy: node a$/);
+    expect(copiedLines[0]).toMatch(/^2026-08-22 \d{2}:01:00 ERRO Rule subscription refresh failed, error: http 500$/);
+    expect(copiedLines[1]).toMatch(/^2026-08-22 \d{2}:00:00 INFO Manual proxy enabled, proxy: node a$/);
   });
 
   test('restores the saved runtime log sort order after reopening the main page', () => {

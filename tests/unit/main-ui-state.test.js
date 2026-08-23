@@ -516,8 +516,8 @@ describe('main UI state flow', () => {
     expect($('#config-json-version').text()).toBe('v5');
     expect($('#config-json-size').text()).toBe(`${new Blob([formatted]).size} B / ${new Blob([compact]).size} B`);
     expect($('#config-json-size').attr('title')).toBe('config_file_size_details');
-    expect($('#config-json-updated-at').text()).not.toBe('config_never_updated');
-    expect($('#config-json-last-fetched-at').text()).not.toBe('config_never_updated');
+    expect($('#config-json-updated-at').text()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+    expect($('#config-json-last-fetched-at').text()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
   });
 
   test('shows fetching feedback before refreshing the current configuration', async () => {
