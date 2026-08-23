@@ -39,10 +39,6 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M6.5 12h3l1.5-3 2 6 1.5-3h3"></path></svg>
           <span data-i18n="nav_diagnostics">代理状态</span>
         </button>
-        <button type="button" class="main-nav-item" data-main-page="runtime-logs" aria-controls="page-runtime-logs" title="运行日志" data-i18n-title="runtime_logs_title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l3 3v15H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path><path d="M14 3v4h4"></path><path d="M8 12h6M8 16h4"></path></svg>
-          <span data-i18n="runtime_logs_title">运行日志</span>
-        </button>
         <button type="button" class="main-nav-item" data-main-page="config" aria-controls="page-config" title="配置文件" data-i18n-title="nav_config">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path><path d="M14 3v5h4"></path><path d="M8 13h7"></path><path d="M8 17h5"></path></svg>
           <span data-i18n="nav_config">配置文件</span>
@@ -50,6 +46,10 @@
         <button type="button" class="main-nav-item" data-main-page="sync" aria-controls="page-sync" title="云端同步" data-i18n-title="nav_sync">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5A4.5 4.5 0 1 1 8 9.6a5.5 5.5 0 0 1 10.5 1.9A3.5 3.5 0 1 1 18 18.5H7Z"></path></svg>
           <span data-i18n="nav_sync">云端同步</span>
+        </button>
+        <button type="button" class="main-nav-item" data-main-page="runtime-logs" aria-controls="page-runtime-logs" title="运行日志" data-i18n-title="runtime_logs_title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l3 3v15H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path><path d="M14 3v4h4"></path><path d="M8 12h6M8 16h4"></path></svg>
+          <span data-i18n="runtime_logs_title">运行日志</span>
         </button>
         <button type="button" class="main-nav-item" data-main-page="appearance" aria-controls="page-appearance" title="界面设置" data-i18n-title="nav_appearance">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="14" rx="2"></rect><circle cx="12" cy="10" r="3"></circle><path d="M12 7v6"></path><path d="M8 21h8M12 17v4"></path></svg>
@@ -564,6 +564,9 @@
                   </button>
                   <button type="button" class="config-json-toolbar-btn" id="runtime-log-sort-btn" data-sort-order="asc" aria-pressed="false" title="最新日志优先" aria-label="最新日志优先" data-i18n-title="runtime_logs_sort_newest_first" data-i18n-aria-label="runtime_logs_sort_newest_first">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6v12"></path><path d="m1 15 3 3 3-3"></path><path d="M11 7h4"></path><path d="M11 12h7"></path><path d="M11 17h10"></path></svg>
+                  </button>
+                  <button type="button" class="config-json-toolbar-btn" id="runtime-log-copy-btn" title="复制全部日志" aria-label="复制全部日志" data-i18n-title="runtime_logs_copy" data-i18n-aria-label="runtime_logs_copy">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="10" height="10" rx="2"></rect><path d="M7 15H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1"></path></svg>
                   </button>
                 </div>
               </div>
