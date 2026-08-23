@@ -125,7 +125,7 @@ description: 自动化处理项目版本发布流程，包括收集版本号、�
 1. 将完整提交信息单独放入 `text` 代码块，再展示将被提交的文件列表
 2. 征求用户明确确认
 3. **必须等待用户明确回复**（优先使用“确认”）
-4. 如果用户明确同意提交，执行 `git add . && git commit -m "Release {VERSION}"`
+4. 如果用户明确同意提交，使用 `release: {VERSION}` 标题和已展示的英文变更明细执行提交
 5. 如果用户拒绝或未明确确认，**禁止提交**，并告知用户提交已取消
 
 **确认提示格式：**
@@ -140,7 +140,11 @@ description: 自动化处理项目版本发布流程，包括收集版本号、�
 
 提交信息：
 ```text
-Release {VERSION}
+release: {VERSION}
+
+- update extension version to {VERSION}
+- add release notes for version {VERSION}
+- prepare Chrome and Firefox release manifests
 ```
 
 确认创建发布提交吗？请回复“确认”继续，或回复“取消”终止。
@@ -212,6 +216,7 @@ GitHub Release 描述将使用 `release/{VERSION}.md` 更新，并移除重复�
 - **【绝对禁止】在用户未明确确认前执行任何 git tag 命令**
 - **【绝对禁止】在用户未明确确认前执行任何 git push 命令**
 - 版本号不使用 v 前缀
+- 发布提交必须遵循 Conventional Commits，标题使用小写的 `release: {VERSION}`，并包含英文变更明细
 - 发布说明中的英文提交信息必须转化为中文描述
 - 发布提交确认中的完整提交信息必须使用独立的 `text` 代码块展示
 - 所有变更内容必须为中文
