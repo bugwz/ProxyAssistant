@@ -23,7 +23,11 @@ function waitForVersionRefreshFeedback(startTime) {
 
 function getGitHubRefreshButton() {
   const label = I18n.t('config_refresh');
-  return `<button class="version-row-retry-btn github-refresh-btn" data-source="github" title="${label}" aria-label="${label}">${MainIcons.render('refresh', { width: 14, height: 14, className: 'version-refresh-icon' })}</button>`;
+  return `<button class="version-row-retry-btn github-refresh-btn" data-source="github" title="${label}" aria-label="${label}">${MainIcons.render('refreshSingle', { width: 14, height: 14, className: 'version-refresh-icon' })}</button>`;
+}
+
+function getVersionCheckingHtml() {
+  return `<span class="version-checking-text" data-i18n="version_checking">${I18n.t('version_checking')}</span>`;
 }
 
 async function loadVersionInfo() {
@@ -37,7 +41,7 @@ async function loadVersionInfo() {
   $("#current-version-value").text(currentVersion);
 
   $("#store-version-value").html(`<span data-i18n="version_checking">${I18n.t('version_checking')}</span>`);
-  $("#github-version-value").html(`<span data-i18n="version_checking">${I18n.t('version_checking')}</span>`);
+  $("#github-version-value").html(getVersionCheckingHtml()).attr('aria-busy', 'true');
 
   versionInfoPromise = Promise.allSettled([
     checkStoreVersion(currentVersion),
@@ -124,10 +128,13 @@ async function checkGitHubVersion(currentVersion, isRetry = false) {
   const MAX_RETRIES = 3;
   const RETRY_DELAYS = [1000, 2000, 3000];
   const refreshStartedAt = Date.now();
+  const $refreshButton = isRetry ? $el.find('.version-row-retry-btn').first() : $();
 
-  if (!isRetry) {
-    $el.html(`<span class="version-status-icon">${versionIcons.loading}</span> <span>${I18n.t('version_checking')}</span>`);
+  if (isRetry) {
+    $el.addClass('is-refreshing').attr('aria-busy', 'true');
   }
+  $el.html(getVersionCheckingHtml()).attr('aria-busy', 'true');
+  if ($refreshButton.length) $el.append($refreshButton);
 
   async function fetchWithRetry(attempt = 0) {
     const controller = new AbortController();
@@ -173,6 +180,8 @@ async function checkGitHubVersion(currentVersion, isRetry = false) {
     const errorHtml = `<span class="version-status-icon">${versionIcons.error}</span>
       <span style="color: #ef4444; font-size: 12px;">${I18n.t('version_error') || 'Failed'}</span>`;
     $el.html(errorHtml + refreshBtn);
+  } finally {
+    $el.removeClass('is-refreshing').attr('aria-busy', 'false');
   }
 }
 

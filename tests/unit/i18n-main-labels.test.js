@@ -135,6 +135,25 @@ describe('main page translated section labels', () => {
     });
   });
 
+  test('about page overview should be translated in every language', () => {
+    const languages = ['zh-CN', 'zh-TW', 'en', 'ja', 'fr', 'de', 'es', 'ko', 'pt', 'ru'];
+    const keys = ['about_page_desc', 'project_intro_title', 'project_intro_desc'];
+
+    languages.forEach((language) => {
+      window.I18n.setLanguage(language);
+      keys.forEach((key) => {
+        const value = window.I18n.t(key);
+        expect(value).not.toBe(key);
+        expect(value.trim().length).toBeGreaterThan(0);
+      });
+    });
+
+    window.I18n.setLanguage('zh-CN');
+    expect(window.I18n.t('about_page_desc')).toBe('浏览器代理管理扩展');
+    expect(window.I18n.t('project_intro_title')).toBe('项目介绍');
+    expect(window.I18n.t('project_intro_desc')).toContain('Chrome 和 Firefox');
+  });
+
   test('runtime log interface uses internationalized labels in every language', () => {
     ['zh-CN', 'zh-TW', 'en', 'ja', 'fr', 'de', 'es', 'ko', 'pt', 'ru'].forEach(lang => {
       window.I18n.setLanguage(lang);

@@ -43,6 +43,20 @@
   .main-content {
     padding: 30px 24px 40px;
   }
+
+  .about-version-content {
+    grid-template-columns: minmax(190px, 0.65fr) minmax(0, 1.35fr);
+    padding: 24px;
+  }
+
+  .about-brand-summary {
+    padding: 22px;
+  }
+
+  .about-version-details {
+    padding-left: 28px;
+  }
+
 }
 
 @media (max-width: 680px) {
@@ -156,15 +170,58 @@
     grid-column: 1;
   }
 
-  .about-version-header {
-    padding: 16px;
+  .about-version-content {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0;
+  }
+
+  .about-brand-summary {
+    padding: 30px 20px;
+    border-right: 0;
+    border-bottom: 1px solid #e1e6ec;
+  }
+
+  [data-theme="dark"] .about-brand-summary {
+    border-bottom-color: #334155;
+  }
+
+  .about-logo-shell {
+    width: 80px;
+    height: 80px;
+  }
+
+  .about-logo-shell img {
+    width: 72px;
+    height: 72px;
+  }
+
+  .about-version-details {
+    display: block;
+    padding: 24px 16px;
+  }
+
+  .about-project-overview,
+  .about-version-section {
+    padding: 0;
+  }
+
+  .about-project-overview {
+    padding-bottom: 24px;
+  }
+
+  .about-version-section {
+    padding-top: 24px;
+  }
+
+  .about-version-list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    margin-top: 22px;
   }
 
   .version-info-row {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 6px;
-    padding: 14px 16px;
+    min-height: 72px;
+    padding-bottom: 12px;
   }
 
   .version-value,

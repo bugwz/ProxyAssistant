@@ -52,13 +52,14 @@ function loadVersionModule(fetchMock) {
 describe('version refresh feedback', () => {
   afterEach(() => {
     jest.useRealTimers();
+    jest.restoreAllMocks();
     document.body.innerHTML = '';
     delete window.$;
     delete window.jQuery;
     delete window.VersionModule;
   });
 
-  test('keeps a fast GitHub refresh visible for 600ms without replacing its icon', async () => {
+  test('animates GitHub version content for 600ms and keeps the single-arrow refresh icon', async () => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date(2026, 7, 22, 8, 0, 0));
     document.body.innerHTML = '<div id="github-version-value"></div>';
@@ -76,15 +77,55 @@ describe('version refresh feedback', () => {
 
     await Promise.resolve();
     await Promise.resolve();
+    expect($('#github-version-value').text()).toContain('version_checking');
+    expect($('#github-version-value .version-checking-text')).toHaveLength(1);
+    expect($('#github-version-value .version-status-icon')).toHaveLength(0);
     expect($('.version-row-retry-btn .version-refresh-icon')).toHaveLength(1);
+    expect($('.version-row-retry-btn path')).toHaveLength(2);
+    expect($('.version-row-retry-btn').html()).toContain('M21 12a9 9 0 1 1-2.64-6.36L21 8');
+    expect($('#github-version-value').hasClass('is-refreshing')).toBe(true);
+    expect($('#github-version-value').attr('aria-busy')).toBe('true');
 
     await jest.advanceTimersByTimeAsync(599);
     expect($('.version-row-retry-btn .version-refresh-icon')).toHaveLength(1);
+    expect($('#github-version-value').hasClass('is-refreshing')).toBe(true);
 
     await jest.advanceTimersByTimeAsync(1);
     await refreshPromise;
 
     expect($('#github-version-value').text()).toContain('1.0.1');
     expect($('.version-row-retry-btn .version-refresh-icon')).toHaveLength(1);
+    expect($('#github-version-value').hasClass('is-refreshing')).toBe(false);
+    expect($('#github-version-value').attr('aria-busy')).toBe('false');
+  });
+
+  test('restores GitHub version content after a failed refresh', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(2026, 7, 22, 8, 0, 0));
+    jest.spyOn(console, 'info').mockImplementation(() => {});
+    document.body.innerHTML = '<div id="github-version-value"></div>';
+    const fetchMock = jest.fn(async () => {
+      throw new Error('network unavailable');
+    });
+    const VersionModule = loadVersionModule(fetchMock);
+    VersionModule.updateVersionUI($('#github-version-value'), '1.0.0', '1.0.0', 'https://example.com/release');
+
+    const refreshPromise = VersionModule.checkGitHubVersion('1.0.0', true);
+    await Promise.resolve();
+
+    expect($('#github-version-value').text()).toContain('version_checking');
+    expect($('#github-version-value .version-checking-text')).toHaveLength(1);
+    expect($('#github-version-value .version-status-icon')).toHaveLength(0);
+    expect($('#github-version-value').hasClass('is-refreshing')).toBe(true);
+    expect($('#github-version-value').attr('aria-busy')).toBe('true');
+
+    await jest.advanceTimersByTimeAsync(6000);
+    await refreshPromise;
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect($('#github-version-value').text()).toContain('version_error');
+    expect($('.version-row-retry-btn .version-refresh-icon')).toHaveLength(1);
+    expect($('#github-version-value').hasClass('is-refreshing')).toBe(false);
+    expect($('#github-version-value').attr('aria-busy')).toBe('false');
   });
 });
