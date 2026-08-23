@@ -375,14 +375,9 @@ function formatConfigUpdatedAt(value) {
   if (!value) return I18n.t('config_never_updated');
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return I18n.t('config_never_updated');
-  return date.toLocaleString(I18n.getCurrentLanguage(), {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
+  const pad = value => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+    + ` ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
 function updateConfigJsonMetadata(text = getConfigEditorText()) {
