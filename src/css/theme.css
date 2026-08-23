@@ -122,7 +122,7 @@ body[data-theme="dark"] .sidebar-footer {
 }
 
 body[data-theme="dark"] .sidebar-github-link {
-  color: #aab2bf;
+  color: inherit;
 }
 
 body[data-theme="dark"] .sidebar-github-link:hover,
@@ -516,4 +516,17 @@ body[data-custom-theme="true"] .control-btn.primary-control-btn {
 body[data-custom-theme="true"] a,
 body[data-custom-theme="true"] .config-json-key {
   color: var(--custom-theme-accent);
+}
+
+body[data-custom-theme="true"] .sidebar-github-link {
+  color: inherit;
+}
+
+body[data-custom-theme="true"] .github-link {
+  color: var(--custom-theme-muted-text);
+}
+
+body[data-custom-theme="true"] .header-scenario-selector {
+  background-color: transparent;
+  border-color: transparent;
 }
