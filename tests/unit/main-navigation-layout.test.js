@@ -432,6 +432,11 @@ describe('main sidebar layout', () => {
     expect(css).toMatch(/\.proxy-subscription-trigger\s*\{[^}]*height:\s*36px;[^}]*border:\s*1px solid #e2e8f0;[^}]*border-radius:\s*6px;/s);
     expect(css).toMatch(/\.proxy-subscription-search-row\s*\{[^}]*height:\s*38px;[^}]*border:\s*1px solid #e2e8f0;[^}]*border-radius:\s*6px;/s);
     expect(css).toMatch(/\.proxy-subscription-search-row:focus-within\s*\{[^}]*border-color:\s*#4164f5;[^}]*box-shadow:/s);
+    ['autoproxy', 'switchy_legacy', 'switchy_omega', 'pac'].forEach(type => {
+      expect(css).toContain(`.proxy-type-badge.subscription-type-badge.${type}`);
+      expect(css).toContain(`.proxy-subscription-option-type.${type}`);
+      expect(css).toContain(`body[data-theme="dark"] .proxy-subscription-option-type.${type}`);
+    });
     expect(css).toMatch(/\.proxy-body \.form-grid > \.form-item\s*\{[^}]*grid-column:\s*1 \/ -1\s*!important;/s);
   });
 
