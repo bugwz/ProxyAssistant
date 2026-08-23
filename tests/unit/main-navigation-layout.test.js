@@ -49,9 +49,9 @@ describe('main sidebar layout', () => {
       'scenarios',
       'subscriptions',
       'diagnostics',
-      'runtime-logs',
       'config',
       'sync',
+      'runtime-logs',
       'appearance',
       'about'
     ]);
@@ -60,9 +60,9 @@ describe('main sidebar layout', () => {
       '代理场景',
       '规则订阅',
       '代理状态',
-      '运行日志',
       '配置文件',
       '云端同步',
+      '运行日志',
       '界面设置',
       '关于'
     ]);
@@ -222,6 +222,9 @@ describe('main sidebar layout', () => {
     const runtimeLogSortButton = runtimeLogsCard.querySelector('.runtime-log-meta-toolbar #runtime-log-sort-btn');
     expect(runtimeLogSortButton.getAttribute('data-sort-order')).toBe('asc');
     expect(runtimeLogSortButton.getAttribute('aria-pressed')).toBe('false');
+    const runtimeLogCopyButton = runtimeLogsCard.querySelector('.runtime-log-meta-toolbar #runtime-log-copy-btn');
+    expect(runtimeLogSortButton.nextElementSibling).toBe(runtimeLogCopyButton);
+    expect(runtimeLogCopyButton.getAttribute('data-i18n-title')).toBe('runtime_logs_copy');
     expect(diagnosticsPage.querySelector('.diagnostics-logs-card')).toBeNull();
     expect(runtimeLogsPage.querySelector('.diagnostics-detection-card, .diagnostics-pac-card')).toBeNull();
     expect(pageDocument.querySelector('.proxy-detection-tip')).toBeNull();

@@ -143,6 +143,9 @@ describe('main page translated section labels', () => {
       expect(window.I18n.t('runtime_log_event_proxy_apply_failed')).not.toBe('runtime_log_event_proxy_apply_failed');
       expect(window.I18n.t('runtime_logs_clear_confirm_title')).not.toBe('runtime_logs_clear_confirm_title');
       expect(window.I18n.t('runtime_logs_clear_confirm_message')).not.toBe('runtime_logs_clear_confirm_message');
+      expect(window.I18n.t('runtime_logs_copy')).not.toBe('runtime_logs_copy');
+      expect(window.I18n.t('runtime_logs_copy_success')).not.toBe('runtime_logs_copy_success');
+      expect(window.I18n.t('runtime_logs_copy_failed')).not.toBe('runtime_logs_copy_failed');
       expect(window.I18n.t('pac_details_title')).not.toBe('pac_details_title');
       expect(window.I18n.t('pac_fetching')).not.toBe('pac_fetching');
       expect(window.I18n.t('pac_last_fetched')).not.toBe('pac_last_fetched');

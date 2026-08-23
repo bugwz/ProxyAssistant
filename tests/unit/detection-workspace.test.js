@@ -30,6 +30,7 @@ function createDiagnosticsDom() {
           <span id="runtime-log-count-error">0</span>
           <button id="runtime-log-live-btn"></button>
           <button id="runtime-log-sort-btn"></button>
+          <button id="runtime-log-copy-btn"></button>
         </div>
         <div id="runtime-log-wrapper">
           <div class="runtime-log-loading" aria-hidden="true"><span>获取中...</span></div>
@@ -62,7 +63,10 @@ function loadDetectionModule(chrome) {
   window.eval(fs.readFileSync(jqueryPath, 'utf8'));
   const MainIcons = require(iconsPath);
   const I18n = { t: jest.fn(key => key) };
-  const UtilsModule = { escapeHtml: jest.fn(value => String(value)) };
+  const UtilsModule = {
+    escapeHtml: jest.fn(value => String(value)),
+    showTip: jest.fn()
+  };
   const source = fs.readFileSync(detectionPath, 'utf8');
   const factory = new Function(
     'window',
@@ -92,6 +96,7 @@ describe('diagnostics workspace', () => {
   afterEach(() => {
     jest.useRealTimers();
     window.localStorage.clear();
+    delete window.navigator.clipboard;
     document.body.innerHTML = '';
     delete window.DetectionModule;
     delete window.$;
@@ -487,6 +492,41 @@ describe('diagnostics workspace', () => {
     expect(chrome.runtime.sendMessage).not.toHaveBeenCalled();
     expect($('.runtime-log-item')).toHaveLength(0);
     expect($('#runtime-log-empty').prop('hidden')).toBe(false);
+  });
+
+  test('copies every runtime log in the current sort order regardless of the level filter', async () => {
+    createDiagnosticsDom();
+    Object.defineProperty(window.navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: jest.fn().mockResolvedValue() }
+    });
+    const logs = [
+      { id: '1', time: '2026-08-22T08:00:00.000Z', level: 'info', event: 'proxy_manual_enabled', details: { proxyName: 'Node A' } },
+      { id: '2', time: '2026-08-22T08:01:00.000Z', level: 'error', event: 'subscription_refresh_failed', details: { error: 'HTTP 500' } }
+    ];
+    const chrome = {
+      runtime: { lastError: null },
+      storage: {
+        local: {
+          get: jest.fn((keys, callback) => callback({ runtime_logs: logs })),
+          set: jest.fn()
+        },
+        onChanged: { addListener: jest.fn(), removeListener: jest.fn() }
+      }
+    };
+    const DetectionModule = loadDetectionModule(chrome);
+
+    DetectionModule.initRuntimeLogs();
+    DetectionModule.loadRuntimeLogs();
+    $('#runtime-log-level').val('error').trigger('change');
+    $('#runtime-log-sort-btn').trigger('click');
+    $('#runtime-log-copy-btn').trigger('click');
+    await Promise.resolve();
+
+    const copiedLines = window.navigator.clipboard.writeText.mock.calls[0][0].split('\n');
+    expect(copiedLines).toHaveLength(2);
+    expect(copiedLines[0]).toMatch(/^2026\/08\/22 \d{2}:01:00 ERRO Rule subscription refresh failed, error: http 500$/);
+    expect(copiedLines[1]).toMatch(/^2026\/08\/22 \d{2}:00:00 INFO Manual proxy enabled, proxy: node a$/);
   });
 
   test('restores the saved runtime log sort order after reopening the main page', () => {

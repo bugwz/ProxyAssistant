@@ -548,6 +548,29 @@ function renderRuntimeLogs() {
   reconcileRuntimeLogItems(orderedLogs);
 }
 
+function getRuntimeLogCopyText() {
+  const orderedLogs = runtimeLogs.slice();
+  if (runtimeLogSortOrder === 'desc') orderedLogs.reverse();
+  return orderedLogs.map(log => {
+    const level = ['info', 'warning', 'error'].includes(log.level) ? log.level : 'info';
+    return `${formatDateTime(log.time)} ${RUNTIME_LOG_LEVEL_LABELS[level]} ${getRuntimeLogContent(log)}`;
+  }).join('\n');
+}
+
+function copyRuntimeLogs() {
+  const clipboard = navigator.clipboard;
+  if (!clipboard || typeof clipboard.writeText !== 'function') {
+    UtilsModule.showTip(I18n.t('runtime_logs_copy_failed'), true);
+    return;
+  }
+
+  clipboard.writeText(getRuntimeLogCopyText()).then(function () {
+    UtilsModule.showTip(I18n.t('runtime_logs_copy_success'), false);
+  }).catch(function () {
+    UtilsModule.showTip(I18n.t('runtime_logs_copy_failed'), true);
+  });
+}
+
 function loadRuntimeLogs(event) {
   const shouldDelayFeedback = event?.type === 'click';
   const refreshStartedAt = Date.now();
@@ -655,6 +678,7 @@ function initRuntimeLogs() {
     persistRuntimeLogSortOrder();
     renderRuntimeLogs();
   });
+  $('#runtime-log-copy-btn').off('click.runtimeLogs').on('click.runtimeLogs', copyRuntimeLogs);
   $('#runtime-log-live-btn').off('click.runtimeLogs').on('click.runtimeLogs', function () {
     setRuntimeLogAutoUpdate(!runtimeLogAutoUpdateEnabled);
   });
