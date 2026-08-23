@@ -17,8 +17,9 @@ describe('MainIcons', () => {
     const disabledCircleIcon = MainIcons.render('disabledCircle');
     const manualModeIcon = MainIcons.render('manualMode');
     const autoModeIcon = MainIcons.render('autoMode');
+    const refreshSingleIcon = MainIcons.render('refreshSingle');
 
-    [testAllIcon, chevronDownIcon, eyeOffIcon, scenarioSwitchIcon, tagIcon, foldAllIcon, unfoldAllIcon, disabledCircleIcon, manualModeIcon, autoModeIcon].forEach((svg) => {
+    [testAllIcon, chevronDownIcon, eyeOffIcon, scenarioSwitchIcon, tagIcon, foldAllIcon, unfoldAllIcon, disabledCircleIcon, manualModeIcon, autoModeIcon, refreshSingleIcon].forEach((svg) => {
       expect(svg).toContain('<svg');
       expect(svg).toContain('viewBox="0 0 24 24"');
       expect(svg).toContain('stroke="currentColor"');
@@ -38,5 +39,8 @@ describe('MainIcons', () => {
     expect(autoModeIcon).toContain('<circle cx="12" cy="12" r="9"/>');
     expect(manualModeIcon).toContain('M9 15V9l3 4 3-4v6" stroke-width="1.5"');
     expect(autoModeIcon.match(/stroke-width="1\.5"/g)).toHaveLength(2);
+    expect(refreshSingleIcon).toContain('M21 12a9 9 0 1 1-2.64-6.36L21 8');
+    expect(refreshSingleIcon).toContain('M21 3v5h-5');
+    expect(refreshSingleIcon).not.toContain('M4 19v-5h5');
   });
 });

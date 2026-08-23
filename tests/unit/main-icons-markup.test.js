@@ -153,10 +153,22 @@ describe('main header icon markup', () => {
     const mainHtmlPath = path.join(__dirname, '../../src/main.html');
     const pageDocument = new DOMParser().parseFromString(fs.readFileSync(mainHtmlPath, 'utf8'), 'text/html');
     const panel = pageDocument.querySelector('.about-version-panel');
+    const content = panel.querySelector('.about-version-content');
+    const details = content.querySelector('.about-version-details');
+    const pageDescription = pageDocument.querySelector('#page-about .page-heading p');
 
     expect(panel).toBeTruthy();
-    expect(panel.querySelector('.about-version-header')).toBeTruthy();
-    expect(Array.from(panel.querySelectorAll('.version-value')).map(element => element.id)).toEqual([
+    expect(pageDescription.getAttribute('data-i18n')).toBe('about_page_desc');
+    expect(content.querySelector('.about-brand-summary img').getAttribute('src')).toBe('./images/icon-128.png');
+    expect(details.firstElementChild.classList.contains('about-project-overview')).toBe(true);
+    expect(details.lastElementChild.classList.contains('about-version-section')).toBe(true);
+    expect(details.querySelector('.about-project-overview h3').getAttribute('data-i18n')).toBe('project_intro_title');
+    expect(details.querySelector('.about-project-overview p').getAttribute('data-i18n')).toBe('project_intro_desc');
+    expect(details.querySelectorAll('.about-version-section .version-info-row')).toHaveLength(3);
+    expect(details.querySelector('#github-version-value').getAttribute('aria-busy')).toBe('true');
+    expect(details.querySelector('#github-version-value .version-checking-text').textContent).toBe('获取中...');
+    expect(details.querySelector('#github-version-value .version-status-icon')).toBeNull();
+    expect(Array.from(details.querySelectorAll('.about-version-section .version-value')).map(element => element.id)).toEqual([
       'current-version-value',
       'store-version-value',
       'github-version-value'
