@@ -33,6 +33,9 @@ const CLOUD_SYNC_SUBSCRIPTION_CACHE_KEYS = [
 ];
 const MAX_PROXY_RULES_PER_PROXY = 20000;
 const MAX_PROXY_REGEX_LENGTH = 512;
+const SUBSCRIPTION_FETCH_TIMEOUT_MS = 30000;
+const MAX_SUBSCRIPTION_RESPONSE_BYTES = 4 * 1024 * 1024;
+const MAX_SUBSCRIPTION_PARSED_RULES = 20000;
 let scenarioAutomationEvaluation = null;
 let cloudSyncQueue = Promise.resolve();
 let runtimeLogQueue = Promise.resolve();
@@ -1321,8 +1324,11 @@ function parseSubscriptionContent(content, format, reverse, processRule) {
 
     if (format === 'pac') {
       const pacResult = parsePacContent(contentToParse, processRule, reverse);
-      result.include_rules = pacResult.include;
-      result.bypass_rules = pacResult.bypass;
+      result.include_rules = pacResult.include.slice(0, MAX_SUBSCRIPTION_PARSED_RULES);
+      result.bypass_rules = pacResult.bypass.slice(
+        0,
+        Math.max(0, MAX_SUBSCRIPTION_PARSED_RULES - result.include_rules.length)
+      );
     } else {
       if (format === 'autoproxy') {
         const trimmed = content.trim();
@@ -1359,6 +1365,9 @@ function parseSubscriptionContent(content, format, reverse, processRule) {
         }
 
         if (normalized) {
+          if (result.include_rules.length + result.bypass_rules.length >= MAX_SUBSCRIPTION_PARSED_RULES) {
+            break;
+          }
           if (normalized.isDirect) {
             result.bypass_rules.push(normalized.pattern);
           } else {
@@ -1441,21 +1450,77 @@ function parsePacContent(rawContent, processRule, reverse = false) {
   return { include, bypass };
 }
 
-// Fetch with timeout and retry support
-async function fetchWithTimeout(url, options = {}, timeout = 30000) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
+function createSubscriptionFetchError(code, message) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
 
+function getUtf8ByteLength(value) {
+  let byteLength = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x7f) byteLength += 1;
+    else if (code <= 0x7ff) byteLength += 2;
+    else if (code >= 0xd800 && code <= 0xdbff
+      && value.charCodeAt(index + 1) >= 0xdc00 && value.charCodeAt(index + 1) <= 0xdfff) {
+      byteLength += 4;
+      index += 1;
+    } else byteLength += 3;
+  }
+  return byteLength;
+}
+
+async function readResponseTextWithLimit(response, maxBytes = MAX_SUBSCRIPTION_RESPONSE_BYTES) {
+  const contentLength = Number(response.headers?.get?.('content-length'));
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+    throw createSubscriptionFetchError('response_too_large', 'Subscription response is too large');
+  }
+
+  if (!response.body?.getReader || typeof TextDecoder === 'undefined') {
+    const content = await response.text();
+    if (getUtf8ByteLength(content) > maxBytes) {
+      throw createSubscriptionFetchError('response_too_large', 'Subscription response is too large');
+    }
+    return content;
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  const chunks = [];
+  let totalBytes = 0;
   try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    return response;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > maxBytes) {
+        await reader.cancel();
+        throw createSubscriptionFetchError('response_too_large', 'Subscription response is too large');
+      }
+      chunks.push(decoder.decode(value, { stream: true }));
+    }
+    chunks.push(decoder.decode());
+    return chunks.join('');
+  } finally {
+    reader.releaseLock?.();
+  }
+}
+
+async function fetchSubscriptionTextWithLimit(url, timeoutMs = SUBSCRIPTION_FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await readResponseTextWithLimit(response);
   } catch (error) {
-    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw createSubscriptionFetchError('request_timeout', 'Subscription request timed out');
+    }
     throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -1467,13 +1532,7 @@ async function fetchSubscriptionBackground(proxyId, format, url, maxRetries = 3)
     try {
       console.log(`[Worker] Background fetch started (attempt ${attempt}/${maxRetries}): ${url}`);
 
-      const response = await fetchWithTimeout(url, {}, 30000);
-      if (!response.ok) {
-        console.info(`[Worker] HTTP error: ${response.status} ${response.statusText} for URL: ${url}`);
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const content = await response.text();
+      const content = await fetchSubscriptionTextWithLimit(url);
 
       if (!isSubscriptionFormatValid(content, format)) {
         console.info(`[Worker] Invalid subscription format: ${format} for proxy: ${proxyId}`);
