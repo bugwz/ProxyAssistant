@@ -817,8 +817,12 @@ const SubscriptionModule = (function () {
   }
 
   function scheduleAllBackgroundRefreshes(config) {
-    (config?.subscriptions || []).forEach(subscription => {
-      if (subscription.id) scheduleBackgroundRefresh(subscription.id, subscription);
+    if (!config) return;
+    chrome.runtime.sendMessage({ action: 'scheduleAllSubscriptionRefreshes' }, (response) => {
+      if (chrome.runtime.lastError || !response?.success) {
+        const error = chrome.runtime.lastError?.message || response?.error || 'Unknown error';
+        console.info(`[Subscription] Failed to reconcile refresh alarms: ${error}`);
+      }
     });
   }
 

@@ -433,6 +433,100 @@ describe('Worker applyProxy async handling', () => {
     );
   });
 
+  test('reconciles a subscription alarm batch from one alarm snapshot', () => {
+    const context = loadWorkerContext();
+    context.chrome.alarms.get.mockClear();
+    context.chrome.alarms.getAll.mockClear();
+    context.chrome.alarms.create.mockClear();
+    const subscriptions = Array.from({ length: 100 }, (value, index) => ({
+      id: `subscription-${index}`,
+      enabled: true,
+      current: 'autoproxy',
+      lists: {
+        autoproxy: {
+          url: `https://example.com/rules-${index}.txt`,
+          refresh_interval: 360
+        }
+      }
+    }));
+
+    context.scheduleAllBackgroundRefreshes({ subscriptions });
+
+    expect(context.chrome.alarms.getAll).toHaveBeenCalledTimes(1);
+    expect(context.chrome.alarms.get).not.toHaveBeenCalled();
+    expect(context.chrome.alarms.create).toHaveBeenCalledTimes(100);
+  });
+
+  test('runs no more than three subscription fetch tasks concurrently', async () => {
+    const context = loadWorkerContext();
+    const resolvers = [];
+    let activeTasks = 0;
+    let maxActiveTasks = 0;
+    const createTask = () => jest.fn(() => new Promise(resolve => {
+      activeTasks += 1;
+      maxActiveTasks = Math.max(maxActiveTasks, activeTasks);
+      resolvers.push(() => {
+        activeTasks -= 1;
+        resolve();
+      });
+    }));
+    const tasks = Array.from({ length: 6 }, createTask);
+
+    tasks.forEach((task, index) => {
+      expect(context.queueSubscriptionFetch(`subscription-${index}`, task)).toBe(true);
+    });
+    await Promise.resolve();
+
+    expect(tasks.slice(0, 3).every(task => task.mock.calls.length === 1)).toBe(true);
+    expect(tasks.slice(3).every(task => task.mock.calls.length === 0)).toBe(true);
+    expect(maxActiveTasks).toBe(3);
+
+    resolvers.splice(0, 3).forEach(resolve => resolve());
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(tasks.slice(3).every(task => task.mock.calls.length === 1)).toBe(true);
+
+    resolvers.splice(0).forEach(resolve => resolve());
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
+  test('debounces config maintenance and reconciles only the latest config', () => {
+    jest.useFakeTimers();
+    const context = loadWorkerContext();
+    const onStorageChanged = context.chrome.storage.onChanged.addListener.mock.calls[0][0];
+    context.chrome.alarms.getAll.mockClear();
+    context.chrome.alarms.create.mockClear();
+    const createConfig = id => ({
+      subscriptions: [{
+        id,
+        enabled: true,
+        current: 'autoproxy',
+        lists: {
+          autoproxy: {
+            url: `https://example.com/${id}.txt`,
+            refresh_interval: 360
+          }
+        }
+      }]
+    });
+
+    onStorageChanged({ config: { oldValue: {}, newValue: createConfig('first') } }, 'local');
+    onStorageChanged({ config: { oldValue: {}, newValue: createConfig('latest') } }, 'local');
+    jest.advanceTimersByTime(999);
+    expect(context.chrome.alarms.getAll).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(1);
+    expect(context.chrome.alarms.getAll).toHaveBeenCalledTimes(1);
+    expect(context.chrome.alarms.create).toHaveBeenCalledWith(
+      'subscription___latest___autoproxy',
+      { delayInMinutes: 360, periodInMinutes: 360 }
+    );
+    expect(context.chrome.alarms.create).not.toHaveBeenCalledWith(
+      'subscription___first___autoproxy',
+      expect.any(Object)
+    );
+    jest.useRealTimers();
+  });
+
   test('schedules native and Gist cloud sync independently', () => {
     const context = loadWorkerContext();
     context.chrome.alarms.create.mockClear();

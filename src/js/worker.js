@@ -13,6 +13,9 @@ let currentProxyAuth = {
 
 // Track in-progress subscription fetches to prevent duplicates
 const inProgressFetches = new Set();
+const pendingSubscriptionFetches = [];
+const pendingSubscriptionFetchKeys = new Set();
+const MAX_CONCURRENT_SUBSCRIPTION_FETCHES = 3;
 const SUBSCRIPTION_ALARM_PREFIX = 'subscription___';
 const LEGACY_SUBSCRIPTION_ALARM_PREFIX = 'subscription_';
 const SCENARIO_AUTOMATION_ALARM = 'scenario-automation-next';
@@ -39,6 +42,8 @@ const MAX_SUBSCRIPTION_PARSED_RULES = 20000;
 let scenarioAutomationEvaluation = null;
 let cloudSyncQueue = Promise.resolve();
 let runtimeLogQueue = Promise.resolve();
+let configMaintenanceTimeoutId = null;
+let pendingMaintenanceConfig = null;
 
 function sanitizeRuntimeLogValue(value, key = '', depth = 0) {
   if (/password|token|secret|authorization|credential/i.test(key)) return '[redacted]';
@@ -1700,34 +1705,48 @@ function scheduleOrClearSubscriptionAlarm(proxyId, format, refreshInterval, url)
 // Schedule background refresh for all subscriptions
 function scheduleAllBackgroundRefreshes(config) {
   console.log('[Worker] Scheduling subscription alarms for all enabled subscriptions');
-  const desiredAlarmNames = new Set();
+  const desiredAlarms = new Map();
   const subscriptions = config?.subscriptions || [];
 
   subscriptions.forEach(subscription => {
-      if (!subscription.id) return;
+    if (!subscription.id || subscription.enabled === false) return;
 
-      if (subscription.enabled !== false) {
-        const format = subscription.current;
-        const subConfig = subscription.lists?.[format];
-        if (subConfig?.refresh_interval > 0 && subConfig?.url) {
-          desiredAlarmNames.add(getSubscriptionAlarmName(subscription.id, format));
-        }
-        scheduleOrClearSubscriptionAlarm(
-          subscription.id,
-          format,
-          subConfig?.refresh_interval,
-          subConfig?.url
-        );
-      }
+    const format = subscription.current;
+    const subConfig = subscription.lists?.[format];
+    if (subConfig?.refresh_interval > 0 && subConfig?.url) {
+      desiredAlarms.set(
+        getSubscriptionAlarmName(subscription.id, format),
+        subConfig.refresh_interval
+      );
+    }
   });
 
   chrome.alarms.getAll((alarms) => {
+    const existingAlarms = new Map();
+    let removedAlarmCount = 0;
+    let updatedAlarmCount = 0;
     (alarms || []).forEach(alarm => {
-      if (isSubscriptionAlarmName(alarm.name) && !desiredAlarmNames.has(alarm.name)) {
+      if (!isSubscriptionAlarmName(alarm.name)) return;
+      existingAlarms.set(alarm.name, alarm);
+      if (!desiredAlarms.has(alarm.name)) {
         chrome.alarms.clear(alarm.name);
-        console.log(`[Worker] Removed stale alarm: ${alarm.name}`);
+        removedAlarmCount += 1;
       }
     });
+
+    desiredAlarms.forEach((refreshInterval, alarmName) => {
+      const existingAlarm = existingAlarms.get(alarmName);
+      if (existingAlarm?.periodInMinutes === refreshInterval) return;
+
+      chrome.alarms.create(alarmName, {
+        delayInMinutes: refreshInterval,
+        periodInMinutes: refreshInterval
+      });
+      updatedAlarmCount += 1;
+    });
+    console.log(
+      `[Worker] Subscription alarms reconciled: ${updatedAlarmCount} updated, ${removedAlarmCount} removed`
+    );
   });
 }
 
@@ -1869,6 +1888,48 @@ function scheduleSubscriptionRefresh(proxyId, format, refreshInterval, url) {
   scheduleOrClearSubscriptionAlarm(proxyId, format, refreshInterval, url);
 }
 
+function drainSubscriptionFetchQueue() {
+  while (
+    inProgressFetches.size < MAX_CONCURRENT_SUBSCRIPTION_FETCHES &&
+    pendingSubscriptionFetches.length > 0
+  ) {
+    const pendingFetch = pendingSubscriptionFetches.shift();
+    pendingSubscriptionFetchKeys.delete(pendingFetch.fetchKey);
+    inProgressFetches.add(pendingFetch.fetchKey);
+
+    Promise.resolve()
+      .then(pendingFetch.task)
+      .catch(error => {
+        console.info(`[Worker] Queued subscription fetch failed: ${error.message}`);
+      })
+      .finally(() => {
+        inProgressFetches.delete(pendingFetch.fetchKey);
+        drainSubscriptionFetchQueue();
+      });
+  }
+}
+
+function queueSubscriptionFetch(fetchKey, task) {
+  if (inProgressFetches.has(fetchKey) || pendingSubscriptionFetchKeys.has(fetchKey)) return false;
+
+  pendingSubscriptionFetches.push({ fetchKey: fetchKey, task: task });
+  pendingSubscriptionFetchKeys.add(fetchKey);
+  drainSubscriptionFetchQueue();
+  return true;
+}
+
+async function fetchScheduledSubscription(proxyId, format) {
+  const result = await getStorageValues(['config']);
+  const subscriptions = result.config?.subscriptions || [];
+  const subscription = subscriptions.find(item => (
+    item.id === proxyId && item.current === format && item.enabled !== false
+  ));
+  const url = subscription?.lists?.[format]?.url;
+  if (!url) return;
+
+  await fetchSubscriptionBackground(proxyId, format, url);
+}
+
 // Alarm listener for subscription refresh
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === SCENARIO_AUTOMATION_ALARM) {
@@ -1884,35 +1945,34 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     const format = alarmName.substring(lastSeparatorIndex + 3);
     const fetchKey = `${proxyId}_${format}`;
 
-    if (inProgressFetches.has(fetchKey)) {
+    const wasQueued = queueSubscriptionFetch(
+      fetchKey,
+      () => fetchScheduledSubscription(proxyId, format)
+    );
+    if (!wasQueued) {
       console.log(`[Worker] Skipped duplicate alarm: ${alarm.name}`);
       return;
     }
 
     console.log(`[Worker] Subscription alarm triggered: ${alarm.name}`);
-
-    chrome.storage.local.get(['config'], (result) => {
-      const config = result.config;
-      if (!config?.subscriptions) return;
-
-      for (const subscription of config.subscriptions) {
-          if (subscription.id === proxyId &&
-            subscription.current === format &&
-            subscription.enabled !== false) {
-
-            const subConfig = subscription.lists?.[format];
-            if (subConfig?.url) {
-              inProgressFetches.add(fetchKey);
-              fetchSubscriptionBackground(proxyId, format, subConfig.url).finally(() => {
-                inProgressFetches.delete(fetchKey);
-              });
-            }
-            return;
-          }
-      }
-    });
   }
 });
+
+function scheduleConfigMaintenance(config) {
+  pendingMaintenanceConfig = config;
+  if (configMaintenanceTimeoutId !== null) clearTimeout(configMaintenanceTimeoutId);
+
+  configMaintenanceTimeoutId = setTimeout(() => {
+    const latestConfig = pendingMaintenanceConfig;
+    configMaintenanceTimeoutId = null;
+    pendingMaintenanceConfig = null;
+    if (!latestConfig) return;
+
+    scheduleAllBackgroundRefreshes(latestConfig);
+    evaluateScenarioAutomation(latestConfig);
+    scheduleCloudSync(latestConfig);
+  }, 1000);
+}
 
 // Storage change listener for subscription config updates
 chrome.storage.onChanged.addListener((changes, namespace) => {
@@ -1924,11 +1984,7 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 
     if (newConfig) {
       console.log('[Worker] Config changed, scheduling alarms...');
-      setTimeout(() => {
-        scheduleAllBackgroundRefreshes(newConfig);
-        evaluateScenarioAutomation(newConfig);
-        scheduleCloudSync(newConfig);
-      }, 1000);
+      scheduleConfigMaintenance(newConfig);
     }
   }
 });
@@ -3173,6 +3229,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         message.url
       );
       sendResponse({ success: true });
+    } else if (message.action === 'scheduleAllSubscriptionRefreshes') {
+      getStorageValues(['config'])
+        .then(result => {
+          scheduleAllBackgroundRefreshes(result.config || {});
+          sendResponse({ success: true });
+        })
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
     } else {
       console.warn("Unknown action:", message.action);
       sendResponse({ success: false, error: "Unknown action" });
