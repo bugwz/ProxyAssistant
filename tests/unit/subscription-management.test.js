@@ -121,6 +121,19 @@ describe('subscription management cards', () => {
     expect($('.subscription-count-summary')).toHaveLength(0);
   });
 
+  test('rejects oversized subscription responses before reading the body', async () => {
+    const text = jest.fn(() => Promise.resolve('ignored'));
+    const response = {
+      headers: { get: jest.fn(() => '6') },
+      text
+    };
+
+    await expect(subscriptionModule.readResponseTextWithLimit(response, 5)).rejects.toMatchObject({
+      code: 'response_too_large'
+    });
+    expect(text).not.toHaveBeenCalled();
+  });
+
   test('shows only the name and last update time in the card header', () => {
     $('#add-subscription-btn').trigger('click');
     subscriptions[0].name = 'Shared Rules';

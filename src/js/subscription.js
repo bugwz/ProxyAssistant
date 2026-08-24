@@ -2,6 +2,9 @@
 // Subscription configuration, fetching, and conversion
 
 const SubscriptionModule = (function () {
+  const SUBSCRIPTION_FETCH_TIMEOUT_MS = 30000;
+  const MAX_SUBSCRIPTION_RESPONSE_BYTES = 4 * 1024 * 1024;
+  const MAX_SUBSCRIPTION_PARSED_RULES = 20000;
   let currentSubscriptionId = null;
   // Holds the state for the currently open modal
   // Structure: { current: '...', lists: { ... } }
@@ -16,6 +19,86 @@ const SubscriptionModule = (function () {
     'pac': 'PAC'
   };
   let lastFallbackSubscriptionIdTime = 0;
+
+  function createSubscriptionFetchError(code, message) {
+    const error = new Error(message);
+    error.code = code;
+    return error;
+  }
+
+  function getUtf8ByteLength(value) {
+    let byteLength = 0;
+    for (let index = 0; index < value.length; index += 1) {
+      const code = value.charCodeAt(index);
+      if (code <= 0x7f) byteLength += 1;
+      else if (code <= 0x7ff) byteLength += 2;
+      else if (code >= 0xd800 && code <= 0xdbff
+        && value.charCodeAt(index + 1) >= 0xdc00 && value.charCodeAt(index + 1) <= 0xdfff) {
+        byteLength += 4;
+        index += 1;
+      } else byteLength += 3;
+    }
+    return byteLength;
+  }
+
+  async function readResponseTextWithLimit(response, maxBytes = MAX_SUBSCRIPTION_RESPONSE_BYTES) {
+    const contentLength = Number(response.headers?.get?.('content-length'));
+    if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+      throw createSubscriptionFetchError('response_too_large', 'Subscription response is too large');
+    }
+
+    if (!response.body?.getReader || typeof TextDecoder === 'undefined') {
+      const content = await response.text();
+      if (getUtf8ByteLength(content) > maxBytes) {
+        throw createSubscriptionFetchError('response_too_large', 'Subscription response is too large');
+      }
+      return content;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    const chunks = [];
+    let totalBytes = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        totalBytes += value.byteLength;
+        if (totalBytes > maxBytes) {
+          await reader.cancel();
+          throw createSubscriptionFetchError('response_too_large', 'Subscription response is too large');
+        }
+        chunks.push(decoder.decode(value, { stream: true }));
+      }
+      chunks.push(decoder.decode());
+      return chunks.join('');
+    } finally {
+      reader.releaseLock?.();
+    }
+  }
+
+  async function fetchSubscriptionText(url, timeoutMs = SUBSCRIPTION_FETCH_TIMEOUT_MS) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await readResponseTextWithLimit(response);
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw createSubscriptionFetchError('request_timeout', 'Subscription request timed out');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  function getSubscriptionFetchErrorMessage(error) {
+    if (error?.code === 'response_too_large') return I18n.t('subscription_response_too_large');
+    if (error?.code === 'request_timeout') return I18n.t('subscription_request_timeout');
+    return error?.message || I18n.t('subscription_fetch_failed');
+  }
 
   function generateSubscriptionId() {
     if (window.ConfigModule && typeof window.ConfigModule.generateSubscriptionId === 'function') {
@@ -587,10 +670,7 @@ const SubscriptionModule = (function () {
     UtilsModule.showProcessingTip(I18n.t('processing'));
 
     try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      let content = await response.text();
+      const content = await fetchSubscriptionText(url);
 
       // Normal validation
       if (!isFormatValid(content, format)) {
@@ -610,7 +690,7 @@ const SubscriptionModule = (function () {
 
     } catch (error) {
       console.info(error);
-      UtilsModule.showTip(I18n.t('subscription_fetch_failed') + ': ' + error.message, true);
+      UtilsModule.showTip(I18n.t('subscription_fetch_failed') + ': ' + getSubscriptionFetchErrorMessage(error), true);
     }
   }
 
@@ -1506,8 +1586,11 @@ const SubscriptionModule = (function () {
 
       if (format === 'pac') {
         const pacResult = parsePacContent(contentToParse, processRule, reverse);
-        result.include_rules = pacResult.include;
-        result.bypass_rules = pacResult.bypass;
+        result.include_rules = pacResult.include.slice(0, MAX_SUBSCRIPTION_PARSED_RULES);
+        result.bypass_rules = pacResult.bypass.slice(
+          0,
+          Math.max(0, MAX_SUBSCRIPTION_PARSED_RULES - result.include_rules.length)
+        );
       } else {
         if (format === 'autoproxy') {
           const trimmed = content.trim();
@@ -1545,6 +1628,9 @@ const SubscriptionModule = (function () {
           }
 
           if (normalized) {
+            if (result.include_rules.length + result.bypass_rules.length >= MAX_SUBSCRIPTION_PARSED_RULES) {
+              break;
+            }
             if (normalized.isDirect) {
               result.bypass_rules.push(normalized.pattern);
             } else {
@@ -1732,9 +1818,7 @@ const SubscriptionModule = (function () {
 
     $button.prop('disabled', true).addClass('btn-loading');
     try {
-      const response = await fetch(item.url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const content = await response.text();
+      const content = await fetchSubscriptionText(item.url);
       if (!isFormatValid(content, format)) throw new Error(I18n.t('alert_invalid_format'));
 
       item.content = content;
@@ -1744,7 +1828,7 @@ const SubscriptionModule = (function () {
       UtilsModule.showTip(I18n.t('subscription_fetch_success'), false);
     } catch (error) {
       console.info('Subscription fetch failed:', error);
-      UtilsModule.showTip(`${I18n.t('subscription_fetch_failed')}: ${error.message}`, true);
+      UtilsModule.showTip(`${I18n.t('subscription_fetch_failed')}: ${getSubscriptionFetchErrorMessage(error)}`, true);
     } finally {
       $button.prop('disabled', false).removeClass('btn-loading');
     }
@@ -2122,6 +2206,8 @@ const SubscriptionModule = (function () {
     scheduleBackgroundRefresh: scheduleBackgroundRefresh,
     scheduleAllBackgroundRefreshes: scheduleAllBackgroundRefreshes,
     fetchSubscriptionBackground: fetchSubscriptionBackground,
-    disableBackgroundRefresh: disableBackgroundRefresh
+    disableBackgroundRefresh: disableBackgroundRefresh,
+    readResponseTextWithLimit: readResponseTextWithLimit,
+    fetchSubscriptionText: fetchSubscriptionText
   };
 })();

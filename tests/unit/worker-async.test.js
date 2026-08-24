@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const { TextDecoder } = require('util');
 
 function loadWorkerContext(overrides = {}) {
   const workerPath = path.join(__dirname, '../../src/js/worker.js');
@@ -30,6 +31,8 @@ function loadWorkerContext(overrides = {}) {
     console,
     setTimeout,
     clearTimeout,
+    AbortController,
+    TextDecoder,
     URL,
     fetch: jest.fn(() => Promise.resolve()),
     atob: (value) => Buffer.from(value, 'base64').toString('binary'),
@@ -182,6 +185,55 @@ describe('Worker applyProxy async handling', () => {
     });
     expect(clearResponse).toEqual({ success: true });
     expect(storedValues.runtime_logs).toEqual([]);
+  });
+
+  test('cancels subscription response streams that exceed the byte limit', async () => {
+    const context = loadWorkerContext();
+    const cancel = jest.fn(() => Promise.resolve());
+    const releaseLock = jest.fn();
+    const read = jest.fn()
+      .mockResolvedValueOnce({ done: false, value: Uint8Array.from([97, 98, 99]) })
+      .mockResolvedValueOnce({ done: false, value: Uint8Array.from([100, 101, 102]) });
+    const response = {
+      headers: { get: jest.fn(() => null) },
+      body: { getReader: () => ({ read, cancel, releaseLock }) }
+    };
+
+    await expect(context.readResponseTextWithLimit(response, 5)).rejects.toMatchObject({
+      code: 'response_too_large'
+    });
+    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(releaseLock).toHaveBeenCalledTimes(1);
+  });
+
+  test('aborts stalled subscription requests at the configured timeout', async () => {
+    jest.useFakeTimers();
+    const context = loadWorkerContext();
+    context.fetch = jest.fn((url, options) => new Promise((resolve, reject) => {
+      options.signal.addEventListener('abort', () => {
+        const error = new Error('aborted');
+        error.name = 'AbortError';
+        reject(error);
+      });
+    }));
+
+    const request = context.fetchSubscriptionTextWithLimit('https://example.com/rules.txt', 25);
+    const assertion = expect(request).rejects.toMatchObject({ code: 'request_timeout' });
+    jest.advanceTimersByTime(25);
+    await assertion;
+    jest.useRealTimers();
+  });
+
+  test('bounds the number of parsed subscription rules', () => {
+    const context = loadWorkerContext();
+    const rules = Array.from({ length: 20010 }, (value, index) => `||host-${index}.example`);
+    const parsed = context.parseSubscriptionContent(
+      `[AutoProxy 0.2.9]\n${rules.join('\n')}`,
+      'autoproxy',
+      false
+    );
+
+    expect(parsed.include_rules.split('\n')).toHaveLength(20000);
   });
 
   test('audits configuration writes by entity and ignores navigation-only state', async () => {
