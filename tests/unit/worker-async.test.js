@@ -224,6 +224,30 @@ describe('Worker applyProxy async handling', () => {
     jest.useRealTimers();
   });
 
+  test('aborts stalled scheduled Gist response bodies at the configured timeout', async () => {
+    jest.useFakeTimers();
+    const context = loadWorkerContext();
+    context.fetch = jest.fn((url, options) => Promise.resolve({
+      ok: true,
+      json: () => new Promise((resolve, reject) => {
+        const rejectAsAborted = () => {
+          const error = new Error('aborted');
+          error.name = 'AbortError';
+          reject(error);
+        };
+        if (options.signal.aborted) rejectAsAborted();
+        else options.signal.addEventListener('abort', rejectAsAborted);
+      })
+    }));
+
+    const request = context.fetchGistJsonWithTimeout('https://api.github.com/gists', {}, 25);
+    const assertion = expect(request).rejects.toMatchObject({ code: 'request_timeout' });
+    await Promise.resolve();
+    jest.advanceTimersByTime(25);
+    await assertion;
+    jest.useRealTimers();
+  });
+
   test('bounds the number of parsed subscription rules', () => {
     const context = loadWorkerContext();
     const rules = Array.from({ length: 20010 }, (value, index) => `||host-${index}.example`);
@@ -564,6 +588,30 @@ describe('Worker applyProxy async handling', () => {
     });
     expect(context.chrome.alarms.clear).toHaveBeenCalledWith('cloud-sync-schedule-native');
     expect(context.chrome.alarms.clear).toHaveBeenCalledWith('cloud-sync-schedule-gist');
+  });
+
+  test('coalesces repeated scheduled sync requests for the same service', async () => {
+    const context = loadWorkerContext();
+    context.chrome.storage.local.get = jest.fn((keys, callback) => callback({
+      config: {
+        system: {
+          sync: {
+            native: { auto_mode: 'pull', interval_minutes: 30 },
+            gist: { auto_mode: 'off', interval_minutes: 360 }
+          }
+        }
+      }
+    }));
+    context.chrome.storage.sync = {
+      get: jest.fn()
+    };
+
+    const firstRequest = context.runScheduledCloudSync('native');
+    const duplicateRequest = context.runScheduledCloudSync('native');
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(duplicateRequest).toBe(firstRequest);
+    expect(context.chrome.storage.sync.get).toHaveBeenCalledTimes(1);
   });
 
   test('stores the configuration update time inside every background config write', async () => {
