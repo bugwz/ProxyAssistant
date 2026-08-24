@@ -198,7 +198,7 @@ html[data-initial-main-page="about"] .main-nav-item[data-main-page="about"] {
 
 .main-page {
   width: 100%;
-  max-width: 1120px;
+  max-width: clamp(1120px, 72vw, 2160px);
   margin: 0 auto;
 }
 

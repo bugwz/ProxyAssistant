@@ -35,6 +35,12 @@ describe('main sidebar layout', () => {
     document.documentElement.removeAttribute('data-initial-main-page');
   });
 
+  test('allows the content area to grow on large screens with a bounded maximum width', () => {
+    const css = readMainCss();
+
+    expect(css).toMatch(/\.main-page\s*\{[^}]*width:\s*100%;[^}]*max-width:\s*clamp\(1120px, 72vw, 2160px\);/s);
+  });
+
   test('uses the project logo and maps navigation items to their pages', () => {
     const pageDocument = new DOMParser().parseFromString(fs.readFileSync(mainHtmlPath, 'utf8'), 'text/html');
     const navItems = Array.from(pageDocument.querySelectorAll('.main-nav-item'));
