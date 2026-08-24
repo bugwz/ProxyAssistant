@@ -51,6 +51,33 @@ function normalizeSyncConfig(config) {
 }
 
 let syncConfig = normalizeSyncConfig();
+const GIST_REQUEST_TIMEOUT_MS = 30000;
+
+function createGistRequestTimeoutError() {
+  const error = new Error(I18n.t('sync_error_timeout'));
+  error.code = 'request_timeout';
+  return error;
+}
+
+async function fetchGistWithTimeout(
+  url,
+  options = {},
+  readBody = null,
+  timeoutMs = GIST_REQUEST_TIMEOUT_MS
+) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    const body = readBody ? await readBody(response) : null;
+    return { response: response, body: body };
+  } catch (error) {
+    if (error.name === 'AbortError') throw createGistRequestTimeoutError();
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 // ==========================================
 // Sync Chunked Storage Helpers
@@ -435,7 +462,7 @@ async function pushToGist(data) {
   const filename = syncConfig.gist.filename || 'proxy_assistant_config.json';
   if (!token) return;
 
-  const validateResponse = await fetch('https://api.github.com/user', {
+  const { response: validateResponse } = await fetchGistWithTimeout('https://api.github.com/user', {
     headers: {
       'Authorization': `token ${token}`,
       'Accept': 'application/vnd.github.v3+json'
@@ -459,6 +486,7 @@ async function pushToGist(data) {
         fileExists = true;
       }
     } catch (e) {
+      if (e.code === 'request_timeout') throw e;
       console.info("Gist not found or inaccessible, will try to find or create:", e);
       gistId = null;
     }
@@ -541,12 +569,16 @@ async function findGistByFilename(token, filename) {
   let foundGistId = null;
 
   while (page <= 10 && !foundGistId) {
-    const response = await fetch(`https://api.github.com/gists?page=${page}&per_page=${perPage}`, {
-      headers: {
-        'Authorization': `token ${token}`,
-        'Accept': 'application/vnd.github.v3+json'
-      }
-    });
+    const { response, body: gists } = await fetchGistWithTimeout(
+      `https://api.github.com/gists?page=${page}&per_page=${perPage}`,
+      {
+        headers: {
+          'Authorization': `token ${token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      },
+      currentResponse => currentResponse.ok ? currentResponse.json() : null
+    );
 
     if (!response.ok) {
       if (response.status === 401) throw new Error("Invalid Token");
@@ -556,8 +588,6 @@ async function findGistByFilename(token, filename) {
       }
       throw new Error(`GitHub API Error: ${response.status}`);
     }
-
-    const gists = await response.json();
 
     if (gists.length === 0) {
       break;
@@ -580,22 +610,25 @@ async function createGist(token, filename, content) {
   const files = {};
   files[filename] = { content: content };
 
-  const response = await fetch('https://api.github.com/gists', {
-    method: 'POST',
-    headers: {
-      'Authorization': `token ${token}`,
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json'
+  const { response, body: data } = await fetchGistWithTimeout(
+    'https://api.github.com/gists',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        description: 'Proxy Assistant Configuration',
+        public: false,
+        files: files
+      })
     },
-    body: JSON.stringify({
-      description: 'Proxy Assistant Configuration',
-      public: false,
-      files: files
-    })
-  });
+    currentResponse => currentResponse.ok ? currentResponse.json() : null
+  );
 
   if (!response.ok) throw new Error(I18n.t('sync_error_create_gist'));
-  const data = await response.json();
   return data.id;
 }
 
@@ -603,32 +636,38 @@ async function updateGist(token, gistId, filename, content) {
   const files = {};
   files[filename] = { content: content };
 
-  const response = await fetch(`https://api.github.com/gists/${gistId}`, {
-    method: 'PATCH',
-    headers: {
-      'Authorization': `token ${token}`,
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json'
+  const { response, body: errorText } = await fetchGistWithTimeout(
+    `https://api.github.com/gists/${gistId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ files: files })
     },
-    body: JSON.stringify({ files: files })
-  });
+    currentResponse => currentResponse.ok ? null : currentResponse.text()
+  );
 
   if (!response.ok) {
-    const errorText = await response.text();
     console.log("Gist update error:", response.status, errorText);
     throw new Error(I18n.t('sync_error_update_gist') + ` (${response.status})`);
   }
 }
 
 async function getGistContent(token, gistId, filename) {
-  const response = await fetch(`https://api.github.com/gists/${gistId}`, {
-    headers: {
-      'Authorization': `token ${token}`,
-      'Accept': 'application/vnd.github.v3+json'
-    }
-  });
+  const { response, body: data } = await fetchGistWithTimeout(
+    `https://api.github.com/gists/${gistId}`,
+    {
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    },
+    currentResponse => currentResponse.ok ? currentResponse.json() : null
+  );
   if (!response.ok) throw new Error(I18n.t('sync_error_get_gist'));
-  const data = await response.json();
 
   if (data.files && data.files[filename]) {
     const content = data.files[filename].content;
@@ -646,7 +685,7 @@ async function testGistConnection() {
   const token = syncConfig.gist.token;
   if (!token) throw new Error(I18n.t('sync_error_token_empty'));
 
-  const response = await fetch('https://api.github.com/user', {
+  const { response } = await fetchGistWithTimeout('https://api.github.com/user', {
     headers: {
       'Authorization': `token ${token}`,
       'Accept': 'application/vnd.github.v3+json'
@@ -712,5 +751,6 @@ window.SyncModule = {
   chunkString,
   calculateChecksum,
   buildSyncMeta,
-  isValidMeta
+  isValidMeta,
+  fetchGistWithTimeout
 };

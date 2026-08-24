@@ -22,6 +22,7 @@ const SCENARIO_AUTOMATION_ALARM = 'scenario-automation-next';
 const CLOUD_SYNC_ALARM = 'cloud-sync-schedule';
 const CLOUD_SYNC_SERVICES = ['native', 'gist'];
 const CLOUD_SYNC_CHUNK_SIZE = 7 * 1024;
+const GIST_REQUEST_TIMEOUT_MS = 30000;
 const CONFIG_FILE_OPTIONS_STORAGE_KEY = 'config_file_options';
 const RUNTIME_LOG_STORAGE_KEY = 'runtime_logs';
 const RUNTIME_LOG_LIMIT = 200;
@@ -41,6 +42,7 @@ const MAX_SUBSCRIPTION_RESPONSE_BYTES = 4 * 1024 * 1024;
 const MAX_SUBSCRIPTION_PARSED_RULES = 20000;
 let scenarioAutomationEvaluation = null;
 let cloudSyncQueue = Promise.resolve();
+const scheduledCloudSyncTasks = new Map();
 let runtimeLogQueue = Promise.resolve();
 let configMaintenanceTimeoutId = null;
 let pendingMaintenanceConfig = null;
@@ -558,16 +560,39 @@ async function pullNativeCloudConfig() {
   return JSON.parse(json);
 }
 
+function createGistRequestTimeoutError() {
+  const error = new Error('GitHub Gist request timed out');
+  error.code = 'request_timeout';
+  return error;
+}
+
+async function fetchGistJsonWithTimeout(url, options = {}, timeoutMs = GIST_REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    const data = response.ok ? await response.json() : null;
+    return { response: response, data: data };
+  } catch (error) {
+    if (error.name === 'AbortError') throw createGistRequestTimeoutError();
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 async function findCloudSyncGist(token, filename) {
   for (let page = 1; page <= 10; page += 1) {
-    const response = await fetch(`https://api.github.com/gists?page=${page}&per_page=100`, {
-      headers: {
-        'Authorization': `token ${token}`,
-        'Accept': 'application/vnd.github.v3+json'
+    const { response, data: gists } = await fetchGistJsonWithTimeout(
+      `https://api.github.com/gists?page=${page}&per_page=100`,
+      {
+        headers: {
+          'Authorization': `token ${token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
       }
-    });
+    );
     if (!response.ok) throw new Error(`GitHub Gist lookup failed (${response.status})`);
-    const gists = await response.json();
     const match = gists.find(gist => gist.files?.[filename]);
     if (match) return match.id;
     if (!gists.length) break;
@@ -584,21 +609,23 @@ async function pushGistCloudConfig(config, options) {
   let gistId = sync.gist?.gist_id || '';
   if (!gistId) gistId = await findCloudSyncGist(token, filename);
   const files = { [filename]: { content: JSON.stringify(buildCloudSyncPayload(config, options), null, 2) } };
-  const response = await fetch(gistId ? `https://api.github.com/gists/${gistId}` : 'https://api.github.com/gists', {
-    method: gistId ? 'PATCH' : 'POST',
-    headers: {
-      'Authorization': `token ${token}`,
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(gistId ? { files } : {
-      description: 'Proxy Assistant Configuration',
-      public: false,
-      files
-    })
-  });
+  const { response, data: result } = await fetchGistJsonWithTimeout(
+    gistId ? `https://api.github.com/gists/${gistId}` : 'https://api.github.com/gists',
+    {
+      method: gistId ? 'PATCH' : 'POST',
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(gistId ? { files } : {
+        description: 'Proxy Assistant Configuration',
+        public: false,
+        files
+      })
+    }
+  );
   if (!response.ok) throw new Error(`GitHub Gist push failed (${response.status})`);
-  const result = await response.json();
   sync.gist.gist_id = result.id || gistId;
 }
 
@@ -611,14 +638,13 @@ async function pullGistCloudConfig(config) {
   let gistId = sync.gist?.gist_id || '';
   if (!gistId) gistId = await findCloudSyncGist(token, filename);
   if (!gistId) throw new Error('GitHub Gist configuration was not found');
-  const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+  const { response, data: result } = await fetchGistJsonWithTimeout(`https://api.github.com/gists/${gistId}`, {
     headers: {
       'Authorization': `token ${token}`,
       'Accept': 'application/vnd.github.v3+json'
     }
   });
   if (!response.ok) throw new Error(`GitHub Gist pull failed (${response.status})`);
-  const result = await response.json();
   const content = result.files?.[filename]?.content;
   if (!content) throw new Error('GitHub Gist configuration file was not found');
   sync.gist.gist_id = gistId;
@@ -669,8 +695,15 @@ async function executeScheduledCloudSync(type) {
 
 function runScheduledCloudSync(type = 'native') {
   if (!CLOUD_SYNC_SERVICES.includes(type)) return Promise.resolve(false);
+  if (scheduledCloudSyncTasks.has(type)) return scheduledCloudSyncTasks.get(type);
+
   const task = cloudSyncQueue.then(() => executeScheduledCloudSync(type));
+  scheduledCloudSyncTasks.set(type, task);
   cloudSyncQueue = task.catch(() => false);
+  task.then(
+    () => scheduledCloudSyncTasks.delete(type),
+    () => scheduledCloudSyncTasks.delete(type)
+  );
   return task;
 }
 

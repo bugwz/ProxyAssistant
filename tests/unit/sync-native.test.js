@@ -53,18 +53,53 @@ function createChromeMock(initialItems = {}) {
 
 function loadSyncModule(chromeMock, overrides = {}) {
   const source = fs.readFileSync(path.join(__dirname, '../../src/js/sync.js'), 'utf8');
-  const factory = new Function('window', 'chrome', '$', 'I18n', 'Blob', 'console', `${source}\nreturn window.SyncModule;`);
+  const factory = new Function(
+    'window',
+    'chrome',
+    '$',
+    'I18n',
+    'Blob',
+    'fetch',
+    'AbortController',
+    'setTimeout',
+    'clearTimeout',
+    'console',
+    `${source}\nreturn window.SyncModule;`
+  );
   return factory(
     overrides.window || {},
     chromeMock,
     overrides.$ || jest.fn(),
     overrides.I18n || { t: key => key },
     Blob,
+    overrides.fetch || global.fetch,
+    AbortController,
+    setTimeout,
+    clearTimeout,
     console
   );
 }
 
 describe('native sync writes', () => {
+  test('aborts stalled Gist requests at the configured timeout', async () => {
+    jest.useFakeTimers();
+    const { chromeMock } = createChromeMock();
+    const fetchMock = jest.fn((url, options) => new Promise((resolve, reject) => {
+      options.signal.addEventListener('abort', () => {
+        const error = new Error('aborted');
+        error.name = 'AbortError';
+        reject(error);
+      });
+    }));
+    const syncModule = loadSyncModule(chromeMock, { fetch: fetchMock });
+
+    const request = syncModule.fetchGistWithTimeout('https://api.github.com/user', {}, null, 25);
+    const assertion = expect(request).rejects.toMatchObject({ code: 'request_timeout' });
+    jest.advanceTimersByTime(25);
+    await assertion;
+    jest.useRealTimers();
+  });
+
   test('normalizes independent schedules and migrates the legacy selected service', () => {
     const { chromeMock } = createChromeMock();
     const syncModule = loadSyncModule(chromeMock);
