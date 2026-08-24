@@ -31,6 +31,8 @@ const CLOUD_SYNC_SUBSCRIPTION_CACHE_KEYS = [
   'content', 'decoded_content', 'include_rules', 'bypass_rules',
   'include_lines', 'bypass_lines', 'last_fetch_time'
 ];
+const MAX_PROXY_RULES_PER_PROXY = 20000;
+const MAX_PROXY_REGEX_LENGTH = 512;
 let scenarioAutomationEvaluation = null;
 let cloudSyncQueue = Promise.resolve();
 let runtimeLogQueue = Promise.resolve();
@@ -838,6 +840,7 @@ let firefoxProxyState = {
 
 // Global config cache for Firefox auto mode
 let currentConfig = null;
+const firefoxProxyRuleCache = new WeakMap();
 
 // Helper to sync Firefox state to session storage
 function updateFirefoxSessionState() {
@@ -2365,7 +2368,10 @@ async function applyAutoProxySettings() {
 
   const pacScript = generatePacScript(list);
 
-  console.log("Generated PAC Script:", pacScript);
+  console.log('Generated PAC script summary:', {
+    proxyCount: list.length,
+    characterCount: pacScript.length
+  });
 
   const pacConfig = {
     mode: "pac_script",
@@ -2398,9 +2404,70 @@ function isIpPattern(pattern) {
   return ipv4Pattern.test(pattern);
 }
 
+function isSafeProxyRegexSource(source) {
+  if (!source || source.length > MAX_PROXY_REGEX_LENGTH) return false;
+  if (/\\[1-9]/.test(source)) return false;
+
+  const normalized = source
+    .replace(/\\./g, 'x')
+    .replace(/\[(?:\\.|[^\]])*\]/g, 'x');
+  const nestedQuantifier = /\((?:[^()]|\([^()]*\))*(?:[+*]|\{\d+,?\d*\}|\|)(?:[^()]|\([^()]*\))*\)(?:[+*]|\{\d+,?\d*\})/;
+  return !nestedQuantifier.test(normalized);
+}
+
+function parseProxyRegexPattern(pattern, defaultFlags = '') {
+  if (!pattern.startsWith('/') || pattern.length <= 2) return null;
+  const lastSlash = pattern.lastIndexOf('/');
+  if (lastSlash <= 0) return null;
+  const flags = pattern.slice(lastSlash + 1);
+  if (!/^[gimsuy]*$/.test(flags)) return null;
+  const source = pattern.slice(1, lastSlash);
+  if (!isSafeProxyRegexSource(source)) return null;
+
+  try {
+    new RegExp(source, flags || defaultFlags);
+    return { source, flags: flags || defaultFlags };
+  } catch (error) {
+    return null;
+  }
+}
+
+function getProxyRulePatterns(proxy, ruleType) {
+  const field = ruleType === 'bypass' ? 'bypass_rules' : 'include_rules';
+  const patterns = [];
+  const seen = new Set();
+  const appendRules = value => {
+    if (!value || patterns.length >= MAX_PROXY_RULES_PER_PROXY) return;
+    const values = value.split(/[\n,]+/);
+    for (const item of values) {
+      const pattern = item.trim();
+      if (!pattern || seen.has(pattern)) continue;
+      seen.add(pattern);
+      patterns.push(pattern);
+      if (patterns.length >= MAX_PROXY_RULES_PER_PROXY) break;
+    }
+  };
+
+  appendRules(proxy?.[field]);
+  const proxySubscription = typeof getMergedProxySubscription === 'function'
+    ? getMergedProxySubscription(proxy)
+    : proxy?.subscription;
+  if (proxySubscription) {
+    const format = proxySubscription.current;
+    appendRules(proxySubscription.lists?.[format]?.[field]);
+  }
+
+  return patterns;
+}
+
 // Generate PAC script logic (Chrome only)
 function generatePacScript(list) {
-  let script = `function FindProxyForURL(url, host) {
+  const declarations = [];
+  const body = [];
+  let proxyIndex = 0;
+  let regexIndex = 0;
+
+  body.push(`function FindProxyForURL(url, host) {
   function ipToNumber(ip) {
     return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
   }
@@ -2413,7 +2480,18 @@ function generatePacScript(list) {
     return (ipNum & mask) === (rangeNum & mask);
   }
 
-`;
+  function domainMatches(domainMap) {
+    var candidate = host.toLowerCase();
+    while (candidate) {
+      if (domainMap[candidate] === 1) return true;
+      var separator = candidate.indexOf('.');
+      if (separator === -1) break;
+      candidate = candidate.substring(separator + 1);
+    }
+    return false;
+  }
+
+`);
 
   // Check include_rules in proxy list order, use first match
   for (const proxy of list) {
@@ -2430,68 +2508,50 @@ function generatePacScript(list) {
     const fallback = proxy.fallback_policy === "reject" ? "" : "; DIRECT";
     const returnVal = JSON.stringify(proxyStr + fallback);
 
-    // Only process include_rules, ignore bypass_rules in auto mode
-    const allIncludeUrls = [];
-    if (proxy.include_rules) {
-      const localRules = proxy.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
-      allIncludeUrls.push(...localRules);
-    }
-
-    // Merge subscription include_rules (with deduplication)
-    const proxySubscription = typeof getMergedProxySubscription === 'function'
-      ? getMergedProxySubscription(proxy)
-      : proxy.subscription;
-    if (proxySubscription) {
-      try {
-        const format = proxySubscription.current;
-        const subConfig = proxySubscription.lists[format];
-        if (subConfig && subConfig.include_rules) {
-          const subRules = subConfig.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
-          subRules.forEach(r => { if (!allIncludeUrls.includes(r)) allIncludeUrls.push(r); });
-        }
-      } catch (e) {
-        console.info("Error merging subscription rules in Auto Mode:", e);
-      }
-    }
+    const allIncludeUrls = getProxyRulePatterns(proxy, 'include');
+    const domainMap = {};
+    const complexConditions = [];
 
     for (const pattern of allIncludeUrls) {
       // Support regex pattern: /pattern/ or /pattern/flags
       if (pattern.startsWith('/') && pattern.length > 2) {
-        const lastSlash = pattern.lastIndexOf('/');
-        const potentialFlags = pattern.slice(lastSlash + 1);
-        if (lastSlash > 0 && /^[gimsuy]*$/.test(potentialFlags)) {
-          const regexContent = pattern.slice(1, lastSlash);
-          const flags = potentialFlags;
-          try {
-            new RegExp(regexContent, flags); // validate before embedding
-            script += `  if (new RegExp(${JSON.stringify(regexContent)}, ${JSON.stringify(flags)}).test(url)) return ${returnVal};\n`;
-          } catch (e) {
-            console.warn('Invalid regex pattern skipped in PAC generation:', pattern);
-          }
-          continue;
+        const parsedRegex = parseProxyRegexPattern(pattern);
+        if (parsedRegex) {
+          const variableName = `proxyAssistantRegex${regexIndex}`;
+          regexIndex += 1;
+          declarations.push(`var ${variableName} = new RegExp(${JSON.stringify(parsedRegex.source)}, ${JSON.stringify(parsedRegex.flags)});`);
+          complexConditions.push(`(${variableName}.lastIndex = 0, ${variableName}.test(url))`);
+        } else {
+          console.warn('Unsafe or invalid regex pattern skipped in PAC generation:', pattern);
         }
-      }
-      if (pattern.includes('*')) {
+      } else if (pattern.includes('*')) {
         const matchTarget = pattern.includes('/') ? 'url' : 'host';
-        script += `  if (shExpMatch(${matchTarget}, ${JSON.stringify(pattern)})) return ${returnVal};\n`;
+        complexConditions.push(`shExpMatch(${matchTarget}, ${JSON.stringify(pattern)})`);
       } else if (isIpPattern(pattern)) {
         // IP address or CIDR range
         if (pattern.includes('/')) {
-          // CIDR format: 192.168.1.0/24
-          script += `  if (isInCidrRange(host, ${JSON.stringify(pattern)})) return ${returnVal};\n`;
+          complexConditions.push(`isInCidrRange(host, ${JSON.stringify(pattern)})`);
         } else {
-          // Single IP address
-          script += `  if (host === ${JSON.stringify(pattern)}) return ${returnVal};\n`;
+          domainMap[pattern.toLowerCase()] = 1;
         }
       } else {
-        const domainPattern = JSON.stringify(pattern);
-        script += `  if (dnsDomainIs(host, ${domainPattern}) || host === ${domainPattern}) return ${returnVal};\n`;
+        domainMap[pattern.toLowerCase()] = 1;
       }
     }
+
+    if (Object.keys(domainMap).length) {
+      const variableName = `proxyAssistantDomains${proxyIndex}`;
+      declarations.push(`var ${variableName} = ${JSON.stringify(domainMap)};`);
+      body.push(`  if (domainMatches(${variableName})) return ${returnVal};\n`);
+    }
+    complexConditions.forEach(condition => {
+      body.push(`  if (${condition}) return ${returnVal};\n`);
+    });
+    proxyIndex += 1;
   }
 
-  script += "  return \"DIRECT\";\n}";
-  return script;
+  body.push("  return \"DIRECT\";\n}");
+  return declarations.concat(body).join('\n');
 }
 
 // -----------------------------------------------------------------------------
@@ -2541,22 +2601,12 @@ async function handleFirefoxRequest(details) {
   if (firefoxProxyState.mode === 'manual') {
     if (firefoxProxyState.currentProxy) {
       const proxy = firefoxProxyState.currentProxy;
-      let bypassAll = proxy.bypass_rules || '';
-
-      // Merge subscription bypass_rules
-      const proxySubscription = typeof getMergedProxySubscription === 'function'
-        ? getMergedProxySubscription(proxy)
-        : proxy.subscription;
-      if (proxySubscription) {
-        const format = proxySubscription.current;
-        const subConfig = proxySubscription.lists[format];
-        if (subConfig && subConfig.bypass_rules) {
-          bypassAll = bypassAll + '\n' + subConfig.bypass_rules;
-        }
-      }
-
-      // Check bypass list for manual mode
-      if (checkBypass(bypassAll, details.url)) {
+      const urlParts = getUrlParts(details.url);
+      if (urlParts && matchesCompiledFirefoxRules(
+        getCachedFirefoxRuleMatcher(proxy, 'bypass'),
+        details.url,
+        urlParts
+      )) {
         return { type: "direct" };
       }
       return createFirefoxProxyObject(proxy);
@@ -2582,13 +2632,10 @@ function checkBypass(bypassUrls, url) {
   const host = urlParts.host;
   if (host === "localhost" || host === "127.0.0.1" || host === "::1") return true;
 
-  const patterns = bypassUrls.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
-  for (const pattern of patterns) {
-    if (matchesPattern(url, pattern)) {
-      return true;
-    }
-  }
-  return false;
+  const matcher = compileFirefoxRulePatterns(
+    bypassUrls.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+  );
+  return matchesCompiledFirefoxRules(matcher, url, urlParts);
 }
 
 function findProxyForRequestFirefox(url) {
@@ -2607,32 +2654,9 @@ function findProxyForRequestFirefox(url) {
     if (proxy.enabled === false) continue;
     if (!proxy.ip || !proxy.port) continue;
 
-    const includeUrlsList = [];
-
-    // Add local include_rules
-    if (proxy.include_rules) {
-      const localRules = proxy.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
-      includeUrlsList.push(...localRules);
-    }
-
-    // Merge subscription include_rules
-    const proxySubscription = typeof getMergedProxySubscription === 'function'
-      ? getMergedProxySubscription(proxy)
-      : proxy.subscription;
-    if (proxySubscription) {
-      const format = proxySubscription.current;
-      const subConfig = proxySubscription.lists[format];
-      if (subConfig && subConfig.include_rules) {
-        const subRules = subConfig.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
-        includeUrlsList.push(...subRules);
-      }
-    }
-
-    // Check include rules
-    for (const pattern of includeUrlsList) {
-      if (matchesPattern(url, pattern)) {
-        return createFirefoxProxyObject(proxy);
-      }
+    const matcher = getCachedFirefoxRuleMatcher(proxy, 'include');
+    if (matchesCompiledFirefoxRules(matcher, url, urlParts)) {
+      return createFirefoxProxyObject(proxy);
     }
   }
 
@@ -2668,43 +2692,79 @@ function isIPv4Address(value) {
   return /^(\d{1,3}\.){3}\d{1,3}$/.test(value);
 }
 
+function compileFirefoxRulePatterns(patterns) {
+  const domainPatterns = new Set();
+  const cidrPatterns = [];
+  const hostRegexes = [];
+  const urlRegexes = [];
+
+  patterns.slice(0, MAX_PROXY_RULES_PER_PROXY).forEach(pattern => {
+    const parsedRegex = parseProxyRegexPattern(pattern, 'i');
+    if (parsedRegex) {
+      hostRegexes.push(new RegExp(parsedRegex.source, parsedRegex.flags));
+      return;
+    }
+    if (pattern.startsWith('/')) return;
+
+    if (isIpPattern(pattern) && pattern.includes('/')) {
+      cidrPatterns.push(pattern);
+      return;
+    }
+
+    if (pattern.includes('*')) {
+      const regexSource = pattern
+        .replace(/[+?^${}()|[\]\\]/g, '\\$&')
+        .replace(/\./g, '\\.')
+        .replace(/\*/g, '.*');
+      const regex = new RegExp(`^${regexSource}$`, 'i');
+      if (pattern.includes('/')) urlRegexes.push(regex);
+      else hostRegexes.push(regex);
+      return;
+    }
+
+    domainPatterns.add(pattern.toLowerCase());
+  });
+
+  return { domainPatterns, cidrPatterns, hostRegexes, urlRegexes };
+}
+
+function getCachedFirefoxRuleMatcher(proxy, ruleType) {
+  let cache = firefoxProxyRuleCache.get(proxy);
+  if (!cache || cache.config !== currentConfig) {
+    cache = { config: currentConfig, include: null, bypass: null };
+    firefoxProxyRuleCache.set(proxy, cache);
+  }
+  if (!cache[ruleType]) {
+    cache[ruleType] = compileFirefoxRulePatterns(getProxyRulePatterns(proxy, ruleType));
+  }
+  return cache[ruleType];
+}
+
+function matchesCompiledFirefoxRules(matcher, url, urlParts) {
+  const host = urlParts.host.toLowerCase();
+  let candidate = host;
+  while (candidate) {
+    if (matcher.domainPatterns.has(candidate)) return true;
+    const separator = candidate.indexOf('.');
+    if (separator === -1) break;
+    candidate = candidate.substring(separator + 1);
+  }
+
+  if (isIPv4Address(host) && matcher.cidrPatterns.some(cidr => isInCidrRange(host, cidr))) {
+    return true;
+  }
+  const testRegex = (regex, value) => {
+    regex.lastIndex = 0;
+    return regex.test(value);
+  };
+  if (matcher.hostRegexes.some(regex => testRegex(regex, host))) return true;
+  return matcher.urlRegexes.some(regex => testRegex(regex, url));
+}
+
 function matchesPattern(url, pattern) {
   const urlParts = getUrlParts(url);
   if (!urlParts) return false;
-
-  const host = urlParts.host;
-  const port = urlParts.port;
-
-  // Handle regex pattern: /pattern/ or /pattern/flags
-  if (pattern.startsWith('/') && pattern.length > 2) {
-    const lastSlash = pattern.lastIndexOf('/');
-    const potentialFlags = pattern.slice(lastSlash + 1);
-    if (lastSlash > 0 && /^[gimsuy]*$/.test(potentialFlags)) {
-      const regexContent = pattern.slice(1, lastSlash);
-      const flags = potentialFlags || 'i';
-      try {
-        const regex = new RegExp(regexContent, flags);
-        return regex.test(host);
-      } catch (e) {
-        return false;
-      }
-    }
-  }
-
-  if (pattern.includes('/')) {
-    return isIPv4Address(host) && isInCidrRange(host, pattern);
-  }
-
-  if (pattern.includes('*')) {
-    const regexStr = pattern
-      .replace(/[+?^${}()|[\]\\]/g, '\\$&')
-      .replace(/\./g, '\\.')
-      .replace(/\*/g, '.*');
-    const regex = new RegExp(`^${regexStr}$`, 'i');
-    return regex.test(host);
-  }
-
-  return host === pattern || host.endsWith('.' + pattern);
+  return matchesCompiledFirefoxRules(compileFirefoxRulePatterns([pattern]), url, urlParts);
 }
 
 function createFirefoxProxyObject(proxy) {

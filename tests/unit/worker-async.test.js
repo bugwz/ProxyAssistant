@@ -733,6 +733,30 @@ describe('Worker applyProxy async handling', () => {
       .resolves.toEqual({ type: 'direct' });
   });
 
+  test('compiles and reuses bounded Firefox request matchers', () => {
+    const context = loadWorkerContext();
+    const proxy = {
+      include_rules: 'example.com\n*.internal.example\n/^(a+)+$/'
+    };
+
+    const firstMatcher = context.getCachedFirefoxRuleMatcher(proxy, 'include');
+    const secondMatcher = context.getCachedFirefoxRuleMatcher(proxy, 'include');
+
+    expect(secondMatcher).toBe(firstMatcher);
+    expect(firstMatcher.domainPatterns.has('example.com')).toBe(true);
+    expect(firstMatcher.hostRegexes).toHaveLength(1);
+    expect(context.matchesCompiledFirefoxRules(
+      firstMatcher,
+      'https://sub.example.com/path',
+      { host: 'sub.example.com', port: '' }
+    )).toBe(true);
+    expect(context.matchesCompiledFirefoxRules(
+      firstMatcher,
+      'https://unrelated.example/path',
+      { host: 'unrelated.example', port: '' }
+    )).toBe(false);
+  });
+
   test('matches daytime and overnight scenario schedules', () => {
     const context = loadWorkerContext();
     const workRule = { type: 'time', weekdays: [1], start: '09:00', end: '18:00' };

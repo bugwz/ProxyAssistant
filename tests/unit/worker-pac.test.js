@@ -9,7 +9,12 @@ function loadGeneratePacScript() {
   const context = { console };
 
   vm.createContext(context);
-  vm.runInContext(`${source.slice(start, end)}\nthis.generatePacScriptForTest = generatePacScript;`, context);
+  vm.runInContext(`
+    const MAX_PROXY_RULES_PER_PROXY = 20000;
+    const MAX_PROXY_REGEX_LENGTH = 512;
+    ${source.slice(start, end)}
+    this.generatePacScriptForTest = generatePacScript;
+  `, context);
   return context.generatePacScriptForTest;
 }
 
@@ -71,6 +76,39 @@ describe('Worker PAC generation', () => {
     }]);
 
     expect(() => new vm.Script(script)).not.toThrow();
+    expect(script.indexOf('new RegExp')).toBeLessThan(script.indexOf('function FindProxyForURL'));
     expect(executePacScript(script, 'https://example.com/path')).toBe('PROXY 127.0.0.1:8080; DIRECT');
+  });
+
+  test('groups domain rules into a lookup map and removes subscription duplicates', () => {
+    const script = generatePacScript([{
+      enabled: true,
+      protocol: 'http',
+      ip: '127.0.0.1',
+      port: '8080',
+      include_rules: 'example.com',
+      subscription: {
+        current: 'autoproxy',
+        lists: { autoproxy: { include_rules: 'example.com\nsecond.example' } }
+      }
+    }]);
+
+    expect(script).toContain('proxyAssistantDomains0');
+    expect(script.match(/"example\.com":1/g)).toHaveLength(1);
+    expect(executePacScript(script, 'https://sub.example.com/path')).toBe('PROXY 127.0.0.1:8080; DIRECT');
+    expect(executePacScript(script, 'https://second.example/path')).toBe('PROXY 127.0.0.1:8080; DIRECT');
+  });
+
+  test('skips nested quantified regular expressions', () => {
+    const script = generatePacScript([{
+      enabled: true,
+      protocol: 'http',
+      ip: '127.0.0.1',
+      port: '8080',
+      include_rules: '/^(a+)+$/'
+    }]);
+
+    expect(script).not.toContain('proxyAssistantRegex');
+    expect(executePacScript(script, 'https://aaaaaaaa.example/path')).toBe('DIRECT');
   });
 });
