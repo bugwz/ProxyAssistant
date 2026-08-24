@@ -10,6 +10,7 @@ const ProxyModule = (function () {
   let del_index = -1;
   let expansionMode = 'auto';
   let newProxyId = null;
+  let activeSortCleanup = null;
   const PROXY_COLOR_PRESETS = [
     '#FF0000', '#FF8C00', '#FFD700', '#00B050',
     '#00AEEF', '#4164F5', '#8B5CF6', '#EC4899'
@@ -424,6 +425,8 @@ const ProxyModule = (function () {
   }
 
   function renderList() {
+    if (activeSortCleanup) activeSortCleanup();
+
     const expansionState = {};
     $("#proxy-list .proxy-card").each(function () {
       const $item = $(this);
@@ -1082,6 +1085,7 @@ const ProxyModule = (function () {
       if (e.button !== 0) return;
 
       e.preventDefault();
+      if (activeSortCleanup) activeSortCleanup();
       const $handle = $(this);
       const $item = $handle.closest(".proxy-card");
       if ($item.length === 0) return;
@@ -1139,16 +1143,19 @@ const ProxyModule = (function () {
       let scrollInterval = null;
 
       const autoScroll = (clientY) => {
+        if (!isDragging) return;
         if (scrollInterval) clearInterval(scrollInterval);
         scrollInterval = null;
 
         if (clientY < scrollThreshold) {
           scrollInterval = setInterval(() => {
+            if (!isDragging) return;
             window.scrollBy(0, -scrollSpeed);
             handleMove(null, clientY);
           }, 16);
         } else if (window.innerHeight - clientY < scrollThreshold) {
           scrollInterval = setInterval(() => {
+            if (!isDragging) return;
             window.scrollBy(0, scrollSpeed);
             handleMove(null, clientY);
           }, 16);
@@ -1156,6 +1163,7 @@ const ProxyModule = (function () {
       };
 
       const handleMove = (clientX, clientY) => {
+        if (!isDragging) return;
         if (clientX !== null) {
           $clone.css({
             top: startTop + (clientY - startY),
@@ -1205,17 +1213,48 @@ const ProxyModule = (function () {
         autoScroll(clientY);
 
         if (rafId) cancelAnimationFrame(rafId);
-        rafId = requestAnimationFrame(() => handleMove(clientX, clientY));
+        rafId = requestAnimationFrame(() => {
+          rafId = null;
+          handleMove(clientX, clientY);
+        });
+      };
+
+      const cleanupDragResources = function () {
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+        if (scrollInterval !== null) {
+          clearInterval(scrollInterval);
+          scrollInterval = null;
+        }
+        $container.find('.proxy-scenario-cards').removeClass('drag-target');
+
+        $(document).off('mousemove.proxySort', onMouseMove);
+        $(document).off('mouseup.proxySort', onMouseUp);
+        $(document).off('visibilitychange.proxySort', onVisibilityChange);
+        $(window).off('blur.proxySort pagehide.proxySort', onMouseUp);
+      };
+
+      const cancelSort = function () {
+        if (!isDragging) return;
+        isDragging = false;
+        cleanupDragResources();
+        $clone.stop(true, true).remove();
+        if ($placeholder.parent().length) $placeholder.replaceWith($item);
+        $item.show();
+        activeSortCleanup = null;
+      };
+
+      const onVisibilityChange = function () {
+        if (document.hidden || document.visibilityState === 'hidden') onMouseUp();
       };
 
       const onMouseUp = function () {
+        if (!isDragging) return;
         isDragging = false;
-        if (rafId) cancelAnimationFrame(rafId);
-        if (scrollInterval) clearInterval(scrollInterval);
-        $container.find('.proxy-scenario-cards').removeClass('drag-target');
-
-        $(document).off("mousemove", onMouseMove);
-        $(document).off("mouseup", onMouseUp);
+        cleanupDragResources();
+        activeSortCleanup = null;
 
         $clone.animate({
           top: $placeholder[0].getBoundingClientRect().top,
@@ -1284,8 +1323,11 @@ const ProxyModule = (function () {
         });
       };
 
-      $(document).on("mousemove", onMouseMove);
-      $(document).on("mouseup", onMouseUp);
+      activeSortCleanup = cancelSort;
+      $(document).on('mousemove.proxySort', onMouseMove);
+      $(document).on('mouseup.proxySort', onMouseUp);
+      $(document).on('visibilitychange.proxySort', onVisibilityChange);
+      $(window).on('blur.proxySort pagehide.proxySort', onMouseUp);
     });
   }
 

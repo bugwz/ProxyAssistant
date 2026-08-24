@@ -1208,7 +1208,7 @@ describe('main UI state flow', () => {
     expect($('#subscription-manage-list .subscription-card').hasClass('collapsed')).toBe(false);
   });
 
-  test('groups every proxy by scenario and moves proxies with the association field or dragging', async () => {
+  test('groups proxies, supports dragging, and stops auto-scroll when the window loses focus', async () => {
     global.isFirefox = false;
     const createProxy = (id, name) => ({
       id: id,
@@ -1333,6 +1333,31 @@ describe('main UI state flow', () => {
     expect(global.StorageModule.reorderProxies).toHaveBeenCalledTimes(2);
     expect(global.StorageModule.save).toHaveBeenCalledTimes(1);
     expect(global.chrome.runtime.sendMessage).toHaveBeenCalledWith({ action: 'refreshProxy' });
+
+    const originalScrollBy = window.scrollBy;
+    window.scrollBy = jest.fn();
+    $.fn.animate = function (properties, duration, callback) {
+      if (callback) callback.call(this);
+      return this;
+    };
+    $('.proxy-card .drag-handle').first().trigger($.Event('mousedown', {
+      button: 0,
+      clientX: 100,
+      clientY: 100
+    }));
+    $(document).trigger($.Event('mousemove', { clientX: 100, clientY: 0 }));
+    await new Promise(resolve => setTimeout(resolve, 20));
+    expect(window.scrollBy).toHaveBeenCalled();
+
+    $(window).triggerHandler('blur');
+    const scrollCountAfterBlur = window.scrollBy.mock.calls.length;
+    $(document).trigger($.Event('mousemove', { clientX: 100, clientY: 0 }));
+    await new Promise(resolve => setTimeout(resolve, 40));
+
+    expect(window.scrollBy).toHaveBeenCalledTimes(scrollCountAfterBlur);
+    expect($('.proxy-card-clone')).toHaveLength(0);
+    $.fn.animate = originalAnimate;
+    window.scrollBy = originalScrollBy;
   });
 
   test('delete confirmation escapes proxy preview text', () => {
