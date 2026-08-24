@@ -41,6 +41,7 @@ describe('subscription management cards', () => {
   let storageModule;
   let proxyModule;
   let subscriptionModule;
+  let chromeApi;
 
   beforeEach(() => {
     document.body.innerHTML = `
@@ -67,6 +68,14 @@ describe('subscription management cards', () => {
       save: jest.fn(() => Promise.resolve())
     };
     proxyModule = { renderList: jest.fn() };
+    chromeApi = {
+      runtime: {
+        lastError: null,
+        sendMessage: jest.fn((message, callback) => {
+          if (callback) callback({ success: true });
+        })
+      }
+    };
 
     subscriptionModule = loadSubscriptionModule({
       StorageModule: storageModule,
@@ -82,14 +91,7 @@ describe('subscription management cards', () => {
       },
       I18n: { t: key => key },
       MainIcons: { render: jest.fn(() => '<svg></svg>') },
-      chrome: {
-        runtime: {
-          lastError: null,
-          sendMessage: jest.fn((message, callback) => {
-            if (callback) callback({ success: true });
-          })
-        }
-      },
+      chrome: chromeApi,
       fetch: jest.fn()
     });
     subscriptionModule.init();
@@ -132,6 +134,22 @@ describe('subscription management cards', () => {
       code: 'response_too_large'
     });
     expect(text).not.toHaveBeenCalled();
+  });
+
+  test('requests one worker reconciliation for a batch of subscriptions', () => {
+    subscriptionModule.scheduleAllBackgroundRefreshes({
+      subscriptions: [
+        { id: 'subscription-1' },
+        { id: 'subscription-2' },
+        { id: 'subscription-3' }
+      ]
+    });
+
+    expect(chromeApi.runtime.sendMessage).toHaveBeenCalledTimes(1);
+    expect(chromeApi.runtime.sendMessage).toHaveBeenCalledWith(
+      { action: 'scheduleAllSubscriptionRefreshes' },
+      expect.any(Function)
+    );
   });
 
   test('shows only the name and last update time in the card header', () => {
