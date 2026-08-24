@@ -1,654 +1,241 @@
 <div align="center">
 
-<img src="src/images/logo-128.png" width="80" height="80" align="center">
+<img src="src/images/logo-128.png" width="80" height="80" alt="代理助手">
 
 # 代理助手
 
-</div>
-
-<div align="center">
-
-[![Chrome 扩展](https://img.shields.io/badge/Chrome-Extension-blue?logo=google-chrome)](https://chrome.google.com/webstore)
-[![Firefox 扩展](https://img.shields.io/badge/Firefox-Extension-orange?logo=firefox)](https://addons.mozilla.org/)
+[![Chrome 扩展](https://img.shields.io/badge/Chrome-Extension-blue?logo=google-chrome)](https://chromewebstore.google.com/detail/%E4%BB%A3%E7%90%86%E5%8A%A9%E6%89%8B/mfemgikpcpndehimgkjghpcofjcgdhdk)
+[![Firefox 扩展](https://img.shields.io/badge/Firefox-Extension-orange?logo=firefox)](https://addons.mozilla.org/zh-CN/firefox/addon/proxyassistant)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
 [![多语言](https://img.shields.io/badge/多语言-yellow)](README.md)
 
-</div>
-
-<div align="center">
+适用于 Chrome、Firefox 和 Edge 的浏览器代理管理扩展
 
 [**简体中文**](README.md) | [繁體中文](readme/README-zh-TW.md) | [English](readme/README-en.md) | [日本語](readme/README-ja.md) | [Français](readme/README-fr.md) | [Deutsch](readme/README-de.md) | [Español](readme/README-es.md) | [Português](readme/README-pt.md) | [Русский](readme/README-ru.md) | [한국어](readme/README-ko.md)
 
 </div>
 
-<div align="center">
+代理助手用于在浏览器内管理 HTTP、HTTPS、SOCKS4 和 SOCKS5 代理。扩展提供禁用、手动和自动三种运行模式，并将代理节点、使用场景、路由规则、规则订阅、配置同步和诊断工具集中在同一个设置页面中。
 
-一款功能强大的浏览器代理管理扩展，适配 Chrome/Firefox/Edge 等多款浏览器，支持多场景管理，帮助您轻松配置和切换网络代理。
+Chrome、Firefox 和 Edge 均使用 Manifest V3。Edge 使用与 Chrome 相同的 Chromium 构建包。项目采用原生 JavaScript、jQuery 和浏览器扩展 API 开发，不依赖前端构建框架。
 
-</div>
+![代理助手设置页面](public/img/demo.png)
 
-![](public/img/promotion/1400-560.png)
+## 主要功能
 
-## 1. ✨ 功能特性
+### 代理节点与运行模式
 
-### 1.1 🔌 多协议代理支持
-- **HTTP** - 传统 HTTP 代理
-- **HTTPS** - 安全 HTTPS 代理
-- **SOCKS5** - 支持 TCP/UDP 的 SOCKS5 代理
-- **SOCKS4** - 兼容旧版 SOCKS4 代理
+- 管理 HTTP、HTTPS、SOCKS4 和 SOCKS5 代理节点。
+- 支持代理地址、端口、用户名、密码、颜色和启用状态等配置。
+- 在扩展弹窗中切换禁用、手动和自动模式。
+- 手动模式使用选定节点，可配置不使用代理的地址。
+- 自动模式根据节点的使用代理地址生成 PAC 脚本，并支持直连或拒绝连接两种回退策略。
+- 支持单个测试和批量测试代理节点，并显示测试耗时或失败状态。
 
-### 1.2 🌐 多浏览器支持
-- **Chrome** - 使用 Manifest V3 + Service Worker
-- **Firefox** - 使用 Manifest V3 + `proxy.onRequest` API 进行代理请求拦截
-- **Edge** - 完美兼容 Chrome 扩展，基于 Chromium 内核
+> 当前界面对 SOCKS5 节点禁用认证字段；Chrome 的代理 API 不支持 SOCKS5 用户名和密码认证。
 
-### 1.3 🔄 三种代理模式
+### 代理场景
 
-| 模式 | 描述 |
-|------|------|
-| **禁用** | 禁用代理，使用系统默认网络连接 |
-| **手动** | 从列表中手动选择代理 |
-| **自动** | 根据 URL 规则自动选择匹配的代理 (PAC 模式) |
+- 将不同网络环境的代理节点分别保存在多个场景中。
+- 在设置页面或扩展弹窗中切换当前场景。
+- 支持场景新增、重命名、删除、排序和节点迁移。
+- 可为场景指定默认代理，并按星期和时间段配置自动启用规则。
 
-![](public/img/promotion/1280-800-03.png)
+### 规则订阅
 
-### 1.4 🎬 场景模式
+- 集中维护可被多个代理节点复用的规则订阅。
+- 支持 AutoProxy、Switchy Legacy、Switchy Omega 和 PAC 格式。
+- 可查看订阅原文、解析结果、使用代理规则和直连规则。
+- 支持规则反转以及手动、1 分钟、6 小时、12 小时、1 天和 5 天更新周期。
+- 订阅更新由扩展后台任务执行。
 
-- **多场景支持**: 创建不同的代理配置集合（如：公司、家庭、开发环境）
-- **快速切换**: 一键在不同场景间切换代理列表
-- **灵活管理**: 支持场景的新增、重命名、删除及排序
-- **代理迁移**: 支持将代理在不同场景间移动
-- **自动应用**: 手动模式下切换场景时自动选择并应用代理
+### 配置、同步与诊断
 
-### 1.5 📥 代理订阅功能
+- 使用 JSON 文件导入和导出配置，可选择是否包含订阅配置及订阅缓存。
+- 使用浏览器原生同步存储在同一浏览器账号的设备间推送或拉取配置。
+- 使用 GitHub Gist 推送或拉取配置，并支持定时同步。
+- 原生同步数据按 7 KB 分块写入，并在设置页面显示当前配额占用情况。
+- 检查当前代理控制状态、PAC 脚本状态以及可能的扩展冲突。
+- 提供分级运行日志，可在设置页面筛选、刷新、复制或清空。
 
-- **多格式支持**: 支持 AutoProxy、SwitchyLegacy、SwitchyOmega、PAC 等订阅格式
-- **自动更新**: 支持定时自动更新（1分钟/6小时/12小时/1天）
-- **规则反转**: 支持反转订阅的匹配和绕过规则（白名单/黑名单模式）
-- **规则预览**: 可快速查看从订阅中提取的匹配和绕过规则列表
-- **唯一 ID**: 每个代理和场景具有唯一 ID，便于精确管理
+### 界面设置
 
-### 1.6 📋 灵活的 URL 规则配置
+- 支持浅色、深色和按时间自动切换主题。
+- 支持使用 JSON 编辑自定义主题颜色。
+- 支持简体中文、繁体中文、英语、日语、法语、德语、西班牙语、葡萄牙语、俄语和韩语。
 
-- **不走代理的地址** (`bypass_rules`): 手动模式下直接连接的域名/IP
-- **走代理的地址** (`include_rules`): 自动模式下需要代理访问的域名
-- **备用策略**: 自动模式下连接失败时选择直接连接或拒绝连接
-- 支持通配符 `*` 和域名匹配
-- 适用于不同网站使用不同代理的场景
+![浅色主题](public/img/demo-light.png)
 
-### 1.7 🔐 代理认证支持
+![深色主题](public/img/demo-night.png)
 
-- 用户名/密码认证
-- 自动处理代理服务器的认证请求
-- 凭证信息的安全存储
+## 安装
 
-### 1.8 🧪 代理测试功能
+### 从发布包安装
 
-- **连接测试**: 检测代理可用性
-- **延迟测量**: 测试代理响应时间
-- **批量测试**: 一键测试所有代理
-- **颜色指示**: 绿色(<500ms) / 橙色(≥500ms) / 红色(失败)
+普通用户可以直接从浏览器扩展商店安装：
 
-### 1.9 🏃 代理状态检测
+- [Chrome 网上应用店](https://chromewebstore.google.com/detail/%E4%BB%A3%E7%90%86%E5%8A%A9%E6%89%8B/mfemgikpcpndehimgkjghpcofjcgdhdk)：适用于 Chrome，也可在允许安装 Chrome 扩展的 Edge 中使用。
+- [Firefox Add-ons](https://addons.mozilla.org/zh-CN/firefox/addon/proxyassistant)：适用于 Firefox。
 
-- 检测浏览器当前代理设置
-- 检测扩展是否成功接管代理控制
-- 检测其他扩展是否抢占代理控制权
-- 提供状态、警告、错误三种检测结果
+也可以前往 [GitHub Releases](https://github.com/bugwz/ProxyAssistant/releases) 下载对应版本：
 
-### 1.10 🔍 PAC 脚本预览
+- Chrome、Edge 等 Chromium 浏览器使用 `ProxyAssistant_<版本>_chrome.zip`。
+- Firefox 构建包含 `ProxyAssistant_<版本>_firefox.zip` 和 `ProxyAssistant_<版本>_firefox.xpi`。
 
-- **脚本视图**: 查看自动生成的 PAC 脚本内容
-- **规则列表**: 清晰展示所有生效的代理匹配规则
-- **调试支持**: 方便排查自动模式下的匹配问题
+在 Chrome 或 Edge 中安装 ZIP 包时，需要先解压文件，然后在扩展管理页面开启开发者模式并选择“加载已解压的扩展程序”。仓库发布流程生成的 Firefox XPI 是构建产物，能否直接安装取决于当前 Firefox 的扩展签名策略；普通用户建议使用 Firefox Add-ons 商店版本。
 
-### 1.11 🌙 主题模式
-
-- **浅色模式**: 白天使用
-- **深色模式**: 夜间使用
-- **自动切换**: 根据时间自动切换主题（可配置时间段）
-
-![](public/img/promotion/1280-800-02.png)
-
-### 1.12 ☁️ 数据存储与同步
-
-#### 1.12.1 存储策略
-
-| 存储类型 | 存储内容 | 描述 |
-|----------|----------|------|
-| **本地存储 (local)** | 代理列表、主题设置、语言设置、同步配置 | 始终启用，确保离线可用和数据持久化 |
-| **云端同步 (sync)** | 完整配置数据（分块存储） | 可选功能，使用分块存储绕过配额限制 |
-
-#### 1.12.2 同步方式
-
-##### 1.12.2.1 浏览器原生同步 (Native Sync)
-- 使用 `chrome.storage.sync` API（Chrome）或 `browser.storage.sync`（Firefox）
-- 通过 Chrome/Firefox 账号自动同步
-- 适用于同一浏览器账号的多设备同步
-- **分块存储**: 配置数据自动分块（每块 7KB）存储，绕过 8KB 单项配额限制
-- **数据校验**: 使用校验和确保同步数据的完整性
-- **原子操作**: Push 操作先清空旧数据再写入新数据，保证一致性
-- **配额显示**: 实时显示已用/总配额（100KB）和分块数量
-
-##### 1.12.2.2 GitHub Gist 同步
-- 通过 GitHub Gist 在浏览器和设备间同步配置
-- 需要配置 GitHub Personal Access Token
-- 支持手动 push/pull 或自动同步
-- 配置内容加密存储，导出时自动清除敏感信息
-
-| 配置项 | 描述 |
-|--------|------|
-| **访问密钥** | GitHub Personal Access Token（需具有 gist 权限） |
-| **文件名** | Gist 中的文件名，默认为 `proxy_assistant_config.json` |
-| **Gist ID** | 自动识别保存，无需手动输入 |
-
-#### 1.12.3 同步操作
-
-| 操作 | 描述 |
-|------|------|
-| **Push** | 将本地配置上传至云端/Gist |
-| **Pull** | 从云端/Gist 下载配置到本地 |
-| **测试连接** | 验证 Gist Token 有效性及配置状态 |
-
-#### 1.12.4 导入导出
-
-- **导出配置**: 生成包含所有代理信息、主题设置、语言设置等信息的 JSON 文件
-- **导入配置**: 支持从 JSON 文件恢复配置
-- **数据安全**: 导出文件自动清除敏感信息（Token、密码）
-- **格式兼容**: 支持导入旧版本配置文件
-
-### 1.13 🌍 多语言支持
-
-本扩展支持以下语言：
-
-| 语言 | 代码 | 状态 |
-|------|------|------|
-| 简体中文 | zh-CN | ✅ 已支持 |
-| 繁體中文 | zh-TW | ✅ 已支持 |
-| English | en | ✅ 已支持 |
-| 日本語 | ja | ✅ 已支持 |
-| Français | fr | ✅ 已支持 |
-| Deutsch | de | ✅ 已支持 |
-| Español | es | ✅ 已支持 |
-| Português | pt | ✅ 已支持 |
-| Русский | ru | ✅ 已支持 |
-| 한국어 | ko | ✅ 已支持 |
-
-![](public/img/promotion/1280-800-04.png)
-
-## 2. 📷 设置界面
-
-![](public/img/demo.png)
-
-## 3. 📁 项目结构
-
-```
-ProxyAssistant/
-├── conf/                     # 示例配置
-│   └── demo.json             # 示例配置文件
-├── readme/                   # 多语言文档
-│   ├── README-zh-TW.md       # 繁体中文
-│   ├── README-en.md          # 英文
-│   ├── README-ja.md          # 日文
-│   ├── README-fr.md          # 法文
-│   ├── README-de.md          # 德文
-│   ├── README-es.md          # 西班牙文
-│   ├── README-pt.md          # 葡萄牙文
-│   ├── README-ru.md          # 俄文
-│   └── README-ko.md          # 韩文
-├── src/                      # 源代码
-│   ├── manifest_chrome.json  # Chrome 扩展配置 (Manifest V3)
-│   ├── manifest_firefox.json # Firefox 扩展配置
-│   ├── main.html             # 设置页面
-│   ├── popup.html            # 弹窗页面
-│   ├── _locales/             # 国际化资源
-│   ├── js/
-│   │   ├── main.js           # 设置页面主逻辑
-│   │   ├── popup.js          # 弹窗 UI 逻辑
-│   │   ├── worker.js         # Service Worker (Chrome) / Background Script (Firefox)
-│   │   ├── i18n.js           # 国际化支持
-│   │   ├── storage.js        # 存储管理模块
-│   │   ├── proxy.js          # 代理管理模块
-│   │   ├── scenarios.js      # 场景管理模块
-│   │   ├── sync.js           # 数据同步模块
-│   │   ├── subscription.js   # 订阅功能模块
-│   │   ├── theme.js          # 主题切换模块
-│   │   ├── detection.js      # 代理检测模块
-│   │   ├── validator.js      # 数据验证模块
-│   │   ├── language.js       # 语言选择模块
-│   │   ├── utils.js          # 工具函数模块
-│   │   ├── config.js         # 配置常量模块
-│   │   ├── version.js        # 版本管理模块
-│   │   └── jquery.js         # jQuery 库
-│   ├── css/
-│   │   ├── main.css          # 设置页面样式 (含通用组件)
-│   │   ├── popup.css         # 弹窗样式
-│   │   ├── theme.css         # 主题样式
-│   │   ├── tabs.css          # 标签页样式
-│   │   └── eye-button.css    # 显示密码按钮样式
-│   └── images/               # 图片资源
-│       ├── icon-16.png
-│       ├── icon-32.png
-│       ├── icon-48.png
-│       ├── icon-128.png
-│       └── logo-128.png
-├── public/                   # 公共资源
-│   └── img/                  # 演示和宣传图片
-├── tests/                    # 测试目录
-│   ├── jest.config.js        # Jest 测试配置
-│   ├── setup.js              # 测试环境设置
-│   ├── __mocks__/            # Mock 文件
-│   │   └── chrome.js         # Chrome API Mock
-│   ├── unit/                 # 单元测试
-│   ├── integration/          # 集成测试
-│   └── e2e/                  # 端到端测试
-├── script/                   # 构建脚本
-│   └── build.sh              # 扩展构建脚本
-├── release/                  # 版本发布说明
-│   └── *.md                  # 各版本更新日志
-├── docs/                     # 文档目录
-├── build/                    # 构建产物目录
-├── package.json              # 项目依赖配置
-├── package-lock.json         # 锁定依赖版本
-├── Makefile                  # 构建命令入口
-├── jest.config.js            # Jest 配置（指向 tests/jest.config.js）
-├── AGENTS.md                 # 开发指南
-└── LICENSE                   # MIT 开源协议
-```
-
-## 4. 🚀 快速开始
-
-### 4.1 安装扩展
-
-#### 4.1.1 Chrome
-
-**方式一（推荐）**: 从 Chrome 官方商店安装
-1. 打开 Chrome，访问 [Chrome 网上应用店](https://chrome.google.com/webstore)
-2. 搜索"代理助手"
-3. 点击"添加至 Chrome"
-
-**方式二**: 本地安装
-- **方案 A（使用源码）**: 下载源码，将 `src/manifest_chrome.json` 重命名为 `manifest.json`，然后加载 `src` 目录
-- **方案 B（使用安装包）**:
-  1. 前往 [GitHub Releases](https://github.com/bugwz/ProxyAssistant/releases) 页面
-  2. 下载 `proxy-assistant-chrome-x.x.x.zip` 文件
-  3. 将下载的 ZIP 文件解压到任意目录
-  4. 打开 Chrome，访问 `chrome://extensions/`
-  5. 开启右上角的 **"开发者模式"**
-  6. 点击左上角的 **"加载已解压的扩展程序"** 按钮
-  7. 选择第 3 步解压的文件夹
-  8. 安装成功后扩展会出现在扩展列表中
-
-#### 4.1.2 Firefox
-
-**方式一（推荐）**: 从 Firefox 官方附加组件安装
-1. 打开 Firefox，访问 [Firefox 附加组件](https://addons.mozilla.org/)
-2. 搜索"代理助手"
-3. 点击"添加到 Firefox"
-
-**方式二**: 本地安装
-1. 从 release 目录下载 Firefox 扩展安装包（`.xpi` 文件）
-2. 打开 Firefox，访问 `about:addons`
-3. 点击 **齿轮图标** → **从文件安装附加组件**
-4. 选择下载的 `.xpi` 文件
-
-#### 4.1.3 Microsoft Edge
-
-Edge 浏览器基于 Chromium 内核，可以直接安装 Chrome 扩展。
-
-**方式一（推荐）**: 从 Chrome 网上应用店安装
-1. 打开 Edge，访问 `edge://extensions/`
-2. 在"发现新扩展"区域，点击"获取 Chrome 网上应用店中的扩展"，访问 [Chrome 网上应用店](https://chrome.google.com/webstore)
-3. 搜索"代理助手"
-4. 点击"获取"然后"添加到 Microsoft Edge"
-
-**方式二**: 本地安装
-1. 前往 [GitHub Releases](https://github.com/bugwz/ProxyAssistant/releases) 页面
-2. 下载 `proxy-assistant-chrome-x.x.x.zip` 文件
-3. 将下载的 ZIP 文件解压到任意目录
-4. 打开 Edge，访问 `edge://extensions/`
-5. 开启左下角的 **"开发者模式"**
-6. 点击 **"选择解压缩的目录"** 按钮
-7. 选择第 3 步解压的文件夹
-8. 安装成功后扩展会出现在扩展列表中
-
-### 4.2 添加代理
-
-1. 点击扩展图标打开弹窗
-2. 点击 **"设置"** 按钮打开设置页面
-3. 点击 **"新增代理"** 按钮添加新的代理
-4. 填写代理信息：
-   - 代理名称
-   - 协议类型 (HTTP/HTTPS/SOCKS4/SOCKS5)
-   - 代理地址 (IP 或域名)
-   - 端口号
-   - (可选) 用户名和密码
-   - (可选) URL 规则配置
-5. 点击 **"保存"** 按钮
-
-### 4.3 使用代理
-
-**手动模式**:
-1. 在弹窗中选择 **"手动"** 模式
-2. 从列表中选择代理
-3. 状态显示"已连接"表示已生效
-
-**自动模式**:
-1. 在弹窗中选择 **"自动"** 模式
-2. 在设置页面为每个代理配置 URL 规则
-3. 根据访问的网站自动选择代理
-
-## 5. 🛠️ 开发指南
-
-### 5.1 开发环境
-
-**前置要求**:
-- Node.js >= 14
-- npm >= 6
-- Chrome / Firefox 浏览器（用于测试）
-- web-ext（用于构建 Firefox XPI，可选）
-
-**安装依赖**:
+### 从源码加载
+
+仓库为 Chrome 和 Firefox 分别维护了清单文件。建议先使用构建脚本生成对应浏览器的完整目录或安装包，避免直接修改 `src/manifest.json`：
+
 ```bash
-make test_init
-# 或
-npm install
+npm ci
+make build VERSION=dev
 ```
 
-### 5.2 测试命令
+构建完成后，解压 `build/ProxyAssistant_dev_chrome.zip`，再通过 Chrome 或 Edge 的扩展管理页面加载解压后的目录。调试 Firefox 时，可以解压 Firefox ZIP，在 `about:debugging` 的“此 Firefox”页面选择“临时载入附加组件”，并打开目录中的 `manifest.json`。生成 XPI 需要本机已安装 `web-ext`；如果未安装，构建脚本仍会生成 Firefox 的 ZIP 和 TAR.GZ 文件，但会跳过 XPI。
 
-| 命令 | 描述 |
-|------|------|
-| `make test` | 运行所有测试（单元 + 集成 + e2e） |
-| `make test_nocache` | 不使用缓存运行测试 |
-| `make test_unit` | 仅运行单元测试 |
-| `make test_integration` | 仅运行集成测试 |
-| `make test_e2e` | 仅运行 e2e 测试 |
-| `make test_watch_nocache` | 监听模式运行测试 |
+## 基本使用
 
-**直接使用 npm**:
+1. 安装后点击浏览器工具栏中的代理助手图标。
+2. 点击设置按钮进入完整设置页面。
+3. 在“代理节点”中新增代理，填写协议、地址和端口；需要时再填写认证和路由规则。
+4. 返回弹窗，选择禁用、手动或自动模式。
+5. 手动模式下选择一个节点；自动模式下由 PAC 脚本按节点规则决定连接方式。
+
+常见配置方式：
+
+- 始终使用一个代理：选择手动模式并选中目标节点。
+- 指定网站使用代理：为节点填写“使用代理的地址”，然后选择自动模式。
+- 指定网站保持直连：为手动模式节点填写“不使用代理的地址”，或通过订阅提供直连规则。
+- 区分办公、家庭等环境：分别创建场景，并在弹窗中快速切换。
+
+## 数据与权限
+
+扩展申请以下权限：
+
+| 权限 | 用途 |
+| --- | --- |
+| `proxy` | 读取和修改浏览器代理配置 |
+| `storage` | 保存本地配置，并支持浏览器原生同步 |
+| `webRequest`、`webRequestAuthProvider` | 响应代理认证请求 |
+| `alarms` | 执行订阅更新、场景自动切换和定时同步 |
+| `<all_urls>` | 生成适用于网页请求的代理规则并读取当前站点信息 |
+
+配置默认保存在 `chrome.storage.local`。代理用户名和密码是代理配置的一部分，也会进入导出的配置文件以及主动推送的同步数据；GitHub Token 和 Gist ID 不会写入导出或同步内容。请妥善保管导出文件，并在启用浏览器同步或 Gist 同步前确认其符合你的数据安全要求。
+
+拉取远端配置会覆盖本地业务配置，但保留本地同步连接信息和同步计划。执行拉取前，建议先导出一份本地配置作为备份。
+
+隐私政策：[Proxy Assistant Privacy Policy](https://sites.google.com/view/proxy-assistant/privacy-policy)
+
+## 开发
+
+### 环境要求
+
+- Node.js 20（与 GitHub Actions 使用的版本一致）
+- npm
+- Chrome、Firefox 或 Edge，用于浏览器内验证
+- `web-ext`，仅在构建 Firefox XPI 时需要
+
+安装依赖：
+
 ```bash
-npm test                    # 运行所有测试
-npm run test:unit           # 仅运行单元测试
-npm run test:integration    # 仅运行集成测试
-npm run test:e2e            # 仅运行 e2e 测试
-npm run test:watch          # 监听模式运行测试
-npm run test:coverage       # 运行测试并生成覆盖率报告
+npm ci
 ```
 
-### 5.3 构建命令
+### 测试
 
-| 命令 | 描述 |
-|------|------|
-| `make build` | 构建 Chrome 和 Firefox 扩展 |
-| `make clean` | 清理构建产物 |
-| `make test_clean` | 清理测试缓存和覆盖率文件 |
+```bash
+npm test                    # 运行全部 Jest 测试
+npm run test:unit           # 单元测试
+npm run test:integration    # 集成测试
+npm run test:e2e            # 端到端测试
+npm run test:watch          # 监听模式
+npm run test:coverage       # 覆盖率测试
+```
 
-**指定版本号**:
+也可以使用 Makefile 中的入口：
+
+```bash
+make test
+make test_unit
+make test_integration
+make test_e2e
+make test_nocache
+```
+
+### 构建
+
 ```bash
 make build VERSION=dev
-# 或
-./script/build.sh dev
 ```
 
-**构建产物**:
-```
+构建脚本会清理 `build/`，为两个浏览器选择各自的 Manifest，并生成以下文件：
+
+```text
 build/
-├── ProxyAssistant_{VERSION}_chrome.zip      # Chrome 安装包
-├── ProxyAssistant_{VERSION}_chrome.tar.gz   # Chrome 源码包
-├── ProxyAssistant_{VERSION}_firefox.zip     # Firefox 安装包
-├── ProxyAssistant_{VERSION}_firefox.tar.gz  # Firefox 源码包
-└── ProxyAssistant_{VERSION}_firefox.xpi     # Firefox 官方扩展包
+├── ProxyAssistant_dev_chrome.zip
+├── ProxyAssistant_dev_chrome.tar.gz
+├── ProxyAssistant_dev_firefox.zip
+├── ProxyAssistant_dev_firefox.tar.gz
+└── ProxyAssistant_dev_firefox.xpi
 ```
 
-### 5.4 GitHub CI
+如果系统中没有 `web-ext`，最后一个文件不会生成。
 
-项目包含 GitHub Actions CI 工作流：`.github/workflows/ci.yml`。
+### 项目结构
 
-- 推送到 `main` 分支时运行 CI
-- 所有 `pull_request` 都会运行 CI
-- CI 拆分为 `unit`、`integration`、`e2e`、`build` 四个独立 job
-- 当前仓库如果还没有 `integration` 或 `e2e` 测试文件，对应 job 会显式跳过，不会误报失败
-
-CI 当前使用的命令如下：
-
-```bash
-npm run test:unit -- --no-cache
-npm run test:integration -- --no-cache
-npm run test:e2e -- --no-cache
-make build VERSION=ci-<run-number>
+```text
+ProxyAssistant/
+├── src/
+│   ├── _locales/             # 浏览器国际化资源
+│   ├── css/                  # 设置页面和弹窗样式
+│   ├── images/               # 扩展图标
+│   ├── js/                   # 页面、代理、存储、同步和后台逻辑
+│   ├── main.html             # 设置页面
+│   ├── popup.html            # 扩展弹窗
+│   ├── manifest_chrome.json  # Chrome Manifest V3
+│   └── manifest_firefox.json # Firefox Manifest V3
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   └── e2e/
+├── script/build.sh           # Chrome 和 Firefox 打包脚本
+├── public/img/               # README 和商店宣传图片
+├── readme/                   # 其他语言 README
+├── release/                  # 各版本发布说明
+├── Makefile
+└── package.json
 ```
 
-`build` job 会在 Ubuntu 环境中安装 `web-ext`，执行扩展构建，并上传 `build/` 下的产物作为 workflow artifacts。
+核心模块包括：
 
-### 5.5 本地开发测试
+| 文件 | 职责 |
+| --- | --- |
+| `src/js/worker.js` | 应用代理设置、生成 PAC、处理认证、定时任务与后台消息 |
+| `src/js/main.js` | 设置页面初始化和跨模块协调 |
+| `src/js/popup.js` | 弹窗中的模式、场景和节点切换 |
+| `src/js/proxy.js` | 代理节点表单、列表和测试交互 |
+| `src/js/scenarios.js` | 场景管理及时间规则 |
+| `src/js/subscription.js` | 订阅管理、解析和刷新计划 |
+| `src/js/config.js` | 配置格式、迁移、导入与导出 |
+| `src/js/storage.js` | 本地配置缓存与持久化 |
+| `src/js/sync.js` | 浏览器原生同步和 GitHub Gist 同步 |
+| `src/js/detection.js` | 代理控制状态和 PAC 诊断 |
 
-**Chrome 本地安装**:
-1. 修改 `src/manifest_chrome.json` 为 `manifest.json`
-2. 打开 Chrome，访问 `chrome://extensions/`
-3. 开启 **"开发者模式"**
-4. 点击 **"加载已解压的扩展程序"**
-5. 选择 `src` 目录
+项目的代码约定和测试要求见 [AGENTS.md](AGENTS.md)。
 
-**Firefox 本地安装**:
-1. 使用 `make build` 生成 XPI 文件
-2. 打开 Firefox，访问 `about:addons`
-3. 点击 **齿轮图标** → **从文件安装附加组件**
-4. 选择生成的 `.xpi` 文件
+## 浏览器说明
 
-### 5.6 代码风格
+- Chrome 使用 Manifest V3 Service Worker。
+- Firefox 使用 Manifest V3 background script，最低支持版本由当前清单设为 Firefox 142。
+- Edge 使用 Chrome 构建包，可通过 Chrome 网上应用店安装，也可在开发者模式下加载解压后的 Chrome 构建目录。项目当前的专用清单和自动化构建目标仍为 Chrome 与 Firefox。
+- 同时启用多个代理或 VPN 扩展可能造成浏览器代理控制权冲突，可在“代理状态”页面查看诊断结果。
 
-- **缩进**: 2 个空格
-- **引号**: 单引号
-- **命名**: 小驼峰 (camelCase)，常量使用大写下划线
-- **分号**: 一致使用
+## 反馈与贡献
 
-详细规范请参考 [AGENTS.md](AGENTS.md)
+问题和功能建议请提交到 [GitHub Issues](https://github.com/bugwz/ProxyAssistant/issues)。提交改动前，请至少运行与改动相关的测试；涉及浏览器代理行为时，建议在 Chrome、Firefox 和 Edge 中进行验证。
 
-## 6. 📖 详细文档
+## 许可证
 
-### 6.1 URL 规则语法
-
-支持以下匹配规则：
-
-```
-# 精确匹配
-google.com
-
-# 子域名匹配
-.google.com
-www.google.com
-
-# 通配符匹配
-*.google.com
-*.twitter.com
-
-# IP 地址
-192.168.1.1
-10.0.0.0/8
-```
-
-### 6.2 失败回退策略
-
-自动模式下，当代理连接失败时：
-
-| 策略 | 描述 |
-|------|------|
-| **直接连接 (DIRECT)** | 绕过代理，直接连接目标网站 |
-| **拒绝连接 (REJECT)** | 拒绝该请求 |
-
-### 6.3 PAC 脚本自动模式
-
-自动模式使用 PAC（Proxy Auto-Config）脚本：
-- 根据当前 URL 自动选择代理
-- 按代理列表顺序匹配，返回第一个匹配的代理
-- 支持失败回退策略
-- 浏览器启动时自动恢复上次配置
-
-### 6.4 快捷操作
-
-| 操作 | 方式 |
-|------|------|
-| 展开/收起代理卡片 | 点击卡片头部 |
-| 展开/收起所有卡片 | 点击"全部展开/收起"按钮 |
-| 拖拽排序代理 | 拖动卡片头部的拖拽手柄 |
-| 显示/隐藏密码 | 点击密码输入框右侧的眼睛图标 |
-| 启用/禁用单个代理 | 卡片上的开关 |
-| 测试单个代理 | 点击"连接测试"按钮 |
-| 测试所有代理 | 点击"全部测试"按钮 |
-| 快速关闭弹窗 | 在页面按 `ESC` 键 |
-
-### 6.5 导入导出配置
-
-1. **导出配置**: 点击"导出配置"下载 JSON 文件
-2. **导入配置**: 点击"导入配置"选择 JSON 文件恢复
-
-配置包含内容：
-- 所有代理信息
-- 主题设置
-- 深色模式时间段
-- 语言设置
-- 同步开关状态
-
-### 6.6 代理状态检测
-
-点击"检测代理效果"按钮可以：
-- 查看当前浏览器代理模式
-- 检测扩展是否成功接管代理
-- 检测是否有其他扩展抢占控制
-- 获取问题诊断和建议
-
-## 7. 🔧 技术架构
-
-### 7.1 Manifest V3
-
-- Chrome 使用 Manifest V3 规范
-- Service Worker 替代后台页面
-- Firefox 使用 background scripts + onRequest API
-- 支持浏览器原生同步存储和 GitHub Gist 同步
-
-### 7.2 核心模块
-
-| 模块 | 文件 | 功能描述 |
-|------|------|----------|
-| **主程序** | main.js | 设置页面主逻辑、场景管理、代理 CRUD、拖拽排序、导入导出、代理检测 |
-| **弹窗** | popup.js | 弹窗界面交互、代理状态展示、快速切换代理、自动匹配展示 |
-| **后台** | worker.js | 代理配置管理、PAC 脚本生成、认证处理、代理测试、订阅自动更新、存储变化监听 |
-| **存储** | storage.js | 本地/云端存储管理、分块同步、数据校验、配置导入导出 |
-| **国际化** | i18n.js | 多语言支持、实时切换、动态翻译加载 |
-| **主题** | theme.js | 浅色/深色主题切换、自动根据时间切换 |
-| **场景** | scenarios.js | 多场景支持、场景切换、场景重命名/删除/排序 |
-| **同步** | sync.js | 浏览器原生同步、GitHub Gist 同步 |
-| **订阅** | subscription.js | 代理订阅解析 (AutoProxy/SwitchyLegacy/SwitchyOmega/PAC)、自动更新 |
-| **代理** | proxy.js | 代理列表渲染、编辑、测试、拖拽排序 |
-| **检测** | detection.js | 代理状态检测、扩展接管检测、冲突检测 |
-| **验证** | validator.js | IP/域名/端口/规则格式验证 |
-| **工具** | utils.js | 通用工具函数、DOM 操作辅助 |
-| **语言** | language.js | 语言下拉菜单交互处理 |
-| **配置** | config.js | 默认配置常量、系统配置管理 |
-
-### 7.3 数据存储
-
-- `chrome.storage.local`: 本地存储（始终使用）
-- `chrome.storage.sync`: 云端同步存储（可选）
-- `chrome.storage.session`: 会话存储（认证信息、状态缓存）
-- 遵循本地优先原则，解决同步配额问题
-- 分块存储（每块 7KB）绕过 8KB 配额限制
-
-### 7.4 配置格式版本
-
-| 版本 | 描述 |
-|------|------|
-| v1 | 初始格式 |
-| v2 | 增加场景支持 |
-| v3 | 增加订阅支持 |
-| v4 | 统一代理禁用状态、使用唯一 ID、订阅规则反转 |
-
-### 7.5 浏览器兼容性
-
-| 功能 | Chrome | Firefox |
-|------|--------|---------|
-| 手动模式 | ✅ | ✅ |
-| 自动模式 | ✅ | ✅ |
-| 代理认证 | ✅ | ✅ |
-| 代理测试 | ✅ | ✅ |
-| 主题切换 | ✅ | ✅ |
-| 数据同步 | ✅ | ✅ |
-| 代理检测 | ✅ | ✅ |
-| 订阅功能 | ✅ | ✅ |
-
-### 7.6 核心实现技术
-
-- **原生 JavaScript + jQuery**: 无框架依赖，保持轻量
-- **Manifest V3**: Chrome 使用 Service Worker，Firefox 使用 background scripts
-- **PAC 脚本**: 自动模式下动态生成代理自动配置脚本
-- **代理认证**: 使用 `webRequestAuthProvider` API 处理认证请求
-- **分块同步**: 自定义分块算法解决 Chrome storage.sync 配额限制
-- **订阅解析**: 支持多种订阅格式的自动解析和转换
-
-## 8. 📝 使用场景
-
-### 8.1 场景1：多代理切换
-
-- 为不同网络环境配置不同代理
-- 办公网络使用公司代理
-- 家庭网络使用科学上网代理
-- 一键快速切换
-
-### 8.2 场景2：智能路由
-
-- 国内网站直连
-- 特定网站走代理
-- 根据域名自动选择
-
-### 8.3 场景3：代理池测试
-
-- 导入多个代理
-- 批量测试延迟
-- 选取最优代理使用
-
-### 8.4 场景4：团队共享
-
-- 导出配置文件
-- 分享给团队成员
-- 统一的代理配置
-
-## 9. ⚠️ 注意事项
-
-1. **权限说明**: 本扩展需要以下权限：
-   - `proxy`: 管理代理设置
-   - `storage`: 存储配置
-   - `webRequest` / `webRequestAuthProvider`: 处理认证请求
-   - `<all_urls>`: 访问所有网站 URL
-
-2. **与其他扩展冲突**: 如遇代理冲突，请关闭其他代理/VPN 类扩展
-
-3. **安全性**: 凭证信息存储在浏览器本地，请确保设备安全
-
-4. **网络要求**: 请确保代理服务器可正常访问
-
-5. **Firefox 限制**: Firefox 最低支持版本为 142.0
-
-## 10. 📄 隐私政策
-
-[隐私政策](https://sites.google.com/view/proxy-assistant/privacy-policy)
-
-## 11. 📄 开源协议
-
-MIT License - 详见 [LICENSE](LICENSE) 文件
-
-## 12. 🤝 贡献
-
-欢迎提交 Issues 和 Pull Requests！
-
-## 13. 📧 联系方式
-
-如有问题或建议，请通过 GitHub Issues 反馈。
-
----
-
-<div align="center">
-
-**如果这个项目对您有帮助，请给个 Star ⭐ 支持一下！**
-
-</div>
+本项目使用 [MIT License](LICENSE)。

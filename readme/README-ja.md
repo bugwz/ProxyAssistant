@@ -1,654 +1,241 @@
 <div align="center">
 
-<img src="../src/images/logo-128.png" width="80" height="80" align="center">
+<img src="../src/images/logo-128.png" width="80" height="80" alt="プロキシアシスタント">
 
 # プロキシアシスタント
 
-</div>
-
-<div align="center">
-
-[![Chrome拡張機能](https://img.shields.io/badge/Chrome-Extension-blue?logo=google-chrome)](https://chrome.google.com/webstore)
-[![Firefox拡張機能](https://img.shields.io/badge/Firefox-Extension-orange?logo=firefox)](https://addons.mozilla.org/)
+[![Chrome 拡張機能](https://img.shields.io/badge/Chrome-Extension-blue?logo=google-chrome)](https://chromewebstore.google.com/detail/%E4%BB%A3%E7%90%86%E5%8A%A9%E6%89%8B/mfemgikpcpndehimgkjghpcofjcgdhdk)
+[![Firefox 拡張機能](https://img.shields.io/badge/Firefox-Extension-orange?logo=firefox)](https://addons.mozilla.org/zh-CN/firefox/addon/proxyassistant)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)](https://developer.chrome.com/docs/extensions/mv3/intro/)
 [![多言語](https://img.shields.io/badge/多言語-yellow)](README-ja.md)
 
-</div>
-
-<div align="center">
+Chrome、Firefox、Edge 向けのブラウザプロキシ管理拡張機能
 
 [简体中文](../README.md) | [繁體中文](README-zh-TW.md) | [English](README-en.md) | [**日本語**](README-ja.md) | [Français](README-fr.md) | [Deutsch](README-de.md) | [Español](README-es.md) | [Português](README-pt.md) | [Русский](README-ru.md) | [한국어](README-ko.md)
 
 </div>
 
-<div align="center">
+プロキシアシスタントは、HTTP、HTTPS、SOCKS4、SOCKS5 プロキシをブラウザ内で管理します。無効、手動、自動の 3 モードに加え、プロキシノード、シナリオ、ルーティングルール、ルール購読、設定同期、診断を 1 つの設定画面にまとめています。
 
-強力なブラウザプロキシ管理拡張機能。Chrome/Firefox/Edgeなど複数のブラウザに対応し、マルチシナリオ管理をサポートし、ネットワークプロキシの構成と切り替えが簡単になります。
+Chrome、Firefox、Edge は Manifest V3 を使用し、Edge は Chrome と同じ Chromium ビルドを利用します。プロジェクトはネイティブ JavaScript、jQuery、ブラウザ拡張 API で実装されています。
 
-</div>
+![設定画面](../public/img/demo.png)
 
-![](../public/img/promotion/1400-560.png)
+## 主な機能
 
-## 1. ✨ 機能特徴
+### プロキシノードと動作モード
 
-### 1.1 🔌 複数のプロキシプロトコル対応
-- **HTTP** - 従来型HTTPプロキシ
-- **HTTPS** - 安全なHTTPSプロキシ
-- **SOCKS5** - TCP/UDP対応SOCKS5プロキシ
-- **SOCKS4** - 旧SOCKS4プロキシ互換性
+- HTTP、HTTPS、SOCKS4、SOCKS5 のプロキシノードを管理します。
+- アドレス、ポート、ユーザー名、パスワード、色、有効状態などを設定できます。
+- 拡張機能のポップアップから無効、手動、自動モードを切り替えます。
+- 手動モードでは選択したノードを使用し、プロキシを使用しないアドレスを設定できます。
+- 自動モードでは各ノードのプロキシ対象アドレスから PAC スクリプトを生成し、直接接続または拒否のフォールバックを設定できます。
+- 単一または全ノードをテストし、遅延や失敗状態を表示します。
 
-### 1.2 🌐 マルチブラウザ対応
-- **Chrome** - Manifest V3 + Service Workerを使用
-- **Firefox** - Manifest V3 + `proxy.onRequest` APIを使用したプロキシリクエストのインターセプト
-- **Edge** - Chrome拡張機能と完全な互換性、Chromiumカーネルベース
+### プロキシシナリオ
 
-### 1.3 🔄 3つのプロキシモード
+- 異なるネットワーク環境のノードを複数のシナリオに分けて保存します。
+- 設定画面またはポップアップから現在のシナリオを切り替えます。
+- シナリオの追加、名前変更、削除、並べ替え、およびノード移動に対応します。
+- 既定のプロキシを指定し、曜日と時間帯による自動有効化を設定できます。
 
-| モード | 説明 |
-|--------|------|
-| **無効** | プロキシを無効化し、システムデフォルトのネットワーク接続を使用 |
-| **手動** | リストから手動でプロキシを選択 |
-| **自動** | URLルールに基づいて自動的にプロキシを選択（PACモード） |
+### ルール購読
 
-![](../public/img/promotion/1280-800-03.png)
+- 複数のプロキシノードで共有できるルール購読を一元管理します。
+- AutoProxy、Switchy Legacy、Switchy Omega、PAC 形式に対応します。
+- 元データ、解析結果、プロキシ対象ルール、直接接続ルールを確認できます。
+- ルール反転と、手動、1 分、6 時間、12 時間、1 日、5 日の更新周期に対応します。
+- 購読更新は拡張機能のバックグラウンドタスクで実行されます。
 
-### 1.4 🎬 シナリオモード
+### 設定、同期、診断
 
-- **マルチシナリオサポート**: 異なるプロキシ設定セットの作成（例：公司、家庭、開発環境）
-- **クイックスイッチ**: 異なるシナリオ間でのプロキシリストをワンクリックで切り替え
-- **柔軟な管理**: シナリオの追加、名前変更、削除、並べ替えをサポート
-- **プロキシ移行**: 異なるシナリオ間でのプロキシの移動をサポート
-- **自動適用**: 手動モードでシナリオを切り替えた際、自動的にプロキシを選択して適用
+- JSON 設定をインポートおよびエクスポートし、購読設定やキャッシュを含めるか選択できます。
+- ブラウザ標準の同期ストレージを使い、同じブラウザアカウントの端末間で設定をプッシュまたはプルします。
+- GitHub Gist で設定をプッシュまたはプルし、定期同期も利用できます。
+- 標準同期データを 7 KB 単位に分割し、設定画面に使用量を表示します。
+- プロキシ制御、PAC スクリプト状態、他の拡張機能との競合を確認します。
+- レベル別の実行ログを絞り込み、更新、コピー、消去できます。
 
-### 1.5 📥 プロキシサブスクリプション
+### インターフェース設定
 
-- **マルチフォーマット対応**: AutoProxy、SwitchyLegacy、SwitchyOmega、PACなどのサブスクリプションフォーマットに対応
-- **自動更新**: スケジュール自動更新に対応（1分/6時間/12時間/1日）
-- **ルール反転**: サブスクリプションの一致ルールとバイパスルールを反転（ホワイトリスト/ブラックリストモード）
-- **ルールプレビュー**: サブスクリプションから抽出された一致ルールとバイパスルールを迅速に確認
-- **一意のID**: 各プロキシとシナリオには正確な管理のための一意のIDがあります
+- ライト、ダーク、時間指定の自動テーマ切り替えに対応します。
+- JSON でカスタムテーマ色を編集できます。
+- 簡体字中国語、繁体字中国語、英語、日本語、フランス語、ドイツ語、スペイン語、ポルトガル語、ロシア語、韓国語に対応します。
+> 現在の画面では SOCKS5 認証欄は無効です。Chrome のプロキシ API は SOCKS5 のユーザー名とパスワード認証をサポートしていません。
 
-### 1.6 📋 柔軟なURLルール設定
+![ライトテーマ](../public/img/demo-light.png)
 
-- **プロキシを使用しないアドレス** (`bypass_rules`): 手動モードで直接接続するドメイン/IP
-- **プロキシを使用するアドレス** (`include_rules`): 自動モードでプロキシ経由でアクセスするドメイン
-- **フォールバックポリシー**: 自動モードで接続失敗時に直接接続または拒否を選択
-- ワイルドカード `*` とドメイン一致対応
-- 異なるウェブサイトに異なるプロキシを使用するシナリオに最適
+![ダークテーマ](../public/img/demo-night.png)
 
-### 1.7 🔐 プロキシ認証対応
+## インストール
 
-- ユーザー名/パスワード認証対応
-- プロキシサーバーからの認証リクエストを自動処理
-- 資格情報の安全な保存
+### リリースパッケージからインストール
 
-### 1.8 🧪 プロキシテスト機能
+通常の利用者は、拡張機能ストアから直接インストールできます：
 
-- **接続テスト**: プロキシの可用性を確認
-- **遅延測定**: プロキシの応答時間をテスト
-- **一括テスト**: ワンクリックで全プロキシをテスト
-- **カラー表示**: 緑(<500ms) / オレンジ(≥500ms) / 赤(失敗)
+- [Chrome ウェブストア](https://chromewebstore.google.com/detail/%E4%BB%A3%E7%90%86%E5%8A%A9%E6%89%8B/mfemgikpcpndehimgkjghpcofjcgdhdk)：Chrome、および Chrome 拡張機能のインストールを許可した Edge 向け。
+- [Firefox Add-ons](https://addons.mozilla.org/zh-CN/firefox/addon/proxyassistant)：Firefox 向け。
 
-### 1.9 🏃 プロキシ状態検出
+対応するパッケージは [GitHub Releases](https://github.com/bugwz/ProxyAssistant/releases) からもダウンロードできます：
 
-- 現在のブラウザプロキシ設定を検出
-- 拡張機能がプロキシを正常に制御しているかを検証
-- 他の拡張機能がプロキシ制御を奪っていないかを検出
-- 正常、警告、エラーの3つの検出結果を提供
+- Chrome、Edge などの Chromium ブラウザは `ProxyAssistant_<version>_chrome.zip` を使用します。
+- Firefox ビルドには `ProxyAssistant_<version>_firefox.zip` と `ProxyAssistant_<version>_firefox.xpi` が含まれます。
 
-### 1.10 🔍 PACスクリプトプレビュー
+Chrome または Edge では ZIP を展開し、拡張機能ページでデベロッパーモードを有効にして、展開済みディレクトリを読み込んでください。リリース処理で生成される Firefox XPI はビルド成果物であり、直接インストールできるかどうかは Firefox の署名ポリシーに依存します。通常の利用者には Firefox Add-ons を推奨します。
 
-- **スクリプト表示**: 自動生成されたPACスクリプトの内容を表示
-- **ルールリスト**: 有効なプロキシマッチングルールを明確に表示
-- **デバッグサポート**: 自動モードでのマッチング問題のトラブルシューティングを容易に
+### ソースからビルド
 
-### 1.11 🌙 テーマモード
-
-- **ライトモード**: 日中使用
-- **ダークモード**: 夜間使用
-- **自動切り替え**: 時間に応じてテーマを自動切り替え（設定可能）
-
-![](../public/img/promotion/1280-800-02.png)
-
-### 1.12 ☁️ データストレージと同期
-
-#### 1.12.1 ストレージ戦略
-
-| ストレージタイプ | ストレージ内容 | 説明 |
-|-----------------|----------------|------|
-| **ローカルストレージ (local)** | プロキシリスト、テーマ設定、言語設定、同期設定 | 常に有効、オフライン利用とデータ永続性を確保 |
-| **クラウド同期 (sync)** | 完全な構成データ（チャンクストレージ） | オプション、チャンクストレージを使用してクォータ制限を回避 |
-
-#### 1.12.2 同期方式
-
-##### 1.12.2.1 ブラウザネイティブ同期 (Native Sync)
-- `chrome.storage.sync` API（Chrome）または `browser.storage.sync`（Firefox）を使用
-- Chrome/Firefoxアカウントによる自動同期
-- 同一ブラウザアカウントの複数デバイス同期に最適
-- **チャンクストレージ**: 構成データは自動的にチャンク化（7KB/チャンク）され、8KBの単一アイテムクォータ制限を回避
-- **データ整合性**: チェックサムを使用して同期データの整合性を確保
-- **アトミック操作**: Push操作は、一貫性を確保するために、新しいデータを書き込む前に古いデータをクリアします
-- **クォータ表示**: 使用済み/総クォータ（100KB）とチャンク数をリアルタイムで表示
-
-##### 1.12.2.2 GitHub Gist同期
-- GitHub Gistを介してブラウザ間、デバイス間の構成同期を実現
-- GitHub Personal Access Tokenの設定が必要
-- 手動プッシュ/プルまたは自動同期に対応
-- 構成内容は暗号化保存、エクスポート時に敏感情報を自動的にクリア
-
-| 設定項目 | 説明 |
-|----------|------|
-| **アクセスキー** | GitHub Personal Access Token（gist権限が必要） |
-| **ファイル名** | Gist内のファイル名、デフォルト `proxy_assistant_config.json` |
-| **Gist ID** | 自動的に識別・保存、手動入力不要 |
-
-#### 1.12.3 同期操作
-
-| 操作 | 説明 |
-|------|------|
-| **プッシュ (Push)** | ローカル構成をクラウド/Gistにアップロード |
-| **プル (Pull)** | クラウド/Gistから構成をローカルにダウンロード |
-| **接続テスト** | Gist Tokenの有効性と構成状態を確認 |
-
-#### 1.12.4 インポート/エクスポート
-
-- **構成エクスポート**: すべてのプロキシ情報、テーマ設定、言語設定などを含むJSONファイルを生成
-- **構成インポート**: JSONファイルから構成を復元に対応
-- **データセキュリティ**: エクスポートファイルは敏感情報（Token、パスワード）を自動的にクリア
-- **フォーマット互換性**: 旧バージョンの構成ファイルのインポートに対応
-
-### 1.13 🌍 多言語対応
-
-この拡張機能は以下の言語に対応：
-
-| 言語 | コード | 対応状況 |
-|------|--------|----------|
-| 简体中文 | zh-CN | ✅ 対応済み |
-| 繁體中文 | zh-TW | ✅ 対応済み |
-| English | en | ✅ 対応済み |
-| 日本語 | ja | ✅ 対応済み |
-| Français | fr | ✅ 対応済み |
-| Deutsch | de | ✅ 対応済み |
-| Español | es | ✅ 対応済み |
-| Português | pt | ✅ 対応済み |
-| Русский | ru | ✅ 対応済み |
-| 한국어 | ko | ✅ 対応済み |
-
-![](../public/img/promotion/1280-800-04.png)
-
-## 2. 📷 設定画面
-
-![](../public/img/demo.png)
-
-## 3. 📁 プロジェクト構成
-
-```
-ProxyAssistant/
-├── conf/                     # サンプル設定
-│   └── demo.json             # サンプル設定ファイル
-├── readme/                   # 多言語ドキュメント
-│   ├── README-zh-TW.md       # 繁体字中国語
-│   ├── README-en.md          # 英語
-│   ├── README-ja.md          # 日本語
-│   ├── README-fr.md          # フランス語
-│   ├── README-de.md          # ドイツ語
-│   ├── README-es.md          # スペイン語
-│   ├── README-pt.md          # ポルトガル語
-│   ├── README-ru.md          # ロシア語
-│   └── README-ko.md          # 韓国語
-├── src/                      # ソースコード
-│   ├── manifest_chrome.json  # Chrome拡張機能設定 (Manifest V3)
-│   ├── manifest_firefox.json # Firefox拡張機能設定
-│   ├── main.html             # 設定ページ
-│   ├── popup.html            # ポップアップページ
-│   ├── _locales/             # 国際化リソース
-│   ├── js/
-│   │   ├── main.js           # 設定ページメインロジック
-│   │   ├── popup.js          # ポップアップUIロジック
-│   │   ├── worker.js         # Service Worker (Chrome) / Background Script (Firefox)
-│   │   ├── i18n.js           # 国際化対応
-│   │   ├── storage.js        # ストレージ管理モジュール
-│   │   ├── proxy.js          # プロキシ管理モジュール
-│   │   ├── scenarios.js      # シナリオ管理モジュール
-│   │   ├── sync.js           # データ同期モジュール
-│   │   ├── subscription.js   # サブスクリプション機能モジュール
-│   │   ├── theme.js          # テーマ切替モジュール
-│   │   ├── detection.js      # プロキシ検出モジュール
-│   │   ├── validator.js      # データ検証モジュール
-│   │   ├── language.js       # 言語選択モジュール
-│   │   ├── utils.js          # ユーティリティ関数モジュール
-│   │   ├── config.js         # 設定定数モジュール
-│   │   ├── version.js        # バージョン管理モジュール
-│   │   └── jquery.js         # jQueryライブラリ
-│   ├── css/
-│   │   ├── main.css          # 設定ページスタイル（共通コンポーネント含む）
-│   │   ├── popup.css         # ポップアップスタイル
-│   │   ├── theme.css         # テーマスタイル
-│   │   ├── tabs.css          # タブスタイル
-│   │   └── eye-button.css    # パスワード表示ボタンスタイル
-│   └── images/               # 画像リソース
-│       ├── icon-16.png
-│       ├── icon-32.png
-│       ├── icon-48.png
-│       ├── icon-128.png
-│       └── logo-128.png
-├── public/                   # 公開リソース
-│   └── img/                  # デモおよびプロモーション画像
-├── tests/                    # テスト
-│   ├── jest.config.js        # Jest設定
-│   ├── setup.js              # テスト環境設定
-│   ├── __mocks__/            # Mockファイル
-│   │   └── chrome.js         # Chrome API Mock
-│   ├── unit/                 # ユニットテスト
-│   ├── integration/          # 統合テスト
-│   └── e2e/                  # E2Eテスト
-├── script/                   # ビルドスクリプト
-│   └── build.sh              # 拡張機能ビルドスクリプト
-├── release/                  # リリースノート
-│   └── *.md                  # バージョン更新ログ
-├── docs/                     # ドキュメントディレクトリ
-├── build/                    # ビルド出力ディレクトリ
-├── package.json              # プロジェクト依存関係
-├── package-lock.json         # 依存バージョンロック
-├── Makefile                  # ビルドコマンドエントリ
-├── jest.config.js            # Jest設定（tests/jest.config.jsを指す）
-├── AGENTS.md                 # 開発ガイド
-└── LICENSE                   # MITライセンス
-```
-
-## 4. 🚀 クイックスタート
-
-### 4.1 拡張機能のインストール
-
-#### 4.1.1 Chrome
-
-**方法1（推奨）**: Chrome ウェブストアからインストール
-1. Chromeブラウザを開き、[Chrome ウェブストア](https://chrome.google.com/webstore)にアクセス
-2. 「プロキシアシスタント」を検索
-3. 「Chromeに追加」をクリック
-
-**方法2**: ローカルインストール
-- **オプションA（ソースコード使用）**: ソースコードダウンロード、`src/manifest_chrome.json` を `manifest.json` にリネームし、`src` ディレクトリを読み込む
-- **オプションB（パッケージ使用）**:
-  1. [GitHub Releases](https://github.com/bugwz/ProxyAssistant/releases) ページにアクセス
-  2. `proxy-assistant-chrome-x.x.x.zip` ファイルをダウンロード
-  3. ダウンロードしたZIPファイルを任意のディレクトリに解凍
-  4. Chromeブラウザを開き、`chrome://extensions/`にアクセス
-  5. 右上の **"デベロッパーモード"** を有効化
-  6. 左上の **"パッケージ化されていない拡張機能を読み込む"** ボタンをクリック
-  7. 手順3で解凍したフォルダを選択
-  8. 拡張機能が拡張機能リストに表示されればインストール成功
-
-#### 4.1.2 Firefox
-
-**方法1（推奨）**: Firefox アドオンからインストール
-1. Firefoxブラウザを開き、[Firefox アドオン](https://addons.mozilla.org/)にアクセス
-2. 「プロキシアシスタント」を検索
-3. 「Firefoxに追加」をクリック
-
-**方法2**: ローカルインストール
-1. releaseディレクトリからFirefox拡張機能パッケージ（`.xpi` ファイル）をダウンロード
-2. Firefoxブラウザを開き、`about:addons`にアクセス
-3. **歯車アイコン** → **ファイルからアドオンをインストール**
-4. ダウンロードした `.xpi` ファイルを選択
-
-#### 4.1.3 Microsoft Edge
-
-EdgeブラウザはChromiumカーネルに基づいており、Chrome拡張機能を直接インストールできます。
-
-**方法1（推奨）**: Chrome ウェブストアからインストール
-1. Edgeブラウザを開き、`edge://extensions/`にアクセス
-2. 「新しい拡張機能を 찾는」セクションで「Chrome ウェブストアから拡張機能を取得」をクリックし、[Chrome ウェブストア](https://chrome.google.com/webstore)にアクセス
-3. 「プロキシアシスタント」を検索
-4. 「取得」をクリックしてから「Microsoft Edgeに追加」
-
-**方法2**: ローカルインストール
-1. [GitHub Releases](https://github.com/bugwz/ProxyAssistant/releases) ページにアクセス
-2. `proxy-assistant-chrome-x.x.x.zip` ファイルをダウンロード
-3. ダウンロードしたZIPファイルを任意のディレクトリに解压
-4. Edgeブラウザを開き、`edge://extensions/`にアクセス
-5. 左下の **"デベロッパーモード"** を有効化
-6. **"解压したディレクトリを選択"** ボタンをクリック
-7. 手順3で解压したフォルダを選択
-8. 拡張機能が拡張機能リストに表示されればインストール成功
-
-### 4.2 プロキシの追加
-
-1. 拡張機能アイコンをクリックしてポップアップを開く
-2. **「設定」** ボタンをクリックして設定ページを開く
-3. **「プロキシを追加」** ボタンをクリックして新しいプロキシを追加
-4. プロキシ情報を入力：
-   - プロキシ名
-   - プロトコルタイプ (HTTP/HTTPS/SOCKS4/SOCKS5)
-   - プロキシアドレス (IPまたはドメイン)
-   - ポート番号
-   - （オプション）ユーザー名とパスワード
-   - （オプション）URLルール設定
-5. **「保存」** ボタンをクリック
-
-### 4.3 プロキシの使用
-
-**手動モード**:
-1. ポップアップで **「手動」** モードを選択
-2. リストから使用するプロキシを選択
-3. 「接続済み」と表示されれば有効
-
-**自動モード**:
-1. ポップアップで **「自動」** モードを選択
-2. 設定ページで各プロキシのURLルールを設定
-3. ウェブサイトへのアクセス時に自動的にプロキシを選択
-
-## 5. 🛠️ 開発ガイド
-
-### 5.1 開発環境
-
-**前提条件**:
-- Node.js >= 14
-- npm >= 6
-- Chrome / Firefox ブラウザ（テスト用）
-- web-ext（Firefox XPI ビルド用、オプション）
-
-**依存関係のインストール**:
+リポジトリでは Chrome と Firefox の Manifest を個別に管理しています。`src/manifest.json` を直接編集せずに済むよう、先にビルドスクリプトで対象ブラウザのディレクトリまたはパッケージを生成することを推奨します。
+
 ```bash
-make test_init
-# または
-npm install
-```
-
-### 5.2 テストコマンド
-
-| コマンド | 説明 |
-|----------|------|
-| `make test` | 全テスト実行（ユニット + 統合 + e2e） |
-| `make test_nocache` | キャッシュなしでテスト実行 |
-| `make test_unit` | ユニットテストのみ実行 |
-| `make test_integration` | 統合テストのみ実行 |
-| `make test_e2e` | e2eテストのみ実行 |
-| `make test_clean` | テストキャッシュとカバレッジファイルをクリーン |
-
-**npmを直接使用**:
-```bash
-npm test                    # 全テスト実行
-npm run test:unit           # ユニットテストのみ実行
-npm run test:integration    # 統合テストのみ実行
-npm run test:e2e            # e2eテストのみ実行
-npm run test:watch          # ウォッチモードでテスト実行
-npm run test:coverage       # テスト実行してカバレッジレポート生成
-```
-
-### 5.3 ビルドコマンド
-
-| コマンド | 説明 |
-|----------|------|
-| `make build` | ChromeとFirefox拡張機能をビルド |
-| `make clean` | ビルド成果物をクリーン |
-| `make test_clean` | テストキャッシュとカバレッジファイルをクリーン |
-
-**バージョン指定**:
-```bash
+npm ci
 make build VERSION=dev
-# または
-./script/build.sh dev
 ```
 
-**ビルド成果物**:
-```
-build/
-├── ProxyAssistant_{VERSION}_chrome.zip      # Chrome インストールパッケージ
-├── ProxyAssistant_{VERSION}_chrome.tar.gz   # Chrome ソースパッケージ
-├── ProxyAssistant_{VERSION}_firefox.zip     # Firefox インストールパッケージ
-├── ProxyAssistant_{VERSION}_firefox.tar.gz  # Firefox ソースパッケージ
-└── ProxyAssistant_{VERSION}_firefox.xpi     # Firefox 公式拡張パッケージ
-```
+Chrome または Edge では `build/ProxyAssistant_dev_chrome.zip` を展開して読み込みます。Firefox の開発では Firefox ZIP を展開し、`about:debugging` の「この Firefox」から「一時的なアドオンを読み込む」を選び、`manifest.json` を指定します。XPI の生成には `web-ext` が必要です。 `web-ext` がない場合も Firefox の ZIP と TAR.GZ は生成されますが、XPI は省略されます。
 
-### 5.4 GitHub CI
+## 基本的な使い方
 
-このリポジトリには `.github/workflows/ci.yml` の GitHub Actions CI ワークフローが含まれています。
+1. ブラウザのツールバーからプロキシアシスタントを開きます。
+2. 設定画面でプロトコル、アドレス、ポートを指定してノードを追加します。
+3. 必要に応じて認証情報とルーティングルールを設定します。
+4. ポップアップに戻り、無効、手動、自動モードを選択します。
+5. 手動モードではノードを選択し、自動モードでは PAC スクリプトにルーティングを任せます。
 
-- `main` ブランチへの `push` で CI が実行されます
-- すべての `pull_request` で CI が実行されます
-- CI は `unit`、`integration`、`e2e`、`build` の 4 つの独立した job に分かれています
-- リポジトリに `integration` または `e2e` のテストファイルがまだ存在しない場合、対応する job は失敗せず明示的にスキップされます
+一般的な設定例：
 
-現在の CI で使用するコマンドは次のとおりです。
+- 常に 1 つのプロキシを使う：手動モードで対象ノードを選択します。
+- 特定サイトだけプロキシを使う：ノードの「プロキシを使用するアドレス」に追加し、自動モードを選択します。
+- 特定サイトを直接接続する：手動モードの「プロキシを使用しないアドレス」に追加するか、購読から直接接続ルールを提供します。
+- 職場や自宅などを分ける：シナリオを個別に作成し、ポップアップから切り替えます。
 
-```bash
-npm run test:unit -- --no-cache
-npm run test:integration -- --no-cache
-npm run test:e2e -- --no-cache
-make build VERSION=ci-<run-number>
-```
+## データと権限
 
-`build` job は `web-ext` をインストールし、Ubuntu 上で拡張機能をビルドし、`build/` 配下の生成物を workflow artifacts としてアップロードします。
+拡張機能は次の権限を要求します：
 
-### 5.5 ローカル開発
+| Permission | 用途 |
+| --- | --- |
+| `proxy` | ブラウザのプロキシ設定を読み取り、変更する |
+| `storage` | ローカル設定を保存し、ブラウザ同期を利用する |
+| `webRequest`、`webRequestAuthProvider` | プロキシ認証要求に応答する |
+| `alarms` | 購読更新、シナリオ自動切り替え、定期同期を実行する |
+| `<all_urls>` | ウェブ要求向けのプロキシルールを生成し、現在のサイトを読み取る |
 
-**Chrome ローカルインストール**:
-1. `src/manifest_chrome.json` を `manifest.json` に変更
-2. Chromeを開き、`chrome://extensions/` にアクセス
-3. **"デベロッパーモード"** を有効化
-4. **"パッケージ化されていない拡張機能を読み込む"** をクリック
-5. `src` ディレクトリを選択
 
-**Firefox ローカルインストール**:
-1. `make build` を使用して XPI ファイルを生成
-2. Firefoxを開き、`about:addons` にアクセス
-3. **歯車アイコン** → **ファイルからアドオンをインストール**
-4. 生成された `.xpi` ファイルを選択
+設定は既定で `chrome.storage.local` に保存されます。プロキシのユーザー名とパスワードは設定の一部であり、エクスポートファイルと明示的にプッシュした同期データに含まれます。GitHub Token と Gist ID はエクスポートおよび同期内容から除外されます。同期を有効にする前に安全要件を確認してください。
 
-### 5.6 コードスタイル
-
-- **インデント**: 2 スペース
-- **引用符**: シングルクォート
-- **命名**: camelCase（定数は UPPER_SNAKE_CASE）
-- **セミコロン**: 一貫して使用
-
-詳細な仕様については [AGENTS.md](../AGENTS.md) を参照してください
-
-## 6. 📖 詳細説明
-
-### 6.1 URLルール構文
-
-以下のマッチングルールに対応：
-
-```
-# 完全一致
-google.com
-
-# サブドメイン一致
-.google.com
-www.google.com
-
-# ワイルドカード一致
-*.google.com
-*.twitter.com
-
-# IPアドレス
-192.168.1.1
-10.0.0.0/8
-```
-
-### 6.2 フォールバックポリシー
-
-自動モードでプロキシ接続が失敗した場合：
-
-| ポリシー | 説明 |
-|----------|------|
-| **直接接続 (DIRECT)** | プロキシをバイパスし、ターゲットウェブサイトに直接接続 |
-| **接続拒否 (REJECT)** | リクエストを拒否 |
-
-### 6.3 PACスクリプト自動モード
-
-自動モードはPAC（Proxy Auto-Config）スクリプトを使用：
-- 現在のURLに基づいて自動的にプロキシを選択
-- プロキシリスト順に一致を確認し、最初のマッチを返す
-- フォールバックポリシー対応
-- ブラウザ起動時に最後の構成を自動復元
-
-### 6.4 クイック操作
-
-| 操作 | 方法 |
-|------|------|
-| プロキシカードの展開/折叠 | カードヘッダーをクリック |
-| 全カードの展開/折叠 | 「すべて展開/折叠」ボタンをクリック |
-| プロキシのドラッグ並べ替え | カードヘッダーのドラッグハンドルをドラッグ |
-| パスワードの表示/非表示 | パスワード欄右目のアイコンをクリック |
-| 単一プロキシの有効/無効 | カード上のスイッチを切り替え |
-| 単一プロキシのテスト | 「接続テスト」ボタンをクリック |
-| 全プロキシのテスト | 「すべてテスト」ボタンをクリック |
-| ポップアップ快速閉鎖 | ページ内で `ESC` キーを押す |
-
-### 6.5 設定のインポート/エクスポート
-
-1. **設定をエクスポート**: 「設定をエクスポート」をクリックしてJSONファイルをダウンロード
-2. **設定を読み込む**: 「設定を読み込む」をクリックしてJSONファイルを選択
-
-設定に含まれるもの：
-- 全プロキシ情報
-- テーマ設定
-- ナイトモード時間帯
-- 言語設定
-- 同期設定
-
-### 6.6 プロキシ状態検出
-
-「プロキシ効果を検出」ボタンをクリックすると：
-- 現在のブラウザプロキシモードを表示
-- 拡張機能がプロキシを正常に設定しているかを検証
-- 他の拡張機能が制御を奪っていないかを検出
-- 問題の診断と解決策を取得
-
-## 7. 🔧 技術アーキテクチャ
-
-### 7.1 Manifest V3
-
-- ChromeはManifest V3仕様に準拠
-- Service Workerがバックグラウンドページを置き換え
-- Firefoxはbackground scripts + onRequest APIを使用
-- ブラウザネイティブ同期ストレージとGitHub Gist同期をサポート
-
-### 7.2 コアモジュール
-
-| モジュール | ファイル | 機能説明 |
-|------------|----------|----------|
-| **メイン** | main.js | 設定ページロジック、シナリオ管理、プロキシCRUD、ドラッグ並べ替え、インポート/エクスポート、プロキシ検出 |
-| **ポップアップ** | popup.js | ポップアップ界面インタラクション、プロキシ状態表示、快速プロキシ切り替え、自動一致表示 |
-| **バックグラウンド** | worker.js | プロキシ設定管理、PACスクリプト生成、認証処理、プロキシテスト、サブスクリプション自動更新、ストレージ変更監視 |
-| **ストレージ** | storage.js | ローカル/クラウドストレージ管理、チャンク同期、データ検証、設定インポート/エクスポート |
-| **国際化** | i18n.js | 多言語サポート、リアルタイム切り替え、動的翻訳読み込み |
-| **テーマ** | theme.js | ライト/ダークテーマ切り替え、時間による自動切り替え |
-| **シナリオ** | scenarios.js | マルチシナリオサポート、シナリオ切り替え、シナリオ名前変更/削除/並べ替え |
-| **同期** | sync.js | ブラウザネイティブ同期、GitHub Gist同期 |
-| **サブスクリプション** | subscription.js | プロキシサブスクリプション解析 (AutoProxy/SwitchyLegacy/SwitchyOmega/PAC)、自動更新 |
-| **プロキシ** | proxy.js | プロキシリスト表示、編集、テスト、ドラッグ並べ替え |
-| **検出** | detection.js | プロキシ状態検出、拡張機能制御検出、競合検出 |
-| **検証** | validator.js | IP/ドメイン/ポート/ルール形式検証 |
-| **ユーティリティ** | utils.js | 共通ユーティリティ関数、DOM操作ヘルパー |
-| **言語** | language.js | 言語ドロップダウンメニュー操作処理 |
-| **設定** | config.js | デフォルト設定定数、システム設定管理 |
-
-### 7.3 データストレージ
-
-- `chrome.storage.local`: ローカルストレージ（常に使用）
-- `chrome.storage.sync`: クラウド同期ストレージ（オプション）
-- `chrome.storage.session`: セッショ storage（認証情報、状態キャッシュ）
-- ローカルファースト原則を採用し、同期配额問題を解決
-- チャンクストレージ（7KB/チャンク）で8KBクォータ制限を回避
-
-### 7.4 設定フォーマットバージョン
-
-| バージョン | 説明 |
-|------------|------|
-| v1 | 初期フォーマット |
-| v2 | シナリオサポート追加 |
-| v3 | サブスクリプションサポート追加 |
-| v4 | 統一プロキシ無効状態、一意ID使用、サブスクリプションルール反転 |
-
-### 7.5 ブラウザ互換性
-
-| 機能 | Chrome | Firefox |
-|------|--------|---------|
-| 手動モード | ✅ | ✅ |
-| 自動モード | ✅ | ✅ |
-| プロキシ認証 | ✅ | ✅ |
-| プロキシテスト | ✅ | ✅ |
-| テーマ切り替え | ✅ | ✅ |
-| データ同期 | ✅ | ✅ |
-| プロキシ検出 | ✅ | ✅ |
-| サブスクリプション | ✅ | ✅ |
-
-### 7.6 コア実装技術
-
-- **ネイティブ JavaScript + jQuery**: フレームワーク依存なし、軽量
-- **Manifest V3**: ChromeはService Worker、Firefoxはbackground scriptsを使用
-- **PACスクリプト**: 自動モードで動的に生成されたプロキシ自動設定スクリプト
-- **プロキシ認証**: `webRequestAuthProvider` APIを使用して認証リクエストを処理
-- **チャンク同期**: カスタムチャンキングアルゴリズムでChrome storage.syncのクォータ制限を解決
-- **サブスクリプション解析**: 複数のサブスクリプションフォーマットの自動解析と変換をサポート
-
-## 8. 📝 使用シナリオ
-
-### 8.1 シナリオ1: 複数プロキシ切り替え
-
-- 異なるネットワーク環境に異なるプロキシを設定
-- オフィスネットワークでは社内プロキシを使用
-- 自宅ネットワークではVPNプロキシを使用
-- ワンクリック快速切り替え
-
-### 8.2 シナリオ2: スマートルーティング
-
-- 国内ウェブサイトは直接接続
-- 特定のウェブサイトはプロキシ経由
-- ドメインに基づいて自動選択
-
-### 8.3 シナリオ3: プロキシポールテスト
-
-- 複数のプロキシをインポート
-- バッチで遅延をテスト
-- 最適なプロキシを選択
-
-### 8.4 シナリオ4: チーム共有
-
-- 設定ファイルをエクスポート
-- チームメンバーと共有
-- 統一されたプロキシ設定
-
-## 9. ⚠️ 注意事項
-
-1. **権限説明**: 拡張機能には以下の権限が必要です：
-   - `proxy`: プロキシ設定管理
-   - `storage`: 設定保存
-   - `webRequest` / `webRequestAuthProvider`: 認証リクエスト処理
-   - `<all_urls>`: 全ウェブサイトURLへのアクセス
-
-2. **他の拡張機能との競合**: プロキシの競合が発生した場合は、他のプロキシ/VPN類拡張機能を無効にしてください
-
-3. **セキュリティ**: 資格情報はブラウザのローカルに保存されます。デバイスの安全を確保してください
-
-4. **ネットワーク要件**: プロキシサーバーに正常にアクセスできることを確認してください
-
-5. **Firefox制限**: Firefox最低バージョン要件: 142.0
-
-## 10. 📄 プライバシーポリシー
+リモート設定をプルするとローカルの業務設定は置き換わりますが、ローカルの同期接続情報とスケジュールは保持されます。重要な設定は事前にバックアップしてください。
 
 [プライバシーポリシー](https://sites.google.com/view/proxy-assistant/privacy-policy)
 
-## 11. 📄 ライセンス
+## 開発
 
-MIT License - 詳細は [LICENSE](../LICENSE) ファイルを参照
+### 必要環境
 
-## 12. 🤝 コントリビューション
+- Node.js 20（GitHub Actions と同じバージョン）
+- npm
+- ブラウザ内検証用の Chrome、Firefox、Edge
+- Firefox XPI の生成時のみ `web-ext`
 
-IssueおよびPull Requestをお待ちしています！
+依存関係をインストール：
 
-## 13. 📧 連絡先
+```bash
+npm ci
+```
 
-ご質問やご提案がある場合は、GitHub Issuesを通じてフィードバックしてください。
+### テスト
 
----
+```bash
+npm test                    # すべての Jest テストを実行
+npm run test:unit           # ユニットテスト
+npm run test:integration    # 統合テスト
+npm run test:e2e            # エンドツーエンドテスト
+npm run test:watch          # 監視モード
+npm run test:coverage       # カバレッジテスト
+```
 
-<div align="center">
+Makefile のコマンドも利用できます：
 
-**このプロジェクトが役に立った場合は、Star ⭐ を押してください！**
+```bash
+make test
+make test_unit
+make test_integration
+make test_e2e
+make test_nocache
+```
 
-</div>
+### ビルド
+
+```bash
+make build VERSION=dev
+```
+
+ビルドスクリプトは `build/` を消去し、各ブラウザの Manifest を選択して次のファイルを生成します：
+
+```text
+build/
+├── ProxyAssistant_dev_chrome.zip
+├── ProxyAssistant_dev_chrome.tar.gz
+├── ProxyAssistant_dev_firefox.zip
+├── ProxyAssistant_dev_firefox.tar.gz
+└── ProxyAssistant_dev_firefox.xpi
+```
+
+`web-ext` がない場合、最後のファイルは生成されません。
+
+### プロジェクト構成
+
+```text
+ProxyAssistant/
+├── src/
+│   ├── _locales/             # ブラウザ国際化リソース
+│   ├── css/                  # 設定画面とポップアップのスタイル
+│   ├── images/               # 拡張機能アイコン
+│   ├── js/                   # 画面、プロキシ、保存、同期、バックグラウンド処理
+│   ├── main.html             # 設定画面
+│   ├── popup.html            # 拡張機能ポップアップ
+│   ├── manifest_chrome.json  # Chrome Manifest V3
+│   └── manifest_firefox.json # Firefox Manifest V3
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   └── e2e/
+├── script/build.sh           # Chrome と Firefox のパッケージスクリプト
+├── public/img/               # README とストア用画像
+├── readme/                   # 他言語 README
+├── release/                  # 各リリースの変更記録
+├── Makefile
+└── package.json
+```
+
+主要モジュール：
+
+| ファイル | 役割 |
+| --- | --- |
+| `src/js/worker.js` | プロキシ設定適用、PAC 生成、認証、定期処理、バックグラウンドメッセージ |
+| `src/js/main.js` | 設定画面の初期化とモジュール連携 |
+| `src/js/popup.js` | ポップアップでのモード、シナリオ、ノード切り替え |
+| `src/js/proxy.js` | プロキシノードのフォーム、一覧、テスト操作 |
+| `src/js/scenarios.js` | シナリオ管理と時間ルール |
+| `src/js/subscription.js` | 購読管理、解析、更新スケジュール |
+| `src/js/config.js` | 設定形式、移行、インポート、エクスポート |
+| `src/js/storage.js` | ローカル設定キャッシュと永続化 |
+| `src/js/sync.js` | ブラウザ同期と GitHub Gist 同期 |
+| `src/js/detection.js` | プロキシ制御と PAC の診断 |
+
+コード規約とテスト要件は [AGENTS.md](../AGENTS.md) を参照してください。
+
+## ブラウザに関する注意
+
+- Chrome は Manifest V3 Service Worker を使用します。
+- Firefox は Manifest V3 background script を使用し、現在の Manifest は Firefox 142 以降を要求します。
+- Edge は Chrome パッケージを使用し、Chrome ウェブストアまたは展開済み Chrome ビルドから読み込めます。専用 Manifest と自動ビルド対象は Chrome と Firefox です。
+- 複数のプロキシまたは VPN 拡張機能を同時に有効にすると制御が競合する場合があります。「プロキシ状態」ページで診断できます。
+
+## フィードバックと貢献
+
+問題や機能要望は [GitHub Issues](https://github.com/bugwz/ProxyAssistant/issues) へ報告してください。変更に関連するテストを実行し、プロキシ動作は可能な限り Chrome、Firefox、Edge で確認してください。
+
+## ライセンス
+
+本プロジェクトは [MIT License](../LICENSE) で提供されます。
