@@ -10,6 +10,7 @@ const SubscriptionModule = (function () {
   // Structure: { current: '...', lists: { ... } }
   let subscriptionConfig = null;
   let managementExpansionMode = 'auto';
+  let deletingSubscriptionId = null;
 
   const FORMATS = ['autoproxy', 'switchy_legacy', 'switchy_omega', 'pac'];
   const FORMAT_NAMES = {
@@ -254,6 +255,26 @@ const SubscriptionModule = (function () {
 
     $(document).off('click.subscriptionCard', '.subscription-manage-delete').on('click.subscriptionCard', '.subscription-manage-delete', function () {
       deleteCardSubscription($(this).closest('.subscription-card'));
+    });
+
+    $('.delete-subscription-close-btn, .delete-subscription-cancel-btn, .delete-subscription-tip')
+      .off('click.subscriptionDelete')
+      .on('click.subscriptionDelete', function (event) {
+        if (this !== event.target
+          && !$(this).hasClass('delete-subscription-close-btn')
+          && !$(this).hasClass('delete-subscription-cancel-btn')) return;
+        closeDeleteSubscriptionDialog();
+      });
+
+    $('#confirm-delete-subscription-btn').off('click.subscriptionDelete').on('click.subscriptionDelete', function () {
+      if (!deletingSubscriptionId) return;
+      const subscriptionId = deletingSubscriptionId;
+      closeDeleteSubscriptionDialog();
+      StorageModule.deleteSubscription(subscriptionId);
+      StorageModule.save().then(function () {
+        renderManagementList();
+        ProxyModule.renderList();
+      });
     });
     $('.subscription-config-close-btn, .subscription-config-tip').on('click', function (e) {
       if (this === e.target || $(this).hasClass('subscription-config-close-btn')) {
@@ -1879,12 +1900,19 @@ const SubscriptionModule = (function () {
 
   function deleteCardSubscription($card) {
     const subscription = getCardSubscription($card);
-    if (!subscription || !window.confirm(I18n.t('subscription_delete_confirm'))) return;
-    StorageModule.deleteSubscription(subscription.id);
-    StorageModule.save().then(function () {
-      renderManagementList();
-      ProxyModule.renderList();
-    });
+    if (!subscription) return;
+    deletingSubscriptionId = subscription.id;
+    $('#delete-subscription-message').text(I18n.t('subscription_delete_confirm'));
+    $('#delete-subscription-name').text(subscription.name || I18n.t('subscription_unnamed'));
+    $('.delete-subscription-tip').show().addClass('show');
+  }
+
+  function closeDeleteSubscriptionDialog() {
+    $('.delete-subscription-tip').removeClass('show');
+    setTimeout(function () {
+      $('.delete-subscription-tip').hide();
+    }, 300);
+    deletingSubscriptionId = null;
   }
 
   function syncManagementExpandCollapseButton() {

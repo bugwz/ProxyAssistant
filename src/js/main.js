@@ -986,6 +986,7 @@ function bindGlobalEvents() {
         '.alert-scenario-tip',
         '.edit-scenario-tip',
         '.delete-scenario-tip',
+        '.delete-subscription-tip',
         '.subscription-config-tip',
         '.delete-tip'
       ];

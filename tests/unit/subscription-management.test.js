@@ -49,6 +49,13 @@ describe('subscription management cards', () => {
       <button id="add-subscription-btn"></button>
       <div id="subscription-manage-list"></div>
       <div id="proxy-list"><div class="proxy-card proxy-sentinel"></div></div>
+      <div class="scenario-dialog-tip delete-subscription-tip" style="display: none;">
+        <button class="delete-subscription-close-btn"></button>
+        <p id="delete-subscription-message"></p>
+        <strong id="delete-subscription-name"></strong>
+        <button class="delete-subscription-cancel-btn"></button>
+        <button id="confirm-delete-subscription-btn"></button>
+      </div>
     `;
     window.eval(fs.readFileSync(jqueryPath, 'utf8'));
     global.$ = window.$;
@@ -109,6 +116,32 @@ describe('subscription management cards', () => {
     expect(emptyState).toBeTruthy();
     expect(emptyState.querySelector('svg')).toBeTruthy();
     expect(emptyState.querySelector('span').textContent).toBe('subscription_empty_management');
+  });
+
+  test('uses the themed confirmation dialog when deleting a subscription', async () => {
+    subscriptions.push({
+      id: 'subscription_1',
+      name: 'Office rules',
+      enabled: true,
+      current: 'autoproxy',
+      lists: { autoproxy: {} }
+    });
+    subscriptionModule.renderManagementList();
+    const nativeConfirm = jest.spyOn(window, 'confirm');
+
+    $('.subscription-card-delete').trigger('click');
+
+    expect(nativeConfirm).not.toHaveBeenCalled();
+    expect($('.delete-subscription-tip').hasClass('show')).toBe(true);
+    expect($('#delete-subscription-name').text()).toBe('Office rules');
+    expect(storageModule.deleteSubscription).not.toHaveBeenCalled();
+
+    $('#confirm-delete-subscription-btn').trigger('click');
+    await Promise.resolve();
+
+    expect(storageModule.deleteSubscription).toHaveBeenCalledWith('subscription_1');
+    expect(storageModule.save).toHaveBeenCalledTimes(1);
+    nativeConfirm.mockRestore();
   });
 
   test('adds an expanded editable card without opening a modal', () => {

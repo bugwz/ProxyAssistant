@@ -907,11 +907,13 @@ body[data-theme="dark"] .scenario-proxy-summary {
 }
 
 .delete-scenario-content,
+.delete-subscription-content,
 .alert-scenario-content {
   text-align: center;
 }
 
 .delete-scenario-content .modal-message,
+.delete-subscription-content .modal-message,
 .alert-scenario-content .modal-message {
   margin: 2px 0 0;
   color: #687486;

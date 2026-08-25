@@ -823,6 +823,33 @@
       </div>
     </div>
 
+    <!-- Delete Subscription Confirm Modal -->
+    <div class="scenario-dialog-tip delete-subscription-tip" role="dialog" aria-modal="true" aria-labelledby="delete-subscription-dialog-title">
+      <div class="scenario-dialog-box delete-subscription-box">
+        <div class="scenario-dialog-header delete-subscription-header">
+          <div class="scenario-dialog-title-group">
+            <span class="scenario-dialog-icon danger" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path><path d="M10 11v5M14 11v5"></path></svg>
+            </span>
+            <span id="delete-subscription-dialog-title" data-i18n="delete_subscription_title">删除订阅</span>
+          </div>
+          <button type="button" class="scenario-dialog-close delete-subscription-close-btn" data-i18n-title="cancel" title="取消">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+          </button>
+        </div>
+        <div class="scenario-dialog-content delete-subscription-content">
+          <p id="delete-subscription-message" class="modal-message" data-i18n="subscription_delete_confirm">确定删除这个订阅吗？它也会从已关联的代理中移除。</p>
+          <strong id="delete-subscription-name" class="scenario-delete-name"></strong>
+        </div>
+        <div class="scenario-dialog-footer delete-subscription-footer">
+          <button type="button" class="control-btn scenario-secondary-btn delete-subscription-cancel-btn" data-i18n="cancel">取消</button>
+          <button type="button" class="control-btn confirm-delete-btn" id="confirm-delete-subscription-btn">
+            <span data-i18n="delete">删除</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Alert Modal -->
     <div class="scenario-dialog-tip alert-scenario-tip" role="alertdialog" aria-modal="true" aria-labelledby="alert-scenario-dialog-title">
       <div class="scenario-dialog-box alert-scenario-box">
