@@ -225,7 +225,7 @@ function displayDetectionResult(result) {
     const iconName = result.mode === 'manual' ? 'manualMode' : 'autoMode';
     const iconColor = result.status === 'warning'
       ? '#f59e0b'
-      : (result.mode === 'manual' ? 'var(--accent-color)' : '#22c55e');
+      : (result.mode === 'manual' ? 'var(--manual-mode-color)' : '#22c55e');
     statusIcon = MainIcons.render(iconName, { width: 48, height: 48, style: 'color:' + iconColor });
   }
   $("#detection-status-icon").html(statusIcon);

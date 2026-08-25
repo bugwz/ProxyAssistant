@@ -152,6 +152,15 @@ describe('popup scenario switching', () => {
     expect(popupCss).toMatch(/\.mode-btn\[data-mode="disabled"\]\.active\s*{\s*color:\s*var\(--disabled-status-color\);/);
   });
 
+  test('keeps the manual mode status blue in light and dark themes', () => {
+    const popupCss = fs.readFileSync(path.join(__dirname, '../../src/css/popup.css'), 'utf8');
+    const themeCss = fs.readFileSync(path.join(__dirname, '../../src/css/theme.css'), 'utf8');
+
+    expect(popupCss).toMatch(/--manual-mode-color:\s*#4164f5;/);
+    expect(popupCss).toMatch(/\.mode-btn\[data-mode="manual"\]\.active\s*{\s*color:\s*var\(--manual-mode-color\);/);
+    expect(themeCss).toMatch(/--manual-mode-color:\s*#4164f5;/);
+  });
+
   test('applies the previous manual proxy without prewriting state', () => {
     const context = loadPopupContext();
     const previousManualProxy = { name: 'Previous', ip: '127.0.0.1', port: '8080' };

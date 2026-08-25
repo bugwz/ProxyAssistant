@@ -8,6 +8,7 @@
   --text-secondary: #64748b;
   --border-color: #eef0f2;
   --accent-color: #4164f5;
+  --manual-mode-color: #4164f5;
   --shadow-color: rgba(0, 0, 0, 0.05);
 }
 
@@ -726,7 +727,6 @@ body[data-theme="dark"]:not([data-custom-theme="true"]) input:checked + .slider-
   background-color: var(--accent-color);
 }
 
-body[data-theme="dark"]:not([data-custom-theme="true"]) .mode-btn[data-mode="manual"].active,
 body[data-theme="dark"]:not([data-custom-theme="true"]) .theme-btn.active {
   color: var(--dark-active-text);
 }

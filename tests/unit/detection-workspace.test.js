@@ -219,7 +219,7 @@ describe('diagnostics workspace', () => {
 
     expect($('#detection-status-text').text()).toBe('proxy_status_manual_mode');
     expect($('#detection-status-icon').html()).toContain('M9 15V9l3 4 3-4v6');
-    expect($('#detection-status-icon svg').attr('style')).toContain('var(--accent-color)');
+    expect($('#detection-status-icon svg').attr('style')).toContain('var(--manual-mode-color)');
     expect($('#detection-details .detection-value').map((index, element) => $(element).text()).get()).toEqual([
       'mode_manual',
       'proxy_control_this',

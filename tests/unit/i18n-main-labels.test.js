@@ -151,7 +151,7 @@ describe('main page translated section labels', () => {
     window.I18n.setLanguage('zh-CN');
     expect(window.I18n.t('about_page_desc')).toBe('浏览器代理管理扩展');
     expect(window.I18n.t('project_intro_title')).toBe('项目介绍');
-    expect(window.I18n.t('project_intro_desc')).toContain('Chrome 和 Firefox');
+    expect(window.I18n.t('project_intro_desc')).toContain('Chrome、Firefox 和 Edge');
   });
 
   test('runtime log interface uses internationalized labels in every language', () => {
