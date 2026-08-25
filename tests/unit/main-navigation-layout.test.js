@@ -41,6 +41,27 @@ describe('main sidebar layout', () => {
     expect(css).toMatch(/\.main-page\s*\{[^}]*width:\s*100%;[^}]*max-width:\s*clamp\(1120px, 72vw, 2160px\);/s);
   });
 
+  test('keeps every custom select trigger inside the rounded content border', () => {
+    const css = readMainCss();
+    const themeCss = fs.readFileSync(themeCssPath, 'utf8');
+    const darkContentBoxRule = themeCss.match(/body\[data-theme="dark"\]:not\(\[data-custom-theme="true"\]\) input\[type="text"\],[\s\S]*?\{[\s\S]*?background-color:\s*var\(--dark-input\);[\s\S]*?\}/)[0];
+
+    expect(css).toMatch(/\.lh-select\s*\{[^}]*border-radius:\s*6px;[^}]*box-sizing:\s*border-box;/s);
+    expect(css).toMatch(/\.lh-select-k\s*\{[^}]*width:\s*100%;[^}]*height:\s*100%;[^}]*box-sizing:\s*border-box;[^}]*border-radius:\s*inherit;[^}]*background-color:\s*transparent;[^}]*line-height:\s*normal;/s);
+    expect(darkContentBoxRule).toContain('.lh-select');
+    expect(darkContentBoxRule).not.toContain('.lh-select-k');
+    expect(themeCss).toMatch(/\.proxy-color-picker\.dropdown-open \.proxy-color-input,[\s\S]*?\{[^}]*border-color:\s*var\(--dark-active-border\);[^}]*box-shadow:\s*0 0 0 3px var\(--dark-focus-ring\);/s);
+    expect(themeCss).toContain('.scenario-weekday-select.open .scenario-weekday-trigger');
+  });
+
+  test('keeps proxy and scenario card headers inside their rounded borders', () => {
+    const css = readMainCss();
+
+    expect(css).toMatch(/\.proxy-card\s*\{[^}]*border-radius:\s*12px;/s);
+    expect(css).toMatch(/\.proxy-header\s*\{[^}]*border-radius:\s*11px 11px 0 0;/s);
+    expect(css).toMatch(/\.proxy-card\.collapsed \.proxy-header\s*\{[^}]*border-radius:\s*11px;/s);
+  });
+
   test('uses the project logo and maps navigation items to their pages', () => {
     const pageDocument = new DOMParser().parseFromString(fs.readFileSync(mainHtmlPath, 'utf8'), 'text/html');
     const navItems = Array.from(pageDocument.querySelectorAll('.main-nav-item'));

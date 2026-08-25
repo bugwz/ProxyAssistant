@@ -559,7 +559,6 @@ body[data-theme="dark"]:not([data-custom-theme="true"]) input[type="url"],
 body[data-theme="dark"]:not([data-custom-theme="true"]) input[type="time"],
 body[data-theme="dark"]:not([data-custom-theme="true"]) textarea,
 body[data-theme="dark"]:not([data-custom-theme="true"]) .lh-select,
-body[data-theme="dark"]:not([data-custom-theme="true"]) .lh-select-k,
 body[data-theme="dark"]:not([data-custom-theme="true"]) .custom-theme-editor,
 body[data-theme="dark"]:not([data-custom-theme="true"]) .config-json-editor-shell,
 body[data-theme="dark"]:not([data-custom-theme="true"]) .config-json-code,
@@ -637,8 +636,8 @@ body[data-theme="dark"]:not([data-custom-theme="true"]) .pac-script-copy-btn:hov
 /* Night-theme interaction states. Keep every generic selection and focus
  * treatment on the warm graphite accent instead of inheriting legacy blue. */
 body[data-theme="dark"]:not([data-custom-theme="true"]) .lh-select.dropdown-open,
-body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-color-picker.dropdown-open,
-body[data-theme="dark"]:not([data-custom-theme="true"]) .scenario-weekday-select.open,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-color-picker.dropdown-open .proxy-color-input,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .scenario-weekday-select.open .scenario-weekday-trigger,
 body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-subscription-select.open .proxy-subscription-trigger,
 body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-subscription-search-row:focus-within {
   border-color: var(--dark-active-border);
