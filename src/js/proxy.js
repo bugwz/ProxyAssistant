@@ -447,7 +447,19 @@ const ProxyModule = (function () {
         <div class="proxy-scenario-divider"><span>${escapedScenarioName}</span></div>
         <div class="proxy-scenario-cards" data-scenario-id="${escapedScenarioId}">`;
 
-      (scenario.proxies || []).forEach(function (info, proxyIndex) {
+      const scenarioProxies = scenario.proxies || [];
+      if (!scenarioProxies.length) {
+        html += `<div class="proxy-empty-state">
+          <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="6" rx="2"></rect>
+            <rect x="3" y="14" width="18" height="6" rx="2"></rect>
+            <path d="M7 7h.01M7 17h.01"></path>
+          </svg>
+          <span>${I18n.t('no_proxy_added')}</span>
+        </div>`;
+      }
+
+      scenarioProxies.forEach(function (info, proxyIndex) {
       const proxyId = ensureProxyId(info).id;
 
       const is_enabled = info.enabled;

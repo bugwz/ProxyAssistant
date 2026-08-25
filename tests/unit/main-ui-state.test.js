@@ -1288,6 +1288,7 @@ describe('main UI state flow', () => {
 
     expect($('.proxy-scenario-divider span').map((index, node) => $(node).text()).get()).toEqual(['Home', 'Office']);
     expect($('.proxy-scenario-group').map((index, group) => $(group).find('.proxy-card').length).get()).toEqual([1, 1]);
+    expect($('.proxy-empty-state')).toHaveLength(0);
     expect($('.proxy-card .proxy-index').map((index, node) => $(node).text()).get()).toEqual(['#1', '#1']);
     expect($('.proxy-scenario-association').map((index, node) => $(node).val()).get()).toEqual(['scenario-a', 'scenario-b']);
     expect($('.proxy-association-form-item').first()[0].style.gridColumn).toBe('span 6');
@@ -1300,6 +1301,8 @@ describe('main UI state flow', () => {
 
     expect(scenarios[0].proxies).toHaveLength(0);
     expect(scenarios[1].proxies.map(proxy => proxy.id)).toEqual(['proxy-b', 'proxy-a']);
+    expect($('.proxy-scenario-group[data-scenario-id="scenario-a"] .proxy-empty-state')).toHaveLength(1);
+    expect($('.proxy-scenario-group[data-scenario-id="scenario-a"] .proxy-empty-state span').text()).toBe('no_proxy_added');
     expect($('.proxy-scenario-group[data-scenario-id="scenario-b"] .proxy-index').map((index, node) => $(node).text()).get()).toEqual(['#1', '#2']);
     expect($('.proxy-card[data-proxy-id="proxy-a"] .proxy-scenario-association').val()).toBe('scenario-b');
     expect(global.chrome.runtime.sendMessage).toHaveBeenCalledWith({ action: 'refreshProxy' });

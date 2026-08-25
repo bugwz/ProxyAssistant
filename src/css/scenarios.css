@@ -590,7 +590,7 @@
 }
 
 body[data-theme="dark"] .scenario-automation-panel {
-  border-top-color: #334155;
+  border-top-color: var(--dark-border);
 }
 
 body[data-theme="dark"] .scenario-automation-summary strong {
@@ -598,38 +598,45 @@ body[data-theme="dark"] .scenario-automation-summary strong {
 }
 
 body[data-theme="dark"] .scenario-condition-columns {
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 body[data-theme="dark"] .scenario-weekday-trigger,
 body[data-theme="dark"] .scenario-weekday-menu {
-  border-color: #334155;
-  background: #0f172a;
-  color: #f1f5f9;
+  border-color: var(--dark-border);
+  background: var(--dark-input);
+  color: var(--text-primary);
 }
 
 body[data-theme="dark"] .scenario-weekday-option {
-  color: #dbe3ef;
+  color: var(--text-secondary);
 }
 
 body[data-theme="dark"] .scenario-weekday-option:hover {
-  background: #1e293b;
+  background: var(--dark-surface-muted);
+  color: var(--text-primary);
 }
 
 body[data-theme="dark"] .scenario-condition-remove,
 body[data-theme="dark"] .scenario-condition-add {
-  border-color: #3c4656;
-  background: #111827;
+  border-color: var(--dark-border);
+  background: var(--dark-input);
+}
+
+body[data-theme="dark"] .scenario-condition-add {
+  color: var(--dark-active-text);
 }
 
 body[data-theme="dark"] .scenario-condition-add:hover {
-  background: rgba(99, 102, 241, 0.12);
+  border-color: var(--dark-active-border);
+  background: var(--dark-active-background);
+  color: var(--dark-active-text);
 }
 
 body[data-theme="dark"] .scenario-condition-remove:disabled {
-  border-color: #2b3442;
-  background: #0f172a;
-  color: #475569;
+  border-color: var(--dark-border);
+  background: var(--dark-input);
+  color: var(--text-muted);
 }
 
 @media (max-width: 900px) {
@@ -923,13 +930,13 @@ body[data-theme="dark"] .scenario-proxy-summary {
 body[data-theme="dark"] .scenario-overview,
 body[data-theme="dark"] .scenario-manage-panel .scenario-item,
 body[data-theme="dark"] .scenario-dialog-box {
-  background-color: #1f242b;
-  border-color: #3a414b;
+  background-color: var(--dark-surface);
+  border-color: var(--dark-border);
 }
 
 body[data-theme="dark"] .scenario-overview-stats,
 body[data-theme="dark"] .scenario-overview-stat + .scenario-overview-stat {
-  border-color: #3a414b;
+  border-color: var(--dark-border);
 }
 
 body[data-theme="dark"] .scenario-overview-copy strong,
@@ -943,13 +950,13 @@ body[data-theme="dark"] .scenario-dialog-header .scenario-dialog-title-group > s
 body[data-theme="dark"] .scenario-overview-copy > span,
 body[data-theme="dark"] .scenario-overview-stat span,
 body[data-theme="dark"] .scenario-item-meta {
-  color: #9ba5b2;
+  color: var(--text-secondary);
 }
 
 body[data-theme="dark"] .scenario-list-count,
 body[data-theme="dark"] .scenario-current-name-row {
-  background-color: #292f37;
-  color: #adb6c2;
+  background-color: var(--dark-surface-muted);
+  color: var(--text-secondary);
 }
 
 body[data-theme="dark"] .scenario-manage-panel .scenario-item:hover {
@@ -958,7 +965,7 @@ body[data-theme="dark"] .scenario-manage-panel .scenario-item:hover {
 }
 
 body[data-theme="dark"] .scenario-manage-panel .scenario-item.is-current {
-  border-color: #647ce0;
+  border-color: var(--dark-active-border);
 }
 
 body[data-theme="dark"] .scenario-manage-panel .drag-handle:hover,
@@ -970,22 +977,22 @@ body[data-theme="dark"] .scenario-dialog-close:focus-visible {
 }
 
 body[data-theme="dark"] .scenario-item-icon {
-  background-color: #292f37;
-  border-color: #3a414b;
-  color: #aab3bf;
+  background-color: var(--dark-surface-muted);
+  border-color: var(--dark-border);
+  color: var(--text-secondary);
 }
 
 body[data-theme="dark"] .scenario-overview-icon,
 body[data-theme="dark"] .scenario-item.is-current .scenario-item-icon,
 body[data-theme="dark"] .scenario-dialog-icon {
-  background-color: rgba(99, 122, 224, 0.15);
-  border-color: rgba(99, 122, 224, 0.3);
-  color: #92a5f5;
+  background-color: var(--dark-active-background);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--dark-active-text);
 }
 
 body[data-theme="dark"] .scenario-dialog-header,
 body[data-theme="dark"] .scenario-dialog-footer {
-  border-color: #3a414b;
+  border-color: var(--dark-border);
 }
 
 body[data-theme="dark"] .scenario-dialog-footer {
@@ -995,7 +1002,7 @@ body[data-theme="dark"] .scenario-dialog-footer {
 body[data-theme="dark"] .scenario-field-label,
 body[data-theme="dark"] .delete-scenario-content .modal-message,
 body[data-theme="dark"] .alert-scenario-content .modal-message {
-  color: #aab3bf;
+  color: var(--text-secondary);
 }
 
 body[data-theme="dark"] .scenario-dialog-input {
@@ -1013,4 +1020,3 @@ body[data-theme="dark"] .scenario-secondary-btn {
   border-color: #454d58;
   color: #d3d9e1;
 }
-

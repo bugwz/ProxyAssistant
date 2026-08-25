@@ -2047,7 +2047,14 @@ const SubscriptionModule = (function () {
         .map(entry => entry.subscription)
       : [];
     if (!subscriptions.length) {
-      $list.html(`<div class="subscription-manage-empty">${I18n.t('subscription_empty_list')}</div>`);
+      $list.html(`<div class="subscription-manage-empty">
+        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 11a9 9 0 0 1 9 9"></path>
+          <path d="M4 4a16 16 0 0 1 16 16"></path>
+          <circle cx="5" cy="19" r="1"></circle>
+        </svg>
+        <span>${I18n.t('subscription_empty_management')}</span>
+      </div>`);
       managementExpansionMode = 'auto';
       syncManagementExpandCollapseButton();
       return;

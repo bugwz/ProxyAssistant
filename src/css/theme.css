@@ -13,13 +13,49 @@
 
 /* Dark mode */
 [data-theme="dark"] {
-  --bg-primary: #212121;
-  --bg-secondary: #2d2d2d;
-  --text-primary: #e4e4e7;
-  --text-secondary: #a1a1aa;
-  --border-color: #a0a0a0;
-  --accent-color: #818cf8;
-  --shadow-color: rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+  --bg-primary: #1b1d20;
+  --bg-secondary: #222427;
+  --bg-tertiary: #292c30;
+  --text-primary: #eceef1;
+  --text-secondary: #adb2b9;
+  --text-muted: #777d85;
+  --border-color: #32353a;
+  --border-hover: #4a4f56;
+  --accent-color: #d7d9dd;
+  --accent-hover: #f0f1f2;
+  --accent-light: rgba(255, 255, 255, 0.09);
+  --success-color: #4ade80;
+  --warning-color: #fbbf24;
+  --danger-color: #fb7185;
+  --disabled-status-color: #94a3b8;
+  --header-bg: #1b1d20;
+  --sitebar-bg: #202225;
+  --sitebar-border: #32353a;
+  --shadow-color: rgba(0, 0, 0, 0.58);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.22);
+  --shadow-md: 0 8px 22px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.4);
+
+  /* Built-in night theme layers. */
+  --dark-canvas: #101112;
+  --dark-sidebar: #161719;
+  --dark-surface: #1b1d20;
+  --dark-surface-raised: #222427;
+  --dark-surface-muted: #292c30;
+  --dark-input: #141517;
+  --dark-border: #32353a;
+  --dark-border-strong: #4a4f56;
+  --dark-focus-ring: rgba(215, 217, 221, 0.2);
+  --dark-active-background: rgba(255, 255, 255, 0.09);
+  --dark-active-background-strong: #303236;
+  --dark-active-border: #858a92;
+  --dark-active-text: #f2f3f4;
+  --dark-code-background: #121315;
+  --dark-code-toolbar: #1d1f22;
+  --dark-code-gutter: #181a1d;
+  --dark-code-hover: #202226;
+  --dark-code-border: #373a3f;
 }
 
 /* Apply theme globally */
@@ -80,12 +116,12 @@ body[data-theme="dark"] .theme-btn {
 }
 
 body[data-theme="dark"] {
-  background-color: #15181d;
+  background-color: var(--dark-canvas);
 }
 
 body[data-theme="dark"] .main-sidebar {
-  background-color: #1d2127;
-  border-right-color: #353a43;
+  background-color: var(--dark-sidebar);
+  border-right-color: var(--dark-border);
 }
 
 body[data-theme="dark"] .sidebar-logo-text,
@@ -94,12 +130,12 @@ body[data-theme="dark"] .page-heading h1 {
 }
 
 body[data-theme="dark"] .main-nav-item {
-  color: #b7bfca;
+  color: var(--text-secondary);
 }
 
 body[data-theme="dark"] .main-nav-item:hover {
-  background-color: #282d35;
-  color: #ffffff;
+  background-color: var(--dark-surface-raised);
+  color: var(--text-primary);
 }
 
 body[data-theme="dark"] .main-nav-item.active,
@@ -112,13 +148,13 @@ html[data-initial-main-page="diagnostics"] body[data-theme="dark"] .main-nav-ite
 html[data-initial-main-page="runtime-logs"] body[data-theme="dark"] .main-nav-item[data-main-page="runtime-logs"],
 html[data-initial-main-page="appearance"] body[data-theme="dark"] .main-nav-item[data-main-page="appearance"],
 html[data-initial-main-page="about"] body[data-theme="dark"] .main-nav-item[data-main-page="about"] {
-  background-color: #293250;
-  color: #aab8ff;
+  background-color: var(--dark-active-background);
+  color: var(--dark-active-text);
 }
 
 body[data-theme="dark"] .sidebar-footer {
-  border-top-color: #353a43;
-  color: #88919e;
+  border-top-color: var(--dark-border);
+  color: var(--text-muted);
 }
 
 body[data-theme="dark"] .sidebar-github-link {
@@ -132,7 +168,7 @@ body[data-theme="dark"] .sidebar-github-link:active {
 }
 
 body[data-theme="dark"] .main-content {
-  background-color: #15181d;
+  background-color: var(--dark-canvas);
 }
 
 body[data-theme="dark"] .page-heading p {
@@ -141,8 +177,8 @@ body[data-theme="dark"] .page-heading p {
 
 body[data-theme="dark"] .proxy-toolbar,
 body[data-theme="dark"] .scenario-manage-panel {
-  background-color: #1f242b;
-  border-color: #383f49;
+  background-color: var(--dark-surface);
+  border-color: var(--dark-border);
 }
 
 body[data-theme="dark"] .scenario-manage-panel {
@@ -414,6 +450,440 @@ body[data-theme="dark"] .add-btn:hover {
 body[data-theme="dark"] .list-bottom-buttons {
   background-color: #2d2d2d;
   border-color: #4a4a4a;
+}
+
+/* Unified built-in night theme
+ * Neutral carbon and graphite layers avoid a blue cast. Hierarchy comes from
+ * restrained luminance steps, with the brand color reserved for interaction. */
+body[data-theme="dark"]:not([data-custom-theme="true"]) {
+  background-color: var(--dark-canvas);
+  color: var(--text-primary);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .main-content,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-list-container {
+  background-color: var(--dark-canvas);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .main-sidebar {
+  background-color: var(--dark-sidebar);
+  border-color: var(--dark-border);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .popup-container,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-card,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .system-config-list,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .sync-service-card,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .diagnostics-card,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .about-version-panel,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .subscription-card,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .subscription-manage-item,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .scenario-overview,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .scenario-manage-panel .scenario-item,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .scenario-dialog-box,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-detection-box,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .delete-tip-box,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .edit-scenario-box,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .delete-scenario-box,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .alert-scenario-box,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .pac-details-box,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .subscription-config-box {
+  background-color: var(--dark-surface);
+  border-color: var(--dark-border);
+  box-shadow: var(--shadow-md);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-header,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .status-bar,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .list-bottom-buttons,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .config-file-option,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .scenario-overview-stats,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .scenario-dialog-header,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .scenario-dialog-footer,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .subscription-card-tabs,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .subscription-config-header,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .subscription-config-footer,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-detection-header,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .delete-tip-header,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .edit-scenario-header,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .delete-scenario-header,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .alert-scenario-header,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .pac-details-header {
+  background-color: var(--dark-surface-raised);
+  border-color: var(--dark-border);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .popup-header {
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--dark-border);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .current-site-bar {
+  background-color: var(--sitebar-bg);
+  border-color: var(--sitebar-border);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-item-card {
+  background-color: var(--dark-surface);
+  border-color: var(--dark-border);
+  box-shadow: var(--shadow-sm);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-item-card:hover,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-card:hover,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .subscription-manage-item:hover,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .scenario-manage-panel .scenario-item:hover {
+  border-color: var(--dark-border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-item-card.selected {
+  background-color: var(--dark-active-background);
+  border-color: var(--accent-color);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), var(--shadow-sm);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-item-card.selected .radio-indicator {
+  border-color: var(--accent-color);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-item-card.selected .radio-indicator::after {
+  background-color: var(--accent-color);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) input[type="text"],
+body[data-theme="dark"]:not([data-custom-theme="true"]) input[type="password"],
+body[data-theme="dark"]:not([data-custom-theme="true"]) input[type="number"],
+body[data-theme="dark"]:not([data-custom-theme="true"]) input[type="url"],
+body[data-theme="dark"]:not([data-custom-theme="true"]) input[type="time"],
+body[data-theme="dark"]:not([data-custom-theme="true"]) textarea,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .lh-select,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .lh-select-k,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .custom-theme-editor,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .config-json-editor-shell,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .config-json-code,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .runtime-log-shell,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .runtime-log-list,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .runtime-log-gutter,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .runtime-log-loading {
+  background-color: var(--dark-input);
+  border-color: var(--dark-border);
+  color: var(--text-primary);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .config-json-editor-shell,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .diagnostics-pac-card .pac-script-wrapper,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .pac-script-content,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .runtime-log-shell {
+  border-color: var(--dark-code-border);
+  background: var(--dark-code-background);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .config-json-toolbar {
+  background: var(--dark-code-toolbar);
+  border-bottom-color: var(--dark-code-border);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .config-json-code,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .config-json-loading,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .diagnostics-pac-card .pac-script-content,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .diagnostics-pac-card .pac-script-loading,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .runtime-log-list,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .runtime-log-loading {
+  background: var(--dark-code-background);
+  color: var(--text-primary);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .config-json-gutter,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .runtime-log-gutter {
+  background: var(--dark-code-gutter);
+  color: var(--text-muted);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .config-json-line:hover {
+  background: var(--dark-code-hover);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .config-json-toolbar-btn,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .config-json-fold,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .config-json-meta-label {
+  color: var(--text-muted);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .config-json-meta-value {
+  color: var(--text-secondary);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .config-json-toolbar-btn:hover {
+  background: var(--dark-code-hover);
+  color: var(--text-primary);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .pac-script-toggle-btn,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .pac-script-copy-btn {
+  background-color: var(--dark-code-toolbar);
+  border-color: var(--dark-code-border);
+  color: var(--text-secondary);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .pac-script-toggle-btn:hover,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .pac-script-copy-btn:hover {
+  background-color: var(--dark-code-hover);
+  border-color: var(--dark-border-strong);
+  color: var(--text-primary);
+}
+
+/* Night-theme interaction states. Keep every generic selection and focus
+ * treatment on the warm graphite accent instead of inheriting legacy blue. */
+body[data-theme="dark"]:not([data-custom-theme="true"]) .lh-select.dropdown-open,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-color-picker.dropdown-open,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .scenario-weekday-select.open,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-subscription-select.open .proxy-subscription-trigger,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-subscription-search-row:focus-within {
+  border-color: var(--dark-active-border);
+  box-shadow: 0 0 0 3px var(--dark-focus-ring);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .native-select-trigger:focus-visible,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .scenario-item-main:focus-visible,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .scenario-weekday-trigger:focus-visible,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .info-icon:focus-visible,
+body[data-theme="dark"]:not([data-custom-theme="true"]) button:focus-visible,
+body[data-theme="dark"]:not([data-custom-theme="true"]) a:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--dark-focus-ring);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) button:focus-visible,
+body[data-theme="dark"]:not([data-custom-theme="true"]) a:focus-visible {
+  border-color: var(--dark-active-border);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .main-nav-item.active,
+html[data-initial-main-page="proxies"] body[data-theme="dark"]:not([data-custom-theme="true"]) .main-nav-item[data-main-page="proxies"],
+html[data-initial-main-page="scenarios"] body[data-theme="dark"]:not([data-custom-theme="true"]) .main-nav-item[data-main-page="scenarios"],
+html[data-initial-main-page="subscriptions"] body[data-theme="dark"]:not([data-custom-theme="true"]) .main-nav-item[data-main-page="subscriptions"],
+html[data-initial-main-page="config"] body[data-theme="dark"]:not([data-custom-theme="true"]) .main-nav-item[data-main-page="config"],
+html[data-initial-main-page="sync"] body[data-theme="dark"]:not([data-custom-theme="true"]) .main-nav-item[data-main-page="sync"],
+html[data-initial-main-page="diagnostics"] body[data-theme="dark"]:not([data-custom-theme="true"]) .main-nav-item[data-main-page="diagnostics"],
+html[data-initial-main-page="runtime-logs"] body[data-theme="dark"]:not([data-custom-theme="true"]) .main-nav-item[data-main-page="runtime-logs"],
+html[data-initial-main-page="appearance"] body[data-theme="dark"]:not([data-custom-theme="true"]) .main-nav-item[data-main-page="appearance"],
+html[data-initial-main-page="about"] body[data-theme="dark"]:not([data-custom-theme="true"]) .main-nav-item[data-main-page="about"] {
+  background-color: var(--dark-active-background);
+  color: var(--dark-active-text);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .scenario-manage-panel .scenario-item.is-current {
+  border-color: var(--dark-active-border);
+  box-shadow: inset 3px 0 0 var(--accent-color);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .scenario-item.is-current .scenario-item-icon,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .scenario-overview-icon,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .scenario-dialog-icon {
+  background-color: var(--dark-active-background);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--dark-active-text);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .subscription-card-tab.active,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .subscription-tab.active,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .subscription-badge.active {
+  background-color: var(--dark-active-background);
+  border-color: var(--dark-active-border);
+  color: var(--dark-active-text);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .main-scenario-dropdown li.current-scenario .scenario-count,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .scenario-dropdown-op li.op_a .scenario-count,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .popup-scenario-selector .lh-select-op li.current-scenario .scenario-count,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .header-scenario-selector .lh-select-op li.current-scenario .scenario-count {
+  background-color: var(--dark-active-background-strong);
+  color: var(--dark-active-text);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .drag-handle:hover,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .drag-handle:focus-visible,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .edit-scenario-btn:hover,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-color-dropdown-btn:hover,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .github-link:hover {
+  background-color: var(--dark-surface-muted);
+  color: var(--dark-active-text);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-color-option.selected-option,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .subscription-format-selector .lh-select-op li.selected-option {
+  background-color: var(--dark-active-background);
+  color: var(--dark-active-text);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) input[type="checkbox"],
+body[data-theme="dark"]:not([data-custom-theme="true"]) input[type="radio"] {
+  accent-color: var(--accent-color);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) input:checked + .slider-modern {
+  background-color: var(--accent-color);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .mode-btn[data-mode="manual"].active,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .theme-btn.active {
+  color: var(--dark-active-text);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) input::placeholder,
+body[data-theme="dark"]:not([data-custom-theme="true"]) textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 0.78;
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) input:focus,
+body[data-theme="dark"]:not([data-custom-theme="true"]) textarea:focus,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .lh-select:focus-within {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px var(--dark-focus-ring);
+  outline: none;
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .lh-select-op,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .popup-scenario-selector .lh-select-op,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .header-scenario-selector .lh-select-op,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .main-scenario-dropdown,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .proxy-subscription-menu,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .scenario-weekday-menu {
+  background-color: var(--dark-surface-raised);
+  border-color: var(--dark-border-strong);
+  box-shadow: var(--shadow-lg);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .lh-select-op li:hover,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .popup-scenario-selector .lh-select-op li:hover,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .header-scenario-selector .lh-select-op li:hover,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .main-scenario-dropdown li:hover {
+  background-color: var(--dark-surface-muted);
+  color: var(--text-primary);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .lh-select-op li.selected-option,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .popup-scenario-selector .lh-select-op li.current-scenario,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .header-scenario-selector .lh-select-op li.current-scenario,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .main-scenario-dropdown li.current-scenario {
+  background-color: var(--accent-light);
+  color: var(--dark-active-text);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .control-btn {
+  background-color: var(--dark-surface-raised);
+  border-color: var(--dark-border-strong);
+  color: var(--text-primary);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .control-btn:hover {
+  background-color: var(--dark-surface-muted);
+  border-color: #60656d;
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) #test-all-btn,
+body[data-theme="dark"]:not([data-custom-theme="true"]) #expand-collapse-btn {
+  background-color: var(--dark-surface-raised);
+  border-color: var(--dark-border-strong);
+  color: var(--text-primary);
+  box-shadow: none;
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .btn-test {
+  background-color: var(--dark-surface-raised);
+  border-color: var(--dark-border-strong);
+  color: var(--text-primary);
+  box-shadow: none;
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) #test-all-btn:hover,
+body[data-theme="dark"]:not([data-custom-theme="true"]) #expand-collapse-btn:hover {
+  background-color: var(--dark-surface-muted);
+  border-color: var(--dark-active-border);
+  color: var(--dark-active-text);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .btn-test:hover {
+  background-color: var(--dark-surface-muted);
+  border-color: var(--dark-active-border);
+  color: var(--dark-active-text);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .btn-save {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+  color: #17181a;
+  box-shadow: none;
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .btn-save:hover {
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #17181a;
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .btn-delete,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .scenario-card-actions .delete-scenario-btn {
+  background-color: var(--dark-surface-raised);
+  border-color: var(--dark-border-strong);
+  color: var(--text-secondary);
+  box-shadow: none;
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .btn-delete:hover,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .scenario-card-actions .delete-scenario-btn:hover {
+  background-color: var(--dark-surface-muted);
+  border-color: var(--dark-active-border);
+  color: var(--dark-active-text);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) #test-all-btn:focus-visible,
+body[data-theme="dark"]:not([data-custom-theme="true"]) #expand-collapse-btn:focus-visible,
+body[data-theme="dark"]:not([data-custom-theme="true"]) #add-proxy-btn:focus-visible {
+  border-color: var(--dark-active-border);
+  box-shadow: 0 0 0 3px var(--dark-focus-ring);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) #test-all-btn:disabled,
+body[data-theme="dark"]:not([data-custom-theme="true"]) #expand-collapse-btn:disabled,
+body[data-theme="dark"]:not([data-custom-theme="true"]) #add-proxy-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .primary-control-btn,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .control-btn.primary-control-btn,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .add-btn,
+body[data-theme="dark"]:not([data-custom-theme="true"]) #add-proxy-btn {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+  color: #17181a;
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) .primary-control-btn:hover,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .control-btn.primary-control-btn:hover,
+body[data-theme="dark"]:not([data-custom-theme="true"]) .add-btn:hover,
+body[data-theme="dark"]:not([data-custom-theme="true"]) #add-proxy-btn:hover {
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #17181a;
+  box-shadow: 0 6px 18px rgba(255, 255, 255, 0.12);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) ::-webkit-scrollbar-track {
+  background-color: var(--dark-canvas);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) ::-webkit-scrollbar-thumb {
+  background-color: var(--dark-border-strong);
+}
+
+body[data-theme="dark"]:not([data-custom-theme="true"]) ::selection {
+  background-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
 }
 
 @media (prefers-reduced-motion: reduce) {

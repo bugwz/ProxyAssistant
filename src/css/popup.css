@@ -39,34 +39,34 @@
 
 /* ========== Dark Mode Variables ========== */
 [data-theme="dark"] {
-  --bg-primary: #212121;
-  --bg-secondary: #2d2d2d;
-  --bg-tertiary: #383838;
+  --bg-primary: #1b1d20;
+  --bg-secondary: #222427;
+  --bg-tertiary: #292c30;
 
-  --text-primary: #e4e4e7;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
+  --text-primary: #eceef1;
+  --text-secondary: #adb2b9;
+  --text-muted: #777d85;
 
-  --border-color: #4a4a4a;
-  --border-hover: #71717a;
+  --border-color: #32353a;
+  --border-hover: #4a4f56;
 
-  --accent-color: #818cf8;
-  --accent-hover: #a5b4fc;
-  --accent-light: rgba(129, 140, 248, 0.15);
+  --accent-color: #d7d9dd;
+  --accent-hover: #f0f1f2;
+  --accent-light: rgba(255, 255, 255, 0.09);
 
   --success-color: #4ade80;
   --warning-color: #fb923c;
   --danger-color: #f87171;
   --disabled-status-color: #94a3b8;
 
-  --header-bg: #1a1a1a;
-  --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 15px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.5);
+  --header-bg: #1b1d20;
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.22);
+  --shadow-md: 0 8px 22px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.4);
 
   /* Current site bar */
-  --sitebar-bg: #2d2d2d;
-  --sitebar-border: #4a4a4a;
+  --sitebar-bg: #202225;
+  --sitebar-border: #32353a;
 }
 
 /* ========== Base Styles ========== */
@@ -75,7 +75,7 @@ html[data-ui-initializing] {
 }
 
 html[data-ui-initializing][data-initial-theme="dark"] {
-  background-color: #212121;
+  background-color: #101112;
 }
 
 html[data-ui-initializing] body {

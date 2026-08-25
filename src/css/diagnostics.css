@@ -203,13 +203,13 @@
 }
 
 body[data-theme="dark"] .diagnostics-pac-card .pac-script-content {
-  background: #111827;
-  color: #dbe4f0;
+  background: var(--dark-code-background);
+  color: var(--text-primary);
 }
 
 body[data-theme="dark"] .diagnostics-pac-card .pac-script-loading {
-  background-color: #111827;
-  color: #94a3b8;
+  background-color: var(--dark-code-background);
+  color: var(--text-muted);
 }
 
 .diagnostics-log-actions {
@@ -462,9 +462,12 @@ body.runtime-logs-page-active .runtime-log-list {
 
 body[data-theme="dark"] .runtime-log-list,
 body[data-theme="dark"] .runtime-log-shell,
-body[data-theme="dark"] .runtime-log-gutter,
 body[data-theme="dark"] .runtime-log-loading {
-  background: #111827;
+  background: var(--dark-code-background);
+}
+
+body[data-theme="dark"] .runtime-log-gutter {
+  background: var(--dark-code-gutter);
 }
 
 body[data-theme="dark"] .runtime-log-live-indicator {

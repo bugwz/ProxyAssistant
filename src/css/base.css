@@ -11,7 +11,7 @@ html[data-ui-initializing] {
 }
 
 html[data-ui-initializing][data-initial-theme="dark"] {
-  background-color: #15181d;
+  background-color: #101112;
 }
 
 html[data-ui-initializing] body {

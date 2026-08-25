@@ -103,6 +103,14 @@ describe('subscription management cards', () => {
     delete global.jQuery;
   });
 
+  test('shows a themed empty state when no subscriptions exist', () => {
+    const emptyState = document.querySelector('.subscription-manage-empty');
+
+    expect(emptyState).toBeTruthy();
+    expect(emptyState.querySelector('svg')).toBeTruthy();
+    expect(emptyState.querySelector('span').textContent).toBe('subscription_empty_management');
+  });
+
   test('adds an expanded editable card without opening a modal', () => {
     $('#add-subscription-btn').trigger('click');
 

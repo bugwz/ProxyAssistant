@@ -867,9 +867,9 @@
 }
 
 [data-theme="dark"] .pac-script-content {
-  background-color: #0f172a;
-  border-color: #334155;
-  color: #cbd5e1;
+  background-color: var(--dark-code-background);
+  border-color: var(--dark-code-border);
+  color: var(--text-primary);
 }
 
 .pac-rules-count-info {
@@ -947,9 +947,10 @@
 }
 
 [data-theme="dark"] .save-success-toast {
-  background-color: #1e293b;
-  color: #cbd5e1;
-  border-color: #334155;
+  background-color: var(--dark-surface-raised);
+  color: var(--text-primary);
+  border-color: var(--dark-border-strong);
+  box-shadow: var(--shadow-md);
 }
 
 .save-success-toast .icon {
@@ -968,6 +969,11 @@
 .save-success-toast.processing .icon {
   background-color: #ffffff;
   color: #3b82f6;
+}
+
+[data-theme="dark"] .save-success-toast.processing .icon {
+  background-color: var(--dark-active-text);
+  color: var(--dark-surface);
 }
 
 .save-success-toast.error .icon {

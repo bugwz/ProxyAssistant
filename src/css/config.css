@@ -301,44 +301,49 @@ html[data-config-options-initializing] .config-file-options .slider-modern::befo
 }
 
 [data-theme="dark"] .config-json-toolbar-btn {
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 [data-theme="dark"] .config-json-meta-label {
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 [data-theme="dark"] .config-json-meta-value {
-  color: #a8b4c5;
+  color: var(--text-secondary);
 }
 
 [data-theme="dark"] .config-json-editor-shell {
-  border-color: #475569;
-  background: #111827;
+  border-color: var(--dark-code-border);
+  background: var(--dark-code-background);
 }
 
 [data-theme="dark"] .config-json-toolbar {
-  border-bottom-color: #334155;
-  background: #111827;
+  border-bottom-color: var(--dark-code-border);
+  background: var(--dark-code-toolbar);
 }
 
 [data-theme="dark"] .config-json-toolbar-btn:hover {
-  background: #273449;
-  color: #aab8ff;
+  background: var(--dark-code-hover);
+  color: var(--text-primary);
 }
 
 [data-theme="dark"] .config-json-code {
-  background: #111827;
-  color: #dbe4f0;
+  background: var(--dark-code-background);
+  color: var(--text-primary);
 }
 
 [data-theme="dark"] .config-json-loading {
-  background: #111827;
-  color: #94a3b8;
+  background: var(--dark-code-background);
+  color: var(--text-muted);
 }
 
 [data-theme="dark"] .config-json-gutter {
-  background: #111827;
+  background: var(--dark-code-gutter);
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .config-json-line:hover {
+  background: var(--dark-code-hover);
 }
 
 .config-row {

@@ -56,10 +56,34 @@
 }
 
 .subscription-manage-empty {
-  padding: 48px 20px;
+  min-height: 112px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 24px 20px;
   border: 1px dashed #d6dbe3;
+  border-radius: 8px;
+  background-color: rgba(248, 250, 252, 0.55);
   color: #7b8491;
   text-align: center;
+}
+
+.subscription-manage-empty svg {
+  margin-bottom: 9px;
+  opacity: 0.55;
+}
+
+.subscription-manage-empty span {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+body[data-theme="dark"] .subscription-manage-empty {
+  border-color: var(--dark-border);
+  background-color: var(--dark-surface);
+  color: var(--text-secondary);
 }
 
 .subscription-card .subscription-card-header {
@@ -448,8 +472,8 @@ body[data-theme="dark"] .subscription-card-content-panel {
 body[data-theme="dark"] .subscription-manage-item,
 body[data-theme="dark"] .proxy-subscription-trigger,
 body[data-theme="dark"] .proxy-subscription-menu {
-  border-color: #3a414b;
-  background: #20252b;
+  border-color: var(--dark-border);
+  background: var(--dark-surface-raised);
 }
 
 body[data-theme="dark"] .proxy-subscription-trigger,
@@ -458,22 +482,22 @@ body[data-theme="dark"] .proxy-subscription-search {
 }
 
 body[data-theme="dark"] .proxy-subscription-search-row {
-  border-color: #334155;
-  background: #0f172a;
-  color: #94a3b8;
+  border-color: var(--dark-border);
+  background: var(--dark-input);
+  color: var(--text-muted);
 }
 
 body[data-theme="dark"] .proxy-subscription-search-row:focus-within {
-  border-color: #818cf8;
-  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+  border-color: var(--dark-active-border);
+  box-shadow: 0 0 0 3px var(--dark-focus-ring);
 }
 
 body[data-theme="dark"] .proxy-subscription-options {
-  border-top-color: #334155;
+  border-top-color: var(--dark-border);
 }
 
 body[data-theme="dark"] .proxy-subscription-option:hover {
-  background: #2a3038;
+  background: var(--dark-surface-muted);
 }
 
 body[data-theme="dark"] .proxy-subscription-option-name,
@@ -482,7 +506,7 @@ body[data-theme="dark"] .proxy-subscription-option-counts strong {
 }
 
 body[data-theme="dark"] .proxy-subscription-option-counts {
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 body[data-theme="dark"] .proxy-type-badge.subscription-type-badge.autoproxy,

@@ -398,8 +398,8 @@
 }
 
 [data-theme="dark"] .sync-service-card {
-  border-color: #334155;
-  background-color: #172033;
+  border-color: var(--dark-border);
+  background-color: var(--dark-surface);
 }
 
 .sync-service-header {
@@ -412,7 +412,7 @@
 }
 
 [data-theme="dark"] .sync-service-header {
-  border-bottom-color: #334155;
+  border-bottom-color: var(--dark-border);
 }
 
 .sync-service-identity {
@@ -443,13 +443,13 @@
 }
 
 [data-theme="dark"] .sync-service-icon-native {
-  background-color: rgba(79, 70, 229, 0.2);
-  color: #a5b4fc;
+  background-color: var(--dark-active-background);
+  color: var(--dark-active-text);
 }
 
 [data-theme="dark"] .sync-service-icon-gist {
-  background-color: #263247;
-  color: #e2e8f0;
+  background-color: var(--dark-surface-muted);
+  color: var(--text-primary);
 }
 
 .sync-service-title {
@@ -470,7 +470,7 @@
 }
 
 [data-theme="dark"] .sync-service-desc {
-  color: #94a3b8;
+  color: var(--text-secondary);
 }
 
 .sync-service-body {
@@ -502,11 +502,11 @@
 }
 
 [data-theme="dark"] .sync-service-last-time {
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 [data-theme="dark"] .sync-service-last-time strong {
-  color: #cbd5e1;
+  color: var(--text-primary);
 }
 
 @media (max-width: 720px) {
@@ -576,7 +576,7 @@
 }
 
 [data-theme="dark"] .sync-service-footer {
-  border-top-color: #334155;
+  border-top-color: var(--dark-border);
 }
 
 .native-sync-info {
@@ -603,7 +603,7 @@
 }
 
 [data-theme="dark"] .quota-text {
-  color: #94a3b8;
+  color: var(--text-secondary);
 }
 
 .quota-bar {
@@ -616,7 +616,7 @@
 }
 
 [data-theme="dark"] .quota-bar {
-  background-color: #334155;
+  background-color: var(--dark-border);
 }
 
 .quota-bar-fill {
@@ -661,7 +661,7 @@
 }
 
 [data-theme="dark"] .native-sync-info span {
-  color: #94a3b8;
+  color: var(--text-secondary);
 }
 
 .sync-panel {
@@ -719,13 +719,13 @@
 }
 
 [data-theme="dark"] .gist-instruction {
-  color: #94a3b8;
-  background-color: #1e293b;
-  border-color: #334155;
+  color: var(--text-secondary);
+  background-color: var(--dark-surface-raised);
+  border-color: var(--dark-border);
 }
 
 [data-theme="dark"] .gist-instruction-notice {
-  color: #94a3b8;
+  color: var(--text-secondary);
   opacity: 0.9;
 }
 
@@ -754,7 +754,7 @@
 }
 
 [data-theme="dark"] .gist-link {
-  color: #818cf8;
+  color: var(--dark-active-text);
 }
 
 /* Sync service card actions */
@@ -790,6 +790,28 @@
 .sync-service-footer .btn-save:hover {
   background-color: #3050d0;
   border-color: #3050d0;
+}
+
+[data-theme="dark"] .sync-service-footer .btn-test {
+  background-color: var(--dark-surface-raised);
+  border-color: var(--dark-border-strong);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .sync-service-footer .btn-test:hover {
+  background-color: var(--dark-surface-muted);
+  border-color: var(--dark-active-border);
+}
+
+[data-theme="dark"] .sync-service-footer .btn-save {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+  color: #17181a;
+}
+
+[data-theme="dark"] .sync-service-footer .btn-save:hover {
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 .add-scenario-form {
