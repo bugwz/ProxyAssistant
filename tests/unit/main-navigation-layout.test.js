@@ -448,9 +448,16 @@ describe('main sidebar layout', () => {
     expect(scenarioPage.querySelector('.scenario-overview')).toBeNull();
     expect(pageDocument.querySelector('.add-scenario-tip')).toBeNull();
 
-    const dialogs = Array.from(pageDocument.querySelectorAll('.scenario-dialog-tip'));
-    expect(dialogs).toHaveLength(4);
+    const dialogSelectors = [
+      '.runtime-log-clear-tip',
+      '.edit-scenario-tip',
+      '.delete-scenario-tip',
+      '.delete-subscription-tip',
+      '.alert-scenario-tip'
+    ];
+    const dialogs = dialogSelectors.map(selector => pageDocument.querySelector(selector));
     dialogs.forEach(dialog => {
+      expect(dialog).not.toBeNull();
       expect(dialog.getAttribute('aria-modal')).toBe('true');
       expect(dialog.getAttribute('aria-labelledby')).toBeTruthy();
     });
