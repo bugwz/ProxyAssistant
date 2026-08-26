@@ -19,7 +19,7 @@ Chrome, Firefox 및 Edge용 브라우저 프록시 관리자
 
 Chrome, Firefox 및 Edge는 Manifest V3를 사용합니다. Edge는 Chrome과 동일한 Chromium 패키지를 사용합니다. 프로젝트는 네이티브 JavaScript, jQuery 및 브라우저 확장 API로 개발되었습니다.
 
-![설정 화면](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/settings.png)
+![설정 화면](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/localized/ko.png)
 
 ## 주요 기능
 
@@ -62,10 +62,6 @@ Chrome, Firefox 및 Edge는 Manifest V3를 사용합니다. Edge는 Chrome과 �
 - JSON으로 사용자 정의 테마 색상을 편집합니다.
 - 간체 중국어, 번체 중국어, 영어, 일본어, 프랑스어, 독일어, 스페인어, 포르투갈어, 러시아어 및 한국어를 지원합니다.
 > Chrome 프록시 API가 SOCKS5 사용자 이름 및 비밀번호 인증을 지원하지 않으므로 현재 화면에서는 SOCKS5 인증 필드가 비활성화됩니다.
-
-![밝은 테마](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/theme-light.png)
-
-![어두운 테마](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/theme-dark.png)
 
 ## 설치
 

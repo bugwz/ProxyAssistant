@@ -19,7 +19,7 @@ Proxy Assistant manages HTTP, HTTPS, SOCKS4, and SOCKS5 proxies inside the brows
 
 Chrome, Firefox, and Edge use Manifest V3. Edge uses the same Chromium package as Chrome. The project is built with native JavaScript, jQuery, and browser extension APIs, without a front-end build framework.
 
-![Proxy Assistant settings page](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/settings.png)
+![Proxy Assistant settings page](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/localized/en.png)
 
 ## Main features
 
@@ -63,10 +63,6 @@ Chrome, Firefox, and Edge use Manifest V3. Edge uses the same Chromium package a
 - Use light, dark, or scheduled automatic theme switching.
 - Edit custom theme colors with JSON.
 - Use Simplified Chinese, Traditional Chinese, English, Japanese, French, German, Spanish, Portuguese, Russian, or Korean.
-
-![Light theme](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/theme-light.png)
-
-![Dark theme](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/theme-dark.png)
 
 ## Installation
 
