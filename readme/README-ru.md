@@ -19,7 +19,7 @@
 
 Chrome, Firefox и Edge используют Manifest V3. Edge работает с тем же пакетом Chromium, что и Chrome. Проект написан на нативном JavaScript и jQuery с использованием API браузерных расширений.
 
-![Настройки](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/screenshots/main/settings.png)
+![Настройки](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/settings.png)
 
 ## Возможности
 
@@ -63,9 +63,9 @@ Chrome, Firefox и Edge используют Manifest V3. Edge работает 
 - Поддержка упрощённого и традиционного китайского, английского, японского, французского, немецкого, испанского, португальского, русского и корейского.
 > Поля аутентификации SOCKS5 отключены, поскольку API прокси Chrome не поддерживает имя пользователя и пароль для SOCKS5.
 
-![Светлая тема](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/screenshots/main/theme-light.png)
+![Светлая тема](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/theme-light.png)
 
-![Тёмная тема](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/screenshots/main/theme-dark.png)
+![Тёмная тема](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/theme-dark.png)
 
 ## Установка
 

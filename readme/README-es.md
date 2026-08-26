@@ -19,7 +19,7 @@ Asistente de Proxy administra proxies HTTP, HTTPS, SOCKS4 y SOCKS5 dentro del na
 
 Chrome, Firefox y Edge usan Manifest V3. Edge utiliza el mismo paquete Chromium que Chrome. El proyecto está desarrollado con JavaScript nativo, jQuery y las API de extensiones del navegador.
 
-![Ajustes](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/screenshots/main/settings.png)
+![Ajustes](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/settings.png)
 
 ## Funciones
 
@@ -63,9 +63,9 @@ Chrome, Firefox y Edge usan Manifest V3. Edge utiliza el mismo paquete Chromium 
 - Usar chino simplificado, chino tradicional, inglés, japonés, francés, alemán, español, portugués, ruso o coreano.
 > Los campos de autenticación SOCKS5 están desactivados porque la API de proxy de Chrome no admite nombre de usuario y contraseña para SOCKS5.
 
-![Tema claro](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/screenshots/main/theme-light.png)
+![Tema claro](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/theme-light.png)
 
-![Tema oscuro](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/screenshots/main/theme-dark.png)
+![Tema oscuro](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/theme-dark.png)
 
 ## Instalación
 

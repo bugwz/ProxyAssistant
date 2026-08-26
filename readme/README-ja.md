@@ -19,7 +19,7 @@ Chrome、Firefox、Edge 向けのブラウザプロキシ管理拡張機能
 
 Chrome、Firefox、Edge は Manifest V3 を使用し、Edge は Chrome と同じ Chromium ビルドを利用します。プロジェクトはネイティブ JavaScript、jQuery、ブラウザ拡張 API で実装されています。
 
-![設定画面](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/screenshots/main/settings.png)
+![設定画面](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/settings.png)
 
 ## 主な機能
 
@@ -63,9 +63,9 @@ Chrome、Firefox、Edge は Manifest V3 を使用し、Edge は Chrome と同じ
 - 簡体字中国語、繁体字中国語、英語、日本語、フランス語、ドイツ語、スペイン語、ポルトガル語、ロシア語、韓国語に対応します。
 > 現在の画面では SOCKS5 認証欄は無効です。Chrome のプロキシ API は SOCKS5 のユーザー名とパスワード認証をサポートしていません。
 
-![ライトテーマ](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/screenshots/main/theme-light.png)
+![ライトテーマ](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/theme-light.png)
 
-![ダークテーマ](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/screenshots/main/theme-dark.png)
+![ダークテーマ](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/theme-dark.png)
 
 ## インストール
 

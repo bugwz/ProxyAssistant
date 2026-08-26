@@ -19,7 +19,7 @@ Proxy-Assistent verwaltet HTTP-, HTTPS-, SOCKS4- und SOCKS5-Proxys direkt im Bro
 
 Chrome, Firefox und Edge verwenden Manifest V3. Edge nutzt dasselbe Chromium-Paket wie Chrome. Das Projekt basiert auf nativem JavaScript, jQuery und Browser-Erweiterungs-APIs.
 
-![Einstellungen](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/screenshots/main/settings.png)
+![Einstellungen](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/settings.png)
 
 ## Funktionen
 
@@ -63,9 +63,9 @@ Chrome, Firefox und Edge verwenden Manifest V3. Edge nutzt dasselbe Chromium-Pak
 - Vereinfachtes und traditionelles Chinesisch, Englisch, Japanisch, Französisch, Deutsch, Spanisch, Portugiesisch, Russisch und Koreanisch verwenden.
 > Die SOCKS5-Anmeldefelder sind derzeit deaktiviert, da die Proxy-API von Chrome keine SOCKS5-Authentifizierung mit Benutzername und Passwort unterstützt.
 
-![Helles Design](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/screenshots/main/theme-light.png)
+![Helles Design](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/theme-light.png)
 
-![Dunkles Design](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/screenshots/main/theme-dark.png)
+![Dunkles Design](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/theme-dark.png)
 
 ## Installation
 

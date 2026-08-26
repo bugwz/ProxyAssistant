@@ -19,7 +19,7 @@
 
 Chrome、Firefox 和 Edge 均使用 Manifest V3。Edge 使用与 Chrome 相同的 Chromium 构建包。项目采用原生 JavaScript、jQuery 和浏览器扩展 API 开发，不依赖前端构建框架。
 
-![代理助手设置页面](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/screenshots/main/settings.png)
+![代理助手设置页面](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/settings.png)
 
 ## 主要功能
 
@@ -64,9 +64,9 @@ Chrome、Firefox 和 Edge 均使用 Manifest V3。Edge 使用与 Chrome 相同�
 - 支持使用 JSON 编辑自定义主题颜色。
 - 支持简体中文、繁体中文、英语、日语、法语、德语、西班牙语、葡萄牙语、俄语和韩语。
 
-![浅色主题](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/screenshots/main/theme-light.png)
+![浅色主题](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/theme-light.png)
 
-![深色主题](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260125113629/assets/screenshots/main/theme-dark.png)
+![深色主题](https://raw.githubusercontent.com/bugwz/ProxyAssistant-assets/refs/heads/20260826132015/assets/screenshots/main/theme-dark.png)
 
 ## 安装
 
