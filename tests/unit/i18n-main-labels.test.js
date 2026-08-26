@@ -135,6 +135,30 @@ describe('main page translated section labels', () => {
     });
   });
 
+  test('main management descriptions use the selected language', () => {
+    const expectations = {
+      'zh-CN': '管理代理服务器配置及其关联订阅',
+      'zh-TW': '管理代理伺服器設定及其關聯訂閱',
+      en: 'Manage proxy server configurations and their subscriptions',
+      ja: 'プロキシサーバーの設定と関連サブスクリプションを管理',
+      fr: 'Gérer les configurations des serveurs proxy et leurs abonnements associés',
+      de: 'Proxyserver-Konfigurationen und zugehörige Abonnements verwalten',
+      es: 'Gestionar las configuraciones de servidores proxy y sus suscripciones asociadas',
+      ko: '프록시 서버 설정과 연결된 구독 관리',
+      pt: 'Gerenciar configurações de servidores proxy e suas assinaturas associadas',
+      ru: 'Управление конфигурациями прокси-серверов и связанными подписками'
+    };
+
+    Object.entries(expectations).forEach(([language, proxyDescription]) => {
+      window.I18n.setLanguage(language);
+      expect(window.I18n.t('proxy_management_desc')).toBe(proxyDescription);
+      if (language !== 'en') {
+        expect(window.I18n.t('scenario_management_desc')).not.toBe('Manage proxy groups for different usage scenarios');
+        expect(window.I18n.t('subscription_management_desc')).not.toBe('Manage rule subscriptions shared by multiple proxies');
+      }
+    });
+  });
+
   test('about page overview should be translated in every language', () => {
     const languages = ['zh-CN', 'zh-TW', 'en', 'ja', 'fr', 'de', 'es', 'ko', 'pt', 'ru'];
     const keys = ['about_page_desc', 'project_intro_title', 'project_intro_desc'];
