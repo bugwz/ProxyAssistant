@@ -1110,7 +1110,7 @@ describe('Worker applyProxy async handling', () => {
       stored = { ...stored, ...payload };
       if (callback) callback();
     });
-    context.applyProxySettings = jest.fn(() => Promise.resolve({ success: true }));
+    context.applyProxySettingsNow = jest.fn(() => Promise.resolve({ success: true }));
 
     const result = await context.activateScenario('scenario-work', 'automation');
 
@@ -1120,7 +1120,7 @@ describe('Worker applyProxy async handling', () => {
       mode: 'manual',
       currentProxy: defaultProxy
     }));
-    expect(context.applyProxySettings).toHaveBeenCalledWith(defaultProxy, 'manual');
+    expect(context.applyProxySettingsNow).toHaveBeenCalledWith(defaultProxy, 'manual');
     expect(stored.config.scenarios.current).toBe('scenario-work');
   });
 
@@ -1147,11 +1147,11 @@ describe('Worker applyProxy async handling', () => {
       stored = { ...stored, ...payload };
       if (callback) callback();
     });
-    context.applyProxySettings = jest.fn(() => Promise.resolve({ success: true }));
+    context.applyProxySettingsNow = jest.fn(() => Promise.resolve({ success: true }));
 
     const result = await context.activateScenario('scenario-work', 'manual');
 
-    expect(context.applyProxySettings).toHaveBeenCalledWith(lastWorkProxy, 'manual');
+    expect(context.applyProxySettingsNow).toHaveBeenCalledWith(lastWorkProxy, 'manual');
     expect(result.currentProxy).toEqual(lastWorkProxy);
     expect(stored.config.scenarios.lists[0].lastProxyId).toBe(homeProxy.id);
     expect(stored.config.scenarios.lists[1].defaultProxyId).toBeNull();
@@ -1229,5 +1229,43 @@ describe('proxy authentication isolation', () => {
     expect(await authenticate('unknown.example')).toEqual({ cancel: false });
     context.setProxyAuthentication([a, { ...a, username: 'conflicting' }]);
     expect(await authenticate('a.example')).toEqual({ cancel: false });
+  });
+});
+
+
+describe('ordered proxy changes', () => {
+  test('finishes a requested disable after an earlier delayed application', async () => {
+    const context = loadWorkerContext();
+    await context.enqueueProxyOperation(() => {});
+    let state = { proxy: { mode: 'disabled', current: null } };
+    context.chrome.storage.local.get.mockImplementation((keys, callback) => callback({ state, config: {} }));
+    context.chrome.storage.local.set.mockImplementation((payload, callback) => {
+      if (payload.state) state = payload.state;
+      if (callback) callback();
+    });
+    context.fetch = jest.fn(async () => ({}));
+    let release;
+    context.chrome.proxy.settings.get.mockImplementationOnce((options, callback) => { release = callback; });
+    const applying = context.applyProxySettings({ ip: 'proxy.example', port: '8080', protocol: 'http' }, 'manual');
+    for (let i = 0; i < 8; i++) await Promise.resolve();
+    expect(release).toEqual(expect.any(Function));
+    const disabling = context.turnOffProxy();
+    release({ levelOfControl: 'controlled_by_this_extension' });
+    await applying;
+    await disabling;
+    expect(state.proxy.mode).toBe('disabled');
+    expect(context.chrome.proxy.settings.set.mock.calls.at(-1)[0].value.mode).toBe('system');
+  });
+
+  test('continues processing after a storage failure', async () => {
+    const context = loadWorkerContext();
+    await context.enqueueProxyOperation(() => {});
+    context.chrome.storage.local.get.mockImplementationOnce((keys, callback) => {
+      context.chrome.runtime.lastError = { message: 'read failed' };
+      callback({});
+      context.chrome.runtime.lastError = null;
+    });
+    await expect(context.applyProxySettings(null, 'auto')).rejects.toThrow('read failed');
+    await expect(context.applyProxySettings(null, 'disabled')).resolves.toMatchObject({ success: true });
   });
 });

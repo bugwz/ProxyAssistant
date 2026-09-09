@@ -7,6 +7,13 @@ const isChrome = !isFirefox && typeof chrome !== 'undefined';
 
 // Global variable to store current proxy authentication credentials
 let activeAuthProxies = null;
+let proxyOperationQueue = Promise.resolve();
+
+function enqueueProxyOperation(operation) {
+  const result = proxyOperationQueue.then(operation);
+  proxyOperationQueue = result.catch(() => {});
+  return result;
+}
 
 // Track in-progress subscription fetches to prevent duplicates
 const inProgressFetches = new Set();
@@ -1816,13 +1823,17 @@ async function rememberCurrentScenarioProxy(proxy) {
 async function restorePreviousProxyState(previousState) {
   const mode = previousState?.proxy?.mode || 'disabled';
   if (mode === 'disabled') {
-    await turnOffProxy();
+    await turnOffProxyNow();
     return;
   }
-  await applyProxySettings(previousState?.proxy?.current || null, mode);
+  await applyProxySettingsNow(previousState?.proxy?.current || null, mode);
 }
 
-async function activateScenario(scenarioId, source = 'manual') {
+function activateScenario(scenarioId, source = 'manual') {
+  return enqueueProxyOperation(() => activateScenarioNow(scenarioId, source));
+}
+
+async function activateScenarioNow(scenarioId, source = 'manual') {
   let stored;
   try {
     stored = await getStorageValues(['config', 'state']);
@@ -1859,14 +1870,14 @@ async function activateScenario(scenarioId, source = 'manual') {
   try {
     if (activationMode === 'auto') {
       await persistTargetScenario();
-      const result = await applyProxySettings(null, 'auto');
+      const result = await applyProxySettingsNow(null, 'auto');
       if (!result?.success) throw new Error(result?.error || 'Failed to apply automatic proxy mode');
     } else if (activationMode === 'manual') {
       if (defaultProxy) {
-        const result = await applyProxySettings(defaultProxy, 'manual');
+        const result = await applyProxySettingsNow(defaultProxy, 'manual');
         if (!result?.success) throw new Error(result?.error || 'Failed to apply default proxy');
       } else {
-        await turnOffProxy();
+        await turnOffProxyNow();
       }
       await persistTargetScenario();
       if (defaultProxy) {
@@ -2031,6 +2042,10 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 
 // Restore previous proxy settings
 function restoreProxySettings() {
+  return enqueueProxyOperation(restoreProxySettingsNow);
+}
+
+function restoreProxySettingsNow() {
   console.log('Checking for saved proxy settings');
 
   // Load both local (persistent) and session (runtime) settings
@@ -2046,7 +2061,7 @@ function restoreProxySettings() {
     });
   });
 
-  storagePromise.then(({ local: result, session: sessionResult }) => {
+  return storagePromise.then(async ({ local: result, session: sessionResult }) => {
     if (isFirefox) {
       // Load config for Firefox auto mode
       currentConfig = result.config || {};
@@ -2084,7 +2099,7 @@ function restoreProxySettings() {
       // Ensure settings are cleared and listeners are active
       setupFirefoxProxy();
       if (result.state?.proxy?.mode === 'manual' && !firefoxProxyState.currentProxy) {
-        turnOffProxy();
+        await turnOffProxyNow();
       }
 
       if (firefoxProxyState.mode !== 'disabled') {
@@ -2097,7 +2112,7 @@ function restoreProxySettings() {
       // Chrome
       if (result.state?.proxy?.mode && result.state.proxy.mode !== 'disabled') {
         console.log('Restoring saved proxy settings');
-        applyProxySettings();
+        await applyProxySettingsNow();
       } else {
         // Clear badge for disabled
         updateBadge();
@@ -2226,73 +2241,33 @@ function resolveStoredManualProxy(config, savedProxy) {
   )) || null;
 }
 
-// Handle different types of proxy settings
+// All persistent proxy changes share one queue, including restoration and scenarios.
 function applyProxySettings(proxyInfo, requestedMode) {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['state', 'config'], async (result) => {
-    const mode = requestedMode || result.state?.proxy?.mode || 'manual';
+  return enqueueProxyOperation(() => applyProxySettingsNow(proxyInfo, requestedMode));
+}
 
-    if (!['disabled', 'manual', 'auto'].includes(mode)) {
-      resolve({ success: false, error: "Invalid proxy mode" });
-      return;
-    }
-
-    const manualProxy = proxyInfo || resolveStoredManualProxy(result.config, result.state?.proxy?.current);
-    if (mode === 'manual' && !manualProxy) {
-      await turnOffProxy();
-      resolve({ success: true, mode: 'disabled' });
-      return;
-    }
-
-    if (isFirefox) {
-      // Update Firefox state
-      if (mode === 'disabled') {
-        firefoxProxyState.mode = 'disabled';
-        firefoxProxyState.currentProxy = null;
-      } else if (mode === 'auto') {
-        firefoxProxyState.mode = 'auto';
-        firefoxProxyState.currentProxy = null;
-      } else {
-        // Manual
-        firefoxProxyState.mode = 'manual';
-        // Use provided info or fallback to storage
-        firefoxProxyState.currentProxy = manualProxy;
-      }
-      setProxyAuthentication(mode === 'manual' ? [manualProxy] : mode === 'auto' ? getScenarioProxies(result.config) : []);
-      updateFirefoxSessionState();
-
-      // Update UI
-      chrome.storage.local.set({
-        state: { proxy: { mode: firefoxProxyState.mode, current: firefoxProxyState.currentProxy } }
-      }, () => {
-        updateBadge();
-        setupFirefoxProxy(); // Activate the proxy logic
-        resolve({ success: true });
-      });
-    } else {
-      // Chrome
-      const chromeMode = mode;
-
-      if (chromeMode === 'auto') {
-        resolve(await applyAutoProxySettings());
-      } else if (chromeMode === 'disabled') {
-        // If mode is disabled, always turn off proxy regardless of proxyInfo
-        await turnOffProxy();
-        resolve({ success: true });
-      } else {
-        // Manual mode
-        // If manual mode and no proxyInfo provided (e.g. from refreshProxy), use the one from storage
-        const infoToApply = manualProxy;
-        if (infoToApply) {
-          resolve(await applyManualProxySettings(infoToApply));
-        } else {
-          await turnOffProxy();
-          resolve({ success: false, error: "No proxy information provided" });
-        }
-      }
-    }
-    });
-  });
+async function applyProxySettingsNow(proxyInfo, requestedMode) {
+  const result = await getStorageValues(['state', 'config']);
+  const mode = requestedMode || result.state?.proxy?.mode || 'manual';
+  if (!['disabled', 'manual', 'auto'].includes(mode)) {
+    return { success: false, error: 'Invalid proxy mode' };
+  }
+  const manualProxy = proxyInfo || resolveStoredManualProxy(result.config, result.state?.proxy?.current);
+  if (mode === 'disabled' || (mode === 'manual' && !manualProxy)) {
+    await turnOffProxyNow();
+    return { success: true, mode: 'disabled' };
+  }
+  if (isFirefox) {
+    firefoxProxyState.mode = mode;
+    firefoxProxyState.currentProxy = mode === 'manual' ? manualProxy : null;
+    setProxyAuthentication(mode === 'manual' ? [manualProxy] : getScenarioProxies(result.config));
+    updateFirefoxSessionState();
+    await setStorageValues({ state: { proxy: { mode, current: firefoxProxyState.currentProxy } } });
+    updateBadge();
+    setupFirefoxProxy();
+    return { success: true };
+  }
+  return mode === 'auto' ? applyAutoProxySettings() : applyManualProxySettings(manualProxy);
 }
 
 // Protocol field cleaning function - prevents protocol value corruption
@@ -2781,7 +2756,8 @@ async function handleFirefoxRequest(details) {
     if (firefoxProxyState.currentProxy) {
       const proxy = firefoxProxyState.currentProxy;
       const urlParts = getUrlParts(details.url);
-      if (urlParts && matchesCompiledFirefoxRules(
+      if (!urlParts) return null;
+      if (matchesCompiledFirefoxRules(
         getCachedFirefoxRuleMatcher(proxy, 'bypass'),
         details.url,
         urlParts
@@ -3052,7 +3028,11 @@ async function handleAuthRequest(details, callback) {
 }
 
 // Turn off proxy
-async function turnOffProxy() {
+function turnOffProxy() {
+  return enqueueProxyOperation(turnOffProxyNow);
+}
+
+async function turnOffProxyNow() {
   if (isFirefox) {
     firefoxProxyState.mode = 'disabled';
     setProxyAuthentication([]);
