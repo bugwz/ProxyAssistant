@@ -138,6 +138,76 @@ function loadWorkerContext(overrides = {}) {
   return context;
 }
 
+describe('Worker independent subscriptions', () => {
+  function createConfig(domain = 'google.com') {
+    return {
+      scenarios: { current: 'default', lists: [{ id: 'default', proxies: [{
+        id: 'proxy', enabled: true, protocol: 'http', ip: '127.0.0.1', port: '8080',
+        include_rules: 'manual.example', subscription_ids: ['pac-sub', 'disabled-sub']
+      }] }] },
+      subscriptions: [
+        { id: 'pac-sub', enabled: true, current: 'pac', lists: { pac: {
+          include_rules: domain, bypass_rules: 'direct.example'
+        } } },
+        { id: 'disabled-sub', enabled: false, current: 'pac', lists: { pac: {
+          include_rules: 'disabled.example'
+        } } }
+      ]
+    };
+  }
+
+  function route(script, host) {
+    const pac = {};
+    vm.createContext(pac);
+    vm.runInContext(script, pac);
+    return pac.FindProxyForURL(`https://${host}/`, host);
+  }
+
+  test('Chrome applies subscribed domains and reads updated subscriptions on refresh', async () => {
+    let config = createConfig();
+    const context = loadWorkerContext({ chrome: { storage: { local: {
+      get: jest.fn((keys, callback) => callback({ config, state: { proxy: { mode: 'disabled' } } }))
+    } } } });
+    await context.applyAutoProxySettings();
+    const settings = context.chrome.proxy.settings.set;
+    let script = settings.mock.calls[settings.mock.calls.length - 1][0].value.pacScript.data;
+    expect(route(script, 'www.google.com')).toBe('PROXY 127.0.0.1:8080; DIRECT');
+    expect(route(script, 'manual.example')).toBe('PROXY 127.0.0.1:8080; DIRECT');
+    expect(route(script, 'disabled.example')).toBe('DIRECT');
+    expect(route(script, 'unmatched.example')).toBe('DIRECT');
+
+    config = createConfig('updated.example');
+    await context.applyAutoProxySettings();
+    script = settings.mock.calls[settings.mock.calls.length - 1][0].value.pacScript.data;
+    expect(route(script, 'updated.example')).toBe('PROXY 127.0.0.1:8080; DIRECT');
+    expect(route(script, 'www.google.com')).toBe('DIRECT');
+  });
+
+  test('Chrome restores subscription routing when the worker starts in auto mode', async () => {
+    const config = createConfig();
+    const context = loadWorkerContext({ chrome: { storage: { local: {
+      get: jest.fn((keys, callback) => callback({ config, state: { proxy: { mode: 'auto' } } }))
+    } } } });
+    // Startup restoration crosses storage, PAC application and state persistence promises.
+    for (let index = 0; index < 12; index += 1) await Promise.resolve();
+    const settings = context.chrome.proxy.settings.set;
+    const script = settings.mock.calls[settings.mock.calls.length - 1][0].value.pacScript.data;
+    expect(route(script, 'www.google.com')).toBe('PROXY 127.0.0.1:8080; DIRECT');
+  });
+
+  test('PAC preview resolves subscriptions from the requested configuration', async () => {
+    const config = createConfig();
+    const context = loadWorkerContext({ chrome: { storage: { local: {
+      get: jest.fn((keys, callback) => callback({ config }))
+    } } } });
+    const response = await new Promise(resolve => {
+      context.__onMessageListener({ action: 'getPacScript' }, {}, resolve);
+    });
+    expect(response.success).toBe(true);
+    expect(route(response.script, 'www.google.com')).toBe('PROXY 127.0.0.1:8080; DIRECT');
+  });
+});
+
 describe('Worker applyProxy async handling', () => {
   test('stores bounded redacted runtime logs and exposes message actions', async () => {
     const storedValues = {};

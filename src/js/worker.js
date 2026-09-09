@@ -2514,7 +2514,7 @@ async function applyAutoProxySettings() {
   const currentScenario = scenarios.find(s => s.id === currentScenarioId);
   const list = currentScenario?.proxies || [];
 
-  const pacScript = generatePacScript(list);
+  const pacScript = generatePacScript(list, config);
 
   console.log('Generated PAC script summary:', {
     proxyCount: list.length,
@@ -2580,7 +2580,7 @@ function parseProxyRegexPattern(pattern, defaultFlags = '') {
   }
 }
 
-function getProxyRulePatterns(proxy, ruleType) {
+function getProxyRulePatterns(proxy, ruleType, config) {
   const field = ruleType === 'bypass' ? 'bypass_rules' : 'include_rules';
   const patterns = [];
   const seen = new Set();
@@ -2598,7 +2598,7 @@ function getProxyRulePatterns(proxy, ruleType) {
 
   appendRules(proxy?.[field]);
   const proxySubscription = typeof getMergedProxySubscription === 'function'
-    ? getMergedProxySubscription(proxy)
+    ? getMergedProxySubscription(proxy, config)
     : proxy?.subscription;
   if (proxySubscription) {
     const format = proxySubscription.current;
@@ -2609,7 +2609,7 @@ function getProxyRulePatterns(proxy, ruleType) {
 }
 
 // Generate PAC script logic (Chrome only)
-function generatePacScript(list) {
+function generatePacScript(list, config) {
   const declarations = [];
   const body = [];
   let proxyIndex = 0;
@@ -2656,7 +2656,7 @@ function generatePacScript(list) {
     const fallback = proxy.fallback_policy === "reject" ? "" : "; DIRECT";
     const returnVal = JSON.stringify(proxyStr + fallback);
 
-    const allIncludeUrls = getProxyRulePatterns(proxy, 'include');
+    const allIncludeUrls = getProxyRulePatterns(proxy, 'include', config);
     const domainMap = {};
     const complexConditions = [];
 
@@ -3242,7 +3242,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const currentScenario = scenarios.find(s => s.id === currentScenarioId);
           const list = currentScenario?.proxies || [];
 
-          const script = generatePacScript(list);
+          const script = generatePacScript(list, config);
           sendResponse({ success: true, script: script });
         } catch (e) {
           console.info("Error generating PAC script:", e);
