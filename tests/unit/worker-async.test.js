@@ -1437,3 +1437,24 @@ test('background subscription refresh waits for routing application', async () =
   expect(finished).toBe(true);
   expect(context.applyProxySettings).toHaveBeenCalledTimes(1);
 });
+
+
+test.each([
+  ['/^node[0-9]{1,3}\.example$/', 'https://node12.example/', true],
+  ['/^node[0-9]{1,3}\.example$/', 'https://node1234.example/', false],
+  ['url:/^https:\/\/example\.com\/Case$/', 'https://example.com/Case', true],
+  ['url:/^https:\/\/example\.com\/Case$/', 'https://example.com/case', false],
+  ['host:/^EXAMPLE\.COM$/i', 'https://example.com/', true],
+  ['/https:\/\/example\.com\//', 'https://other.example/', false]
+])('Chrome and Firefox agree for %s at %s', (rule, url, expected) => {
+  const context = loadWorkerContext();
+  const proxy = { ip: 'proxy.example', port: '8080', include_rules: rule + ',other.test' };
+  const patterns = context.getProxyRulePatterns(proxy, 'include', {});
+  expect(patterns).toEqual([rule, 'other.test']);
+  const hostname = new URL(url).hostname;
+  const firefox = context.matchesCompiledFirefoxRules(context.compileFirefoxRulePatterns(patterns), url, { host: hostname });
+  const pac = vm.createContext({});
+  vm.runInContext(context.generatePacScript([proxy], {}), pac);
+  expect(firefox).toBe(expected);
+  expect(pac.FindProxyForURL(url, hostname) !== 'DIRECT').toBe(expected);
+});

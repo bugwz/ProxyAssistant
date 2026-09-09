@@ -2417,21 +2417,52 @@ function isSafeProxyRegexSource(source) {
   return !nestedQuantifier.test(normalized);
 }
 
-function parseProxyRegexPattern(pattern, defaultFlags = '') {
+function parseProxyRegexPattern(pattern) {
+  const prefix = pattern.match(/^(host|url):/);
+  if (prefix) pattern = pattern.slice(prefix[0].length);
   if (!pattern.startsWith('/') || pattern.length <= 2) return null;
   const lastSlash = pattern.lastIndexOf('/');
   if (lastSlash <= 0) return null;
-  const flags = pattern.slice(lastSlash + 1);
-  if (!/^[gimsuy]*$/.test(flags)) return null;
   const source = pattern.slice(1, lastSlash);
-  if (!isSafeProxyRegexSource(source)) return null;
-
+  const target = prefix ? prefix[1] : (source.includes('/') ? 'url' : 'host');
+  const flags = pattern.slice(lastSlash + 1) || (target === 'host' ? 'i' : '');
+  if (!/^[gimsuy]*$/.test(flags) || !isSafeProxyRegexSource(source)) return null;
   try {
-    new RegExp(source, flags || defaultFlags);
-    return { source, flags: flags || defaultFlags };
+    new RegExp(source, flags);
+    return { source, flags, target };
   } catch (error) {
     return null;
   }
+}
+
+function splitProxyRulePatterns(value) {
+  const patterns = [];
+  for (const line of String(value || '').split(/[\r\n]+/)) {
+    let remaining = line.trim();
+    while (remaining) {
+      let end = remaining.indexOf(',');
+      if (/^(?:(?:host|url):)?\//.test(remaining)) {
+        const opening = remaining.indexOf('/');
+        let escaped = false;
+        let inClass = false;
+        end = -1;
+        for (let i = opening + 1; i < remaining.length; i += 1) {
+          const char = remaining[i];
+          if (escaped) { escaped = false; continue; }
+          if (char === '\\') { escaped = true; continue; }
+          if (char === '[') inClass = true;
+          if (char === ']') inClass = false;
+          if (char === '/' && !inClass && /^[gimsuy]*\s*(?:,|$)/.test(remaining.slice(i + 1))) {
+            end = remaining.indexOf(',', i + 1);
+            break;
+          }
+        }
+      }
+      patterns.push((end < 0 ? remaining : remaining.slice(0, end)).trim());
+      remaining = end < 0 ? '' : remaining.slice(end + 1).trim();
+    }
+  }
+  return patterns.filter(Boolean);
 }
 
 function getProxyRulePatterns(proxy, ruleType, config) {
@@ -2440,7 +2471,7 @@ function getProxyRulePatterns(proxy, ruleType, config) {
   const seen = new Set();
   const appendRules = value => {
     if (!value || patterns.length >= MAX_PROXY_RULES_PER_PROXY) return;
-    const values = value.split(/[\n,]+/);
+    const values = splitProxyRulePatterns(value);
     for (const item of values) {
       const pattern = item.trim();
       if (!pattern || seen.has(pattern)) continue;
@@ -2515,19 +2546,19 @@ function generatePacScript(list, config) {
 
     for (const pattern of allIncludeUrls) {
       // Support regex pattern: /pattern/ or /pattern/flags
-      if (pattern.startsWith('/') && pattern.length > 2) {
+      if (/^(?:(?:host|url):)?\//.test(pattern)) {
         const parsedRegex = parseProxyRegexPattern(pattern);
         if (parsedRegex) {
           const variableName = `proxyAssistantRegex${regexIndex}`;
           regexIndex += 1;
           declarations.push(`var ${variableName} = new RegExp(${JSON.stringify(parsedRegex.source)}, ${JSON.stringify(parsedRegex.flags)});`);
-          complexConditions.push(`(${variableName}.lastIndex = 0, ${variableName}.test(url))`);
+          complexConditions.push(`(${variableName}.lastIndex = 0, ${variableName}.test(${parsedRegex.target}))`);
         } else {
           console.warn('Unsafe or invalid regex pattern skipped in PAC generation:', pattern);
         }
       } else if (pattern.includes('*')) {
         const matchTarget = pattern.includes('/') ? 'url' : 'host';
-        complexConditions.push(`shExpMatch(${matchTarget}, ${JSON.stringify(pattern)})`);
+        complexConditions.push(`shExpMatch(${matchTarget}, ${JSON.stringify(matchTarget === 'host' ? pattern.toLowerCase() : pattern)})`);
       } else if (isIpPattern(pattern)) {
         // IP address or CIDR range
         if (pattern.includes('/')) {
@@ -2703,12 +2734,12 @@ function compileFirefoxRulePatterns(patterns) {
   const urlRegexes = [];
 
   patterns.slice(0, MAX_PROXY_RULES_PER_PROXY).forEach(pattern => {
-    const parsedRegex = parseProxyRegexPattern(pattern, 'i');
+    const parsedRegex = parseProxyRegexPattern(pattern);
     if (parsedRegex) {
-      hostRegexes.push(new RegExp(parsedRegex.source, parsedRegex.flags));
+      (parsedRegex.target === 'url' ? urlRegexes : hostRegexes).push(new RegExp(parsedRegex.source, parsedRegex.flags));
       return;
     }
-    if (pattern.startsWith('/')) return;
+    if (/^(?:(?:host|url):)?\//.test(pattern)) return;
 
     if (isIpPattern(pattern) && pattern.includes('/')) {
       cidrPatterns.push(pattern);
@@ -2720,7 +2751,7 @@ function compileFirefoxRulePatterns(patterns) {
         .replace(/[+?^${}()|[\]\\]/g, '\\$&')
         .replace(/\./g, '\\.')
         .replace(/\*/g, '.*');
-      const regex = new RegExp(`^${regexSource}$`, 'i');
+      const regex = new RegExp(`^${regexSource}$`, pattern.includes('/') ? '' : 'i');
       if (pattern.includes('/')) urlRegexes.push(regex);
       else hostRegexes.push(regex);
       return;
