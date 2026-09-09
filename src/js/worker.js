@@ -1515,71 +1515,75 @@ async function fetchSubscriptionBackground(proxyId, format, url, maxRetries = 3)
 
       let updated = false;
 
-      const result = await new Promise((resolve, reject) => {
-        chrome.storage.local.get(['config'], (result) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(`Storage get error: ${chrome.runtime.lastError.message}`));
-            return;
-          }
-          resolve(result);
-        });
-      });
-
-      const config = result.config;
-      if (!config?.subscriptions) {
-        console.warn(`[Worker] No subscriptions found for: ${proxyId}`);
-        return;
-      }
-
-      const subscription = config.subscriptions.find(item => item.id === proxyId);
-      const proxyFound = subscription?.current === format && subscription?.lists?.[format];
-      if (proxyFound) {
-            const listConfig = subscription.lists[format];
-            const oldContent = listConfig.content;
-
-            if (oldContent !== content) {
-              const reverse = listConfig.reverse || false;
-              const processRule = format === 'pac' ? listConfig.process_rule : undefined;
-              const parsed = parseSubscriptionContent(content, format, reverse, processRule);
-              listConfig.content = content;
-              listConfig.last_fetch_time = Date.now();
-              listConfig.decoded_content = parsed.decoded || '';
-              listConfig.include_rules = parsed.include_rules || '';
-              listConfig.bypass_rules = parsed.bypass_rules || '';
-              listConfig.include_lines = parsed.include_rules ? parsed.include_rules.split(/\r\n|\r|\n/).length : 0;
-              listConfig.bypass_lines = parsed.bypass_rules ? parsed.bypass_rules.split(/\r\n|\r|\n/).length : 0;
-
-              updated = true;
-              console.log(`[Worker] Updated subscription: ${subscription.name || proxyId}`);
-            } else {
-              listConfig.last_fetch_time = Date.now();
-              console.log(`[Worker] No changes for subscription: ${subscription.name || proxyId}, content unchanged`);
+      let subscription;
+      await enqueueProxyOperation(async () => {
+        const result = await new Promise((resolve, reject) => {
+          chrome.storage.local.get(['config'], (result) => {
+            if (chrome.runtime.lastError) {
+              reject(new Error(`Storage get error: ${chrome.runtime.lastError.message}`));
+              return;
             }
-      }
-
-      if (!proxyFound) {
-        console.warn(`[Worker] Proxy ${proxyId} with format ${format} not found in config`);
-      }
-
-      await new Promise((resolve, reject) => {
-        config.updated_at = new Date().toISOString();
-        chrome.storage.local.set({ config: config }, () => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(`Storage set error: ${chrome.runtime.lastError.message}`));
-            return;
-          }
-          resolve();
+            resolve(result);
+          });
         });
+
+        const config = result.config;
+        if (!config?.subscriptions) {
+          console.warn(`[Worker] No subscriptions found for: ${proxyId}`);
+          return;
+        }
+
+        subscription = config.subscriptions.find(item => item.id === proxyId);
+        const proxyFound = subscription?.current === format && subscription?.lists?.[format];
+        if (proxyFound) {
+              const listConfig = subscription.lists[format];
+              const oldContent = listConfig.content;
+
+              if (oldContent !== content) {
+                const reverse = listConfig.reverse || false;
+                const processRule = format === 'pac' ? listConfig.process_rule : undefined;
+                const parsed = parseSubscriptionContent(content, format, reverse, processRule);
+                listConfig.content = content;
+                listConfig.last_fetch_time = Date.now();
+                listConfig.decoded_content = parsed.decoded || '';
+                listConfig.include_rules = parsed.include_rules || '';
+                listConfig.bypass_rules = parsed.bypass_rules || '';
+                listConfig.include_lines = parsed.include_rules ? parsed.include_rules.split(/\r\n|\r|\n/).length : 0;
+                listConfig.bypass_lines = parsed.bypass_rules ? parsed.bypass_rules.split(/\r\n|\r|\n/).length : 0;
+
+                updated = true;
+                console.log(`[Worker] Updated subscription: ${subscription.name || proxyId}`);
+              } else {
+                listConfig.last_fetch_time = Date.now();
+                console.log(`[Worker] No changes for subscription: ${subscription.name || proxyId}, content unchanged`);
+              }
+        }
+
+        if (!proxyFound) {
+          console.warn(`[Worker] Proxy ${proxyId} with format ${format} not found in config`);
+        }
+
+        await new Promise((resolve, reject) => {
+          config.updated_at = new Date().toISOString();
+          chrome.storage.local.set({ config: config }, () => {
+            if (chrome.runtime.lastError) {
+              reject(new Error(`Storage set error: ${chrome.runtime.lastError.message}`));
+              return;
+            }
+            resolve();
+          });
+        });
+
+        console.log(`[Worker] Background fetch saved: ${proxyId}`);
+
+        needsApply = needsApply || updated;
+        if (needsApply) {
+          const applied = await applyProxySettingsNow();
+          if (!applied?.success) throw new Error(applied?.error || 'Failed to apply updated subscription');
+          needsApply = false;
+        }
+
       });
-
-      console.log(`[Worker] Background fetch saved: ${proxyId}`);
-
-      needsApply = needsApply || updated;
-      if (needsApply) {
-        const applied = await applyProxySettings();
-        if (!applied?.success) throw new Error(applied?.error || 'Failed to apply updated subscription');
-        needsApply = false;
-      }
 
       console.log(`[Worker] Background fetch completed for proxy: ${proxyId}, updated: ${updated}`);
       appendRuntimeLog('info', 'subscription', 'subscription_refreshed', {

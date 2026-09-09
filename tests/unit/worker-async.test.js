@@ -1421,7 +1421,7 @@ test('background subscription refresh waits for routing application', async () =
   context.fetchSubscriptionTextWithLimit = jest.fn(async () => '[AutoProxy 0.2]\n||new.example');
   let release;
   const started = new Promise(resolve => {
-    context.applyProxySettings = jest.fn(() => {
+    context.applyProxySettingsNow = jest.fn(() => {
       expect(config.subscriptions[0].lists.autoproxy.include_rules).toContain('new.example');
       resolve();
       return new Promise(done => { release = done; });
@@ -1435,7 +1435,7 @@ test('background subscription refresh waits for routing application', async () =
   release({ success: true });
   await pending;
   expect(finished).toBe(true);
-  expect(context.applyProxySettings).toHaveBeenCalledTimes(1);
+  expect(context.applyProxySettingsNow).toHaveBeenCalledTimes(1);
 });
 
 
@@ -1483,8 +1483,39 @@ test('failed PAC extraction preserves the previous background cache', async () =
   const config = { subscriptions: [{ id: 'sub', current: 'pac', lists: { pac: item } }] };
   context.chrome.storage.local.get.mockImplementation((keys, callback) => callback({ config }));
   context.fetchSubscriptionTextWithLimit = jest.fn(async () => 'function FindProxyForURL() {}');
-  context.applyProxySettings = jest.fn();
+  context.applyProxySettingsNow = jest.fn();
   await context.fetchSubscriptionBackground('sub', 'pac', 'https://rules.example/', 1);
   expect(item).toEqual({ content: 'old content', include_rules: 'old.example', last_fetch_time: 123, process_rule: 'null' });
-  expect(context.applyProxySettings).not.toHaveBeenCalled();
+  expect(context.applyProxySettingsNow).not.toHaveBeenCalled();
+});
+
+
+test('concurrent subscription refreshes retain both committed caches', async () => {
+  const context = loadWorkerContext();
+  await context.enqueueProxyOperation(() => {});
+  let config = { settings: { theme: 'dark' }, subscriptions: ['a', 'b'].map(id => ({
+    id, current: 'autoproxy', lists: { autoproxy: { content: '', url: 'https://' + id + '.example/' } }
+  })) };
+  context.chrome.storage.local.get.mockImplementation((keys, callback) => callback({ config: JSON.parse(JSON.stringify(config)) }));
+  let release;
+  let started;
+  const firstWrite = new Promise(resolve => { started = resolve; });
+  let writes = 0;
+  context.chrome.storage.local.set.mockImplementation((payload, callback) => {
+    if (!payload.config) { callback?.(); return; }
+    writes += 1;
+    const commit = () => { config = payload.config; callback?.(); };
+    if (writes === 1) { release = commit; started(); }
+    else commit();
+  });
+  context.fetchSubscriptionTextWithLimit = jest.fn(async url => '[AutoProxy 0.2]\n||' + new URL(url).hostname);
+  context.applyProxySettingsNow = jest.fn(async () => ({ success: true }));
+  const a = context.fetchSubscriptionBackground('a', 'autoproxy', 'https://a.example/', 1);
+  const b = context.fetchSubscriptionBackground('b', 'autoproxy', 'https://b.example/', 1);
+  await firstWrite;
+  expect(writes).toBe(1);
+  release();
+  await Promise.all([a, b]);
+  expect(config.subscriptions.map(sub => sub.lists.autoproxy.include_rules)).toEqual(['a.example', 'b.example']);
+  expect(config.settings.theme).toBe('dark');
 });
