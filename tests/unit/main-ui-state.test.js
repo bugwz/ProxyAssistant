@@ -1005,6 +1005,7 @@ describe('main UI state flow', () => {
       generateProxyId: jest.fn(() => 'proxy-new')
     };
     global.ValidatorModule = {
+      validateBypassUrls: jest.fn(() => ({ isValid: true })),
       validateIPAddress: jest.fn(() => ({ isValid: true })),
       isValidHost: jest.fn(() => true),
       checkIncludeUrlsConflict: jest.fn(() => ({ hasConflict: false })),
@@ -1102,6 +1103,7 @@ describe('main UI state flow', () => {
       generateProxyId: jest.fn(() => 'proxy-new')
     };
     global.ValidatorModule = {
+      validateBypassUrls: jest.fn(() => ({ isValid: true })),
       validateIPAddress: jest.fn(() => ({ isValid: true })),
       isValidHost: jest.fn(() => true),
       checkIncludeUrlsConflict: jest.fn(() => ({ hasConflict: false })),
@@ -1251,6 +1253,7 @@ describe('main UI state flow', () => {
     };
     global.ConfigModule = { generateProxyId: jest.fn(() => 'proxy-new') };
     global.ValidatorModule = {
+      validateBypassUrls: jest.fn(() => ({ isValid: true })),
       validateIPAddress: jest.fn(() => ({ isValid: true })),
       isValidHost: jest.fn(() => true),
       checkIncludeUrlsConflict: jest.fn(() => ({ hasConflict: false })),
@@ -1401,6 +1404,7 @@ describe('main UI state flow', () => {
       generateProxyId: jest.fn(() => 'proxy-new')
     };
     global.ValidatorModule = {
+      validateBypassUrls: jest.fn(() => ({ isValid: true })),
       validateIPAddress: jest.fn(() => ({ isValid: true })),
       isValidHost: jest.fn(() => true),
       checkIncludeUrlsConflict: jest.fn(() => ({ hasConflict: false })),

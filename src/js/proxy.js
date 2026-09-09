@@ -278,7 +278,9 @@ const ProxyModule = (function () {
     var includeUrlsCheck = ValidatorModule.checkIncludeUrlsConflict(scenarioProxies, location.proxyIndex, info.include_rules);
     if (includeUrlsCheck.hasConflict) { isIncludeUrlsValid = false; includeUrlsErrorMsg = includeUrlsCheck.error; }
 
+    const bypassCheck = ValidatorModule.validateBypassUrls(info.bypass_rules);
     var $item = $(`#proxy-list .proxy-card[data-id="${i}"]`);
+    $item.find('.bypass_rules').toggleClass('input-error', !bypassCheck.isValid);
     var $colorInput = $item.find('.proxy-color-input');
     var rawColor = $colorInput.length ? $colorInput.val().trim().toUpperCase() : (info.color || '');
     var normalizedColor = getProxyColor(rawColor);
@@ -292,7 +294,7 @@ const ProxyModule = (function () {
     if (isIncludeUrlsValid) $item.find('.include_rules').removeClass('input-error'); else $item.find('.include_rules').addClass('input-error');
     $colorInput.toggleClass('input-error', !isColorValid);
 
-    if (!isNameValid || !isIpValid || !isPortValid || !isIncludeUrlsValid || !isColorValid) {
+    if (!isNameValid || !isIpValid || !isPortValid || !isIncludeUrlsValid || !isColorValid || !bypassCheck.isValid) {
       var failMsg = I18n.t('save_failed');
       if (!isNameValid) {
         if (conflict.isDuplicate) {
@@ -305,6 +307,7 @@ const ProxyModule = (function () {
       else if (!isPortValid) UtilsModule.showTip(failMsg + I18n.t('alert_port_invalid'), true);
       else if (!isIncludeUrlsValid) UtilsModule.showTip(failMsg + includeUrlsErrorMsg, true);
       else if (!isColorValid) UtilsModule.showTip(failMsg + I18n.t('proxy_color_invalid'), true);
+      else if (!bypassCheck.isValid) UtilsModule.showTip(failMsg + bypassCheck.error, true);
       return;
     }
 

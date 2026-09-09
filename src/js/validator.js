@@ -117,7 +117,7 @@ function validateBypassUrls(bypassUrls) {
   if (invalidLines.length > 0) {
     return {
       isValid: false,
-      error: '无效的 bypass 规则: ' + invalidLines.slice(0, 3).join(', ') + (invalidLines.length > 3 ? '...' : '')
+      error: I18n.t('alert_bypass_invalid').replace('{rules}', invalidLines.slice(0, 3).join(', ') + (invalidLines.length > 3 ? '...' : ''))
     };
   }
 
@@ -126,34 +126,21 @@ function validateBypassUrls(bypassUrls) {
 
 function isValidBypassPattern(pattern) {
   if (!pattern || typeof pattern !== 'string') return false;
-
-  var trimmed = pattern.trim();
-  if (!trimmed) return false;
-
-  if (trimmed.startsWith('/') && trimmed.endsWith('/')) return false;
-  if (trimmed.startsWith('|') && !trimmed.startsWith('||')) return false;
-
-  var ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}$/;
-  if (ipv4Pattern.test(trimmed) && trimmed.split('.').every(o => parseInt(o, 10) <= 255)) return true;
-
-  var ipv4CidrPattern = /^(\d{1,3}\.){3}\d{1,3}\/(8|9|1\d|2\d|3[0-2])$/;
-  if (ipv4CidrPattern.test(trimmed) && trimmed.split('/')[0].split('.').every(o => parseInt(o, 10) <= 255)) return true;
-
-  var portPattern = /^([a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?:[1-9]\d{0,4}$/;
-  if (portPattern.test(trimmed)) return true;
-
-  var ipPortPattern = /^(\d{1,3}\.){3}\d{1,3}:[1-9]\d{0,4}$/;
-  if (ipPortPattern.test(trimmed)) return true;
-
-  var hostnamePattern = /^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/;
-  if (hostnamePattern.test(trimmed)) return true;
-
-  if (trimmed.includes('*')) {
-    var wildcardPattern = /^(\*\.)?[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?)*$/;
-    if (wildcardPattern.test(trimmed.replace(/\*/g, 'a'))) return true;
+  const value = pattern.trim();
+  if (value === '<local>') return true;
+  if (!value || /[\s|]/.test(value)) return false;
+  const cidr = value.match(/^([0-9.]+)\/([0-9]|[12][0-9]|3[0-2])$/);
+  if (cidr) return validateIPAddress(cidr[1]).isValid;
+  if (value.includes('/')) return false;
+  const parts = value.split(':');
+  if (parts.length > 2) return false;
+  const host = parts[0];
+  if (parts.length === 2 && (!/^[1-9][0-9]{0,4}$/.test(parts[1]) || Number(parts[1]) > 65535)) return false;
+  if (/^[0-9.]+$/.test(host)) return validateIPAddress(host).isValid;
+  if (host.includes('*')) {
+    return /^[a-z0-9*-]+(?:\.[a-z0-9*-]+)*$/i.test(host);
   }
-
-  return true;
+  return isValidHost(host.replace(/^\./, ''));
 }
 
 // Export for use
