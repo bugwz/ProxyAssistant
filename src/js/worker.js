@@ -2507,6 +2507,9 @@ function generatePacScript(list, config) {
 
   function isInCidrRange(ip, cidr) {
     const [range, bits] = cidr.split('/');
+    const validAddress = value => value.split('.').length === 4
+      && value.split('.').every(part => /^[0-9]{1,3}$/.test(part) && Number(part) <= 255);
+    if (!validAddress(ip) || !validAddress(range) || !/^(?:[0-9]|[12][0-9]|3[0-2])$/.test(bits)) return false;
     const mask = ~(2 ** (32 - parseInt(bits, 10)) - 1);
     const ipNum = ipToNumber(ip);
     const rangeNum = ipToNumber(range);
@@ -2703,6 +2706,7 @@ function ipToNumber(ip) {
 }
 
 function isInCidrRange(ip, cidr) {
+  if (!isIPv4Address(ip) || !isIPv4Address(cidr.split('/')[0])) return false;
   const [range, bits] = cidr.split('/');
   const mask = ~(2 ** (32 - parseInt(bits, 10)) - 1);
   const ipNum = ipToNumber(ip);
@@ -2724,7 +2728,8 @@ function getUrlParts(url) {
 }
 
 function isIPv4Address(value) {
-  return /^(\d{1,3}\.){3}\d{1,3}$/.test(value);
+  return value.split('.').length === 4
+    && value.split('.').every(part => /^[0-9]{1,3}$/.test(part) && Number(part) <= 255);
 }
 
 function compileFirefoxRulePatterns(patterns) {

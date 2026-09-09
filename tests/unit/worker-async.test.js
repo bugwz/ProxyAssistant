@@ -1458,3 +1458,20 @@ test.each([
   expect(firefox).toBe(expected);
   expect(pac.FindProxyForURL(url, hostname) !== 'DIRECT').toBe(expected);
 });
+
+
+test.each([
+  ['example.com', '0.0.0.0/8', false],
+  ['0.1.2.3', '0.0.0.0/8', true],
+  ['999.1.2.3', '0.0.0.0/0', false],
+  ['192.0.2.1', '0.0.0.0/0', true],
+  ['192.0.2.1', '999.0.0.0/0', false]
+])('CIDR matching validates %s against %s', (host, cidr, expected) => {
+  const context = loadWorkerContext();
+  const proxy = { ip: 'proxy.example', port: '8080', include_rules: cidr };
+  const pac = vm.createContext({});
+  vm.runInContext(context.generatePacScript([proxy], {}), pac);
+  const url = 'http://' + host + '/';
+  expect(pac.FindProxyForURL(url, host) !== 'DIRECT').toBe(expected);
+  expect(context.matchesCompiledFirefoxRules(context.compileFirefoxRulePatterns([cidr]), url, { host })).toBe(expected);
+});
