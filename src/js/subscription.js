@@ -1233,6 +1233,12 @@ const SubscriptionModule = (function () {
       return pattern;
     }
 
+    // Host boundary markers are not part of the normalized hostname.
+    // Request-type options and embedded separators cannot be represented here.
+    if (pattern.includes('$')) return null;
+    pattern = pattern.replace(/\^$/, '');
+    if (pattern.includes('^')) return null;
+
     if (pattern.startsWith('|') && (pattern.includes('://') || pattern.endsWith('|'))) {
       let url = pattern.replace(/^\|+|\|+$/g, '');
       const hostname = extractHostname(url);

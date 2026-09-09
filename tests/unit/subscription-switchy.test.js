@@ -84,3 +84,13 @@ test.each([
   expect(loadSubscriptionModule().generateSubscriptionStats(content, 'autoproxy', false).include_rules).toBe(expected);
   expect(parseInWorker(content, 'autoproxy').include_rules).toBe(expected);
 });
+
+
+test.each([false, true])('AutoProxy host boundaries and exceptions support reverse=%s', reverse => {
+  const content = '[AutoProxy 0.2]\n||example.com^\n@@||direct.example.com^\n||limited.example$script';
+  for (const result of [loadSubscriptionModule().generateSubscriptionStats(content, 'autoproxy', reverse),
+    parseInWorker(content, 'autoproxy', reverse)]) {
+    expect(result.include_rules).toBe(reverse ? 'direct.example.com' : 'example.com');
+    expect(result.bypass_rules).toBe(reverse ? 'example.com' : 'direct.example.com');
+  }
+});
