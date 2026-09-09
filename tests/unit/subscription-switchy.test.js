@@ -116,3 +116,20 @@ test.each(['*.cn', '*.example.com', '*.example.*'])('Omega preserves the host wi
     }
   }
 });
+
+
+test('PAC extraction caps large inputs before accumulating rules', () => {
+  const content = 'function FindProxyForURL(){} list=[' + Array.from({ length: 150000 }, (_, i) => 'host' + i + '.example').join(',') + '];';
+  const rule = JSON.stringify({ include: { left: 'list=[', right: '];' } });
+  for (const result of [loadSubscriptionModule().generateSubscriptionStats(content, 'pac', false, rule),
+    parseInWorker(content, 'pac', false, rule)]) {
+    const lines = result.include_rules.split('\n');
+    expect(lines).toHaveLength(20000);
+    expect(lines[19999]).toBe('host19999.example');
+  }
+});
+
+test.each(['null', '{', '{"include":{"left":3,"right":"]"}}'])('PAC extraction reports invalid settings: %s', rule => {
+  expect(() => loadSubscriptionModule().generateSubscriptionStats('FindProxyForURL', 'pac', false, rule)).toThrow();
+  expect(() => parseInWorker('FindProxyForURL', 'pac', false, rule)).toThrow();
+});

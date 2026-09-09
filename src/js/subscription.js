@@ -698,11 +698,9 @@ const SubscriptionModule = (function () {
         throw new Error(I18n.t('alert_invalid_format') || 'Invalid format');
       }
 
-      subscriptionConfig.lists[format].url = url;
-      subscriptionConfig.lists[format].content = content;
-      subscriptionConfig.lists[format].last_fetch_time = Date.now();
-
-      updateSubscriptionParsedData(format, subscriptionConfig.lists[format]);
+      const next = { ...subscriptionConfig.lists[format], url, content, last_fetch_time: Date.now() };
+      updateSubscriptionParsedData(format, next);
+      Object.assign(subscriptionConfig.lists[format], next);
 
       updateContentDisplay(content, format);
       updateLastUpdatedTime();
@@ -1600,6 +1598,7 @@ const SubscriptionModule = (function () {
       }
     } catch (e) {
       console.info('Parse error', e);
+      if (format === 'pac') throw e;
     }
 
     const uniqueInclude = [...new Set(result.include_rules)];
@@ -1613,62 +1612,45 @@ const SubscriptionModule = (function () {
   }
 
   function parsePacContent(rawContent, processRule, reverse = false) {
-    if (!rawContent || !processRule) {
-      return { include: [], bypass: [] };
+    if (!rawContent || !processRule) return { include: [], bypass: [] };
+    const config = JSON.parse(processRule);
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      throw new Error('Invalid PAC extraction configuration');
     }
-
-    let config;
-    try {
-      config = JSON.parse(processRule);
-    } catch (error) {
-      console.info('PAC content parse failed:', error);
-      return { include: [], bypass: [] };
-    }
-
     const content = rawContent.replace(/\s+/g, '');
-
-    const { left: bypassLeft = '', right: bypassRight = '' } = config.bypass || {};
-    const { left: includeLeft = '', right: includeRight = '' } = config.include || {};
-
-    const isValidItem = item => item && typeof item === 'string' && !item.includes('*');
-
-    function extractByBounds(content, left, right) {
-      if (!left || !right) return [];
-      const results = [];
-      let start = 0;
-      while (true) {
-        const leftIdx = content.indexOf(left, start);
-        if (leftIdx === -1) break;
-        const rightIdx = content.indexOf(right, leftIdx + left.length);
-        if (rightIdx === -1) break;
-        results.push(content.substring(leftIdx + left.length, rightIdx));
-        start = rightIdx + right.length;
+    let count = 0;
+    function extractItems(bounds) {
+      if (!bounds) return [];
+      const { left = '', right = '' } = bounds;
+      if (typeof left !== 'string' || typeof right !== 'string') {
+        throw new Error('Invalid PAC extraction boundaries');
       }
-      return results;
+      if (!left || !right) return [];
+      const items = new Set();
+      let start = 0;
+      while (count < MAX_SUBSCRIPTION_PARSED_RULES) {
+        const leftIndex = content.indexOf(left, start);
+        if (leftIndex < 0) break;
+        const valueStart = leftIndex + left.length;
+        const rightIndex = content.indexOf(right, valueStart);
+        if (rightIndex < 0) throw new Error('Unclosed PAC extraction boundary');
+        let position = valueStart;
+        while (position < rightIndex && count < MAX_SUBSCRIPTION_PARSED_RULES) {
+          const comma = content.indexOf(',', position);
+          const end = comma < 0 || comma > rightIndex ? rightIndex : comma;
+          const item = content.slice(position, end).replace(/["']/g, '').trim();
+          if (item && !item.includes('*') && !items.has(item)) {
+            items.add(item);
+            count += 1;
+          }
+          position = end + 1;
+        }
+        start = rightIndex + right.length;
+      }
+      return [...items];
     }
-
-    function extractItems(targetArray, left, right) {
-      if (!left || !right) return;
-      const items = extractByBounds(content, left, right)
-        .flatMap(item => item.replace(/["']/g, '').split(',')
-          .map(part => part.trim())
-          .filter(Boolean));
-      targetArray.push(...items);
-    }
-
-    const extractedInclude = [];
-    const extractedBypass = [];
-
-    extractItems(extractedBypass, bypassLeft, bypassRight);
-    extractItems(extractedInclude, includeLeft, includeRight);
-
-    const include = [...new Set(extractedInclude.filter(isValidItem))];
-    const bypass = [...new Set(extractedBypass.filter(isValidItem))];
-
-    if (reverse) {
-      return { include: bypass, bypass: include };
-    }
-
+    const include = extractItems(reverse ? config.bypass : config.include);
+    const bypass = extractItems(reverse ? config.include : config.bypass);
     return { include, bypass };
   }
 
@@ -1780,9 +1762,9 @@ const SubscriptionModule = (function () {
       const content = await fetchSubscriptionText(item.url);
       if (!isFormatValid(content, format)) throw new Error(I18n.t('alert_invalid_format'));
 
-      item.content = content;
-      item.last_fetch_time = Date.now();
-      updateSubscriptionParsedData(format, item);
+      const next = { ...item, content, last_fetch_time: Date.now() };
+      updateSubscriptionParsedData(format, next);
+      Object.assign(item, next);
       renderManagementList();
       UtilsModule.showTip(I18n.t('subscription_fetch_success'), false);
     } catch (error) {

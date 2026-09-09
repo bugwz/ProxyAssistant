@@ -1475,3 +1475,16 @@ test.each([
   expect(pac.FindProxyForURL(url, host) !== 'DIRECT').toBe(expected);
   expect(context.matchesCompiledFirefoxRules(context.compileFirefoxRulePatterns([cidr]), url, { host })).toBe(expected);
 });
+
+test('failed PAC extraction preserves the previous background cache', async () => {
+  const context = loadWorkerContext();
+  await context.enqueueProxyOperation(() => {});
+  const item = { content: 'old content', include_rules: 'old.example', last_fetch_time: 123, process_rule: 'null' };
+  const config = { subscriptions: [{ id: 'sub', current: 'pac', lists: { pac: item } }] };
+  context.chrome.storage.local.get.mockImplementation((keys, callback) => callback({ config }));
+  context.fetchSubscriptionTextWithLimit = jest.fn(async () => 'function FindProxyForURL() {}');
+  context.applyProxySettings = jest.fn();
+  await context.fetchSubscriptionBackground('sub', 'pac', 'https://rules.example/', 1);
+  expect(item).toEqual({ content: 'old content', include_rules: 'old.example', last_fetch_time: 123, process_rule: 'null' });
+  expect(context.applyProxySettings).not.toHaveBeenCalled();
+});
