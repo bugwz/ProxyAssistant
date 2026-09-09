@@ -35,3 +35,23 @@ test('Firefox version timeout covers a stalled response body', async () => {
   await pending;
   expect(jest.getTimerCount()).toBe(0);
 });
+
+
+test.each([false, true])('Firefox version success stays visible after retry=%s', retry => {
+  const fetchMock = jest.fn(async () => ({ ok: true, json: async () => ({
+    current_version: { version: '1.9.0' }, url: 'https://addons.mozilla.org/addon/example/'
+  }) }));
+  if (retry) fetchMock.mockRejectedValueOnce(new Error('temporary error'));
+  const module = loadVersionModule(fetchMock);
+  jest.useFakeTimers();
+  const pending = module.checkStoreVersion('1.8.1');
+  return (async () => {
+    await jest.advanceTimersByTimeAsync(retry ? 1000 : 0);
+    await pending;
+    expect(fetchMock).toHaveBeenCalledTimes(retry ? 2 : 1);
+    expect(window.$('#store-version-value').text()).toContain('1.9.0');
+    expect(window.$('#store-version-value a').attr('href')).toBe('https://addons.mozilla.org/addon/example/');
+    expect(window.$('#store-version-value .github-refresh-btn')).toHaveLength(0);
+    expect(jest.getTimerCount()).toBe(0);
+  })();
+});

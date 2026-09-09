@@ -92,8 +92,8 @@ async function checkStoreVersion(currentVersion, isRetry = false) {
 
     let result = await fetchWithRetry();
 
-    if (result === false || (result instanceof Error && !isRetry)) {
-      for (let attempt = 0; attempt < MAX_RETRIES && !(result instanceof Response); attempt++) {
+    if (result !== true && !isRetry) {
+      for (let attempt = 0; attempt < MAX_RETRIES && result !== true; attempt++) {
         const delay = RETRY_DELAYS[attempt];
         console.info(`Firefox Add-ons fetch failed (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${delay}ms`);
         $el.html(`<span class="version-status-icon">${versionIcons.loading}</span>
@@ -104,9 +104,8 @@ async function checkStoreVersion(currentVersion, isRetry = false) {
       }
     }
 
-    if (result instanceof Error || !(result === true)) {
-      console.info("Firefox Add-ons fetch failed:", result);
-    }
+    if (result === true) return;
+    console.info('Firefox Add-ons fetch failed:', result);
   } else {
     const storeUrl = `https://chromewebstore.google.com/detail/${chrome.runtime.id}`;
     $el.html(`<a href="${storeUrl}" target="_blank" class="version-link">
@@ -200,8 +199,9 @@ function updateVersionUI($el, remoteVersion, currentVersion, url) {
 
   $el.html(html);
 
-  const refreshBtn = getGitHubRefreshButton();
-  $el.append(refreshBtn);
+  if ($el.attr('id') === 'github-version-value') {
+    $el.append(getGitHubRefreshButton());
+  }
 }
 
 function compareVersions(v1, v2) {
