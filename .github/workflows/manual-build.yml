@@ -1,0 +1,79 @@
+name: Build Test Packages
+run-name: Build test packages · ${{ inputs.ref || github.ref_name }} · @${{ github.actor }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Target branch, tag or commit SHA (leave empty to use the selected workflow branch)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Chrome and Firefox test packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout target code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Install web-ext
+        run: npm install -g web-ext
+
+      - name: Identify build
+        id: build
+        run: |
+          COMMIT=$(git rev-parse HEAD)
+          VERSION="test-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}-${COMMIT:0:12}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
+
+      - name: Build extension packages
+        env:
+          VERSION: ${{ steps.build.outputs.version }}
+        run: make build VERSION="$VERSION"
+
+      - name: Verify release package set
+        env:
+          VERSION: ${{ steps.build.outputs.version }}
+        run: |
+          for SUFFIX in chrome.zip chrome.tar.gz firefox.zip firefox.tar.gz firefox.xpi; do
+            test -s "build/ProxyAssistant_${VERSION}_${SUFFIX}"
+          done
+
+      - name: Upload test packages
+        id: upload
+        uses: actions/upload-artifact@v6
+        with:
+          name: ProxyAssistant_${{ steps.build.outputs.version }}
+          path: build/ProxyAssistant_*
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - name: Write build summary
+        env:
+          TARGET_REF: ${{ inputs.ref || github.ref_name }}
+          COMMIT: ${{ steps.build.outputs.commit }}
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+        run: |
+          {
+            echo '## Test packages'
+            printf '\n- Target: `%s`\n' "$TARGET_REF"
+            printf -- '- Commit: `%s`\n' "$COMMIT"
+            printf -- '- [Download packages](%s) (retained for 14 days)\n' "$ARTIFACT_URL"
+            echo '- Chrome: ZIP and TAR.GZ; Firefox: ZIP, TAR.GZ and unsigned XPI.'
+            echo '- Package filenames identify this test build; manifest versions remain unchanged.'
+          } >> "$GITHUB_STEP_SUMMARY"

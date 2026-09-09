@@ -179,6 +179,16 @@ build/
 
 如果系统中没有 `web-ext`，最后一个文件不会生成。
 
+### 在 GitHub 网页打包测试分支
+
+1. 打开仓库的 **Actions → Build Test Packages → Run workflow**。
+2. 在 **Use workflow from** 中选择包含此工作流的分支。可选的 `ref` 输入框用于指定要打包的分支、标签或提交 SHA；留空时打包所选工作流分支的代码。
+3. 点击 **Run workflow**，完成后在运行详情的 **Artifacts** 或构建摘要中下载测试包。
+
+工作流复用 `make build`，生成上述 5 种 Release 同类型产物，保留 14 天。下载的 Artifact 是外层 ZIP，解压后可取得各浏览器的安装包。文件名使用 `test-<运行编号>-<重跑次数>-<提交短 SHA>` 标识，扩展 Manifest 版本保持目标代码中的版本。此流程仅手动运行，不创建标签或 GitHub Release。
+
+首次使用前，需要将工作流合入默认分支，GitHub 才会显示手动运行入口，详见 [GitHub 手动运行工作流文档](https://docs.github.com/actions/managing-workflow-runs/manually-running-a-workflow)。目标代码需包含 `Makefile`、`script/build.sh` 和 `src/`。Chrome / Edge 解压 Chrome ZIP 后加载；Firefox 可解压 Firefox ZIP，通过 `about:debugging` 临时加载 `manifest.json`，生成的 XPI 未签名。
+
 ### 项目结构
 
 ```text
