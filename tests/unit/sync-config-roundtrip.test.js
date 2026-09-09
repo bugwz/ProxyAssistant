@@ -149,3 +149,16 @@ test('independent contexts generate distinct stable entity IDs at the same time'
     jest.useRealTimers();
   }
 });
+
+
+test('native sync chunks fit byte quotas for unicode and escaped content', async () => {
+  const { SyncModule, items } = loadModules();
+  const data = { text: '中文😀"\\\n'.repeat(3000) };
+  await SyncModule.nativePush(data);
+  const chunks = Object.entries(items).filter(([key]) => key.startsWith('data.'));
+  expect(chunks.length).toBeGreaterThan(1);
+  for (const [key, value] of chunks) {
+    expect(Buffer.byteLength(key + JSON.stringify(value))).toBeLessThanOrEqual(8192);
+  }
+  expect(await SyncModule.nativePull()).toEqual(data);
+});

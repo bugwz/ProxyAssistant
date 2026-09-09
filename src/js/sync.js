@@ -85,11 +85,24 @@ async function fetchGistWithTimeout(
 
 function chunkString(str, size) {
   const chunks = [];
-  let i = 0;
-  while (i < str.length) {
-    chunks.push(str.substring(i, i + size));
-    i += size;
+  let current = [];
+  let bytes = 2; // JSON string quotes; leave key overhead within the 1 KiB reserve.
+  for (const char of str) {
+    const escaped = JSON.stringify(char);
+    let charBytes = -2;
+    for (const codepoint of escaped) {
+      const code = codepoint.codePointAt(0);
+      charBytes += code <= 0x7f ? 1 : code <= 0x7ff ? 2 : code <= 0xffff ? 3 : 4;
+    }
+    if (bytes + charBytes > size && current.length) {
+      chunks.push(current.join(''));
+      current = [];
+      bytes = 2;
+    }
+    current.push(char);
+    bytes += charBytes;
   }
+  if (current.length) chunks.push(current.join(''));
   return chunks;
 }
 
@@ -173,7 +186,8 @@ function updateNativeQuotaInfo(configFileOptions) {
 
   const quotaTotalLimit = chrome.storage.sync.QUOTA_BYTES || 102400;
 
-  const usageBytes = meta.totalSize;
+  const usageBytes = new Blob(['meta', JSON.stringify(meta)]).size
+    + chunks.reduce((sum, chunk, index) => sum + new Blob(['data.' + index, JSON.stringify(chunk)]).size, 0);
   const chunksCount = chunks.length;
   const usageKB = (usageBytes / 1024).toFixed(1);
   const quotaTotalKB = (quotaTotalLimit / 1024).toFixed(0);

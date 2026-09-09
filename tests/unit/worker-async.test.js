@@ -1544,3 +1544,14 @@ test.each(['url', 'disabled', 'format', 'deleted'])('discards a downloaded subsc
   expect(context.chrome.storage.local.set.mock.calls.some(([payload]) => payload.config)).toBe(false);
   expect(context.applyProxySettingsNow).not.toHaveBeenCalled();
 });
+
+
+test('scheduled sync chunks respect serialized utf8 byte limits', () => {
+  const context = loadWorkerContext();
+  const json = JSON.stringify({ text: '中文😀"\\\n'.repeat(3000) });
+  const chunks = context.chunkCloudSyncString(json, 7 * 1024);
+  expect(chunks.join('')).toBe(json);
+  chunks.forEach((chunk, index) => {
+    expect(Buffer.byteLength('data.' + index + JSON.stringify(chunk))).toBeLessThanOrEqual(8192);
+  });
+});

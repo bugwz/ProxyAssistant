@@ -514,18 +514,38 @@ function inflateCloudSyncPayload(remoteConfig, localConfig) {
   return data;
 }
 
+function chunkCloudSyncString(str, size) {
+  const chunks = [];
+  let current = [];
+  let bytes = 2; // JSON string quotes; leave key overhead within the 1 KiB reserve.
+  for (const char of str) {
+    const escaped = JSON.stringify(char);
+    let charBytes = -2;
+    for (const codepoint of escaped) {
+      const code = codepoint.codePointAt(0);
+      charBytes += code <= 0x7f ? 1 : code <= 0x7ff ? 2 : code <= 0xffff ? 3 : 4;
+    }
+    if (bytes + charBytes > size && current.length) {
+      chunks.push(current.join(''));
+      current = [];
+      bytes = 2;
+    }
+    current.push(char);
+    bytes += charBytes;
+  }
+  if (current.length) chunks.push(current.join(''));
+  return chunks;
+}
+
 async function pushNativeCloudConfig(config, options) {
   const json = JSON.stringify(buildCloudSyncPayload(config, options));
-  const chunks = [];
-  for (let index = 0; index < json.length; index += CLOUD_SYNC_CHUNK_SIZE) {
-    chunks.push(json.substring(index, index + CLOUD_SYNC_CHUNK_SIZE));
-  }
+  const chunks = chunkCloudSyncString(json, CLOUD_SYNC_CHUNK_SIZE);
 
   const values = {
     meta: {
       version: 4,
       chunks: { start: 0, end: chunks.length - 1 },
-      totalSize: json.length,
+      totalSize: getUtf8ByteLength(json),
       checksum: calculateCloudSyncChecksum(json)
     }
   };
