@@ -1579,6 +1579,7 @@ async function fetchSubscriptionTextWithLimit(url, timeoutMs = SUBSCRIPTION_FETC
 // Background fetch for subscription with retry
 async function fetchSubscriptionBackground(proxyId, format, url, maxRetries = 3) {
   let lastError = null;
+  let needsApply = false;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -1653,19 +1654,11 @@ async function fetchSubscriptionBackground(proxyId, format, url, maxRetries = 3)
 
       console.log(`[Worker] Background fetch saved: ${proxyId}`);
 
-      if (updated) {
-        await new Promise((resolve) => {
-          chrome.runtime.sendMessage({
-            action: 'subscriptionUpdated',
-            proxyId: proxyId,
-            format: format
-          }, () => {
-            if (chrome.runtime.lastError) {
-              console.info(`[Worker] Send message error: ${chrome.runtime.lastError.message} for proxy: ${proxyId}`);
-            }
-            resolve();
-          });
-        });
+      needsApply = needsApply || updated;
+      if (needsApply) {
+        const applied = await applyProxySettings();
+        if (!applied?.success) throw new Error(applied?.error || 'Failed to apply updated subscription');
+        needsApply = false;
       }
 
       console.log(`[Worker] Background fetch completed for proxy: ${proxyId}, updated: ${updated}`);
@@ -3091,8 +3084,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     } else if (message.action === "subscriptionUpdated") {
       console.log(`[Worker] Subscription updated: ${message.proxyId}, format: ${message.format}`);
-      applyProxySettings();
-      sendResponse({ success: true });
+      applyProxySettings()
+        .then(sendResponse)
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
     } else if (message.action === "scheduleSubscriptionRefresh") {
       scheduleSubscriptionRefresh(
         message.proxyId,

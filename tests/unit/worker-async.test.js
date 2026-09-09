@@ -1409,3 +1409,31 @@ test('manual mode applies normalized shared subscription bypass rules', async ()
     'example.com', '*.example.com', '10.0.0.0/8', '192.0.2.1', '*.internal.example'
   ]);
 });
+
+
+test('background subscription refresh waits for routing application', async () => {
+  const context = loadWorkerContext();
+  await context.enqueueProxyOperation(() => {});
+  const config = { subscriptions: [{ id: 'sub', current: 'autoproxy', lists: {
+    autoproxy: { url: 'https://rules.example/', content: '||old.example' }
+  } }] };
+  context.chrome.storage.local.get.mockImplementation((keys, callback) => callback({ config }));
+  context.fetchSubscriptionTextWithLimit = jest.fn(async () => '[AutoProxy 0.2]\n||new.example');
+  let release;
+  const started = new Promise(resolve => {
+    context.applyProxySettings = jest.fn(() => {
+      expect(config.subscriptions[0].lists.autoproxy.include_rules).toContain('new.example');
+      resolve();
+      return new Promise(done => { release = done; });
+    });
+  });
+  let finished = false;
+  const pending = context.fetchSubscriptionBackground('sub', 'autoproxy', 'https://rules.example/', 1)
+    .then(() => { finished = true; });
+  await started;
+  expect(finished).toBe(false);
+  release({ success: true });
+  await pending;
+  expect(finished).toBe(true);
+  expect(context.applyProxySettings).toHaveBeenCalledTimes(1);
+});
