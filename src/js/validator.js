@@ -47,7 +47,7 @@ function validateProxy(list, i, name, val) {
     if (val.trim() === '') { isValid = false; errorMessage = I18n.t('alert_name_required') || '代理名称不能为空'; }
     else if (isDuplicate) { isValid = false; errorMessage = I18n.t('alert_name_duplicate') || '代理名称不能重复'; }
   } else if (name === 'include_rules') {
-    var includeUrlsCheck = checkIncludeUrlsConflict(i, val);
+    var includeUrlsCheck = checkIncludeUrlsConflict(list, i, val);
     if (includeUrlsCheck.hasConflict) { isValid = false; errorMessage = includeUrlsCheck.error; }
   } else if (name === 'ip') {
     var parts = val.split('.');
