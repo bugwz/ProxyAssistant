@@ -3034,61 +3034,27 @@ function turnOffProxy() {
 
 async function turnOffProxyNow() {
   if (isFirefox) {
-    firefoxProxyState.mode = 'disabled';
-    setProxyAuthentication([]);
-    updateFirefoxSessionState();
-    chrome.storage.local.set({ state: { proxy: { mode: 'disabled', current: null } } }, () => {
-      updateBadge();
-    });
-    browser.proxy.settings.clear({});
+    await browser.proxy.settings.clear({});
   } else {
-    // Chrome
-    return new Promise(async (resolve) => {
-      try {
-        // First check current proxy control status
-        const currentConfig = await getProxySettings();
-
-        // Check if controlled by other extensions
-        if (currentConfig.levelOfControl === "controlled_by_other_extensions") {
-          console.warn("Proxy is controlled by other extensions, cannot turn off");
+    await new Promise((resolve, reject) => {
+      chrome.proxy.settings.set({ value: { mode: 'system' }, scope: 'regular' }, () => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message || 'Failed to disable proxy'));
+        } else {
+          resolve();
         }
-
-        const config = {
-          mode: "system"
-        };
-
-        // Clear auth info
-        setProxyAuthentication([]);
-
-        // Mark proxy as disabled
-        chrome.storage.local.set({ state: { proxy: { mode: 'disabled', current: null } } }, () => {
-          updateBadge();
-        });
-
-        // Remove auth listener
-        try {
-          chrome.webRequest.onAuthRequired.removeListener(handleAuthRequest);
-        } catch (e) {
-          console.log("No auth listener to remove");
-        }
-
-        chrome.proxy.settings.set(
-          { value: config, scope: "regular" },
-          async () => {
-            if (chrome.runtime.lastError) {
-              console.log("Error turning off proxy:", chrome.runtime.lastError);
-            } else {
-              console.log("Proxy turned off (mode: system)");
-            }
-            resolve();
-          }
-        );
-      } catch (error) {
-        console.log("Error in turnOffProxy:", error);
-        resolve();
-      }
+      });
     });
   }
+  await setStorageValues({ state: { proxy: { mode: 'disabled', current: null } } });
+  if (isFirefox) {
+    firefoxProxyState.mode = 'disabled';
+    firefoxProxyState.currentProxy = null;
+    updateFirefoxSessionState();
+  }
+  setProxyAuthentication([]);
+  chrome.webRequest.onAuthRequired.removeListener(handleAuthRequest);
+  updateBadge();
 }
 
 // Listen for messages from popup or settings page

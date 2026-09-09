@@ -1269,3 +1269,36 @@ describe('ordered proxy changes', () => {
     await expect(context.applyProxySettings(null, 'disabled')).resolves.toMatchObject({ success: true });
   });
 });
+
+
+describe('proxy disable failures', () => {
+  test.each([false, true])('preserves state and credentials when disabling fails (Firefox: %s)', async firefox => {
+    const browser = firefox ? {
+      runtime: { getBrowserInfo: jest.fn() },
+      proxy: { settings: { clear: jest.fn() }, onRequest: {
+        addListener: jest.fn(), hasListener: jest.fn(() => false)
+      } }
+    } : undefined;
+    const context = loadWorkerContext({ browser });
+    await context.enqueueProxyOperation(() => {});
+    context.setProxyAuthentication([{ ip: 'proxy.example', port: 8080, username: 'user', password: 'secret' }]);
+    context.chrome.storage.local.set.mockClear();
+    context.chrome.webRequest.onAuthRequired.removeListener.mockClear();
+    if (firefox) browser.proxy.settings.clear.mockRejectedValueOnce(new Error('denied'));
+    else context.chrome.proxy.settings.set.mockImplementationOnce((value, callback) => {
+      context.chrome.runtime.lastError = { message: 'denied' };
+      callback();
+      context.chrome.runtime.lastError = null;
+    });
+    await expect(context.turnOffProxy()).rejects.toThrow('denied');
+    expect(context.chrome.storage.local.set).not.toHaveBeenCalled();
+    expect(context.chrome.webRequest.onAuthRequired.removeListener).not.toHaveBeenCalled();
+    const response = jest.fn();
+    await context.handleAuthRequest({ isProxy: true, challenger: { host: 'proxy.example', port: 8080 } }, response);
+    expect(response).toHaveBeenCalledWith({ authCredentials: { username: 'user', password: 'secret' } });
+    await context.turnOffProxy();
+    expect(context.chrome.storage.local.set).toHaveBeenCalledWith(
+      { state: { proxy: { mode: 'disabled', current: null } } }, expect.any(Function)
+    );
+  });
+});
