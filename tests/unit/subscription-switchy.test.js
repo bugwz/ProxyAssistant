@@ -94,3 +94,14 @@ test.each([false, true])('AutoProxy host boundaries and exceptions support rever
     expect(result.bypass_rules).toBe(reverse ? 'example.com' : 'direct.example.com');
   }
 });
+
+
+test.each(['*://*.bbci.co.uk/*', 'https://*.bbci.co.uk/*', '*.bbci.co.uk'])('Legacy preserves the complete domain in %s', rule => {
+  const content = '#BEGIN\n[Wildcard]\n' + rule + '\n#END';
+  for (const reverse of [false, true]) {
+    for (const result of [loadSubscriptionModule().generateSubscriptionStats(content, 'switchy_legacy', reverse),
+      parseInWorker(content, 'switchy_legacy', reverse)]) {
+      expect(result[reverse ? 'bypass_rules' : 'include_rules']).toBe('bbci.co.uk');
+    }
+  }
+});

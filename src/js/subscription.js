@@ -1550,24 +1550,13 @@ const SubscriptionModule = (function () {
 
   function extractDomainInfo(pattern) {
     if (!pattern) return null;
-
-    let domain = pattern
-      .replace(/^\*\:?\/?\/?(\*\.)?/, '')
+    const domain = pattern
+      .replace(/^(?:[a-z]+|\*):\/\//i, '')
+      .replace(/^\*\./, '')
       .replace(/\/\*.*$/, '')
       .trim();
-
     if (!domain) return null;
-
-    const domainParts = domain.split('.');
-    const segmentCount = domainParts.filter(Boolean).length;
-
-    const secondLastPart = domainParts[domainParts.length - 2];
-    return {
-      domain: domainParts.length >= 2 && secondLastPart
-        ? domainParts.slice(-2).join('.')
-        : domain,
-      segmentCount: segmentCount
-    };
+    return { domain, segmentCount: domain.split('.').filter(Boolean).length };
   }
 
   function parseSubscriptionContent(content, format, reverse, processRule) {
