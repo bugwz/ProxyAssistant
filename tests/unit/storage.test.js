@@ -99,6 +99,7 @@ describe('StorageModule subscription synchronization', () => {
   test('merges refreshed subscriptions without replacing local edits', async () => {
     const cachedConfig = createConfig('old content');
     const refreshedConfig = createConfig('new content');
+    refreshedConfig.updated_at = '2026-08-20T06:30:00.000Z';
     storageModule.setConfig(cachedConfig);
 
     cachedConfig.scenarios.lists[0].proxies[0].name = 'Unsaved draft';

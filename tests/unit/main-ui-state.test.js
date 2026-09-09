@@ -350,13 +350,15 @@ describe('main UI state flow', () => {
   });
 
   test('subscription-only storage updates merge without reloading the form', () => {
-    global.StorageModule.isSubscriptionOnlyChange.mockReturnValue(true);
+    const storageSource = fs.readFileSync(path.join(__dirname, '../../src/js/storage.js'), 'utf8');
+    const actualStorage = new Function('window', 'chrome', storageSource + '; return window.StorageModule;')({}, global.chrome);
+    global.StorageModule.isSubscriptionOnlyChange = actualStorage.isSubscriptionOnlyChange;
     window.eval(fs.readFileSync(mainJsPath, 'utf8'));
     window.initDropdowns();
 
     const listener = global.chrome.storage.onChanged.addListener.mock.calls[0][0];
     const oldConfig = { version: 4, scenarios: { lists: [] } };
-    const newConfig = { version: 4, scenarios: { lists: [] } };
+    const newConfig = { version: 4, scenarios: { lists: [] }, updated_at: '2026-09-09T00:00:00Z', subscriptions: [] };
     listener({ config: { oldValue: oldConfig, newValue: newConfig } }, 'local');
 
     expect(global.StorageModule.mergeSubscriptionChanges).toHaveBeenCalledWith(newConfig);

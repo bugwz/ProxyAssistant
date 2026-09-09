@@ -197,6 +197,7 @@ const StorageModule = (function () {
 
     const copy = JSON.parse(JSON.stringify(config));
     delete copy.subscriptions;
+    delete copy.updated_at;
     const scenarios = copy.scenarios?.lists || [];
     scenarios.forEach(scenario => {
       (scenario.proxies || []).forEach(proxy => {
