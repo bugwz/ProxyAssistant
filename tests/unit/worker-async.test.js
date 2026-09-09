@@ -448,11 +448,9 @@ describe('Worker applyProxy async handling', () => {
     const existingAuth = { username: 'existing-user', password: 'existing-password' };
     const initialAuthCallback = jest.fn();
 
-    context.chrome.storage.session.get.mockImplementation((keys, callback) => {
-      callback({ currentProxyAuth: existingAuth });
-    });
-    context.handleAuthRequest(
-      { isProxy: true, url: 'https://example.com' },
+    context.setProxyAuthentication([{ ...existingAuth, ip: 'proxy.example', port: 8080 }]);
+    await context.handleAuthRequest(
+      { isProxy: true, url: 'https://example.com', challenger: { host: 'proxy.example', port: 8080 } },
       initialAuthCallback
     );
     expect(initialAuthCallback).toHaveBeenCalledWith({ authCredentials: existingAuth });
@@ -471,8 +469,8 @@ describe('Worker applyProxy async handling', () => {
     }, sendResponse);
 
     const authCallback = jest.fn();
-    context.handleAuthRequest(
-      { isProxy: true, url: 'https://example.com' },
+    await context.handleAuthRequest(
+      { isProxy: true, url: 'https://example.com', challenger: { host: 'proxy.example', port: 8080 } },
       authCallback
     );
 
@@ -1196,5 +1194,40 @@ describe('manual proxy configuration refresh', () => {
     config.scenarios.lists[0].proxies = [];
     await context.applyProxySettings();
     expect(state.proxy).toEqual({ mode: 'disabled', current: null });
+  });
+});
+
+
+describe('proxy authentication isolation', () => {
+  test('matches credentials by challenger and preserves them after failed application', async () => {
+    const context = loadWorkerContext();
+    for (let i = 0; i < 12; i++) await Promise.resolve();
+    const a = { ip: 'a.example', port: '8080', protocol: 'http', username: 'a', password: '' };
+    const b = { ip: 'b.example', port: '8080', protocol: 'http', username: 'b', password: 'secret' };
+    context.fetch = jest.fn(async () => ({}));
+    await context.applyManualProxySettings(a);
+    const authenticate = async host => {
+      const response = jest.fn();
+      await context.handleAuthRequest({ isProxy: true, challenger: { host, port: 8080 } }, response);
+      return response.mock.calls[0][0];
+    };
+    expect(await authenticate('a.example')).toEqual({ authCredentials: { username: 'a', password: '' } });
+    expect(await authenticate('b.example')).toEqual({ cancel: false });
+    context.chrome.proxy.settings.set.mockImplementationOnce((value, callback) => {
+      context.chrome.runtime.lastError = { message: 'denied' };
+      callback();
+      context.chrome.runtime.lastError = null;
+    });
+    expect((await context.applyManualProxySettings(b)).success).toBe(false);
+    expect(await authenticate('a.example')).toEqual({ authCredentials: { username: 'a', password: '' } });
+    expect(await authenticate('b.example')).toEqual({ cancel: false });
+
+    const config = { scenarios: { current: 's', lists: [{ id: 's', proxies: [a, b] }] } };
+    context.chrome.storage.local.get.mockImplementation((keys, callback) => callback({ config }));
+    await context.applyAutoProxySettings();
+    expect(await authenticate('b.example')).toEqual({ authCredentials: { username: 'b', password: 'secret' } });
+    expect(await authenticate('unknown.example')).toEqual({ cancel: false });
+    context.setProxyAuthentication([a, { ...a, username: 'conflicting' }]);
+    expect(await authenticate('a.example')).toEqual({ cancel: false });
   });
 });

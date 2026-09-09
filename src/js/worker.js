@@ -6,10 +6,7 @@ const isFirefox = typeof browser !== 'undefined' && browser.runtime && browser.r
 const isChrome = !isFirefox && typeof chrome !== 'undefined';
 
 // Global variable to store current proxy authentication credentials
-let currentProxyAuth = {
-  username: '',
-  password: ''
-};
+let activeAuthProxies = null;
 
 // Track in-progress subscription fetches to prevent duplicates
 const inProgressFetches = new Set();
@@ -862,11 +859,21 @@ function getMergedProxySubscription(proxy, config = currentConfig) {
 }
 const SUBSCRIPTION_FORMATS = ['autoproxy', 'switchy_omega', 'switchy_legacy', 'pac'];
 
-// Helper to sync auth to session storage (MV3 state safety)
-function updateSessionAuth(auth) {
-  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.session) {
-    chrome.storage.session.set({ currentProxyAuth: auth });
+function setProxyAuthentication(proxies) {
+  activeAuthProxies = proxies.filter(proxy => proxy && proxy.enabled !== false && proxy.ip && proxy.port)
+    .map(proxy => ({
+      ip: String(proxy.ip).toLowerCase(), port: Number(proxy.port),
+      username: proxy.username || '', password: proxy.password || ''
+    }));
+  if (chrome.storage.session) {
+    chrome.storage.session.set({ proxy_auth: activeAuthProxies }, () => {
+      if (chrome.runtime.lastError) console.info('Failed to persist proxy authentication:', chrome.runtime.lastError.message);
+    });
   }
+}
+
+function getScenarioProxies(config) {
+  return config?.scenarios?.lists?.find(scenario => scenario.id === config.scenarios.current)?.proxies || [];
 }
 
 // Firefox-specific state management
@@ -2072,6 +2079,8 @@ function restoreProxySettings() {
         }
       }
 
+      setProxyAuthentication(firefoxProxyState.mode === 'manual' ? [firefoxProxyState.currentProxy]
+        : firefoxProxyState.mode === 'auto' ? getScenarioProxies(result.config) : []);
       // Ensure settings are cleared and listeners are active
       setupFirefoxProxy();
       if (result.state?.proxy?.mode === 'manual' && !firefoxProxyState.currentProxy) {
@@ -2183,6 +2192,7 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     // Sync Firefox config on storage changes
     if (isFirefox && changes.config) {
       currentConfig = changes.config.newValue || {};
+      if (firefoxProxyState.mode === 'auto') setProxyAuthentication(getScenarioProxies(currentConfig));
     }
 
     // Sync Firefox state on storage changes
@@ -2248,6 +2258,7 @@ function applyProxySettings(proxyInfo, requestedMode) {
         // Use provided info or fallback to storage
         firefoxProxyState.currentProxy = manualProxy;
       }
+      setProxyAuthentication(mode === 'manual' ? [manualProxy] : mode === 'auto' ? getScenarioProxies(result.config) : []);
       updateFirefoxSessionState();
 
       // Update UI
@@ -2482,8 +2493,6 @@ async function applyManualProxySettings(proxyInfo) {
     };
   }
 
-  currentProxyAuth = { username: username || '', password: password || '' };
-  updateSessionAuth(currentProxyAuth);
   setupAuthListener();
 
   const storedProxyInfo = { ...proxyInfo, type: type, ip: ip, port: port, name: proxyName };
@@ -2496,6 +2505,7 @@ async function applyManualProxySettings(proxyInfo) {
         return;
       }
 
+      setProxyAuthentication([proxyInfo]);
       console.log("Manual proxy enabled:", proxyName);
       preconnectToTestUrls();
       resolve({ success: true });
@@ -2556,6 +2566,7 @@ async function applyAutoProxySettings() {
         console.log("Error setting auto proxy:", chrome.runtime.lastError);
         resolve({ success: false, error: chrome.runtime.lastError.message || "Failed to apply auto proxy settings" });
       } else {
+        setProxyAuthentication(list);
         console.log("Auto proxy (PAC) enabled");
         chrome.storage.local.set({ state: { proxy: { mode: 'auto', current: null } } }, () => {
           updateBadge();
@@ -3013,77 +3024,29 @@ function setupAuthListener() {
   console.log("Auth listener set up with asyncBlocking");
 }
 
-// Authentication callback function - handles auth requests
-function handleAuthRequest(details, callback) {
-  console.log("Auth request received for: " + details.url);
-
-  // Only handle proxy authentication requests
-  if (details.isProxy) {
-    console.log("Handling proxy auth request");
-
-    if (currentProxyAuth.username && currentProxyAuth.password) {
-      console.log("Providing auth credentials for proxy");
-
-      // Direct callback for better performance and reliability with fetch
-      callback({
-        authCredentials: {
-          username: currentProxyAuth.username,
-          password: currentProxyAuth.password
-        }
-      });
-    } else {
-      // Helper for local storage fallback
-      const checkLocalStorage = () => {
-        chrome.storage.local.get(['state'], (result) => {
-          if (result.state?.proxy?.current &&
-            result.state.proxy.current.username &&
-            result.state.proxy.current.password) {
-
-            // Update global variables
-            currentProxyAuth.username = result.state.proxy.current.username;
-            currentProxyAuth.password = result.state.proxy.current.password;
-            // Note: We don't updateSessionAuth here because local storage is the source of truth for persisted settings
-
-            console.log("Retrieved auth credentials from storage");
-
-            setTimeout(() => {
-              callback({
-                authCredentials: {
-                  username: result.state.proxy.current.username,
-                  password: result.state.proxy.current.password
-                }
-              });
-            }, 0);
-          } else {
-            console.log("No auth credentials available");
-            callback({ cancel: false });
-          }
-        });
-      };
-
-      // If no auth info in global var, try session storage first (MV3 state safety)
-      // This is crucial for testProxyConnection scenarios where credentials are temporary
-      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.session) {
-        chrome.storage.session.get(['currentProxyAuth'], (sessionResult) => {
-          if (sessionResult.currentProxyAuth && sessionResult.currentProxyAuth.username) {
-            currentProxyAuth = sessionResult.currentProxyAuth;
-            console.log("Retrieved auth credentials from session storage");
-            callback({
-              authCredentials: {
-                username: currentProxyAuth.username,
-                password: currentProxyAuth.password
-              }
-            });
-          } else {
-            checkLocalStorage();
-          }
-        });
-      } else {
-        checkLocalStorage();
-      }
+// Only offer credentials belonging to the proxy that issued the challenge.
+async function handleAuthRequest(details, callback) {
+  if (!details.isProxy || !details.challenger) {
+    callback({ cancel: false });
+    return;
+  }
+  try {
+    if (activeAuthProxies === null) {
+      const session = chrome.storage.session
+        ? await callStorageArea(chrome.storage.session, 'get', 'proxy_auth') : {};
+      if (activeAuthProxies === null) activeAuthProxies = session?.proxy_auth || [];
     }
-  } else {
-    console.log("Not a proxy auth request");
+    const candidates = activeAuthProxies.filter(proxy => (
+      proxy.ip === String(details.challenger.host).toLowerCase() &&
+      proxy.port === Number(details.challenger.port) && proxy.username
+    ));
+    const proxy = candidates[0];
+    const unambiguous = proxy && candidates.every(candidate => (
+      candidate.username === proxy.username && candidate.password === proxy.password
+    ));
+    callback(unambiguous ? { authCredentials: { username: proxy.username, password: proxy.password } } : { cancel: false });
+  } catch (error) {
+    console.info('Failed to resolve proxy authentication:', error);
     callback({ cancel: false });
   }
 }
@@ -3092,6 +3055,7 @@ function handleAuthRequest(details, callback) {
 async function turnOffProxy() {
   if (isFirefox) {
     firefoxProxyState.mode = 'disabled';
+    setProxyAuthentication([]);
     updateFirefoxSessionState();
     chrome.storage.local.set({ state: { proxy: { mode: 'disabled', current: null } } }, () => {
       updateBadge();
@@ -3114,11 +3078,7 @@ async function turnOffProxy() {
         };
 
         // Clear auth info
-        currentProxyAuth = {
-          username: '',
-          password: ''
-        };
-        updateSessionAuth(currentProxyAuth);
+        setProxyAuthentication([]);
 
         // Mark proxy as disabled
         chrome.storage.local.set({ state: { proxy: { mode: 'disabled', current: null } } }, () => {
@@ -3311,14 +3271,10 @@ async function testProxyConnection(proxyInfo, sendResponse) {
     return;
   }
 
-  const previousAuth = { ...currentProxyAuth };
+  const previousAuth = activeAuthProxies ? activeAuthProxies.slice() : [];
 
   // Set test auth
-  currentProxyAuth = {
-    username: proxyInfo.username || '',
-    password: proxyInfo.password || ''
-  };
-  updateSessionAuth(currentProxyAuth);
+  setProxyAuthentication([proxyInfo]);
 
   // Ensure listener is active
   setupAuthListener();
@@ -3356,8 +3312,7 @@ async function testProxyConnection(proxyInfo, sendResponse) {
       firefoxProxyState.testMode = false;
       firefoxProxyState.testProxy = null;
       firefoxProxyState.mode = previousMode;
-      currentProxyAuth = previousAuth;
-      updateSessionAuth(currentProxyAuth);
+      setProxyAuthentication(previousAuth);
       updateFirefoxSessionState();
     }
   } else {
@@ -3402,8 +3357,7 @@ async function testProxyConnection(proxyInfo, sendResponse) {
       sendResponse({ success: false, error: error.message || "Connection failed" });
     } finally {
       // Restore previous settings
-      currentProxyAuth = previousAuth;
-      updateSessionAuth(currentProxyAuth);
+      setProxyAuthentication(previousAuth);
       applyProxySettings(); // Re-apply whatever was in storage
     }
   }
