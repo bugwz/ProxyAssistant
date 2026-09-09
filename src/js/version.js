@@ -64,15 +64,13 @@ async function checkStoreVersion(currentVersion, isRetry = false) {
 
   if (isFirefox) {
     async function fetchWithRetry(attempt = 0) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
 
         const response = await fetch(FIREFOX_API_URL, {
           signal: controller.signal
         });
-
-        clearTimeout(timeoutId);
 
         if (response.ok) {
           const data = await response.json();
@@ -86,8 +84,9 @@ async function checkStoreVersion(currentVersion, isRetry = false) {
         }
         return false;
       } catch (e) {
-        clearTimeout(timeoutId);
         return e;
+      } finally {
+        clearTimeout(timeoutId);
       }
     }
 
