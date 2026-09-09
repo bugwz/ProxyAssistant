@@ -148,7 +148,7 @@ describe('subscription management cards', () => {
     $('#add-subscription-btn').trigger('click');
 
     expect(storageModule.addSubscription).toHaveBeenCalledTimes(1);
-    expect(subscriptions[0].id).toMatch(/^subscription_\d{14}$/);
+    expect(subscriptions[0].id).toMatch(/^subscription_[a-f0-9]{32}$/);
     expect($('.subscription-card')).toHaveLength(1);
     expect($('.subscription-card').hasClass('collapsed')).toBe(false);
     expect($('.subscription-name-input')).toHaveLength(1);

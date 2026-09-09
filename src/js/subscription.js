@@ -19,7 +19,6 @@ const SubscriptionModule = (function () {
     'switchy_omega': 'Switchy Omega',
     'pac': 'PAC'
   };
-  let lastFallbackSubscriptionIdTime = 0;
 
   function createSubscriptionFetchError(code, message) {
     const error = new Error(message);
@@ -106,18 +105,9 @@ const SubscriptionModule = (function () {
       return window.ConfigModule.generateSubscriptionId();
     }
 
-    const currentSecond = Math.floor(Date.now() / 1000) * 1000;
-    const timestamp = Math.max(currentSecond, lastFallbackSubscriptionIdTime + 1000);
-    const date = new Date(timestamp);
-    const pad = value => String(value).padStart(2, '0');
-    lastFallbackSubscriptionIdTime = timestamp;
-    return 'subscription_'
-      + date.getFullYear()
-      + pad(date.getMonth() + 1)
-      + pad(date.getDate())
-      + pad(date.getHours())
-      + pad(date.getMinutes())
-      + pad(date.getSeconds());
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    return 'subscription_' + Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('');
   }
 
   function init() {

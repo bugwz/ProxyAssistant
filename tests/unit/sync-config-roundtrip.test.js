@@ -131,3 +131,21 @@ test('reparses imported subscription content without touching local caches', () 
   expect(result.subscriptions[0].lists.autoproxy.include_rules).toBe('imported.example');
   expect(config.subscriptions[0].lists.autoproxy.include_rules).toBe('local.example');
 });
+
+
+test('independent contexts generate distinct stable entity IDs at the same time', () => {
+  jest.useFakeTimers().setSystemTime(new Date('2026-09-09T00:00:00Z'));
+  try {
+    const a = loadModules().ConfigModule;
+    const b = loadModules().ConfigModule;
+    const ids = [];
+    for (let i = 0; i < 100; i += 1) ids.push(a.generateProxyId(), b.generateProxyId());
+    expect(new Set(ids).size).toBe(200);
+    const config = a.getDefaultConfig();
+    const id = config.scenarios.current;
+    expect(b.migrateConfig(config).scenarios.current).toBe(id);
+    expect(a.migrateConfig(config).scenarios.current).toBe(id);
+  } finally {
+    jest.useRealTimers();
+  }
+});

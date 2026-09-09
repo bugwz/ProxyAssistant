@@ -137,25 +137,25 @@ describe('proxy color configuration', () => {
     const proxy = migrated.scenarios.lists[0].proxies[0];
 
     expect(migrated.subscriptions).toHaveLength(1);
-    expect(migrated.subscriptions[0].id).toMatch(/^subscription_\d{14}$/);
+    expect(migrated.subscriptions[0].id).toMatch(/^subscription_[a-f0-9]{32}$/);
     expect(proxy.subscription_ids).toEqual([migrated.subscriptions[0].id]);
   });
 
-  test('generates timestamp IDs for proxies, scenarios, and subscriptions', () => {
+  test('generates random IDs for proxies, scenarios, and subscriptions', () => {
     const { ConfigModule } = setupModules(null);
     const proxyId = ConfigModule.generateProxyId();
     const scenarioId = ConfigModule.generateScenarioId();
     const firstSubscriptionId = ConfigModule.generateSubscriptionId();
     const secondSubscriptionId = ConfigModule.generateSubscriptionId();
 
-    expect(proxyId).toMatch(/^proxy_\d{14}$/);
-    expect(scenarioId).toMatch(/^scenario_\d{14}$/);
-    expect(firstSubscriptionId).toMatch(/^subscription_\d{14}$/);
-    expect(secondSubscriptionId).toMatch(/^subscription_\d{14}$/);
+    expect(proxyId).toMatch(/^proxy_[a-f0-9]{32}$/);
+    expect(scenarioId).toMatch(/^scenario_[a-f0-9]{32}$/);
+    expect(firstSubscriptionId).toMatch(/^subscription_[a-f0-9]{32}$/);
+    expect(secondSubscriptionId).toMatch(/^subscription_[a-f0-9]{32}$/);
     expect(secondSubscriptionId).not.toBe(firstSubscriptionId);
   });
 
-  test('does not consume scenario IDs while normalizing an existing configuration', () => {
+  test('preserves existing scenario IDs during repeated normalization', () => {
     jest.useFakeTimers().setSystemTime(new Date(2026, 7, 20, 1, 2, 3));
     const config = {
       version: 5,
@@ -171,7 +171,7 @@ describe('proxy color configuration', () => {
     ConfigModule.migrateConfig(config);
     ConfigModule.migrateConfig(config);
 
-    expect(ConfigModule.getDefaultConfig().scenarios.current).toBe('scenario_20260820010203');
+    expect(ConfigModule.getDefaultConfig().scenarios.current).toMatch(/^scenario_[a-f0-9]{32}$/);
     expect(config.scenarios.current).toBe('scenario_20250213134422');
   });
 
@@ -233,9 +233,9 @@ describe('proxy color configuration', () => {
     const proxy = scenario.proxies[0];
     const subscription = migrated.subscriptions[0];
 
-    expect(scenario.id).toMatch(/^scenario_\d{14}$/);
-    expect(proxy.id).toMatch(/^proxy_\d{14}$/);
-    expect(subscription.id).toMatch(/^subscription_\d{14}$/);
+    expect(scenario.id).toMatch(/^scenario_[a-f0-9]{32}$/);
+    expect(proxy.id).toMatch(/^proxy_[a-f0-9]{32}$/);
+    expect(subscription.id).toMatch(/^subscription_[a-f0-9]{32}$/);
     expect(migrated.scenarios.current).toBe(scenario.id);
     expect(scenario.defaultProxyId).toBe(proxy.id);
     expect(scenario.lastProxyId).toBe(proxy.id);
@@ -820,9 +820,9 @@ describe('proxy color configuration', () => {
     const applied = await ConfigModule.applyConfigData(edited);
 
     expect(applied.scenarios.lists.map(scenario => scenario.name)).toEqual(['Work', 'Default']);
-    expect(applied.scenarios.lists.every(scenario => /^scenario_\d{14}$/.test(scenario.id))).toBe(true);
+    expect(applied.scenarios.lists.every(scenario => /^scenario_[a-f0-9]{32}$/.test(scenario.id))).toBe(true);
     expect(applied.scenarios.lists[1].proxies.map(proxy => proxy.ip)).toEqual(['10.0.0.2', '10.0.0.1']);
-    expect(applied.scenarios.lists[1].proxies.every(proxy => /^proxy_\d{14}$/.test(proxy.id))).toBe(true);
+    expect(applied.scenarios.lists[1].proxies.every(proxy => /^proxy_[a-f0-9]{32}$/.test(proxy.id))).toBe(true);
     expect(applied.scenarios.lists[1]).not.toHaveProperty('order');
     expect(applied.scenarios.lists[1].proxies[0]).not.toHaveProperty('scenarioId');
     expect(applied.scenarios.lists[1].proxies[0]).not.toHaveProperty('order');

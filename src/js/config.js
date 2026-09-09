@@ -336,7 +336,7 @@ function normalizeConfigEntityIds(config) {
   const usedScenarioIds = new Set();
   const usedProxyIds = new Set();
   const usedSubscriptionIds = new Set();
-  const isExpectedId = (id, prefix) => new RegExp(`^${prefix}_\\d{14}$`).test(id || '');
+  const isExpectedId = (id, prefix) => new RegExp(`^${prefix}_(?:\\d{14}|[a-f0-9]{32})$`).test(id || '');
 
   const orderedSubscriptions = subscriptions.map((subscription, index) => ({
     subscription: subscription,
@@ -1042,23 +1042,10 @@ function cleanProtocol(protocol) {
   return 'http';
 }
 
-const lastGeneratedIdTimes = {};
-
-function formatIdTimestamp(date) {
-  const pad = value => String(value).padStart(2, '0');
-  return date.getFullYear()
-    + pad(date.getMonth() + 1)
-    + pad(date.getDate())
-    + pad(date.getHours())
-    + pad(date.getMinutes())
-    + pad(date.getSeconds());
-}
-
 function generateId(prefix) {
-  const currentSecond = Math.floor(Date.now() / 1000) * 1000;
-  const timestamp = Math.max(currentSecond, (lastGeneratedIdTimes[prefix] || 0) + 1000);
-  lastGeneratedIdTimes[prefix] = timestamp;
-  return prefix + formatIdTimestamp(new Date(timestamp));
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return prefix + Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('');
 }
 
 function generateProxyId() {
