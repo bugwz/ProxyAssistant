@@ -136,16 +136,7 @@ const SubscriptionModule = (function () {
         reverse: false,
         last_fetch_time: null,
         ...(isPac ? {
-          script: JSON.stringify({
-            bypass: {
-              left: "],[[",
-              right: "],["
-            },
-            include: {
-              left: "\"],[\"",
-              right: "]]];"
-            }
-          }, null, 2)
+          script: getDefaultPacProcessRule()
         } : {})
       };
     });
@@ -543,8 +534,8 @@ const SubscriptionModule = (function () {
 
   function getDefaultPacProcessRule() {
     return JSON.stringify({
-      bypass: { left: '],[[', right: ',[' },
-      include: { left: '","', right: '"]]];' }
+      bypass: { left: '],[[', right: '],[' },
+      include: { left: '"],["', right: ']]];' }
     }, null, 2);
   }
 
@@ -844,16 +835,7 @@ const SubscriptionModule = (function () {
     const format = subscriptionConfig.current;
     if (format !== 'pac') return;
 
-    const defaultProcessRule = JSON.stringify({
-      bypass: {
-        left: "],[[",
-        right: "],["
-      },
-      include: {
-        left: "\"],[\"",
-        right: "]]];"
-      }
-    }, null, 2);
+    const defaultProcessRule = getDefaultPacProcessRule();
 
     subscriptionConfig.lists[format].process_rule = defaultProcessRule;
     $('#subscription-process-rule-content').val(defaultProcessRule);
@@ -1606,6 +1588,13 @@ const SubscriptionModule = (function () {
     const config = JSON.parse(processRule);
     if (!config || typeof config !== 'object' || Array.isArray(config)) {
       throw new Error('Invalid PAC extraction configuration');
+    }
+    // Repair the previously shipped default boundaries without changing custom rules.
+    if (config.bypass?.left === '],[[' && config.bypass?.right === ',['
+      && config.include?.left === '","' && config.include?.right === '"]]];') {
+      config.bypass.right = '],[';
+      config.include.left = '"],["';
+      config.include.right = ']]];';
     }
     const content = rawContent.replace(/\s+/g, '');
     let count = 0;

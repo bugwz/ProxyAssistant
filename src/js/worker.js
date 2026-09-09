@@ -1412,6 +1412,13 @@ function parsePacContent(rawContent, processRule, reverse = false) {
   if (!config || typeof config !== 'object' || Array.isArray(config)) {
     throw new Error('Invalid PAC extraction configuration');
   }
+  // Repair the previously shipped default boundaries without changing custom rules.
+  if (config.bypass?.left === '],[[' && config.bypass?.right === ',['
+    && config.include?.left === '","' && config.include?.right === '"]]];') {
+    config.bypass.right = '],[';
+    config.include.left = '"],["';
+    config.include.right = ']]];';
+  }
   const content = rawContent.replace(/\s+/g, '');
   let count = 0;
   function extractItems(bounds) {

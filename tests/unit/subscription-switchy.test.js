@@ -133,3 +133,47 @@ test.each(['null', '{', '{"include":{"left":3,"right":"]"}}'])('PAC extraction r
   expect(() => loadSubscriptionModule().generateSubscriptionStats('FindProxyForURL', 'pac', false, rule)).toThrow();
   expect(() => parseInWorker('FindProxyForURL', 'pac', false, rule)).toThrow();
 });
+
+
+describe('PAC domain array extraction', () => {
+  const content = `var rules = [
+    [[], []],
+    [["clientservices.googleapis.com", "fonts.googleapis.com", "www.gov.tw"],
+     ["000webhost.com", "0rz.tw", "example.com"]]
+  ];
+  function FindProxyForURL(url, host) { return 'DIRECT'; }`;
+  const defaultsSource = fs.readFileSync(subscriptionJsPath, 'utf8');
+  const defaultsStart = defaultsSource.indexOf('  function getDefaultPacProcessRule()');
+  const defaultsEnd = defaultsSource.indexOf('  function switchToTab(', defaultsStart);
+  const defaultRule = new Function(defaultsSource.slice(defaultsStart, defaultsEnd)
+    + '; return getDefaultPacProcessRule();')();
+  const savedRule = JSON.stringify({
+    bypass: { left: '],[[', right: ',[' },
+    include: { left: '","', right: '"]]];' }
+  });
+
+  test.each([false, true])('keeps proxy and direct domains separate with reverse=%s', reverse => {
+    for (const rule of [defaultRule, savedRule]) {
+      for (const result of [loadSubscriptionModule().generateSubscriptionStats(content, 'pac', reverse, rule),
+        parseInWorker(content, 'pac', reverse, rule)]) {
+        expect(result.include_rules).toBe(reverse
+          ? 'clientservices.googleapis.com\nfonts.googleapis.com\nwww.gov.tw'
+          : '000webhost.com\n0rz.tw\nexample.com');
+        expect(result.bypass_rules).toBe(reverse
+          ? '000webhost.com\n0rz.tw\nexample.com'
+          : 'clientservices.googleapis.com\nfonts.googleapis.com\nwww.gov.tw');
+      }
+    }
+  });
+
+  test('respects custom extraction boundaries', () => {
+    const rule = JSON.stringify({ include: { left: 'proxy=[', right: '];' },
+      bypass: { left: 'direct=[', right: '];' } });
+    const customContent = 'proxy=["a.example","a.example","b.example"]; direct=["local.example"];';
+    for (const result of [loadSubscriptionModule().generateSubscriptionStats(customContent, 'pac', false, rule),
+      parseInWorker(customContent, 'pac', false, rule)]) {
+      expect(result.include_rules).toBe('a.example\nb.example');
+      expect(result.bypass_rules).toBe('local.example');
+    }
+  });
+});
