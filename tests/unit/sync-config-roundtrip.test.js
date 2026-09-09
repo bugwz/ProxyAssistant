@@ -28,6 +28,8 @@ function loadModules() {
     json: async () => ({ files: { 'config.json': { content: JSON.stringify(items.remote) } } })
   }));
   run(scope, storage, { t: key => key }, () => chain, chrome, jest.fn(), null, jest.fn(), fetch);
+  const subscriptionFactory = new Function('window', 'StorageModule', source('subscription.js') + '; return SubscriptionModule;');
+  scope.SubscriptionModule = subscriptionFactory(scope, storage);
   config = scope.ConfigModule.getDefaultConfig();
   return { ...scope, storage, items, fetch };
 }
@@ -98,4 +100,34 @@ test.each(['autoproxy', 'pac'])('imports legacy top-level proxies with embedded 
   if (format === 'pac') expect(migrated.lists.pac.process_rule).toBe('{"include":{}}');
   expect(result.subscriptions.some(sub => sub.id === localId)).toBe(true);
   expect(result.version).toBe(5);
+});
+
+
+test.each(['url', 'reverse', 'process_rule'])('does not reuse subscription cache after %s changes', field => {
+  const { ConfigModule, storage } = loadModules();
+  const config = storage.getConfig();
+  const id = ConfigModule.generateSubscriptionId();
+  const list = { url: 'https://old.example/', reverse: false, process_rule: '{}', content: 'old', include_rules: 'old.example', last_fetch_time: 123 };
+  config.subscriptions = [{ id, name: 'Rules', current: 'pac', lists: { pac: list } }];
+  const imported = JSON.parse(JSON.stringify(config));
+  imported.subscriptions[0].lists.pac = { url: list.url, reverse: list.reverse, process_rule: list.process_rule };
+  imported.subscriptions[0].lists.pac[field] = field === 'reverse' ? true : 'changed';
+  const result = ConfigModule.prepareConfigForApply(imported);
+  expect(result.subscriptions[0].lists.pac.content).toBeUndefined();
+  expect(result.subscriptions[0].lists.pac.last_fetch_time).toBeUndefined();
+});
+
+test('reparses imported subscription content without touching local caches', () => {
+  const { ConfigModule, storage } = loadModules();
+  const config = storage.getConfig();
+  const id = ConfigModule.generateSubscriptionId();
+  config.subscriptions = [{ id, current: 'autoproxy', lists: { autoproxy: {
+    url: 'https://rules.example/', content: '[AutoProxy 0.2]\n||local.example', include_rules: 'local.example'
+  } } }];
+  const imported = JSON.parse(JSON.stringify(config));
+  imported.subscriptions[0].lists.autoproxy.content = '[AutoProxy 0.2]\n||imported.example';
+  imported.subscriptions[0].lists.autoproxy.include_rules = 'stale.example';
+  const result = ConfigModule.prepareConfigForApply(imported);
+  expect(result.subscriptions[0].lists.autoproxy.include_rules).toBe('imported.example');
+  expect(config.subscriptions[0].lists.autoproxy.include_rules).toBe('local.example');
 });

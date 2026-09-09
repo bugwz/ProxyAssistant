@@ -871,12 +871,6 @@ function prepareConfigForApply(rawData, options = {}) {
   const localConfig = StorageModule ? StorageModule.getConfig() : getDefaultConfig();
   const data = migrateConfig(expandedData);
 
-  if (window.SubscriptionModule && window.SubscriptionModule.parseProxyListSubscriptions) {
-    SubscriptionModule.parseProxyListSubscriptions(
-      data.scenarios?.lists?.flatMap(s => s.proxies) || []
-    );
-  }
-
   data.system = data.system || {};
   data.system.sync = getLocalSyncConfig();
 
@@ -903,7 +897,9 @@ function prepareConfigForApply(rawData, options = {}) {
 
       Object.entries(subscription.lists || {}).forEach(([format, list]) => {
         const localList = localSubscription.lists?.[format];
-        if (!localList) return;
+        if (!localList || (list.url || '') !== (localList.url || '')
+          || !!list.reverse !== !!localList.reverse
+          || (format === 'pac' && (list.process_rule || '') !== (localList.process_rule || ''))) return;
         SUBSCRIPTION_CACHE_KEYS.forEach(key => {
           if (!Object.prototype.hasOwnProperty.call(list, key) && Object.prototype.hasOwnProperty.call(localList, key)) {
             list[key] = localList[key];
@@ -911,6 +907,18 @@ function prepareConfigForApply(rawData, options = {}) {
         });
       });
       return subscription;
+    });
+  }
+  const parser = window.SubscriptionModule?.generateSubscriptionStats;
+  if (parser) {
+    (data.subscriptions || []).forEach(subscription => {
+      Object.entries(subscription.lists || {}).forEach(([format, list]) => {
+        if (!list.content) return;
+        const stats = parser(list.content, format, !!list.reverse, format === 'pac' ? list.process_rule : undefined);
+        ['decoded_content', 'include_rules', 'bypass_rules', 'include_lines', 'bypass_lines'].forEach(key => {
+          list[key] = stats[key];
+        });
+      });
     });
   }
   return data;

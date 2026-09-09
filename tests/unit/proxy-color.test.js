@@ -828,7 +828,7 @@ describe('proxy color configuration', () => {
     expect(applied.scenarios.lists[1].proxies[0]).not.toHaveProperty('order');
   });
 
-  test('preserves omitted local subscription data when applying a compact configuration', async () => {
+  test('preserves omitted subscription cache when the source is unchanged', async () => {
     const localSubscription = {
       id: 'subscription_20250213134422',
       name: 'Rules',
@@ -857,7 +857,7 @@ describe('proxy color configuration', () => {
       subscriptions: [{
         id: 'subscription_20250213134422',
         name: 'Rules Renamed',
-        lists: { autoproxy: { url: 'https://example.com/new.txt', refresh_interval: 60 } }
+        lists: { autoproxy: { url: 'https://example.com/old.txt', refresh_interval: 60 } }
       }]
     };
 
@@ -865,7 +865,7 @@ describe('proxy color configuration', () => {
 
     expect(applied.subscriptions[0].name).toBe('Rules Renamed');
     expect(applied.subscriptions[0].lists.autoproxy).toEqual(expect.objectContaining({
-      url: 'https://example.com/new.txt',
+      url: 'https://example.com/old.txt',
       refresh_interval: 60,
       content: 'cached content',
       include_rules: 'example.com',
