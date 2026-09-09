@@ -333,6 +333,8 @@ describe('main UI state flow', () => {
   });
 
   afterEach(() => {
+    window.$(document).off();
+    window.$('html').off();
     document.body.innerHTML = '';
     resetGlobals();
   });
@@ -1494,6 +1496,42 @@ describe('main UI state flow', () => {
     expect(current).toBe(success ? 'b' : 'a');
     expect(scenarios.map(s => s.id)).toEqual(success ? ['b'] : ['a', 'b']);
     expect(onDelete).toHaveBeenCalledTimes(success ? 1 : 0);
+  });
+
+
+  test.each(['light', 'dark'])('custom protocol dropdown supports keyboard and ARIA in %s theme', theme => {
+    global.isFirefox = false;
+    document.body.setAttribute('data-theme', theme);
+    document.body.innerHTML = '<div id="proxy-list"></div>';
+    window.eval(fs.readFileSync(mainJsPath, 'utf8'));
+    window.initDropdowns();
+    $('#proxy-list').html(`<div class="lh-select" data-type="protocol">
+      <div class="lh-select-k"><span class="lh-select-value" data-index="0">HTTP</span></div>
+      <ul class="lh-select-op"><li class="selected-option" data-value="http">HTTP</li>
+      <li data-value="https">HTTPS</li><li class="disabled-option" data-value="socks4">SOCKS4</li>
+      <li data-value="socks5">SOCKS5</li></ul></div>`);
+    window.enhanceNativeSelects(document.getElementById('proxy-list'));
+    const proxy = { protocol: 'http' };
+    global.ProxyModule.getProxy = () => proxy;
+    const $trigger = $('.lh-select-k');
+    expect($trigger.attr('tabindex')).toBe('0');
+    $trigger.trigger($.Event('keydown', { key: 'Enter' }));
+    expect($trigger.attr('aria-expanded')).toBe('true');
+    expect(document.activeElement.textContent).toBe('HTTP');
+    $(document.activeElement).trigger($.Event('keydown', { key: 'ArrowDown' }));
+    $(document.activeElement).trigger($.Event('keydown', { key: ' ' }));
+    expect(proxy.protocol).toBe('https');
+    expect($('.lh-select-value').text()).toBe('HTTPS');
+    expect($('.lh-select-op li[aria-selected="true"]').data('value')).toBe('https');
+    expect($trigger.attr('aria-expanded')).toBe('false');
+    $trigger.trigger($.Event('keydown', { key: 'ArrowUp' }));
+    $(document.activeElement).trigger($.Event('keydown', { key: 'ArrowDown' }));
+    expect(document.activeElement.textContent).toBe('SOCKS5');
+    $(document.activeElement).trigger($.Event('keydown', { key: 'Escape' }));
+    expect(document.activeElement).toBe($trigger[0]);
+    expect($trigger.attr('aria-expanded')).toBe('false');
+    $trigger.attr('aria-disabled', 'true').trigger($.Event('keydown', { key: 'Enter' }));
+    expect($trigger.attr('aria-expanded')).toBe('false');
   });
 
 });

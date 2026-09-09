@@ -619,6 +619,22 @@ function enhanceNativeSelects(root) {
     });
     syncNativeSelect($select);
   });
+  $root.find('.lh-select-k').each(function () {
+    const $trigger = $(this);
+    const $menu = $trigger.next('.lh-select-op');
+    if (!$menu.length) return;
+    if (!$menu.attr('id')) $menu.attr('id', `select-options-${++nativeSelectId}`);
+    if (!$trigger.is('button')) $trigger.attr({ role: 'button', tabindex: '0' });
+    if (!$trigger.attr('aria-controls')) {
+      $trigger.attr('aria-expanded', 'false');
+      $menu.hide();
+    }
+    $trigger.attr({ 'aria-haspopup': 'listbox', 'aria-controls': $menu.attr('id') });
+    $menu.attr('role', 'listbox').children('li').each(function () {
+      $(this).attr({ role: 'option', tabindex: '-1', 'aria-selected': String($(this).hasClass('selected-option')) });
+    });
+  });
+
 }
 
 function initDropdowns() {
@@ -628,7 +644,7 @@ function initDropdowns() {
     $menus.each(function () {
       const $container = $(this).closest('.lh-select, .header-left-controls');
       $container.removeClass('dropdown-open');
-      $container.find('.native-select-trigger').attr('aria-expanded', 'false');
+      $container.find('.lh-select-k').attr('aria-expanded', 'false');
     });
   }
 
@@ -659,25 +675,16 @@ function initDropdowns() {
 
   $(document).off("click", ".lh-select-k").on("click", ".lh-select-k", function (e) {
     e.stopPropagation();
-    const that = this;
-    const $op = $(that).next();
-    const display = $op.css('display');
-
-    closeDropdowns($op);
-
-    if (display != 'none') {
-      $op.hide().removeClass('drop-up');
-      $(that).closest('.lh-select').removeClass('dropdown-open');
-      return;
-    }
-
-    setTimeout(function () {
-      const $select = $(that).closest('.lh-select');
-      $select.addClass('dropdown-open');
-      $op.show();
-      $select.find('.native-select-trigger').attr('aria-expanded', 'true');
-      positionDropdown($op, $(that));
-    }, 50);
+    const $trigger = $(this);
+    if ($trigger.prop('disabled') || $trigger.attr('aria-disabled') === 'true' || $trigger.closest('.lh-select').hasClass('disabled')) return;
+    const $op = $trigger.next('.lh-select-op');
+    const wasOpen = $trigger.attr('aria-expanded') === 'true';
+    closeDropdowns();
+    if (wasOpen) return;
+    $trigger.closest('.lh-select').addClass('dropdown-open');
+    $op.show();
+    $trigger.attr('aria-expanded', 'true');
+    positionDropdown($op, $trigger);
   });
 
   $(document).off("click", ".lh-select-op li").on("click", ".lh-select-op li", function (e) {
@@ -689,11 +696,11 @@ function initDropdowns() {
     const type = $container.data("type");
     $li.parent().removeClass('drop-up');
     $container.removeClass('dropdown-open');
-    $container.find('.native-select-trigger').attr('aria-expanded', 'false');
+    $container.find('.lh-select-k').attr('aria-expanded', 'false');
     $li.closest('.header-left-controls').removeClass('dropdown-open');
 
-    $li.siblings().removeClass("selected-option");
-    $li.addClass("selected-option");
+    $li.siblings().removeClass('selected-option').attr('aria-selected', 'false');
+    $li.addClass('selected-option').attr('aria-selected', 'true');
     $li.parent().hide();
 
     const txt = $li.text();
@@ -738,28 +745,30 @@ function initDropdowns() {
     }
   });
 
-  $(document).off('keydown.nativeSelect', '.native-select-trigger, .native-select-options li')
-    .on('keydown.nativeSelect', '.native-select-trigger, .native-select-options li', function (e) {
+  $(document).off('keydown.nativeSelect', '.native-select-trigger, .native-select-options li');
+  $(document).off('keydown.dropdownSelect', '.lh-select-k, .lh-select-op li')
+    .on('keydown.dropdownSelect', '.lh-select-k, .lh-select-op li', function (e) {
       const $target = $(this);
-      const $container = $target.closest('.native-select-enhanced');
-      const $trigger = $container.find('.native-select-trigger');
-      const $options = $container.find('.native-select-options li:not(.disabled-option)');
-
-      if ($target.hasClass('native-select-trigger')) {
-        if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
-          e.preventDefault();
-          if (e.key !== 'ArrowDown' || !$container.hasClass('dropdown-open')) {
-            $trigger.trigger('click');
-          }
-          setTimeout(function () {
-            const $selected = $options.filter('.selected-option');
-            ($selected.length ? $selected : $options.first()).trigger('focus');
-          }, 60);
-        }
+      const $container = $target.closest('.lh-select');
+      const $trigger = $container.find('.lh-select-k').first();
+      const $options = $container.find('.lh-select-op li:not(.disabled-option):not([aria-disabled="true"])');
+      if ($trigger.prop('disabled') || $trigger.attr('aria-disabled') === 'true' || $container.hasClass('disabled')) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        closeDropdowns();
+        $trigger.trigger('focus');
         return;
       }
-
-      if (e.key === 'Enter' || e.key === ' ') {
+      if ($target.hasClass('lh-select-k')) {
+        if (!['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(e.key)) return;
+        e.preventDefault();
+        if (!$container.hasClass('dropdown-open') || e.key === 'Enter' || e.key === ' ') $trigger.trigger('click');
+        if ($container.hasClass('dropdown-open')) {
+          const $selected = $options.filter('.selected-option');
+          ($selected.length ? $selected : e.key === 'ArrowUp' ? $options.last() : $options.first()).trigger('focus');
+        }
+      } else if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         $target.trigger('click');
         $trigger.trigger('focus');
@@ -768,10 +777,6 @@ function initDropdowns() {
         const index = $options.index($target);
         const offset = e.key === 'ArrowDown' ? 1 : -1;
         $options.eq((index + offset + $options.length) % $options.length).trigger('focus');
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        closeDropdowns();
-        $trigger.trigger('focus');
       }
     });
 

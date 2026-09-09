@@ -11,3 +11,15 @@
 @import url('./subscription-dialogs.css');
 @import url('./scenarios.css');
 @import url('./responsive.css');
+
+
+.lh-select-k:focus-visible,
+.lh-select-op li:focus-visible {
+  outline: 2px solid var(--accent-color, #6366f1);
+  outline-offset: 2px;
+}
+
+.lh-select-k[aria-disabled="true"] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
