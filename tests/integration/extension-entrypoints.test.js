@@ -19,7 +19,20 @@ function getLocalResources(htmlFile) {
 }
 
 describe('extension entrypoint integration', () => {
+  test('源码加载入口与 Chrome 构建使用相同的清单', () => {
+    expect(readJson('manifest.json')).toEqual(readJson('manifest_chrome.json'));
+  });
+
+  test.each(['manifest.json', 'manifest_chrome.json'])('%s 使用支持 importScripts 的经典后台脚本', manifestFile => {
+    const manifest = readJson(manifestFile);
+
+    expect(manifest.background.service_worker).toBe('js/worker.js');
+    expect(manifest.background.type || 'classic').toBe('classic');
+    expect(fs.existsSync(path.join(SRC_DIR, 'js/rule-matcher.js'))).toBe(true);
+  });
+
   test.each([
+    ['manifest.json', manifest => [manifest.background.service_worker]],
     ['manifest_chrome.json', manifest => [manifest.background.service_worker]],
     ['manifest_firefox.json', manifest => manifest.background.scripts]
   ])('%s references existing background and popup files', (manifestFile, getBackgroundFiles) => {

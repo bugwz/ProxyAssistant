@@ -1,4 +1,3 @@
-src/manifest.json
 build/
 node_modules/
 tests/coverage/

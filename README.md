@@ -84,6 +84,8 @@ Chrome、Firefox 和 Edge 均使用 Manifest V3。Edge 使用与 Chrome 相同�
 
 仓库为 Chrome 和 Firefox 分别维护了清单文件。建议先使用构建脚本生成对应浏览器的完整目录或安装包，避免直接修改 `src/manifest.json`：
 
+`src/manifest.json` 与 `src/manifest_chrome.json` 保持一致，供 Chrome / Edge 直接加载 `src/` 调试。修改 Chrome 清单时需同步两份文件；后台脚本使用 `importScripts()` 加载依赖，须保持默认的经典脚本类型。
+
 ```bash
 npm ci
 make build VERSION=dev
