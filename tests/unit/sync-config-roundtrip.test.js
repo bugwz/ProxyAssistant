@@ -79,3 +79,23 @@ describe('configuration file sync round trips', () => {
     expect(restored.system.sync[type].last_sync_direction).toBe('pull');
   });
 });
+
+
+test.each(['autoproxy', 'pac'])('imports legacy top-level proxies with embedded %s subscriptions', format => {
+  const { ConfigModule, storage } = loadModules();
+  const localId = ConfigModule.generateSubscriptionId();
+  storage.getConfig().subscriptions = [{ id: localId, name: 'Local', current: 'autoproxy', lists: {} }];
+  const result = ConfigModule.prepareConfigForApply({ proxies: [{
+    name: 'Legacy', ip: 'proxy.example', port: '8080', subscription: {
+      current: format, enabled: true, lists: { [format]: {
+        url: 'https://rules.example/', content: 'raw content', process_rule: '{"include":{}}'
+      } }
+    }
+  }] });
+  const proxy = result.scenarios.lists[0].proxies[0];
+  const migrated = result.subscriptions.find(sub => sub.id === proxy.subscription_ids[0]);
+  expect(migrated.lists[format]).toMatchObject({ url: 'https://rules.example/', content: 'raw content' });
+  if (format === 'pac') expect(migrated.lists.pac.process_rule).toBe('{"include":{}}');
+  expect(result.subscriptions.some(sub => sub.id === localId)).toBe(true);
+  expect(result.version).toBe(5);
+});

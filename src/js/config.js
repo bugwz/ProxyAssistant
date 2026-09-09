@@ -155,12 +155,13 @@ function migrateConfig(config) {
       const enabled = p.subscription.enabled !== false;
       const lists = {};
       const sourceLists = p.subscription.lists || p.subscription.formats || {};
-      const FORMATS = ['autoproxy', 'switchy_legacy', 'switchy_omega'];
+      const FORMATS = ['autoproxy', 'switchy_legacy', 'switchy_omega', 'pac'];
 
       FORMATS.forEach(f => {
         if (sourceLists[f]) {
           const item = sourceLists[f];
           lists[f] = {
+            ...(f === 'pac' && item.process_rule ? { process_rule: item.process_rule } : {}),
             url: Object.prototype.hasOwnProperty.call(item, 'url') ? item.url : '',
             content: Object.prototype.hasOwnProperty.call(item, 'content') ? item.content : '',
             decoded_content: Object.prototype.hasOwnProperty.call(item, 'decoded_content') ? item.decoded_content : '',
@@ -802,7 +803,8 @@ function inflateConfigFileSystem(rawData) {
 }
 
 function inflateConfigFileProxies(rawData) {
-  if (!rawData || typeof rawData !== 'object' || !Array.isArray(rawData.proxies)) return rawData;
+  if (!rawData || typeof rawData !== 'object' || !Array.isArray(rawData.proxies)
+    || !Array.isArray(rawData.scenarios?.lists) || !rawData.scenarios.lists.length) return rawData;
   const data = JSON.parse(JSON.stringify(rawData));
   const scenarios = data.scenarios?.lists || [];
   const orderedScenarios = scenarios.map((scenario, index) => ({
@@ -879,7 +881,11 @@ function prepareConfigForApply(rawData, options = {}) {
   data.system.sync = getLocalSyncConfig();
 
   if (!sourceHasSubscriptions) {
-    data.subscriptions = JSON.parse(JSON.stringify(localConfig.subscriptions || []));
+    const migratedSubscriptions = data.subscriptions || [];
+    const migratedIds = new Set(migratedSubscriptions.map(subscription => subscription.id));
+    data.subscriptions = migratedSubscriptions.concat(JSON.parse(JSON.stringify(
+      (localConfig.subscriptions || []).filter(subscription => !migratedIds.has(subscription.id))
+    )));
   } else if (preserveOmittedSubscriptionCache) {
     const localSubscriptions = new Map(
       (localConfig.subscriptions || []).map(subscription => [subscription.id, subscription])
