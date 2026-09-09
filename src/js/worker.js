@@ -1129,31 +1129,8 @@ function convertOmegaToBypassRule(pattern, type) {
 
 function extractDomainFromWildcard(pattern) {
   if (!pattern) return null;
-
-  let domain = pattern
-    .replace(/^\*\:\/\/\*\./, '')
-    .replace(/^\*\:\/\//, '')
-    .replace(/^\*\./, '')
-    .replace(/\/\*$/, '')
-    .replace(/\/\*.*$/, '')
-    .trim();
-
-  if (!domain) return null;
-
-  const domainParts = domain.split('.');
-  const segmentCount = domainParts.filter(part => part && part.trim()).length;
-
-  if (domainParts.length >= 2 && domainParts[domainParts.length - 2]) {
-    return {
-      domain: domainParts.slice(-2).join('.'),
-      segmentCount: segmentCount
-    };
-  }
-
-  return {
-    domain: domain,
-    segmentCount: segmentCount
-  };
+  const domain = pattern.replace(/^\*\./, '').trim();
+  return domain && !domain.includes('*') ? domain : null;
 }
 
 function extractHostname(url) {

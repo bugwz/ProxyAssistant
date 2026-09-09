@@ -1038,13 +1038,9 @@ const SubscriptionModule = (function () {
   }
 
   function extractDomainFromWildcard(pattern) {
-    if (pattern.startsWith('*.')) {
-      return pattern.substring(2);
-    }
-    if (pattern.startsWith('*')) {
-      return pattern.substring(1);
-    }
-    return pattern;
+    if (!pattern) return null;
+    const domain = pattern.replace(/^\*\./, '').trim();
+    return domain && !domain.includes('*') ? domain : null;
   }
 
   function isValidManualBypassPattern(pattern) {
@@ -1211,29 +1207,7 @@ const SubscriptionModule = (function () {
     return rules;
   }
 
-  function extractDomainFromWildcard(pattern) {
-    const parts = pattern.split('.');
-    if (parts.length < 2) return null;
 
-    let wildcardIndex = -1;
-    for (let i = 0; i < parts.length; i++) {
-      if (parts[i].includes('*')) {
-        wildcardIndex = i;
-        break;
-      }
-    }
-
-    if (wildcardIndex === -1) return pattern;
-
-    const wildcardFromRight = parts.length - 1 - wildcardIndex;
-
-    if (wildcardFromRight === 0 || wildcardFromRight === 1) {
-      return null;
-    }
-
-    const lastDotIndex = pattern.lastIndexOf('.');
-    return pattern.substring(pattern.lastIndexOf('.', lastDotIndex - 1) + 1);
-  }
 
   function extractIPFromURL(url) {
     const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}/;

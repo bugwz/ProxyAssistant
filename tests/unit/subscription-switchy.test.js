@@ -63,3 +63,24 @@ describe('SubscriptionModule SwitchyOmega parsing', () => {
     expect(stats.include_rules).toBe('');
   });
 });
+
+
+function parseInWorker(content, format, reverse = false, processRule) {
+  const source = fs.readFileSync(path.join(__dirname, '../../src/js/worker.js'), 'utf8');
+  const parsers = source.slice(source.indexOf('function isValidManualBypassPattern'),
+    source.indexOf('async function readResponseTextWithLimit'));
+  const factory = new Function('atob', 'MAX_SUBSCRIPTION_PARSED_RULES',
+    parsers + '; return parseSubscriptionContent;');
+  return factory(atob, 20000)(content, format, reverse, processRule);
+}
+
+test.each([
+  ['|https://secure.example.com/path', 'secure.example.com'],
+  ['||*.news.example.co.uk', 'news.example.co.uk'],
+  ['https://*.a.example.com/path', 'a.example.com'],
+  ['||*.example.com', 'example.com']
+])('AutoProxy parsing agrees across contexts for %s', (rule, expected) => {
+  const content = '[AutoProxy 0.2]\n' + rule;
+  expect(loadSubscriptionModule().generateSubscriptionStats(content, 'autoproxy', false).include_rules).toBe(expected);
+  expect(parseInWorker(content, 'autoproxy').include_rules).toBe(expected);
+});
