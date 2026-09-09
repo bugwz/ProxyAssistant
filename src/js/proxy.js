@@ -737,6 +737,19 @@ const ProxyModule = (function () {
     });
   }
 
+  function readProxyTestInfo(index) {
+    const proxy = { ...list[index] };
+    const $item = $(`#proxy-list .proxy-card[data-id="${index}"]`);
+    const $protocol = $item.find('.lh-select[data-type="protocol"]');
+    proxy.protocol = UtilsModule.cleanProtocol(
+      $protocol.find('.selected-option').data('value') || $protocol.find('.lh-select-value').text()
+    );
+    ['name', 'ip', 'port', 'username', 'password'].forEach(field => {
+      proxy[field] = $item.find('.' + field).val();
+    });
+    return proxy;
+  }
+
   function bindGlobalEvents() {
     $(document).on('click.proxySubscriptionSelect', function () {
       $('.proxy-subscription-select').removeClass('open')
@@ -765,15 +778,7 @@ const ProxyModule = (function () {
       refreshProxyIndex();
 
       for (let index = 0; index < list.length; index++) {
-        const proxy = list[index];
-        const $item = $(`#proxy-list .proxy-card[data-id="${index}"]`);
-
-        proxy.name = $item.find('.name').val();
-        proxy.protocol = UtilsModule.cleanProtocol($item.find('.lh-select-value[data-index="' + index + '"]').closest('.lh-select[data-type="protocol"]').find('.lh-select-op li.selected-option').data('value') || proxy.protocol);
-        proxy.ip = $item.find('.ip').val();
-        proxy.port = $item.find('.port').val();
-        proxy.username = $item.find('.username').val();
-        proxy.password = $item.find('.password').val();
+        const proxy = readProxyTestInfo(index);
 
         if (proxy.enabled === false || !proxy.ip || !proxy.port) continue;
 
@@ -1001,22 +1006,16 @@ const ProxyModule = (function () {
       const $headerResultSpan = $(`.proxy-header-test-result[data-index="${i}"]`);
 
       if (i !== undefined && list[i]) {
-        const $item = $(`#proxy-list .proxy-card[data-id="${i}"]`);
-        list[i].name = $item.find('.name').val();
-        list[i].protocol = UtilsModule.cleanProtocol($item.find('.lh-select-value').text());
-        list[i].ip = $item.find('.ip').val();
-        list[i].port = $item.find('.port').val();
-        list[i].username = $item.find('.username').val();
-        list[i].password = $item.find('.password').val();
-
-        if (!list[i].ip || !list[i].port) return;
+        if ($btn.prop('disabled')) return;
+        const proxyInfo = readProxyTestInfo(i);
+        if (!proxyInfo.ip || !proxyInfo.port) return;
 
         $headerResultSpan.text(I18n.t('testing')).removeClass("text-green text-orange text-red").addClass("text-blue");
         $btn.prop("disabled", true);
 
         chrome.runtime.sendMessage({
           action: "testProxyConnection",
-          proxyInfo: list[i]
+          proxyInfo: proxyInfo
         }, function (response) {
           $btn.prop("disabled", false);
           if (chrome.runtime.lastError) {

@@ -1435,4 +1435,30 @@ describe('main UI state flow', () => {
     expect($('.delete-tip-content').html()).toContain('&lt;img src=x onerror=alert(1)&gt;');
     expect($('.delete-tip-content').html()).not.toContain('<img src=x onerror=alert(1)>');
   });
+
+  test.each(['http', 'https', 'socks4', 'socks5'])('tests %s using an isolated form snapshot', async protocol => {
+    const proxy = { id: 'p', name: 'Saved', protocol, ip: 'proxy.example', port: '8080', enabled: true };
+    StorageModule.getProxies.mockReturnValue([proxy]);
+    chrome.runtime.sendMessage.mockImplementation((message, callback) => callback?.({ success: true, latency: 12 }));
+    const module = loadProxyModule({
+      StorageModule, ConfigModule, ScenariosModule, SubscriptionModule, UtilsModule, I18n, SyncModule, chrome,
+      generateProxyId: global.generateProxyId
+    });
+    module.init();
+    module.renderList();
+    const $card = $('.proxy-card');
+    expect($card.find('[data-type="protocol"] li').map(function () { return $(this).data('value'); }).get())
+      .toEqual(['HTTP', 'HTTPS', 'SOCKS4', 'SOCKS5']);
+    $card.find('.name').val('Test draft');
+    $card.find('.port').val('9090');
+    $card.find('.test-proxy-btn').trigger('click');
+    expect(chrome.runtime.sendMessage.mock.calls.at(-1)[0].proxyInfo)
+      .toMatchObject({ protocol, name: 'Test draft', port: '9090' });
+    $('#test-all-btn').trigger('click');
+    await Promise.resolve();
+    expect(chrome.runtime.sendMessage.mock.calls.at(-1)[0].proxyInfo)
+      .toMatchObject({ protocol, name: 'Test draft', port: '9090' });
+    expect(proxy).toMatchObject({ protocol, name: 'Saved', port: '8080' });
+  });
+
 });
