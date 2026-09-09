@@ -1479,13 +1479,13 @@ test.each([
 test('failed PAC extraction preserves the previous background cache', async () => {
   const context = loadWorkerContext();
   await context.enqueueProxyOperation(() => {});
-  const item = { content: 'old content', include_rules: 'old.example', last_fetch_time: 123, process_rule: 'null' };
+  const item = { url: 'https://rules.example/', content: 'old content', include_rules: 'old.example', last_fetch_time: 123, process_rule: 'null' };
   const config = { subscriptions: [{ id: 'sub', current: 'pac', lists: { pac: item } }] };
   context.chrome.storage.local.get.mockImplementation((keys, callback) => callback({ config }));
   context.fetchSubscriptionTextWithLimit = jest.fn(async () => 'function FindProxyForURL() {}');
   context.applyProxySettingsNow = jest.fn();
   await context.fetchSubscriptionBackground('sub', 'pac', 'https://rules.example/', 1);
-  expect(item).toEqual({ content: 'old content', include_rules: 'old.example', last_fetch_time: 123, process_rule: 'null' });
+  expect(item).toEqual({ url: 'https://rules.example/', content: 'old content', include_rules: 'old.example', last_fetch_time: 123, process_rule: 'null' });
   expect(context.applyProxySettingsNow).not.toHaveBeenCalled();
 });
 
@@ -1518,4 +1518,29 @@ test('concurrent subscription refreshes retain both committed caches', async () 
   await Promise.all([a, b]);
   expect(config.subscriptions.map(sub => sub.lists.autoproxy.include_rules)).toEqual(['a.example', 'b.example']);
   expect(config.settings.theme).toBe('dark');
+});
+
+
+test.each(['url', 'disabled', 'format', 'deleted'])('discards a downloaded subscription after %s changes', async change => {
+  const context = loadWorkerContext();
+  await context.enqueueProxyOperation(() => {});
+  const item = { url: 'https://old.example/', content: 'old', include_rules: 'old.example' };
+  const sub = { id: 'sub', enabled: true, current: 'autoproxy', lists: { autoproxy: item } };
+  const config = { subscriptions: [sub] };
+  context.chrome.storage.local.get.mockImplementation((keys, callback) => callback({ config }));
+  context.chrome.storage.local.set.mockClear();
+  let release;
+  context.fetchSubscriptionTextWithLimit = jest.fn(() => new Promise(resolve => { release = resolve; }));
+  context.applyProxySettingsNow = jest.fn();
+  const pending = context.fetchSubscriptionBackground('sub', 'autoproxy', item.url, 1);
+  if (change === 'url') item.url = 'https://new.example/';
+  if (change === 'disabled') sub.enabled = false;
+  if (change === 'format') sub.current = 'pac';
+  if (change === 'deleted') config.subscriptions = [];
+  release('[AutoProxy 0.2]\n||downloaded.example');
+  await pending;
+  expect(item.content).toBe('old');
+  expect(item.include_rules).toBe('old.example');
+  expect(context.chrome.storage.local.set.mock.calls.some(([payload]) => payload.config)).toBe(false);
+  expect(context.applyProxySettingsNow).not.toHaveBeenCalled();
 });

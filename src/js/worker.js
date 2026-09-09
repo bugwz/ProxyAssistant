@@ -1516,6 +1516,7 @@ async function fetchSubscriptionBackground(proxyId, format, url, maxRetries = 3)
       let updated = false;
 
       let subscription;
+      let accepted = false;
       await enqueueProxyOperation(async () => {
         const result = await new Promise((resolve, reject) => {
           chrome.storage.local.get(['config'], (result) => {
@@ -1534,7 +1535,10 @@ async function fetchSubscriptionBackground(proxyId, format, url, maxRetries = 3)
         }
 
         subscription = config.subscriptions.find(item => item.id === proxyId);
-        const proxyFound = subscription?.current === format && subscription?.lists?.[format];
+        const proxyFound = subscription?.enabled !== false && subscription?.current === format
+          && subscription?.lists?.[format]?.url === url;
+        if (!proxyFound) return;
+        accepted = true;
         if (proxyFound) {
               const listConfig = subscription.lists[format];
               const oldContent = listConfig.content;
@@ -1559,10 +1563,6 @@ async function fetchSubscriptionBackground(proxyId, format, url, maxRetries = 3)
               }
         }
 
-        if (!proxyFound) {
-          console.warn(`[Worker] Proxy ${proxyId} with format ${format} not found in config`);
-        }
-
         await new Promise((resolve, reject) => {
           config.updated_at = new Date().toISOString();
           chrome.storage.local.set({ config: config }, () => {
@@ -1585,6 +1585,7 @@ async function fetchSubscriptionBackground(proxyId, format, url, maxRetries = 3)
 
       });
 
+      if (!accepted) return;
       console.log(`[Worker] Background fetch completed for proxy: ${proxyId}, updated: ${updated}`);
       appendRuntimeLog('info', 'subscription', 'subscription_refreshed', {
         subscriptionName: subscription?.name || proxyId,
