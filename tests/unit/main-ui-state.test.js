@@ -1463,4 +1463,33 @@ describe('main UI state flow', () => {
     expect(proxy).toMatchObject({ protocol, name: 'Saved', port: '8080' });
   });
 
+
+  test.each([true, false])('deleting the active scenario waits for activation success=%s', async success => {
+    let scenarios = [{ id: 'a', name: 'A', proxies: [] }, { id: 'b', name: 'B', proxies: [] }];
+    let current = 'a';
+    const storage = {
+      getScenarios: () => scenarios,
+      getCurrentScenarioId: () => current,
+      setCurrentScenarioId: id => { current = id; },
+      getCurrentScenario: () => scenarios.find(s => s.id === current),
+      deleteScenario: jest.fn(id => { scenarios = scenarios.filter(s => s.id !== id); })
+    };
+    let finish;
+    global.chrome.runtime.sendMessage.mockImplementation((message, callback) => { finish = callback; });
+    const onDelete = jest.fn();
+    const module = loadScenariosModule({
+      StorageModule: storage, ProxyModule: global.ProxyModule, UtilsModule: global.UtilsModule,
+      I18n: global.I18n, ConfigModule: global.ConfigModule,
+      onScenarioSwitch: jest.fn(), onScenarioDelete: onDelete
+    });
+    const pending = module.doDeleteScenario('a');
+    expect(storage.deleteScenario).not.toHaveBeenCalled();
+    expect(onDelete).not.toHaveBeenCalled();
+    finish({ success, error: success ? undefined : 'activation failed' });
+    await pending;
+    expect(current).toBe(success ? 'b' : 'a');
+    expect(scenarios.map(s => s.id)).toEqual(success ? ['b'] : ['a', 'b']);
+    expect(onDelete).toHaveBeenCalledTimes(success ? 1 : 0);
+  });
+
 });

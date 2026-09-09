@@ -666,7 +666,7 @@ const ScenariosModule = (function () {
     return saveScenarioSettings(id, { name: newName });
   }
 
-  function doDeleteScenario(id) {
+  async function doDeleteScenario(id) {
     const scenarios = getScenarios();
     const scenarioIndex = scenarios.findIndex(s => s.id === id);
     if (scenarioIndex === -1) return;
@@ -699,10 +699,10 @@ const ScenariosModule = (function () {
           renderScenarioViews();
           return;
         } else {
-          switchScenario(nextScenario.id);
+          if (!await switchScenario(nextScenario.id)) return false;
         }
       } else {
-        switchScenario(nextScenario.id);
+        if (!await switchScenario(nextScenario.id)) return false;
       }
     }
 
