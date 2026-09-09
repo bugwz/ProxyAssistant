@@ -105,3 +105,14 @@ test.each(['*://*.bbci.co.uk/*', 'https://*.bbci.co.uk/*', '*.bbci.co.uk'])('Leg
     }
   }
 });
+
+
+test.each(['*.cn', '*.example.com', '*.example.*'])('Omega preserves the host wildcard %s', rule => {
+  const content = '[SwitchyOmega Conditions]\n' + rule;
+  for (const reverse of [false, true]) {
+    for (const result of [loadSubscriptionModule().generateSubscriptionStats(content, 'switchy_omega', reverse),
+      parseInWorker(content, 'switchy_omega', reverse)]) {
+      expect(result[reverse ? 'bypass_rules' : 'include_rules']).toBe(rule);
+    }
+  }
+});

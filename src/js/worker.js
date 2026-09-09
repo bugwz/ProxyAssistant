@@ -1069,51 +1069,15 @@ function convertIPRangeToCIDR(pattern) {
 }
 
 function convertOmegaToProxyRule(pattern, type) {
-  const domainWithoutWildcard = pattern.replace(/^\*\./, '');
-
-  switch (type) {
-    case 'ip_range':
-      return convertIPRangeToCIDR(pattern);
-
-    case 'single_wildcard':
-      return `/^[a-z0-9-]+\.${escapeRegExp(domainWithoutWildcard)}$/`;
-
-    case 'complex_wildcard':
-      return `/.*\\.${escapeRegExp(pattern.substring(2, pattern.length - 1))}\\..*/`;
-
-    case 'wildcard_domain':
-      return domainWithoutWildcard;
-
-    case 'domain':
-      return pattern;
-
-    case 'single_segment':
-      return null;
-
-    default:
-      return pattern;
-  }
+  if (type === 'ip_range') return convertIPRangeToCIDR(pattern);
+  if (type === 'single_segment') return null;
+  return pattern;
 }
 
 function convertOmegaToBypassRule(pattern, type) {
-  switch (type) {
-    case 'ip_range':
-      return convertIPRangeToCIDR(pattern);
-
-    case 'wildcard_domain':
-      return pattern.replace(/^\*\./, '');
-
-    case 'domain':
-      return pattern;
-
-    case 'single_wildcard':
-    case 'complex_wildcard':
-    case 'single_segment':
-      return null;
-
-    default:
-      return pattern;
-  }
+  if (type === 'ip_range') return convertIPRangeToCIDR(pattern);
+  if (type === 'single_segment') return null;
+  return pattern;
 }
 
 function extractDomainFromWildcard(pattern) {
@@ -1262,7 +1226,8 @@ function normalizeSwitchyOmegaLine(line, reverse) {
     : convertOmegaToProxyRule(pattern, patternType);
 
   if (finalPattern === null) return null;
-  if (shouldBeDirect && !isValidManualBypassPattern(finalPattern)) return null;
+  if (shouldBeDirect && !isValidManualBypassPattern(finalPattern)
+    && !/^[a-z0-9*-]+(?:\.[a-z0-9*-]+)+$/i.test(finalPattern)) return null;
 
   return {
     pattern: finalPattern,
