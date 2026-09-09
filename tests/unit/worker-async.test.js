@@ -1302,3 +1302,28 @@ describe('proxy disable failures', () => {
     );
   });
 });
+
+
+describe('Firefox automatic proxy failover', () => {
+  test.each(['direct', 'reject'])('honors the %s fallback policy', async policy => {
+    const browser = {
+      runtime: { getBrowserInfo: jest.fn() },
+      proxy: { settings: { clear: jest.fn() }, onRequest: {
+        addListener: jest.fn(), hasListener: jest.fn(() => false)
+      } }
+    };
+    const context = loadWorkerContext({ browser });
+    await context.enqueueProxyOperation(() => {});
+    const proxy = { ip: 'proxy.example', port: '8080', protocol: 'https', include_rules: 'example.com', fallback_policy: policy };
+    const config = { scenarios: { current: 's', lists: [{ id: 's', proxies: [proxy] }] } };
+    context.chrome.storage.onChanged.addListener.mock.calls.forEach(([listener]) => {
+      listener({ config: { newValue: config } }, 'local');
+    });
+    const result = context.findProxyForRequestFirefox('https://example.com/');
+    if (policy === 'direct') expect(result).toEqual([expect.objectContaining({ type: 'https' }), { type: 'direct' }]);
+    else expect(result).toMatchObject({ type: 'https', host: 'proxy.example' });
+    expect(context.findProxyForRequestFirefox('https://other.example/')).toEqual({ type: 'direct' });
+    // Drain pending config maintenance without leaving timers running.
+    context.scheduleConfigMaintenance(null);
+  });
+});

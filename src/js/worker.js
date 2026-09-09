@@ -2810,7 +2810,9 @@ function findProxyForRequestFirefox(url) {
 
     const matcher = getCachedFirefoxRuleMatcher(proxy, 'include');
     if (matchesCompiledFirefoxRules(matcher, url, urlParts)) {
-      return createFirefoxProxyObject(proxy);
+      const proxyObject = createFirefoxProxyObject(proxy);
+      return proxy.fallback_policy === 'reject'
+        ? proxyObject : [proxyObject, { type: 'direct' }];
     }
   }
 
