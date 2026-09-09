@@ -1327,3 +1327,58 @@ describe('Firefox automatic proxy failover', () => {
     context.scheduleConfigMaintenance(null);
   });
 });
+
+
+describe('serialized connection tests', () => {
+  test.each([false, true])('restores routing before subsequent tests and disable (Firefox: %s)', async firefox => {
+    const browser = firefox ? {
+      runtime: { getBrowserInfo: jest.fn() },
+      proxy: { settings: { clear: jest.fn() }, onRequest: {
+        addListener: jest.fn(), hasListener: jest.fn(() => false)
+      } }
+    } : undefined;
+    const context = loadWorkerContext({ browser });
+    await context.enqueueProxyOperation(() => {});
+    const original = { id: 'original', ip: 'original.example', port: '8080', protocol: 'http' };
+    const config = { scenarios: { current: 's', lists: [{ id: 's', proxies: [original] }] } };
+    let state = { proxy: { mode: 'manual', current: original } };
+    let activeHost;
+    context.chrome.storage.local.get.mockImplementation((keys, callback) => callback({ config, state }));
+    context.chrome.storage.local.set.mockImplementation((payload, callback) => {
+      if (payload.state) state = payload.state;
+      if (callback) callback();
+    });
+    context.chrome.proxy.settings.set.mockImplementation((settings, callback) => {
+      activeHost = settings.value.rules?.singleProxy?.host || null;
+      callback();
+    });
+    context.fetch = jest.fn(async () => ({}));
+    await context.applyProxySettings();
+    const releases = [];
+    const visited = [];
+    context.runConnectivityTest = jest.fn(async proxy => {
+      const actual = firefox ? (await context.handleFirefoxRequest({ url: 'https://example.com/' })).host : activeHost;
+      visited.push([proxy.ip, actual]);
+      return new Promise(resolve => releases.push(resolve));
+    });
+    const firstResponse = jest.fn();
+    const secondResponse = jest.fn();
+    const first = context.testProxyConnection({ ...original, ip: 'a.example' }, firstResponse);
+    const second = context.testProxyConnection({ ...original, ip: 'b.example' }, secondResponse);
+    for (let i = 0; i < 12; i++) await Promise.resolve();
+    expect(visited).toEqual([['a.example', 'a.example']]);
+    releases.shift()({ success: true });
+    await first;
+    for (let i = 0; i < 12; i++) await Promise.resolve();
+    expect(visited).toEqual([['a.example', 'a.example'], ['b.example', 'b.example']]);
+    const disable = context.turnOffProxy();
+    releases.shift()({ success: false, error: 'unreachable' });
+    await second;
+    await disable;
+    expect(firstResponse).toHaveBeenCalledWith({ success: true });
+    expect(secondResponse).toHaveBeenCalledWith({ success: false, error: 'unreachable' });
+    expect(state.proxy.mode).toBe('disabled');
+    if (firefox) expect(await context.handleFirefoxRequest({ url: 'https://example.com/' })).toBeNull();
+    else expect(activeHost).toBeNull();
+  });
+});

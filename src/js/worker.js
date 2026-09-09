@@ -2076,23 +2076,9 @@ function restoreProxySettingsNow() {
         firefoxProxyState.mode = 'disabled';
       }
 
-      // OVERRIDE: If we have session state (e.g. recovered from suspension during test), restore it
-      if (sessionResult.firefoxProxyState) {
-        console.log("Restoring Firefox runtime state from session");
-        const savedState = sessionResult.firefoxProxyState;
-
-        // Restore test mode if it was active
-        if (savedState.testMode) {
-          firefoxProxyState.testMode = true;
-          firefoxProxyState.testProxy = savedState.testProxy;
-        }
-
-        // Restore mode if valid (session takes precedence for runtime consistency if needed)
-        // But generally we trust local storage for the main mode, session for transient states
-        if (savedState.mode && savedState.mode !== firefoxProxyState.mode) {
-          console.log(`Session mode ${savedState.mode} differs from local mode ${firefoxProxyState.mode}, keeping local`);
-        }
-      }
+      // A suspended test has no live request to finish; restore persistent routing.
+      firefoxProxyState.testMode = false;
+      firefoxProxyState.testProxy = null;
 
       setProxyAuthentication(firefoxProxyState.mode === 'manual' ? [firefoxProxyState.currentProxy]
         : firefoxProxyState.mode === 'auto' ? getScenarioProxies(result.config) : []);
@@ -3205,101 +3191,50 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 async function testProxyConnection(proxyInfo, sendResponse) {
-  // Validate before replacing the active proxy credentials or listeners.
-  const ipValidation = validateProxyConfig(proxyInfo?.ip, proxyInfo?.port);
-  if (!ipValidation.valid) {
-    sendResponse({ success: false, error: `Invalid proxy configuration: ${ipValidation.error}` });
+  const validation = validateProxyConfig(proxyInfo?.ip, proxyInfo?.port);
+  if (!validation.valid) {
+    sendResponse({ success: false, error: `Invalid proxy configuration: ${validation.error}` });
     return;
   }
+  try {
+    const result = await enqueueProxyOperation(() => testProxyConnectionNow({ ...proxyInfo }));
+    sendResponse(result);
+  } catch (error) {
+    sendResponse({ success: false, error: error.message || 'Connection failed' });
+  }
+}
 
-  const previousAuth = activeAuthProxies ? activeAuthProxies.slice() : [];
-
-  // Set test auth
-  setProxyAuthentication([proxyInfo]);
-
-  // Ensure listener is active
-  setupAuthListener();
-
-  // Clean protocol field to prevent corruption
-  const type = cleanProtocol(proxyInfo.protocol || "http");
-
-  if (isFirefox) {
-    // -------------------------
-    // Firefox Test Implementation
-    // -------------------------
-    // Backup state
-    const previousMode = firefoxProxyState.mode;
-
-    // Set Test Mode
-    firefoxProxyState.testMode = true;
-    firefoxProxyState.testProxy = proxyInfo;
-    updateFirefoxSessionState();
-
-    // In Firefox, we rely on onRequest which reads the state
-    // We don't need to "set" anything other than the state variables
-    console.log("Firefox: Enabled Test Mode for connectivity check");
-
-    try {
-      // Wait a bit for state to be picked up
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const testResult = await runConnectivityTest(proxyInfo);
-      sendResponse(testResult);
-
-    } catch (error) {
-      sendResponse({ success: false, error: error.message || "Connection failed" });
-    } finally {
-      // Restore state
-      firefoxProxyState.testMode = false;
-      firefoxProxyState.testProxy = null;
-      firefoxProxyState.mode = previousMode;
-      setProxyAuthentication(previousAuth);
-      updateFirefoxSessionState();
-    }
-  } else {
-    // -------------------------
-    // Chrome Test Implementation
-    // -------------------------
-    let proxyScheme = type === "socks5" ? "socks5" : (type === "socks4" ? "socks4" : "http");
-    if (type === "https") proxyScheme = "https";
-
-    // Config for test
-    const config = {
-      mode: "fixed_servers",
-      rules: {
-        singleProxy: {
-          scheme: proxyScheme,
-          host: proxyInfo.ip,
-          port: parseInt(proxyInfo.port, 10)
-        },
-        bypassList: ["<local>"]
-      }
-    };
-
-    try {
-      // Apply test proxy
+async function testProxyConnectionNow(proxyInfo) {
+  let applied = false;
+  try {
+    if (isFirefox) {
+      firefoxProxyState.testMode = true;
+      firefoxProxyState.testProxy = proxyInfo;
+    } else {
+      const protocol = cleanProtocol(proxyInfo.protocol || 'http');
+      const scheme = protocol === 'socks' ? 'socks5' : protocol;
       await new Promise((resolve, reject) => {
-        chrome.proxy.settings.set({ value: config, scope: "regular" }, () => {
-          if (chrome.runtime.lastError) {
-            reject(chrome.runtime.lastError);
-          } else {
-            resolve();
-          }
+        chrome.proxy.settings.set({ value: {
+          mode: 'fixed_servers',
+          rules: { singleProxy: { scheme, host: proxyInfo.ip, port: Number(proxyInfo.port) }, bypassList: ['<local>'] }
+        }, scope: 'regular' }, () => {
+          if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+          else resolve();
         });
       });
-
-      // Wait a bit for proxy settings to take effect
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const testResult = await runConnectivityTest(proxyInfo);
-      sendResponse(testResult);
-
-    } catch (error) {
-      sendResponse({ success: false, error: error.message || "Connection failed" });
-    } finally {
-      // Restore previous settings
-      setProxyAuthentication(previousAuth);
-      applyProxySettings(); // Re-apply whatever was in storage
+    }
+    applied = true;
+    setProxyAuthentication([proxyInfo]);
+    setupAuthListener();
+    return await runConnectivityTest(proxyInfo);
+  } finally {
+    if (isFirefox) {
+      firefoxProxyState.testMode = false;
+      firefoxProxyState.testProxy = null;
+    }
+    if (applied) {
+      const restored = await applyProxySettingsNow();
+      if (!restored?.success) throw new Error(restored?.error || 'Failed to restore proxy after testing');
     }
   }
 }
