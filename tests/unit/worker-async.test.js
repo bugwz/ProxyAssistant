@@ -1159,3 +1159,42 @@ describe('Worker applyProxy async handling', () => {
     expect(stored.config.scenarios.lists[1].defaultProxyId).toBeNull();
   });
 });
+
+
+describe('manual proxy configuration refresh', () => {
+  test.each([false, true])('resolves edits and removals from current configuration (Firefox: %s)', async firefox => {
+    const browser = firefox ? {
+      runtime: { getBrowserInfo: jest.fn() },
+      proxy: { settings: { clear: jest.fn() }, onRequest: {
+        addListener: jest.fn(), hasListener: jest.fn(() => false)
+      } }
+    } : undefined;
+    const context = loadWorkerContext({ browser });
+    for (let i = 0; i < 12; i++) await Promise.resolve();
+    const proxy = { id: 'p', protocol: 'http', ip: '127.0.0.1', port: '9090' };
+    const config = { scenarios: { current: 's', lists: [{ id: 's', proxies: [proxy] }] } };
+    let state = { proxy: { mode: 'manual', current: { ...proxy, port: '8080' } } };
+    context.chrome.storage.local.get.mockImplementation((keys, callback) => callback({ config, state }));
+    context.chrome.storage.local.set.mockImplementation((payload, callback) => {
+      if (payload.state) state = payload.state;
+      if (callback) callback();
+    });
+    context.fetch = jest.fn(async () => ({}));
+
+    await context.applyProxySettings();
+    expect(state.proxy.current.port).toBe('9090');
+    if (firefox) {
+      expect(await context.handleFirefoxRequest({ url: 'https://example.com/' })).toMatchObject({ port: 9090 });
+    } else {
+      expect(context.chrome.proxy.settings.set.mock.calls.at(-1)[0].value.rules.singleProxy.port).toBe(9090);
+    }
+
+    proxy.enabled = false;
+    await context.applyProxySettings();
+    expect(state.proxy.mode).toBe('disabled');
+    state = { proxy: { mode: 'manual', current: proxy } };
+    config.scenarios.lists[0].proxies = [];
+    await context.applyProxySettings();
+    expect(state.proxy).toEqual({ mode: 'disabled', current: null });
+  });
+});
