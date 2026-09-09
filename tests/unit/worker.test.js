@@ -1,3 +1,6 @@
+const fs = require('fs');
+const path = require('path');
+const workerSource = fs.readFileSync(path.join(__dirname, '../../src/js/worker.js'), 'utf8');
 describe('Worker.js - Utility Functions', () => {
   function cleanProtocol(protocol) {
     if (!protocol || typeof protocol !== 'string') return 'http';
@@ -82,42 +85,11 @@ describe('Worker.js - Utility Functions', () => {
     return false;
   }
 
-  function createFirefoxProxyObject(proxy) {
-    const type = cleanProtocol(proxy.protocol || proxy.type || "http");
-
-    let proxyType = "http";
-    let proxyDNS = false;
-    let socksVersion = undefined;
-
-    if (type === "socks5") {
-      proxyType = "socks";
-      proxyDNS = true;
-    } else if (type === "socks4") {
-      proxyType = "socks";
-      socksVersion = 4;
-    } else if (type === "https") {
-      proxyType = "https";
-    }
-
-    const result = {
-      type: proxyType,
-      host: proxy.ip,
-      port: parseInt(proxy.port),
-      username: proxy.username || undefined,
-      password: proxy.password || undefined,
-      proxyDNS: proxyDNS
-    };
-
-    if (socksVersion) {
-      result.socksVersion = socksVersion;
-    }
-
-    if ((proxyType === 'http' || proxyType === 'https') && proxy.username && proxy.password) {
-      result.proxyAuthorizationHeader = 'Basic ' + btoa(proxy.username + ':' + proxy.password);
-    }
-
-    return result;
-  }
+  const createFirefoxProxyObject = new Function('cleanProtocol',
+    workerSource.slice(workerSource.indexOf('function createFirefoxProxyObject('),
+      workerSource.indexOf('// -----------------------------------------------------------------------------\n// End Browser-Specific'))
+      + '; return createFirefoxProxyObject;'
+  )(cleanProtocol);
 
   describe('cleanProtocol', () => {
     test('should return http for null input', () => {
@@ -445,8 +417,8 @@ describe('Worker.js - Utility Functions', () => {
       };
 
       const result = createFirefoxProxyObject(proxy);
-      expect(result.type).toBe('socks');
-      expect(result.socksVersion).toBe(4);
+      expect(result.type).toBe('socks4');
+      expect(result.port).toBe(1080);
     });
 
     test('should include authentication when provided', () => {

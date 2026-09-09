@@ -1022,7 +1022,8 @@ function applyImportedSettings(data) {
 function cleanProtocol(protocol) {
   if (!protocol) return 'http';
   const clean = protocol.toLowerCase().replace(/[^a-z0-9]/g, '');
-  if (clean === 'socks5') return 'socks5';
+  if (clean === 'socks5' || clean === 'socks') return 'socks5';
+  if (clean === 'socks4') return 'socks4';
   if (clean === 'https') return 'https';
   return 'http';
 }

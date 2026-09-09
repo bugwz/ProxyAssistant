@@ -2654,8 +2654,7 @@ function generatePacScript(list, config) {
     if (!proxy.ip || !proxy.port) continue;
 
     const type = (proxy.protocol || "HTTP").toUpperCase();
-    let proxyType = "PROXY";
-    if (type.startsWith("SOCKS")) proxyType = "SOCKS5";
+    const proxyType = { HTTP: 'PROXY', HTTPS: 'HTTPS', SOCKS4: 'SOCKS4', SOCKS5: 'SOCKS5', SOCKS: 'SOCKS5' }[type] || 'PROXY';
     const proxyStr = `${proxyType} ${proxy.ip}:${proxy.port}`;
 
     // Determine fallback behavior based on fallback_policy
@@ -2927,14 +2926,12 @@ function createFirefoxProxyObject(proxy) {
 
   let proxyType = "http";
   let proxyDNS = false;
-  let socksVersion = undefined;
 
   if (type === "socks5") {
     proxyType = "socks";
     proxyDNS = true; // Default to remote DNS for SOCKS5
   } else if (type === "socks4") {
-    proxyType = "socks";
-    socksVersion = 4;
+    proxyType = 'socks4';
   } else if (type === "https") {
     proxyType = "https";
   }
@@ -2947,10 +2944,6 @@ function createFirefoxProxyObject(proxy) {
     password: proxy.password || undefined,
     proxyDNS: proxyDNS
   };
-
-  if (socksVersion) {
-    result.socksVersion = socksVersion;
-  }
 
   // Include Auth header for HTTP/HTTPS to potentially skip onAuthRequired
   if ((proxyType === 'http' || proxyType === 'https') && proxy.username && proxy.password) {

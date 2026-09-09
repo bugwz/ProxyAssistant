@@ -38,6 +38,15 @@ function executePacScript(script, url) {
 describe('Worker PAC generation', () => {
   const generatePacScript = loadGeneratePacScript();
 
+  test.each([['http', 'PROXY'], ['https', 'HTTPS'], ['socks4', 'SOCKS4'], ['socks5', 'SOCKS5']])(
+    'preserves %s in the executed PAC result', (protocol, directive) => {
+      const script = generatePacScript([{
+        protocol, ip: 'proxy.example', port: '8080', include_rules: 'example.com', fallback_policy: 'reject'
+      }]);
+      expect(executePacScript(script, 'https://example.com/')).toBe(`${directive} proxy.example:8080`);
+    }
+  );
+
   test('generates valid PAC for URL wildcard rules', () => {
     const script = generatePacScript([{
       enabled: true,

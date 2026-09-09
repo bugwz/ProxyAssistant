@@ -33,6 +33,14 @@ function loadModules() {
 }
 
 describe('configuration file sync round trips', () => {
+  test.each(['http', 'https', 'socks4', 'socks5'])('preserves %s during legacy migration', protocol => {
+    const { ConfigModule } = loadModules();
+    const result = ConfigModule.prepareConfigForApply({ scenarios: [{
+      name: 'Legacy', proxies: [{ name: 'Proxy', protocol, ip: 'proxy.example', port: '8080' }]
+    }] });
+    expect(result.scenarios.lists[0].proxies[0].protocol).toBe(protocol);
+  });
+
   test.each(['native', 'gist'])('%s pull restores exported proxies and subscriptions', async type => {
     const { ConfigModule, SyncModule, storage, items } = loadModules();
     const config = storage.getConfig();

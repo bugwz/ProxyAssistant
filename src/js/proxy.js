@@ -549,6 +549,7 @@ const ProxyModule = (function () {
                                 <ul class="lh-select-op">
                                     <li data-value="HTTP">HTTP</li>
                                     <li data-value="HTTPS">HTTPS</li>
+                                    <li data-value="SOCKS4">SOCKS4</li>
                                     <li data-value="SOCKS5">SOCKS5</li>
                                 </ul>
                             </div>
