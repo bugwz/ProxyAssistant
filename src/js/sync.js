@@ -378,10 +378,10 @@ async function manualPull(type = 'native') {
     if (remoteData) {
       console.log("Sync: Pulled data from " + type);
 
-      // Use migrateConfig to ensure correct format
-      const data = ConfigModule && ConfigModule.migrateConfig
-        ? ConfigModule.migrateConfig(remoteData)
-        : remoteData;
+      // Cloud files use the same external structure as exported JSON files.
+      const data = ConfigModule.prepareConfigForApply(remoteData, {
+        preserveOmittedSubscriptionCache: false
+      });
 
       // Remote data replaces the complete local configuration. The local
       // connection credentials and schedule remain local so future pulls work.

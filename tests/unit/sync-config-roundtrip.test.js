@@ -1,0 +1,73 @@
+const fs = require('fs');
+const path = require('path');
+
+function loadModules() {
+  let config = null;
+  const items = {};
+  const storage = {
+    getConfig: () => config,
+    setConfig: value => { config = value; },
+    save: jest.fn(async () => config)
+  };
+  const chain = new Proxy({}, { get: () => () => chain });
+  const scope = { StorageModule: storage };
+  const chrome = {
+    runtime: {},
+    storage: { sync: {
+      get: (keys, callback) => callback({ ...items }),
+      set: (values, callback) => { Object.assign(items, values); callback(); },
+      remove: (keys, callback) => { keys.forEach(key => delete items[key]); callback(); }
+    } }
+  };
+  const source = file => fs.readFileSync(path.join(__dirname, '../../src/js', file), 'utf8');
+  const run = new Function('window', 'StorageModule', 'I18n', '$', 'chrome', 'showTip',
+    'SubscriptionModule', 'loadSettings', 'fetch',
+    `${source('config.js')}\nconst ConfigModule = window.ConfigModule;\n${source('sync.js')}\nreturn window;`);
+  const fetch = jest.fn(async () => ({
+    ok: true,
+    json: async () => ({ files: { 'config.json': { content: JSON.stringify(items.remote) } } })
+  }));
+  run(scope, storage, { t: key => key }, () => chain, chrome, jest.fn(), null, jest.fn(), fetch);
+  config = scope.ConfigModule.getDefaultConfig();
+  return { ...scope, storage, items, fetch };
+}
+
+describe('configuration file sync round trips', () => {
+  test.each(['native', 'gist'])('%s pull restores exported proxies and subscriptions', async type => {
+    const { ConfigModule, SyncModule, storage, items } = loadModules();
+    const config = storage.getConfig();
+    const scenario = config.scenarios.lists[0];
+    const proxyId = ConfigModule.generateProxyId();
+    const subscriptionId = ConfigModule.generateSubscriptionId();
+    scenario.proxies = [{
+      id: proxyId, enabled: true, name: 'Proxy', protocol: 'https',
+      ip: 'proxy.example', port: '8443', subscription_ids: [subscriptionId]
+    }];
+    scenario.defaultProxyId = proxyId;
+    config.subscriptions = [{
+      id: subscriptionId, name: 'Rules', enabled: true, current: 'autoproxy',
+      lists: { autoproxy: { url: 'https://rules.example/list', include_rules: 'example.com' } }
+    }];
+    SyncModule.setSyncConfig({ gist: { token: 'local-token', gist_id: 'id', filename: 'config.json', auto_mode: 'off' } });
+    const file = ConfigModule.buildConfigFileData({ includeSubscriptions: true, includeSubscriptionCache: true });
+    if (type === 'native') await SyncModule.nativePush(file);
+    else items.remote = file;
+    scenario.proxies = [];
+    config.subscriptions = [];
+
+    await SyncModule.manualPull(type);
+
+    expect(storage.save).toHaveBeenCalled();
+    const restored = storage.getConfig();
+    expect(restored.scenarios.lists[0].proxies).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: proxyId, protocol: 'https', subscription_ids: [subscriptionId] })
+    ]));
+    expect(restored.scenarios.lists[0].defaultProxyId).toBe(proxyId);
+    expect(restored.subscriptions[0]).toMatchObject({
+      id: subscriptionId, current: 'autoproxy',
+      lists: { autoproxy: { include_rules: 'example.com' } }
+    });
+    expect(restored.system.sync.gist.token).toBe('local-token');
+    expect(restored.system.sync[type].last_sync_direction).toBe('pull');
+  });
+});

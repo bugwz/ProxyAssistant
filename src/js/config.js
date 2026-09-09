@@ -1060,6 +1060,7 @@ function generateSubscriptionId() {
 
 window.ConfigModule = {
   migrateConfig,
+  prepareConfigForApply,
   buildConfigData,
   buildConfigFileData,
   buildEditableConfigData,
