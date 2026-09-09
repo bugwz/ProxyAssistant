@@ -17,7 +17,7 @@
       "128": "images/icon-128.png"
    },
    "background": {
-      "scripts": ["js/worker.js"]
+      "scripts": ["js/rule-matcher.js", "js/worker.js"]
    },
    "content_security_policy": {
       "extension_pages": "default-src 'self'; script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https: http:;"

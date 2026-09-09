@@ -134,6 +134,7 @@ function loadWorkerContext(overrides = {}) {
   }
 
   vm.createContext(context);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/js/rule-matcher.js'), 'utf8'), context);
   vm.runInContext(source, context);
   context.__onMessageListener = onMessage.addListener.mock.calls[0][0];
   return context;

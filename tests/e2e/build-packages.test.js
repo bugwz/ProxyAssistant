@@ -52,8 +52,8 @@ afterAll(() => {
 
 describe('extension package build', () => {
   test.each([
-    ['chrome', manifest => manifest.background.service_worker === 'js/worker.js'],
-    ['firefox', manifest => manifest.background.scripts?.includes('js/worker.js')]
+    ['chrome', manifest => manifest.background.service_worker === 'js/worker.js' && manifest.background.type !== 'module'],
+    ['firefox', manifest => manifest.background.scripts?.join(',') === 'js/rule-matcher.js,js/worker.js']
   ])('builds a complete %s archive', (browserName, hasExpectedBackground) => {
     const archivePath = path.join(
       buildDirectory,
@@ -68,7 +68,8 @@ describe('extension package build', () => {
       'manifest.json',
       'main.html',
       'popup.html',
-      'js/worker.js'
+      'js/worker.js',
+      'js/rule-matcher.js'
     ]));
     expect(entries).not.toContain('manifest_chrome.json');
     expect(entries).not.toContain('manifest_firefox.json');

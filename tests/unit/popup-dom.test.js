@@ -81,7 +81,7 @@ function setupPopupDom({ config, state, tabUrl = 'https://example.com/' }) {
     }
   };
 
-  window.eval(fs.readFileSync(popupJsPath, 'utf8'));
+  window.eval(fs.readFileSync(path.join(__dirname, '../../src/js/rule-matcher.js'), 'utf8') + '\n' + fs.readFileSync(popupJsPath, 'utf8'));
   document.dispatchEvent(new window.Event('DOMContentLoaded', { bubbles: true }));
 
   return {

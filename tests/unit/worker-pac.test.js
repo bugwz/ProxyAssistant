@@ -9,6 +9,7 @@ function loadGeneratePacScript() {
   const context = { console };
 
   vm.createContext(context);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/js/rule-matcher.js'), 'utf8'), context);
   vm.runInContext(`
     const MAX_PROXY_RULES_PER_PROXY = 20000;
     const MAX_PROXY_REGEX_LENGTH = 512;

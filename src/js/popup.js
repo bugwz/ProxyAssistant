@@ -131,13 +131,13 @@ function getProxyIncludeRules(proxy) {
   }
 
   if (proxy.include_rules) {
-    includeRules.push(...proxy.include_rules.split(/[\n,]+/).map(s => s.trim()).filter(s => s));
+    includeRules.push(...ProxyRuleMatcher.splitProxyRulePatterns(proxy.include_rules));
   }
 
   const subscriptionRules = getProxySubscriptionRules(proxy, 'include');
   if (subscriptionRules) {
     try {
-        const subRules = subscriptionRules.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
+        const subRules = ProxyRuleMatcher.splitProxyRulePatterns(subscriptionRules);
         subRules.forEach(rule => {
           if (!includeRules.includes(rule)) {
             includeRules.push(rule);
@@ -545,7 +545,7 @@ function list_init(onComplete) {
       if (mode === 'auto' && tabs && tabs[0] && tabs[0].url) {
         try {
           const hostname = new URL(tabs[0].url).hostname;
-          autoMatchProxy = getAutoProxy(list, hostname);
+          autoMatchProxy = getAutoProxy(list, tabs[0].url);
         } catch (e) {
           console.log("Error parsing URL for auto match", e);
         }
@@ -738,7 +738,9 @@ function refreshProxyStatus() {
   });
 }
 
-function getAutoProxy(proxyList, hostname) {
+function getAutoProxy(proxyList, address) {
+  const url = address?.includes('://') ? address : '';
+  const hostname = url ? new URL(url).hostname : address;
   if (!proxyList || !hostname) return null;
 
   // Check include_rules in proxy list order, return first match
@@ -747,7 +749,7 @@ function getAutoProxy(proxyList, hostname) {
     if (!proxy.ip || !proxy.port) continue;
 
     const includeRules = getProxyIncludeRules(proxy);
-    if (includeRules.length > 0 && checkMatch(includeRules.join('\n'), hostname)) {
+    if (includeRules.length > 0 && checkMatch(includeRules.join('\n'), hostname, url)) {
       return proxy; // Return first matched proxy
     }
   }
@@ -755,64 +757,9 @@ function getAutoProxy(proxyList, hostname) {
   return null; // No match, Fallback to DIRECT
 }
 
-function checkMatch(patternsStr, hostname) {
-  if (!patternsStr) return false;
-  const patterns = patternsStr.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
-
-  function isIpPattern(pattern) {
-    const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
-    return ipv4Pattern.test(pattern);
-  }
-
-  function isInCidrRange(ip, cidr) {
-    const [range, bits] = cidr.split('/');
-    const mask = ~(2 ** (32 - parseInt(bits)) - 1);
-    const ipNum = ipToNumber(ip);
-    const rangeNum = ipToNumber(range);
-    return (ipNum & mask) === (rangeNum & mask);
-  }
-
-  function ipToNumber(ip) {
-    return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
-  }
-
-  for (const pattern of patterns) {
-    // Support regex pattern: /pattern/flags
-    if (pattern.startsWith('/') && pattern.endsWith('/') && pattern.length > 2) {
-      const regexContent = pattern.slice(1, -1);
-      const regexFlags = pattern.split('/').pop();
-      const flags = regexFlags && !regexFlags.includes('/') ? regexFlags : '';
-      try {
-        if (new RegExp(regexContent, flags).test(hostname)) return true;
-      } catch (e) { }
-    } else if (pattern.includes('*')) {
-      // Regex match for wildcards
-      try {
-        const regexStr = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
-        if (new RegExp(regexStr).test(hostname)) return true;
-      } catch (e) { }
-    } else if (isIpPattern(pattern)) {
-      // IP address or CIDR range
-      if (pattern.includes('/')) {
-        // CIDR format: 192.168.1.0/24
-        if (isInCidrRange(hostname, pattern)) return true;
-      } else {
-        // Single IP address
-        if (hostname === pattern) return true;
-      }
-    } else {
-      // Handle leading dot if present (e.g. .google.com -> google.com)
-      let normalizedPattern = pattern;
-      if (normalizedPattern.startsWith('.')) {
-        normalizedPattern = normalizedPattern.substring(1);
-      }
-
-      // Exact match or subdomain match
-      // Matches "google.com" or "www.google.com" if pattern is "google.com" or ".google.com"
-      if (hostname === normalizedPattern || hostname.endsWith('.' + normalizedPattern)) return true;
-    }
-  }
-  return false;
+function checkMatch(patternsStr, hostname, url = '') {
+  const matcher = ProxyRuleMatcher.compileFirefoxRulePatterns(ProxyRuleMatcher.splitProxyRulePatterns(patternsStr));
+  return ProxyRuleMatcher.matchesCompiledFirefoxRules(matcher, url, { host: hostname });
 }
 
 // ==========================================

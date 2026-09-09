@@ -47,6 +47,7 @@ function loadPopupContext() {
   };
 
   const context = {
+    URL,
     console,
     I18n: {
       init: jest.fn(),
@@ -92,6 +93,7 @@ function loadPopupContext() {
   };
 
   vm.createContext(context);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../../src/js/rule-matcher.js'), 'utf8'), context);
   vm.runInContext(source, context);
   vm.runInContext(`
     this.__popupTestApi = {
@@ -527,4 +529,19 @@ describe('popup scenario switching', () => {
     expect(source).toMatch(/let list = \[\];/);
     expect(source).toMatch(/let themeMode = 'light';/);
   });
+});
+
+
+test.each([
+  ['*.example.com', 'https://a.example.com/', true],
+  ['*.example.com', 'https://a.example.com.evil.test/', false],
+  ['host:/^EXAMPLE\.COM$/i', 'https://example.com/', true],
+  ['/^node[0-9]{1,3}\.example$/', 'https://node12.example/', true],
+  ['url:/^https:\/\/example\.com\/path$/', 'https://example.com/path', true],
+  ['url:/^https:\/\/example\.com\/path$/', 'https://example.com/other', false],
+  ['0.0.0.0/8', 'https://example.com/', false]
+])('popup routes %s at %s consistently', (rule, url, expected) => {
+  const context = loadPopupContext();
+  const proxy = { ip: 'proxy.example', port: '8080', include_rules: rule };
+  expect(context.getAutoProxy([proxy], url)).toBe(expected ? proxy : null);
 });
