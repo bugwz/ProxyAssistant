@@ -2351,89 +2351,21 @@ async function applyManualProxySettings(proxyInfo) {
     bypassList = [...new Set([...bypassList, ...customBypass])];
   }
 
-  // Merge subscription bypass rules (DIRECT) for Manual Mode
-  const proxySubscription = typeof getMergedProxySubscription === 'function'
-    ? getMergedProxySubscription(proxyInfo)
-    : proxyInfo.subscription;
-  if (proxySubscription) {
-    try {
-      const format = proxySubscription.current;
-      const subConfig = proxySubscription.lists[format];
-
-      if (subConfig && subConfig.bypass_rules) {
-        const reverse = subConfig.reverse || false;
-        const rules = parseSubscriptionRules(subConfig.bypass_rules, format, 'PROXY', '0.0.0.0:0', reverse);
-
-        // Filter for DIRECT rules (exceptions/bypass)
-        const directRules = rules.filter(r => r.action === 'DIRECT');
-        let addedCount = 0;
-
-        for (const rule of directRules) {
-          if (rule.type === 'domain') {
-            let pattern = rule.pattern.replace(/^\|\|/, '');
-            if (!pattern) continue;
-
-            if (pattern.startsWith('*.')) {
-              pattern = pattern.substring(2);
-            }
-
-            if (pattern.includes('/')) {
-              const ipv4CidrPattern = /^(\d{1,3}\.){3}\d{1,3}\/(8|9|1\d|2\d|3[0-2])$/;
-              if (ipv4CidrPattern.test(pattern)) {
-                if (!bypassList.includes(pattern)) {
-                  bypassList.push(pattern);
-                  addedCount++;
-                }
-              }
-              continue;
-            }
-
-            if (pattern.includes(':')) {
-              const ipPortPattern = /^(\d{1,3}\.){3}\d{1,3}:[1-9]\d{0,4}$/;
-              const portPattern = /^([a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?:[1-9]\d{0,4}$/;
-              if (ipPortPattern.test(pattern) || portPattern.test(pattern)) {
-                if (!bypassList.includes(pattern)) {
-                  bypassList.push(pattern);
-                  addedCount++;
-                }
-              }
-              continue;
-            }
-
-            const isIpPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
-            if (isIpPattern.test(pattern)) continue;
-
-            if (pattern && !bypassList.includes(pattern)) {
-              bypassList.push(pattern);
-              addedCount++;
-            }
-          } else if (rule.type === 'wildcard') {
-            let pattern = rule.pattern;
-            if (!pattern) continue;
-
-            if (pattern.startsWith('*.')) {
-              const domain = pattern.substring(2);
-              if (domain.includes('/')) continue;
-              const isIpPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
-              if (!isIpPattern.test(domain)) {
-                pattern = domain;
-              }
-            }
-
-            if (pattern && !bypassList.includes(pattern)) {
-              bypassList.push(pattern);
-              addedCount++;
-            }
-          } else if (rule.type === 'start') {
-            console.log(`Skipping URL prefix bypass rule: ${rule.pattern} (not supported by Chrome bypassList)`);
-          }
-        }
-        console.log(`Merged ${addedCount} bypass rules from subscription (Manual Mode)`);
-      }
-    } catch (e) {
-      console.info("Error merging subscription bypass rules:", e);
+  // Shared subscriptions already contain normalized bypass patterns.
+  const { config: storedConfig } = await getStorageValues(['config']);
+  const subscription = getMergedProxySubscription(proxyInfo, storedConfig);
+  const rules = subscription?.lists?.autoproxy?.bypass_rules || '';
+  for (const value of rules.split(/[\n,]+/)) {
+    const pattern = value.trim();
+    if (!pattern || pattern.startsWith('/')) continue;
+    if (/^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(pattern) && !/^[\d.]+$/.test(pattern)) {
+      // A normalized domain rule includes its root and all subdomains.
+      bypassList.push(pattern, '*.' + pattern);
+    } else {
+      bypassList.push(pattern);
     }
   }
+  bypassList = [...new Set(bypassList)];
 
   const config = {
     mode: "fixed_servers",

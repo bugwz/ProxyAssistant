@@ -902,8 +902,11 @@ describe('Worker applyProxy async handling', () => {
         levelOfControl: 'controlled_by_this_extension'
       });
     });
+    let settingsStarted;
+    const started = new Promise(resolve => { settingsStarted = resolve; });
     context.chrome.proxy.settings.set = jest.fn((config, callback) => {
       applySettingsCallback = callback;
+      settingsStarted();
     });
 
     const applyPromise = context.applyManualProxySettings({
@@ -913,7 +916,7 @@ describe('Worker applyProxy async handling', () => {
       port: '8080'
     });
 
-    await Promise.resolve();
+    await started;
 
     expect(storageSet).not.toHaveBeenCalled();
     expect(typeof applySettingsCallback).toBe('function');
@@ -1381,4 +1384,28 @@ describe('serialized connection tests', () => {
     if (firefox) expect(await context.handleFirefoxRequest({ url: 'https://example.com/' })).toBeNull();
     else expect(activeHost).toBeNull();
   });
+});
+
+
+test('manual mode applies normalized shared subscription bypass rules', async () => {
+  const context = loadWorkerContext();
+  await context.enqueueProxyOperation(() => {});
+  const config = { subscriptions: [
+    { id: 'active', enabled: true, current: 'autoproxy', lists: {
+      autoproxy: { bypass_rules: 'example.com\n10.0.0.0/8\n192.0.2.1\n*.internal.example' }
+    } },
+    { id: 'disabled', enabled: false, current: 'autoproxy', lists: { autoproxy: { bypass_rules: 'disabled.example' } } }
+  ] };
+  context.chrome.storage.local.get.mockImplementation((keys, callback) => callback({ config }));
+  context.chrome.proxy.settings.set.mockClear();
+  const result = await context.applyManualProxySettings({
+    ip: 'proxy.example', port: '8080', protocol: 'http',
+    bypass_rules: 'local.example', subscription_ids: ['active', 'disabled']
+  });
+  expect(result.success).toBe(true);
+  const rules = context.chrome.proxy.settings.set.mock.calls[0][0].value.rules;
+  expect(rules.bypassList).toEqual([
+    'localhost', '127.0.0.1', '<local>', 'local.example',
+    'example.com', '*.example.com', '10.0.0.0/8', '192.0.2.1', '*.internal.example'
+  ]);
 });
