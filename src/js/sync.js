@@ -116,11 +116,18 @@ function calculateChecksum(str) {
   return 'crc:' + Math.abs(hash).toString(16);
 }
 
-function buildSyncMeta(chunks) {
+function createSyncBatchPrefix() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return 'data.' + Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('') + '.';
+}
+
+function buildSyncMeta(chunks, prefix = createSyncBatchPrefix()) {
   const totalSize = chunks.reduce((sum, chunk) => sum + new Blob([chunk]).size, 0);
   const fullData = chunks.join('');
   return {
-    version: 4,
+    version: 5,
+    prefix,
     chunks: {
       start: 0,
       end: chunks.length - 1
@@ -131,12 +138,11 @@ function buildSyncMeta(chunks) {
 }
 
 function isValidMeta(meta) {
-  return meta &&
-    typeof meta.version === 'number' &&
-    meta.chunks &&
-    typeof meta.chunks.start === 'number' &&
-    typeof meta.chunks.end === 'number' &&
-    typeof meta.checksum === 'string';
+  return meta && [4, 5].includes(meta.version)
+    && (meta.version === 4 || /^data\.[a-f0-9]{32}\.$/.test(meta.prefix || ''))
+    && meta.chunks && meta.chunks.start === 0
+    && Number.isInteger(meta.chunks.end) && meta.chunks.end >= 0 && meta.chunks.end < 512
+    && typeof meta.checksum === 'string';
 }
 
 // ==========================================
@@ -187,7 +193,7 @@ function updateNativeQuotaInfo(configFileOptions) {
   const quotaTotalLimit = chrome.storage.sync.QUOTA_BYTES || 102400;
 
   const usageBytes = new Blob(['meta', JSON.stringify(meta)]).size
-    + chunks.reduce((sum, chunk, index) => sum + new Blob(['data.' + index, JSON.stringify(chunk)]).size, 0);
+    + chunks.reduce((sum, chunk, index) => sum + new Blob([meta.prefix + index, JSON.stringify(chunk)]).size, 0);
   const chunksCount = chunks.length;
   const usageKB = (usageBytes / 1024).toFixed(1);
   const quotaTotalKB = (quotaTotalLimit / 1024).toFixed(0);
@@ -239,7 +245,7 @@ async function nativePush(data) {
 
   const toWrite = { 'meta': meta };
   chunks.forEach((chunk, index) => {
-    toWrite['data.' + index] = chunk;
+    toWrite[meta.prefix + index] = chunk;
   });
 
   const existingItems = await new Promise((resolve, reject) => {
@@ -263,7 +269,7 @@ async function nativePush(data) {
   });
 
   const staleChunkKeys = Object.keys(existingItems).filter(key => {
-    return /^data\.\d+$/.test(key) && !Object.prototype.hasOwnProperty.call(toWrite, key);
+    return /^data\.[a-f0-9]{32}\.\d+$/.test(key) && !Object.prototype.hasOwnProperty.call(toWrite, key);
   });
 
   if (staleChunkKeys.length > 0) {
@@ -288,55 +294,23 @@ async function nativePush(data) {
 // ==========================================
 
 async function nativePull() {
-  const metaResult = await new Promise((resolve, reject) => {
-    chrome.storage.sync.get('meta', function (items) {
-      if (chrome.runtime.lastError) {
-        reject(new Error('Read meta failed: ' + chrome.runtime.lastError.message));
-      } else {
-        resolve(items);
-      }
-    });
-  });
-
-  const meta = metaResult.meta;
-
-  if (!isValidMeta(meta)) {
-    throw new Error('Invalid or missing metadata');
-  }
-
-  const keys = ['meta'];
-  for (let i = meta.chunks.start; i <= meta.chunks.end; i++) {
-    keys.push('data.' + i);
-  }
-
   const items = await new Promise((resolve, reject) => {
-    chrome.storage.sync.get(keys, function (result) {
-      if (chrome.runtime.lastError) {
-        reject(new Error('Read chunks failed: ' + chrome.runtime.lastError.message));
-      } else {
-        resolve(result);
-      }
+    chrome.storage.sync.get(null, result => {
+      if (chrome.runtime.lastError) reject(new Error('Read sync data failed: ' + chrome.runtime.lastError.message));
+      else resolve(result || {});
     });
   });
-
-  for (let i = meta.chunks.start; i <= meta.chunks.end; i++) {
-    if (!items['data.' + i]) {
-      throw new Error('Missing chunk: data.' + i);
-    }
+  const meta = items.meta;
+  if (!isValidMeta(meta)) throw new Error('Invalid or missing metadata');
+  const prefix = meta.version === 5 ? meta.prefix : 'data.';
+  const chunks = [];
+  for (let i = meta.chunks.start; i <= meta.chunks.end; i += 1) {
+    if (typeof items[prefix + i] !== 'string') throw new Error('Missing chunk: ' + prefix + i);
+    chunks.push(items[prefix + i]);
   }
-
-  const mergedData = [];
-  for (let i = meta.chunks.start; i <= meta.chunks.end; i++) {
-    mergedData.push(items['data.' + i]);
-  }
-  const fullData = mergedData.join('');
-
-  const calculatedChecksum = calculateChecksum(fullData);
-  if (calculatedChecksum !== meta.checksum) {
-    throw new Error('Checksum mismatch - data may be corrupted');
-  }
-
-  return JSON.parse(fullData);
+  const data = chunks.join('');
+  if (calculateChecksum(data) !== meta.checksum) throw new Error('Checksum mismatch - data may be corrupted');
+  return JSON.parse(data);
 }
 
 // ==========================================

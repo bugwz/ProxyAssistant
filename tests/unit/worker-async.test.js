@@ -32,6 +32,7 @@ function loadWorkerContext(overrides = {}) {
     setTimeout,
     clearTimeout,
     AbortController,
+    crypto: require('crypto').webcrypto,
     TextDecoder,
     URL,
     fetch: jest.fn(() => Promise.resolve()),
@@ -838,18 +839,10 @@ describe('Worker applyProxy async handling', () => {
     context.chrome.storage.local.get = jest.fn((keys, callback) => callback({ config: localConfig }));
     context.chrome.storage.local.set = storageSet;
     context.chrome.storage.sync = {
-      get: jest.fn((keys, callback) => {
-        if (keys === 'meta') {
-          callback({
-            meta: {
-              chunks: { start: 0, end: 0 },
-              checksum: context.calculateCloudSyncChecksum(remoteJson)
-            }
-          });
-        } else {
-          callback({ 'data.0': remoteJson });
-        }
-      })
+      get: jest.fn((keys, callback) => callback({
+        meta: { version: 4, chunks: { start: 0, end: 0 }, checksum: context.calculateCloudSyncChecksum(remoteJson) },
+        'data.0': remoteJson
+      }))
     };
 
     await expect(context.runScheduledCloudSync()).resolves.toBe(true);
@@ -1554,4 +1547,22 @@ test('scheduled sync chunks respect serialized utf8 byte limits', () => {
   chunks.forEach((chunk, index) => {
     expect(Buffer.byteLength('data.' + index + JSON.stringify(chunk))).toBeLessThanOrEqual(8192);
   });
+});
+
+test('scheduled and foreground sync exchange generation-based batches', async () => {
+  const context = loadWorkerContext();
+  const items = {};
+  context.chrome.storage.sync = {
+    get: (keys, callback) => callback(JSON.parse(JSON.stringify(items))),
+    set: (values, callback) => { Object.assign(items, values); callback(); },
+    remove: (keys, callback) => { keys.forEach(key => delete items[key]); callback(); }
+  };
+  const source = fs.readFileSync(path.join(__dirname, '../../src/js/sync.js'), 'utf8');
+  const foreground = new Function('window', 'chrome', 'Blob', source + '; return window.SyncModule;')({}, context.chrome, Blob);
+  const config = { version: 5, system: {}, scenarios: { current: 's', lists: [{ id: 's', proxies: [] }] } };
+  await context.pushNativeCloudConfig(config, {});
+  expect(await foreground.nativePull()).toEqual(context.buildCloudSyncPayload(config, {}));
+  const replacement = { version: 5, text: '中文'.repeat(5000) };
+  await foreground.nativePush(replacement);
+  expect(await context.pullNativeCloudConfig()).toEqual(replacement);
 });

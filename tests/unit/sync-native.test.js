@@ -151,24 +151,46 @@ describe('native sync writes', () => {
     expect(chromeMock.storage.sync.remove).not.toHaveBeenCalled();
   });
 
-  test('removes stale chunks only after a successful write', async () => {
-    const previousItems = {
-      meta: { version: 4, chunks: { start: 0, end: 2 }, checksum: 'crc:old' },
-      'data.0': 'old-0',
-      'data.1': 'old-1',
-      'data.2': 'old-2'
-    };
-    const { chromeMock, items } = createChromeMock(previousItems);
+  test('removes previously observed batch chunks after a successful write', async () => {
+    const { chromeMock, items } = createChromeMock();
     const syncModule = loadSyncModule(chromeMock);
-    const newData = { replacement: true };
+    await syncModule.nativePush({ previous: 'x'.repeat(18000) });
+    const previousPrefix = items.meta.prefix;
+    const previousKeys = Object.keys(items).filter(key => key.startsWith(previousPrefix));
+    await syncModule.nativePush({ replacement: true });
+    expect(chromeMock.storage.sync.remove).toHaveBeenCalledWith(previousKeys, expect.any(Function));
+    await expect(syncModule.nativePull()).resolves.toEqual({ replacement: true });
+  });
 
-    await syncModule.nativePush(newData);
+  test('delayed cleanup cannot remove another upload batch', async () => {
+    const { chromeMock, items } = createChromeMock();
+    const a = loadSyncModule(chromeMock);
+    const b = loadSyncModule(chromeMock);
+    await a.nativePush({ previous: 'x'.repeat(18000) });
+    const originalSet = chromeMock.storage.sync.set.getMockImplementation();
+    let release;
+    let started;
+    const firstWritten = new Promise(resolve => { started = resolve; });
+    chromeMock.storage.sync.set.mockImplementationOnce((values, callback) => {
+      originalSet(values, () => { release = callback; started(); });
+    });
+    const pending = a.nativePush({ small: true });
+    await firstWritten;
+    const latest = { large: 'y'.repeat(25000) };
+    await b.nativePush(latest);
+    release();
+    await pending;
+    expect(items.meta.version).toBe(5);
+    await expect(a.nativePull()).resolves.toEqual(latest);
+  });
 
-    expect(chromeMock.storage.sync.set).toHaveBeenCalledTimes(1);
-    expect(chromeMock.storage.sync.remove).toHaveBeenCalledWith(['data.1', 'data.2'], expect.any(Function));
-    expect(items['data.1']).toBeUndefined();
-    expect(items['data.2']).toBeUndefined();
-    await expect(syncModule.nativePull()).resolves.toEqual(newData);
+  test('reads published version four sync data', async () => {
+    const { chromeMock, items } = createChromeMock();
+    const module = loadSyncModule(chromeMock);
+    const data = JSON.stringify({ legacy: true });
+    items.meta = { version: 4, chunks: { start: 0, end: 0 }, checksum: module.calculateChecksum(data) };
+    items['data.0'] = data;
+    await expect(module.nativePull()).resolves.toEqual({ legacy: true });
   });
 
   test('tests browser sync storage without writing configuration data', async () => {

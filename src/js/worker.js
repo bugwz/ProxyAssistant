@@ -537,50 +537,54 @@ function chunkCloudSyncString(str, size) {
   return chunks;
 }
 
+function createSyncBatchPrefix() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return 'data.' + Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('') + '.';
+}
+
 async function pushNativeCloudConfig(config, options) {
   const json = JSON.stringify(buildCloudSyncPayload(config, options));
   const chunks = chunkCloudSyncString(json, CLOUD_SYNC_CHUNK_SIZE);
 
   const values = {
     meta: {
-      version: 4,
+      version: 5,
+      prefix: createSyncBatchPrefix(),
       chunks: { start: 0, end: chunks.length - 1 },
       totalSize: getUtf8ByteLength(json),
       checksum: calculateCloudSyncChecksum(json)
     }
   };
   chunks.forEach((chunk, index) => {
-    values[`data.${index}`] = chunk;
+    values[values.meta.prefix + index] = chunk;
   });
 
   const existing = await callStorageArea(chrome.storage.sync, 'get', null) || {};
   await callStorageArea(chrome.storage.sync, 'set', values);
   const staleKeys = Object.keys(existing).filter(key => (
-    /^data\.\d+$/.test(key) && !Object.prototype.hasOwnProperty.call(values, key)
+    /^data\.[a-f0-9]{32}\.\d+$/.test(key) && !Object.prototype.hasOwnProperty.call(values, key)
   ));
   if (staleKeys.length) await callStorageArea(chrome.storage.sync, 'remove', staleKeys);
 }
 
 async function pullNativeCloudConfig() {
-  const metaResult = await callStorageArea(chrome.storage.sync, 'get', 'meta') || {};
-  const meta = metaResult.meta;
-  if (!meta?.chunks || typeof meta.chunks.start !== 'number' || typeof meta.chunks.end !== 'number') {
+  const values = await callStorageArea(chrome.storage.sync, 'get', null) || {};
+  const meta = values.meta;
+  if (!meta || ![4, 5].includes(meta.version) || !meta.chunks || meta.chunks.start !== 0
+    || !Number.isInteger(meta.chunks.end) || meta.chunks.end < 0 || meta.chunks.end >= 512
+    || (meta.version === 5 && !/^data\.[a-f0-9]{32}\.$/.test(meta.prefix || ''))) {
     throw new Error('Invalid or missing cloud sync metadata');
   }
-
-  const keys = [];
+  const prefix = meta.version === 5 ? meta.prefix : 'data.';
+  const chunks = [];
   for (let index = meta.chunks.start; index <= meta.chunks.end; index += 1) {
-    keys.push(`data.${index}`);
-  }
-  const values = await callStorageArea(chrome.storage.sync, 'get', keys) || {};
-  const chunks = keys.map(key => {
+    const key = prefix + index;
     if (typeof values[key] !== 'string') throw new Error(`Missing cloud sync chunk: ${key}`);
-    return values[key];
-  });
-  const json = chunks.join('');
-  if (calculateCloudSyncChecksum(json) !== meta.checksum) {
-    throw new Error('Cloud sync checksum mismatch');
+    chunks.push(values[key]);
   }
+  const json = chunks.join('');
+  if (calculateCloudSyncChecksum(json) !== meta.checksum) throw new Error('Cloud sync checksum mismatch');
   return JSON.parse(json);
 }
 
